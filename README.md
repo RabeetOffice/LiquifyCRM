@@ -1,58 +1,176 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# LiquifyCRM
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A standalone multi-brand leads and sales CRM. Every brand's leads (website forms,
+Facebook Lead Ads, Messenger) land in one database, and each person sees only the
+brands and leads shared with them. The architecture document in
+[`docs/`](docs/) is the single source of truth.
 
-## About Laravel
+**Stack:** Laravel 13 · PHP 8.4 · MySQL/MariaDB · Filament 5 (Livewire 4, Tailwind 4, Vite) ·
+Pest 5 · spatie permission, activitylog, backup, settings, health, schedule-monitor ·
+Deployer 8 + GitHub Actions → Hostinger.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Build status (phase plan from the document)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Week | Phase | Status |
+|------|-------|--------|
+| 1 | Foundation: project, auth, brands, memberships, roles, brand switcher, departments, System screen, CI/deploy | ✅ done |
+| 2 | Leads core: leads, statuses, notes, tasks, timeline, list/detail/kanban, import, New queue, assignment, Reveal | ⏳ |
+| 3 | Website sources: sites, ingest API + liquify.php, pull mode, health checks | ⏳ |
+| 4 | Meta: Connect Facebook, Page mapping, Lead Ads, Messenger inbox | ⏳ |
+| 5 | Sales and targets: people profiles, Mark as Won, clients, targets, dashboards, brand identity fetch, distribution | ⏳ |
+| 6 | Hardening: logs screen, retention, theme polish, speed checks, backups, launch | ⏳ |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Local setup (Windows, XAMPP)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+The document targets PHP 8.4. XAMPP ships PHP 8.2, so a separate PHP 8.4 build is used
+for Composer and Artisan while XAMPP's MariaDB stays as the database.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. **PHP 8.4** — download the *NTS x64* zip from <https://windows.php.net/download/> and
+   extract to `C:\php84`. Copy `php.ini-development` to `php.ini` and enable:
+   `bcmath curl fileinfo gd intl mbstring exif openssl pdo_mysql pdo_sqlite sodium zip`,
+   set `extension_dir = "C:/php84/ext"`, `memory_limit = 1024M` and
+   `curl.cainfo` / `openssl.cafile` to `C:/xampp/apache/bin/curl-ca-bundle.crt`.
+   (This repository was set up exactly this way; see `CLAUDE.md`.)
+2. **Composer** — the global Composer works with PHP 8.4 via
+   `C:\php84\php.exe C:\ProgramData\ComposerSetup\bin\composer.phar …`.
+   In Git Bash: `export PATH="/c/php84:$PATH"` puts `php` and the `composer` wrapper first.
+3. **Databases** — start MySQL in the XAMPP control panel, then:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+   ```bash
+   /c/xampp/mysql/bin/mysql.exe -uroot -e "CREATE DATABASE liquifycrm CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE liquifycrm_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   ```
 
-## Agentic Development
+4. **Install**
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+   ```bash
+   composer install
+   npm install
+   cp .env.example .env            # then set DB_*, DB_DUMP_BINARY_PATH, DEPLOY_HOOK_TOKEN
+   php artisan key:generate
+   php artisan migrate
+   php artisan filament:assets
+   php artisan storage:link
+   npm run build                   # or `npm run dev` while working on the theme
+   php artisan liquify:install     # seeds roles and creates the first Super Admin
+   php artisan db:seed --class=DemoSeeder   # optional demo brands, departments and people
+   php artisan serve
+   ```
+
+5. Open <http://localhost:8000/admin>, sign in as the Super Admin, set up the authenticator
+   app when asked (2FA is required for Super Admins and Admins), then open a brand from the
+   user menu or go to <http://localhost:8000/b>.
+
+**Laravel Herd** works too: use Herd's PHP 8.4 and point `DB_*` at any MySQL 8 / MariaDB 10.4+.
+
+### Queue and scheduler on localhost
+
+Jobs (backups, database updates, invitation emails) run through the database queue. Either run
+the scheduler the way Hostinger does, once a minute:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan schedule:work
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+or drain the queue by hand when a job is waiting:
 
-## Contributing
+```bash
+php artisan queue:work --stop-when-empty
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Demo accounts (password `password`)
 
-## Code of Conduct
+| Role | Email |
+|------|-------|
+| Admin, all brands | admin@liquify.test |
+| Manager, Sales Team A (UK Publishing House) | manager.a@liquify.test |
+| Manager, Publishing Consultants (UK Publishing House) | manager.c@liquify.test |
+| Agents, Sales Team A | agent.one@liquify.test, agent.two@liquify.test |
+| Agent, Publishing Consultants | agent.three@liquify.test |
+| Manager / Agent, ANZ Publishing House | manager.anz@liquify.test / agent.anz@liquify.test |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The Super Admin is whatever you entered in `liquify:install`.
 
-## Security Vulnerabilities
+## .env keys
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Key | Purpose |
+|-----|---------|
+| `APP_URL` | Public URL, e.g. `https://crm.yourdomain.com` |
+| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | MySQL. On Hostinger use `127.0.0.1` |
+| `DB_DUMP_BINARY_PATH` | Folder containing `mysqldump` (XAMPP: `C:/xampp/mysql/bin`; Hostinger: usually `/usr/bin`) |
+| `QUEUE_CONNECTION=database`, `CACHE_STORE=database`, `SESSION_DRIVER=database` | No Redis needed |
+| `MAIL_*` | SMTP for invitations and alerts (`log` driver locally) |
+| `DEPLOY_HOOK_TOKEN` | Shared secret for `POST /hooks/deploy/{token}` (GitHub Actions secret `DEPLOY_TOKEN`) |
+| `DEPLOY_PATH` | Deployer root on the server, e.g. `/home/USER/crm`; enables release rollback on the System screen |
+| `REPORTING_CURRENCY`, `DEFAULT_CURRENCY`, `DEFAULT_TIMEZONE`, `REVEAL_LIMIT_PER_HOUR` | Defaults from the document (GBP, Europe/London, 30) |
+| `APP_DEBUG=false`, `APP_ENV=production` | Always in production |
 
-## License
+## Quality checks
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer lint      # Pint (laravel preset, strict types)
+composer analyse   # Larastan level 6
+composer test      # Pest against liquifycrm_test
+```
+
+The same three run in GitHub Actions on every push (`.github/workflows/ci.yml`).
+
+## Hostinger setup (one time)
+
+1. Plan with SSH access (Premium, Business or Cloud). In hPanel set **PHP 8.4** and enable the
+   `intl`, `gd`, `zip`, `exif`, `bcmath`, `sodium` extensions.
+2. Create the MySQL database and user in hPanel. The app connects to `127.0.0.1`.
+3. Create the deploy folder, e.g. `~/crm`, and inside it `shared/.env` with production values
+   (`APP_ENV=production`, `APP_DEBUG=false`, `APP_KEY`, `DB_*`, `MAIL_*`, `DEPLOY_HOOK_TOKEN`,
+   `DEPLOY_PATH=/home/USER/crm`, `DB_DUMP_BINARY_PATH=/usr/bin`).
+4. Point the domain's document root at `~/crm/current/public` (or replace `public_html` with a
+   symlink to it).
+5. Add the GitHub Actions public key under **hPanel → Advanced → SSH Access**.
+6. One cron job, every minute:
+
+   ```
+   * * * * * /usr/bin/php8.4 /home/USER/crm/current/artisan schedule:run >> /dev/null 2>&1
+   ```
+
+   The scheduler drains the queue (`queue:work --stop-when-empty --max-time=55`), records the cron
+   heartbeat, runs health checks, the nightly backup and housekeeping. No always-on worker is needed.
+
+7. First release only: SSH in and run `php artisan migrate --force` and `php artisan liquify:install`
+   from `~/crm/current`. After that every database change goes through the System screen.
+
+### GitHub repository secrets
+
+Set these per environment (`production` for `main`, `staging` for `develop`):
+
+`DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `DEPLOY_PATH`, `DEPLOY_PHP` (e.g. `/usr/bin/php8.4`),
+`DEPLOY_SSH_KEY` (private key), `APP_URL`, `DEPLOY_TOKEN` (same value as `DEPLOY_HOOK_TOKEN`).
+
+## Deploy steps
+
+1. Push to `develop` (staging) or `main` (production).
+2. GitHub Actions installs dependencies, builds assets, runs the tests, then runs
+   `vendor/bin/dep deploy` (`deploy.php`): it uploads the build into `releases/<n>`, links the shared
+   `.env` and `storage`, warms the caches and switches the `current` symlink. Users never see a
+   half-uploaded site.
+3. Actions calls `POST /hooks/deploy/{token}`. LiquifyCRM records the deployment and checks for
+   pending migrations. Super Admins get an in-app notification if any are waiting.
+4. On **System** (`/admin/system`) the Super Admin clicks **Backup and run database update**, confirms
+   their password, and a queued job takes a database dump with spatie/laravel-backup, runs
+   `migrate --force` and logs every line on the deployment record.
+5. Something wrong? **Roll back to previous release** switches `current` back (code only); the
+   backup from step 4 is on the `backups` disk for a database restore.
+
+## Project layout
+
+```
+app/Modules/<Module>/            Models, Policies, Actions, Jobs, Http, Database/Migrations,
+                                 resources/views, Filament/Admin|App/{Resources,Pages,Widgets}
+app/Providers/Filament/          AdminPanelProvider (/admin) and AppPanelProvider (/b/{brand})
+resources/css/filament/liquify/  the Liquify theme (tokens from the design section)
+tests/Feature/<Module>/          Pest feature tests
+deploy.php                       Deployer recipe (no migrations)
+docs/                            the architecture document
+```
+
+See `CLAUDE.md` for conventions used throughout the code.

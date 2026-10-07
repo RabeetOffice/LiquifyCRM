@@ -9,3 +9,8 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.docx binary
