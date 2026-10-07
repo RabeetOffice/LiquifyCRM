@@ -1,0 +1,58 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:83:"v2-5e6191a667b84b7a705ec9fcac85a402732862cb4ea49fdb744b2f5c75e1ba62-8.4.26-6.73.0.5";s:4:"data";a:22:{s:13:"locatedSource";a:2:{s:5:"class";s:60:"PHPStan\BetterReflection\SourceLocator\Located\LocatedSource";s:4:"data";a:2:{s:4:"name";s:39:"Illuminate\Support\Facades\Notification";s:8:"filename";s:111:"C:/xampp/htdocs/LiquifyCRM/vendor/composer/../laravel/framework/src/Illuminate/Support/Facades/Notification.php";}}s:9:"namespace";s:26:"Illuminate\Support\Facades";s:4:"name";s:39:"Illuminate\Support\Facades\Notification";s:9:"shortName";s:12:"Notification";s:11:"isInterface";b:0;s:7:"isTrait";b:0;s:6:"isEnum";b:0;s:12:"isBackedEnum";b:0;s:9:"modifiers";i:0;s:10:"docComment";s:2792:"/**
+ * @method static void send(\Illuminate\Support\Collection|mixed $notifiables, mixed $notification)
+ * @method static void sendNow(\Illuminate\Support\Collection|mixed $notifiables, mixed $notification, array|null $channels = null)
+ * @method static mixed channel(\UnitEnum|string|null $name = null)
+ * @method static mixed driver(\UnitEnum|string|null $driver = null)
+ * @method static string getDefaultDriver()
+ * @method static string deliversVia()
+ * @method static void deliverVia(string $channel)
+ * @method static \Illuminate\Notifications\ChannelManager locale(string $locale)
+ * @method static \Illuminate\Notifications\ChannelManager extend(string $driver, \Closure $callback)
+ * @method static array getDrivers()
+ * @method static \Illuminate\Contracts\Container\Container getContainer()
+ * @method static \Illuminate\Notifications\ChannelManager setContainer(\Illuminate\Contracts\Container\Container $container)
+ * @method static \Illuminate\Notifications\ChannelManager forgetDrivers()
+ * @method static void macro(string $name, object|callable $macro)
+ * @method static void mixin(object $mixin, bool $replace = true)
+ * @method static bool hasMacro(string $name)
+ * @method static void flushMacros()
+ * @method static string|null resolveConnectionFromQueueRoute(object $queueable)
+ * @method static string|null resolveQueueFromQueueRoute(object $queueable)
+ * @method static void assertSentOnDemand(string|\Closure $notification, callable|null $callback = null)
+ * @method static void assertSentTo(mixed $notifiable, string|\Closure $notification, callable|array|null $callback = null)
+ * @method static void assertSentOnDemandTimes(string $notification, int $times = 1)
+ * @method static void assertSentOnDemandOnce(string $notification)
+ * @method static void assertSentToTimes(mixed $notifiable, string $notification, int $times = 1)
+ * @method static void assertSentToOnce(mixed $notifiable, string $notification)
+ * @method static void assertNotSentTo(mixed $notifiable, string|\Closure $notification, callable|array|null $callback = null)
+ * @method static void assertNothingSent()
+ * @method static void assertNothingSentTo(mixed $notifiable)
+ * @method static void assertSentTimes(string $notification, int $expectedCount)
+ * @method static void assertCount(int $expectedCount)
+ * @method static \Illuminate\Support\Collection sent(mixed $notifiable, string $notification, callable|array|null $callback = null)
+ * @method static bool hasSent(mixed $notifiable, string $notification)
+ * @method static \Illuminate\Support\Testing\Fakes\NotificationFake serializeAndRestore(bool $serializeAndRestore = true)
+ * @method static array sentNotifications()
+ *
+ * @see \Illuminate\Notifications\ChannelManager
+ * @see \Illuminate\Support\Testing\Fakes\NotificationFake
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:48;s:7:"endLine";i:100;s:11:"startColumn";i:1;s:9:"endColumn";i:1;s:15:"parentClassName";s:33:"Illuminate\Support\Facades\Facade";s:20:"implementsClassNames";a:0:{}s:15:"traitClassNames";a:0:{}s:18:"immediateConstants";a:0:{}s:19:"immediateProperties";a:0:{}s:16:"immediateMethods";a:4:{s:4:"fake";a:20:{s:4:"name";s:4:"fake";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:115:"/**
+ * Replace the bound instance with a fake.
+ *
+ * @return \Illuminate\Support\Testing\Fakes\NotificationFake
+ */";s:9:"startLine";i:55;s:7:"endLine";i:60;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:26:"Illuminate\Support\Facades";s:18:"declaringClassName";s:39:"Illuminate\Support\Facades\Notification";s:21:"implementingClassName";s:39:"Illuminate\Support\Facades\Notification";s:16:"currentClassName";s:39:"Illuminate\Support\Facades\Notification";s:9:"aliasName";N;}s:6:"routes";a:20:{s:4:"name";s:6:"routes";s:10:"parameters";a:1:{s:8:"channels";a:13:{s:4:"name";s:8:"channels";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"array";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:68;s:7:"endLine";i:68;s:11:"startColumn";i:35;s:9:"endColumn";i:49;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:177:"/**
+ * Begin sending a notification to an anonymous notifiable on the given channels.
+ *
+ * @param  array  $channels
+ * @return \Illuminate\Notifications\AnonymousNotifiable
+ */";s:9:"startLine";i:68;s:7:"endLine";i:77;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:26:"Illuminate\Support\Facades";s:18:"declaringClassName";s:39:"Illuminate\Support\Facades\Notification";s:21:"implementingClassName";s:39:"Illuminate\Support\Facades\Notification";s:16:"currentClassName";s:39:"Illuminate\Support\Facades\Notification";s:9:"aliasName";N;}s:5:"route";a:20:{s:4:"name";s:5:"route";s:10:"parameters";a:2:{s:7:"channel";a:13:{s:4:"name";s:7:"channel";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:86;s:7:"endLine";i:86;s:11:"startColumn";i:34;s:9:"endColumn";i:41;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:5:"route";a:13:{s:4:"name";s:5:"route";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:86;s:7:"endLine";i:86;s:11:"startColumn";i:44;s:9:"endColumn";i:49;s:14:"parameterIndex";i:1;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:180:"/**
+ * Begin sending a notification to an anonymous notifiable.
+ *
+ * @param  string  $channel
+ * @param  mixed  $route
+ * @return \Illuminate\Notifications\AnonymousNotifiable
+ */";s:9:"startLine";i:86;s:7:"endLine";i:89;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:26:"Illuminate\Support\Facades";s:18:"declaringClassName";s:39:"Illuminate\Support\Facades\Notification";s:21:"implementingClassName";s:39:"Illuminate\Support\Facades\Notification";s:16:"currentClassName";s:39:"Illuminate\Support\Facades\Notification";s:9:"aliasName";N;}s:17:"getFacadeAccessor";a:20:{s:4:"name";s:17:"getFacadeAccessor";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:73:"/**
+ * Get the registered name of the component.
+ *
+ * @return string
+ */";s:9:"startLine";i:96;s:7:"endLine";i:99;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:18;s:9:"namespace";s:26:"Illuminate\Support\Facades";s:18:"declaringClassName";s:39:"Illuminate\Support\Facades\Notification";s:21:"implementingClassName";s:39:"Illuminate\Support\Facades\Notification";s:16:"currentClassName";s:39:"Illuminate\Support\Facades\Notification";s:9:"aliasName";N;}}s:10:"traitsData";a:4:{s:7:"aliases";a:0:{}s:9:"modifiers";a:0:{}s:11:"precedences";a:0:{}s:6:"hashes";a:0:{}}}}

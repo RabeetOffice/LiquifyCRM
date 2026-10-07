@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 class CreateScheduleMonitorTables extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('monitored_scheduled_tasks', function (Blueprint $table) {
             $table->bigIncrements('id');
@@ -28,7 +30,6 @@ class CreateScheduleMonitorTables extends Migration
 
             $table->timestamps();
         });
-
 
         Schema::create('monitored_scheduled_task_log_items', function (Blueprint $table) {
             $table->bigIncrements('id');

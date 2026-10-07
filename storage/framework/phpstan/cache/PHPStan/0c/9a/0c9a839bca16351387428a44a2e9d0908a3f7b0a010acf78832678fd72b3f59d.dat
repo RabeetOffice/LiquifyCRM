@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-ecf58d2f6a8ec902921ae66d3b812889d14b88b95584448b9c0cacb640f65735-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:69:"filament\forms\components\contracts\hasnestedrecursivevalidationrules";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

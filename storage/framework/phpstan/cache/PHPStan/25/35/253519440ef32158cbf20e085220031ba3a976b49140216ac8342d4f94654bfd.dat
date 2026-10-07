@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-7c29716e3bd96cc46e850de6d8b018fac58d8d2e7dffccbea06623ab26a19db1-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:54:"spatie\backup\tasks\cleanup\strategies\defaultstrategy";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

@@ -1,0 +1,158 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:83:"v2-2e3e157720bfc34ee7ce85498e36927183e57a3a29dfd099c5d99c99c70540e8-8.4.26-6.73.0.5";s:4:"data";a:22:{s:13:"locatedSource";a:2:{s:5:"class";s:60:"PHPStan\BetterReflection\SourceLocator\Located\LocatedSource";s:4:"data";a:2:{s:4:"name";s:25:"Illuminate\View\Component";s:8:"filename";s:97:"C:/xampp/htdocs/LiquifyCRM/vendor/composer/../laravel/framework/src/Illuminate/View/Component.php";}}s:9:"namespace";s:15:"Illuminate\View";s:4:"name";s:25:"Illuminate\View\Component";s:9:"shortName";s:9:"Component";s:11:"isInterface";b:0;s:7:"isTrait";b:0;s:6:"isEnum";b:0;s:12:"isBackedEnum";b:0;s:9:"modifiers";i:64;s:10:"docComment";N;s:10:"attributes";a:0:{}s:9:"startLine";i:15;s:7:"endLine";i:493;s:11:"startColumn";i:1;s:9:"endColumn";i:1;s:15:"parentClassName";N;s:20:"implementsClassNames";a:0:{}s:15:"traitClassNames";a:0:{}s:18:"immediateConstants";a:0:{}s:19:"immediateProperties";a:10:{s:6:"except";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:6:"except";s:9:"modifiers";i:2;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:22;s:7:"endLine";i:22;s:13:"startTokenPos";i:72;s:12:"startFilePos";i:489;s:11:"endTokenPos";i:73;s:10:"endFilePos";i:490;}}s:10:"docComment";s:97:"/**
+ * The properties / methods that should not be exposed to the component.
+ *
+ * @var array
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:22;s:7:"endLine";i:22;s:11:"startColumn";i:5;s:9:"endColumn";i:27;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:13:"componentName";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:13:"componentName";s:9:"modifiers";i:1;s:4:"type";N;s:7:"default";N;s:10:"docComment";s:54:"/**
+ * The component alias name.
+ *
+ * @var string
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:29;s:7:"endLine";i:29;s:11:"startColumn";i:5;s:9:"endColumn";i:26;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:10:"attributes";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:10:"attributes";s:9:"modifiers";i:1;s:4:"type";N;s:7:"default";N;s:10:"docComment";s:86:"/**
+ * The component attributes.
+ *
+ * @var \Illuminate\View\ComponentAttributeBag
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:36;s:7:"endLine";i:36;s:11:"startColumn";i:5;s:9:"endColumn";i:23;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:7:"factory";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:7:"factory";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";N;s:10:"docComment";s:96:"/**
+ * The view factory instance, if any.
+ *
+ * @var \Illuminate\Contracts\View\Factory|null
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:43;s:7:"endLine";i:43;s:11:"startColumn";i:5;s:9:"endColumn";i:30;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:18:"componentsResolver";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:18:"componentsResolver";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";N;s:10:"docComment";s:96:"/**
+ * The component resolver callback.
+ *
+ * @var (\Closure(string, array): Component)|null
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:50;s:7:"endLine";i:50;s:11:"startColumn";i:5;s:9:"endColumn";i:41;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:14:"bladeViewCache";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:14:"bladeViewCache";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:57;s:7:"endLine";i:57;s:13:"startTokenPos";i:118;s:12:"startFilePos";i:1191;s:11:"endTokenPos";i:119;s:10:"endFilePos";i:1192;}}s:10:"docComment";s:93:"/**
+ * The cache of blade view names, keyed by contents.
+ *
+ * @var array<string, string>
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:57;s:7:"endLine";i:57;s:11:"startColumn";i:5;s:9:"endColumn";i:42;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:13:"propertyCache";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:13:"propertyCache";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:64;s:7:"endLine";i:64;s:13:"startTokenPos";i:132;s:12:"startFilePos";i:1334;s:11:"endTokenPos";i:133;s:10:"endFilePos";i:1335;}}s:10:"docComment";s:79:"/**
+ * The cache of public property names, keyed by class.
+ *
+ * @var array
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:64;s:7:"endLine";i:64;s:11:"startColumn";i:5;s:9:"endColumn";i:41;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:11:"methodCache";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:11:"methodCache";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:71;s:7:"endLine";i:71;s:13:"startTokenPos";i:146;s:12:"startFilePos";i:1473;s:11:"endTokenPos";i:147;s:10:"endFilePos";i:1474;}}s:10:"docComment";s:77:"/**
+ * The cache of public method names, keyed by class.
+ *
+ * @var array
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:71;s:7:"endLine";i:71;s:11:"startColumn";i:5;s:9:"endColumn";i:39;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:26:"constructorParametersCache";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:26:"constructorParametersCache";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:78;s:7:"endLine";i:78;s:13:"startTokenPos";i:160;s:12:"startFilePos";i:1664;s:11:"endTokenPos";i:161;s:10:"endFilePos";i:1665;}}s:10:"docComment";s:114:"/**
+ * The cache of constructor parameters, keyed by class.
+ *
+ * @var array<class-string, array<int, string>>
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:78;s:7:"endLine";i:78;s:11:"startColumn";i:5;s:9:"endColumn";i:54;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}s:21:"ignoredParameterNames";a:16:{s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:4:"name";s:21:"ignoredParameterNames";s:9:"modifiers";i:18;s:4:"type";N;s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:85;s:7:"endLine";i:85;s:13:"startTokenPos";i:174;s:12:"startFilePos";i:1801;s:11:"endTokenPos";i:175;s:10:"endFilePos";i:1802;}}s:10:"docComment";s:65:"/**
+ * The cache of ignored parameter names.
+ *
+ * @var array
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:85;s:7:"endLine";i:85;s:11:"startColumn";i:5;s:9:"endColumn";i:49;s:10:"isPromoted";b:0;s:21:"declaredAtCompileTime";b:1;s:16:"immediateVirtual";b:0;s:14:"immediateHooks";a:0:{}}}s:16:"immediateMethods";a:24:{s:6:"render";a:20:{s:4:"name";s:6:"render";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:170:"/**
+ * Get the view / view contents that represent the component.
+ *
+ * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\Support\Htmlable|\Closure|string
+ */";s:9:"startLine";i:92;s:7:"endLine";i:92;s:11:"startColumn";i:5;s:9:"endColumn";i:38;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:65;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:7:"resolve";a:20:{s:4:"name";s:7:"resolve";s:10:"parameters";a:1:{s:4:"data";a:13:{s:4:"name";s:4:"data";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:100;s:7:"endLine";i:100;s:11:"startColumn";i:36;s:9:"endColumn";i:40;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:107:"/**
+ * Resolve the component instance with the given data.
+ *
+ * @param  array  $data
+ * @return static
+ */";s:9:"startLine";i:100;s:7:"endLine";i:115;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:28:"extractConstructorParameters";a:20:{s:4:"name";s:28:"extractConstructorParameters";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:84:"/**
+ * Extract the constructor parameters for the component.
+ *
+ * @return array
+ */";s:9:"startLine";i:122;s:7:"endLine";i:135;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:18;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:11:"resolveView";a:20:{s:4:"name";s:11:"resolveView";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:197:"/**
+ * Resolve the Blade view or view file that should be used when rendering the component.
+ *
+ * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\Support\Htmlable|\Closure|string
+ */";s:9:"startLine";i:142;s:7:"endLine";i:166;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:26:"extractBladeViewFromString";a:20:{s:4:"name";s:26:"extractBladeViewFromString";s:10:"parameters";a:1:{s:8:"contents";a:13:{s:4:"name";s:8:"contents";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:174;s:7:"endLine";i:174;s:11:"startColumn";i:51;s:9:"endColumn";i:59;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:119:"/**
+ * Create a Blade view with the raw component string content.
+ *
+ * @param  string  $contents
+ * @return string
+ */";s:9:"startLine";i:174;s:7:"endLine";i:187;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:25:"createBladeViewFromString";a:20:{s:4:"name";s:25:"createBladeViewFromString";s:10:"parameters";a:2:{s:7:"factory";a:13:{s:4:"name";s:7:"factory";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:196;s:7:"endLine";i:196;s:11:"startColumn";i:50;s:9:"endColumn";i:57;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:8:"contents";a:13:{s:4:"name";s:8:"contents";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:196;s:7:"endLine";i:196;s:11:"startColumn";i:60;s:9:"endColumn";i:68;s:14:"parameterIndex";i:1;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:175:"/**
+ * Create a Blade view with the raw component string content.
+ *
+ * @param  \Illuminate\Contracts\View\Factory  $factory
+ * @param  string  $contents
+ * @return string
+ */";s:9:"startLine";i:196;s:7:"endLine";i:214;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:4:"data";a:20:{s:4:"name";s:4:"data";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:138:"/**
+ * Get the data that should be supplied to the view.
+ *
+ * @author Freek Van der Herten
+ * @author Brent Roose
+ *
+ * @return array
+ */";s:9:"startLine";i:224;s:7:"endLine";i:229;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:23:"extractPublicProperties";a:20:{s:4:"name";s:23:"extractPublicProperties";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:79:"/**
+ * Extract the public properties for the component.
+ *
+ * @return array
+ */";s:9:"startLine";i:236;s:7:"endLine";i:256;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:20:"extractPublicMethods";a:20:{s:4:"name";s:20:"extractPublicMethods";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:76:"/**
+ * Extract the public methods for the component.
+ *
+ * @return array
+ */";s:9:"startLine";i:263;s:7:"endLine";i:282;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:24:"createVariableFromMethod";a:20:{s:4:"name";s:24:"createVariableFromMethod";s:10:"parameters";a:1:{s:6:"method";a:13:{s:4:"name";s:6:"method";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:16:"ReflectionMethod";s:12:"isIdentifier";b:0;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:290;s:7:"endLine";i:290;s:11:"startColumn";i:49;s:9:"endColumn";i:72;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:118:"/**
+ * Create a callable variable from the given method.
+ *
+ * @param  \ReflectionMethod  $method
+ * @return mixed
+ */";s:9:"startLine";i:290;s:7:"endLine";i:295;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:23:"createInvokableVariable";a:20:{s:4:"name";s:23:"createInvokableVariable";s:10:"parameters";a:1:{s:6:"method";a:13:{s:4:"name";s:6:"method";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:6:"string";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:303;s:7:"endLine";i:303;s:11:"startColumn";i:48;s:9:"endColumn";i:61;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:170:"/**
+ * Create an invokable, toStringable variable for the given component method.
+ *
+ * @param  string  $method
+ * @return \Illuminate\View\InvokableComponentVariable
+ */";s:9:"startLine";i:303;s:7:"endLine";i:308;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:12:"shouldIgnore";a:20:{s:4:"name";s:12:"shouldIgnore";s:10:"parameters";a:1:{s:4:"name";a:13:{s:4:"name";s:4:"name";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:316;s:7:"endLine";i:316;s:11:"startColumn";i:37;s:9:"endColumn";i:41;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:114:"/**
+ * Determine if the given property / method should be ignored.
+ *
+ * @param  string  $name
+ * @return bool
+ */";s:9:"startLine";i:316;s:7:"endLine";i:320;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:14:"ignoredMethods";a:20:{s:4:"name";s:14:"ignoredMethods";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:70:"/**
+ * Get the methods that should be ignored.
+ *
+ * @return array
+ */";s:9:"startLine";i:327;s:7:"endLine";i:343;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:8:"withName";a:20:{s:4:"name";s:8:"withName";s:10:"parameters";a:1:{s:4:"name";a:13:{s:4:"name";s:4:"name";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:351;s:7:"endLine";i:351;s:11:"startColumn";i:30;s:9:"endColumn";i:34;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:85:"/**
+ * Set the component alias name.
+ *
+ * @param  string  $name
+ * @return $this
+ */";s:9:"startLine";i:351;s:7:"endLine";i:356;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:14:"withAttributes";a:20:{s:4:"name";s:14:"withAttributes";s:10:"parameters";a:1:{s:10:"attributes";a:13:{s:4:"name";s:10:"attributes";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"array";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:364;s:7:"endLine";i:364;s:11:"startColumn";i:36;s:9:"endColumn";i:52;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:127:"/**
+ * Set the extra attributes that the component should make available.
+ *
+ * @param  array  $attributes
+ * @return $this
+ */";s:9:"startLine";i:364;s:7:"endLine";i:371;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:15:"newAttributeBag";a:20:{s:4:"name";s:15:"newAttributeBag";s:10:"parameters";a:1:{s:10:"attributes";a:13:{s:4:"name";s:10:"attributes";s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:379;s:7:"endLine";i:379;s:13:"startTokenPos";i:1598;s:12:"startFilePos";i:10107;s:11:"endTokenPos";i:1599;s:10:"endFilePos";i:10108;}}s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"array";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:379;s:7:"endLine";i:379;s:11:"startColumn";i:40;s:9:"endColumn";i:61;s:14:"parameterIndex";i:0;s:10:"isOptional";b:1;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:127:"/**
+ * Get a new attribute bag instance.
+ *
+ * @param  array  $attributes
+ * @return \Illuminate\View\ComponentAttributeBag
+ */";s:9:"startLine";i:379;s:7:"endLine";i:382;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:12:"shouldRender";a:20:{s:4:"name";s:12:"shouldRender";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:76:"/**
+ * Determine if the component should be rendered.
+ *
+ * @return bool
+ */";s:9:"startLine";i:389;s:7:"endLine";i:392;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:4:"view";a:20:{s:4:"name";s:4:"view";s:10:"parameters";a:3:{s:4:"view";a:13:{s:4:"name";s:4:"view";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:402;s:7:"endLine";i:402;s:11:"startColumn";i:26;s:9:"endColumn";i:30;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:4:"data";a:13:{s:4:"name";s:4:"data";s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:402;s:7:"endLine";i:402;s:13:"startTokenPos";i:1650;s:12:"startFilePos";i:10649;s:11:"endTokenPos";i:1651;s:10:"endFilePos";i:10650;}}s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:402;s:7:"endLine";i:402;s:11:"startColumn";i:33;s:9:"endColumn";i:42;s:14:"parameterIndex";i:1;s:10:"isOptional";b:1;}s:9:"mergeData";a:13:{s:4:"name";s:9:"mergeData";s:7:"default";a:2:{s:4:"code";s:2:"[]";s:10:"attributes";a:6:{s:9:"startLine";i:402;s:7:"endLine";i:402;s:13:"startTokenPos";i:1658;s:12:"startFilePos";i:10666;s:11:"endTokenPos";i:1659;s:10:"endFilePos";i:10667;}}s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:402;s:7:"endLine";i:402;s:11:"startColumn";i:45;s:9:"endColumn";i:59;s:14:"parameterIndex";i:2;s:10:"isOptional";b:1;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:231:"/**
+ * Get the evaluated view contents for the given view.
+ *
+ * @param  string|null  $view
+ * @param  \Illuminate\Contracts\Support\Arrayable|array  $data
+ * @param  array  $mergeData
+ * @return \Illuminate\Contracts\View\View
+ */";s:9:"startLine";i:402;s:7:"endLine";i:405;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:7:"factory";a:20:{s:4:"name";s:7:"factory";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:90:"/**
+ * Get the view factory instance.
+ *
+ * @return \Illuminate\Contracts\View\Factory
+ */";s:9:"startLine";i:412;s:7:"endLine";i:419;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:2;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:21:"ignoredParameterNames";a:20:{s:4:"name";s:21:"ignoredParameterNames";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:112:"/**
+ * Get the cached set of anonymous component constructor parameter names to exclude.
+ *
+ * @return array
+ */";s:9:"startLine";i:426;s:7:"endLine";i:444;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:10:"flushCache";a:20:{s:4:"name";s:10:"flushCache";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:65:"/**
+ * Flush the component's cached state.
+ *
+ * @return void
+ */";s:9:"startLine";i:451;s:7:"endLine";i:457;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:13:"forgetFactory";a:20:{s:4:"name";s:13:"forgetFactory";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:70:"/**
+ * Forget the component's factory instance.
+ *
+ * @return void
+ */";s:9:"startLine";i:464;s:7:"endLine";i:467;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:24:"forgetComponentsResolver";a:20:{s:4:"name";s:24:"forgetComponentsResolver";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:87:"/**
+ * Forget the component's resolver callback.
+ *
+ * @return void
+ *
+ * @internal
+ */";s:9:"startLine";i:476;s:7:"endLine";i:479;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}s:22:"resolveComponentsUsing";a:20:{s:4:"name";s:22:"resolveComponentsUsing";s:10:"parameters";a:1:{s:8:"resolver";a:13:{s:4:"name";s:8:"resolver";s:7:"default";N;s:4:"type";N;s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:489;s:7:"endLine";i:489;s:11:"startColumn";i:51;s:9:"endColumn";i:59;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}}s:16:"returnsReference";b:0;s:10:"returnType";N;s:10:"attributes";a:0:{}s:10:"docComment";s:192:"/**
+ * Set the callback that should be used to resolve components within views.
+ *
+ * @param  \Closure(string $component, array $data): Component  $resolver
+ * @return void
+ *
+ * @internal
+ */";s:9:"startLine";i:489;s:7:"endLine";i:492;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:15:"Illuminate\View";s:18:"declaringClassName";s:25:"Illuminate\View\Component";s:21:"implementingClassName";s:25:"Illuminate\View\Component";s:16:"currentClassName";s:25:"Illuminate\View\Component";s:9:"aliasName";N;}}s:10:"traitsData";a:4:{s:7:"aliases";a:0:{}s:9:"modifiers";a:0:{}s:11:"precedences";a:0:{}s:6:"hashes";a:0:{}}}}

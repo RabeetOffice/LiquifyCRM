@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - config
+        - database
+        - routes
+    level: 6
+    checkModelProperties: true
+    databaseMigrationsPath:
+        - database/migrations
+        - app/Modules/Auth/Database/Migrations
+        - app/Modules/Brands/Database/Migrations
+        - app/Modules/Departments/Database/Migrations
+        - app/Modules/System/Database/Migrations
+        - app/Modules/Activity/Database/Migrations
+    ignoreErrors:
+        - identifier: missingType.generics
+        - identifier: missingType.iterableValue
+    tmpDir: storage/framework/phpstan

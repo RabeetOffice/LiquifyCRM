@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-9b991ba36c7626c6b19554504df3a6af12f45f988f7e3fd5daa55d03da74b9fe-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:67:"spatie\schedulemonitor\support\concerns\usesmonitoredscheduledtasks";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-151edd29f67ba577bee066749b1828fe1a247ce9e2bdbdf9ad6e61f802cf8a25-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:57:"filament\tables\columns\concerns\hasextraheaderattributes";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-8c968ba12c28054d83bad019ba4a104ee60363aff0eb38da9bca62cfc8dcfb41-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:60:"symfony\component\console\exception\commandnotfoundexception";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

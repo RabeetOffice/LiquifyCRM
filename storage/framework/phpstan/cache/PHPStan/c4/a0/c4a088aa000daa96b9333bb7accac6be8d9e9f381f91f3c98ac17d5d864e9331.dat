@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-8b37d0ed7e41da9b71395f688122b50d5cc05709c7c25c2b5b123af9cc4edf01-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:42:"filament\pages\concerns\canauthorizeaccess";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

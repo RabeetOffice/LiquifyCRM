@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-722eb0d4d48018c687cb3392fa6b494bf5a8464ec7ceec2ebf8a07ef5f8d2f07-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:55:"illuminate\view\compilers\concerns\compilestranslations";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

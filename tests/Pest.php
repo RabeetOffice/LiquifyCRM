@@ -1,50 +1,87 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Actions\AddMemberToBrand;
+use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Enums\BrandRole;
+use App\Modules\Core\Enums\DepartmentRole;
+use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Departments\Models\Department;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/*
-|--------------------------------------------------------------------------
-| Test Case
-|--------------------------------------------------------------------------
-|
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind different classes or traits.
-|
-*/
-
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(RefreshDatabase::class)
+    ->beforeEach(function (): void {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        app(CurrentBrand::class)->clear();
+    })
     ->in('Feature');
 
-/*
-|--------------------------------------------------------------------------
-| Expectations
-|--------------------------------------------------------------------------
-|
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
-|
-*/
-
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+pest()->extend(TestCase::class)
+    ->in('Unit');
 
 /*
 |--------------------------------------------------------------------------
-| Functions
+| Helpers
 |--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
-|
 */
 
-function something()
+/** A Super Admin with an authenticator app already set up. */
+function superAdmin(array $attributes = []): User
 {
-    // ..
+    return User::factory()->superAdmin()->withTwoFactor()->create($attributes)->refresh();
+}
+
+/** An Admin with an authenticator app already set up. */
+function admin(array $attributes = []): User
+{
+    return User::factory()->admin()->withTwoFactor()->create($attributes)->refresh();
+}
+
+function brand(array $attributes = []): Brand
+{
+    return Brand::factory()->create($attributes);
+}
+
+function department(Brand $brand, array $attributes = []): Department
+{
+    return Department::factory()->create(['brand_id' => $brand->getKey(), ...$attributes]);
+}
+
+/**
+ * A Manager or Agent of a brand, optionally seated in a department.
+ */
+function memberOf(Brand $brand, BrandRole $role, ?Department $department = null, array $attributes = []): User
+{
+    $user = User::factory()->create($attributes);
+
+    app(AddMemberToBrand::class)->handle(
+        $brand,
+        $user,
+        $role,
+        $department,
+        $department ? DepartmentRole::from($role === BrandRole::Manager ? 'manager' : 'agent') : null,
+    );
+
+    return $user->fresh();
+}
+
+function managerOf(Department $department, array $attributes = []): User
+{
+    return memberOf($department->brand()->withoutGlobalScopes()->firstOrFail(), BrandRole::Manager, $department, $attributes);
+}
+
+function agentOf(Department $department, array $attributes = []): User
+{
+    return memberOf($department->brand()->withoutGlobalScopes()->firstOrFail(), BrandRole::Agent, $department, $attributes);
+}
+
+/** Point the brand scope and permission team at a brand, as the panel middleware does. */
+function inBrand(?Brand $brand): void
+{
+    app(CurrentBrand::class)->set($brand);
 }

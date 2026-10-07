@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-da6c541bf63930cc18847898092ca78e22179fd6a2d7772eb080c91cf1833d80-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:29:"spatie\health\traits\pingable";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

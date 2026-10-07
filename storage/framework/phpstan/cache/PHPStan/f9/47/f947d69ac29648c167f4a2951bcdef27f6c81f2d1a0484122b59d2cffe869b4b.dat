@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-fdf9d481452753e6abf271d5ef7d0a07fbb2ea35b3e8383bed3b7712d0b5f78e-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:50:"filament\pages\concerns\hasunsaveddatachangesalert";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}
