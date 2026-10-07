@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "liquify",
-      "runtimeExecutable": "C:\php84\php.exe",
+      "runtimeExecutable": "C:/php84/php.exe",
       "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
       "port": 8000
     }
