@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-676d42e64bc9e04ea5d5aa55bfdeda5e14d9191e29b48191a47203189f843fa4-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:51:"symfony\component\httpfoundation\binaryfileresponse";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

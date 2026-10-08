@@ -1,0 +1,60 @@
+LiquifyCRM generated image set
+Created with the built-in image generation model.
+Raster PNG originals; generated dimensions may differ from target sizes. SVGs, exact palette correction and web optimization are not included.
+
+logo-concepts | (1774, 887)
+Eight droplet-flow logo variations, including lowercase l and framed-drop directions. Orange-to-coral gradient, flat geometric curves on white.
+
+logo-horizontal | (2048, 768)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Horizontal logo lockup on white, a single rounded gradient droplet with tail flowing right into short horizontal line on left. Exact text "LiquifyCRM" modern Inter-like semibold geometric sans-serif, "Liquify" ink and "CRM" orange. Comfortable letter spacing, vertically centered, flat vector-style raster.
+
+logo-horizontal-dark | (1942, 809)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Horizontal logo lockup on deep ink #1C1917, a single rounded gradient droplet with tail flowing right into short horizontal line on left. Exact text "LiquifyCRM" modern Inter-like semibold geometric sans-serif, "Liquify" warm white and "CRM" orange. Comfortable letter spacing, vertically centered, flat vector-style raster.
+
+app-icon | (1254, 1254)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Square 1024x1024 iOS-style rounded square icon background gradient light orange top-left to coral bottom-right subtle inner glow. Center bold pure white single rounded liquid droplet with tail flowing smoothly right into short horizontal line, 55% icon width. No text border outer shadow.
+
+app-icon-dark | (1254, 1254)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Square 1024x1024 iOS-style rounded square icon background deep warm black #1C1917. Center bold orange-to-coral gradient single rounded liquid droplet with tail flowing smoothly right into short horizontal line, 55% icon width. No text border outer shadow.
+
+favicon | (1254, 1254)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Ultra-simple favicon symbol: single solid #FF6B2C rounded droplet, no gradient fine detail or line, thick shape readable at 16px. Center generous padding transparent background.
+
+login-light | (1586, 992)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Abstract software login background 2560x1600 landscape 16:10. Soft flowing liquid orange coral peach shapes melt into warm white, slow glossy liquid or silk gentle light and depth. Left half calm empty space for form, shapes concentrated right. Apple keynote elegance no text objects people.
+
+login-dark | (1586, 992)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Abstract software login background 2560x1600 landscape 16:10. Soft flowing liquid orange coral peach shapes softly glow on deep warm black #0C0A09, slow glossy liquid or silk gentle light depth. Left half calm empty space for form, shapes concentrated right. No text objects people.
+
+empty-leads | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Empty glass funnel with a single orange droplet about to fall in.
+
+empty-website | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Simple browser window and a droplet-shaped plug not yet connected to it.
+
+empty-sales | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Small trophy with an empty circular progress ring around it.
+
+empty-followups | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Calm check mark inside soft orange circle with one small sparkle.
+
+empty-target-exceeded | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Circular progress ring overflowing with orange liquid, a few confetti pieces.
+
+empty-search | (1448, 1086)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 800x600. Magnifying glass over single small droplet on empty surface.
+
+onboarding-welcome | (1536, 1024)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 1200x800. Droplets travel from several simple website windows and a chat bubble all flowing into one rounded glass container.
+
+onboarding-team | (1536, 1024)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 1200x800. Three rounded person silhouettes connected by flowing orange lines meeting in the middle.
+
+onboarding-targets | (1536, 1024)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Minimal flat SaaS illustration with soft gradients, rounded shapes, warm grey #78716C accents, consistent line weight, centered subject lots of white space white background. No text. Landscape 1200x800. Three rising bars filling up with orange liquid, tallest slightly overflowing.
+
+email-header | (1983, 793)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Wide banner 4:1 aspect ratio 2400x600. Warm white background soft liquid orange-to-coral wave along bottom edge. Empty space top left for logo to add later. No text.
+
+social-share | (1730, 909)
+Brand LiquifyCRM premium publishing sales CRM. Apple-inspired minimal calm premium fresh. Palette orange #FF6B2C, light orange #FF8A3D, coral #FF5E62, peach #FFF4ED, ink #1C1917, warm white #FAFAF9. Rounded flowing simple geometry, gentle depth, generous empty space. No real company logos, watermark, random text, clutter, busy textures or mascots. Landscape 1200x630 premium social preview smooth orange-to-coral gradient background soft glossy flowing shapes clear calm central area for white logo to add later. No text objects.

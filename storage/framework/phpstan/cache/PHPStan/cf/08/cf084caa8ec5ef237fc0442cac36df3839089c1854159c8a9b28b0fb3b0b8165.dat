@@ -1,0 +1,23 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:83:"v2-048382377674c6cc49bc5408e0d016f421ffb8a4f377ceb6132d83e39e5faa2c-8.4.26-6.73.0.5";s:4:"data";a:22:{s:13:"locatedSource";a:2:{s:5:"class";s:60:"PHPStan\BetterReflection\SourceLocator\Located\LocatedSource";s:4:"data";a:2:{s:4:"name";s:31:"Maatwebsite\Excel\Facades\Excel";s:8:"filename";s:85:"C:/xampp/htdocs/LiquifyCRM/vendor/composer/../maatwebsite/excel/src/Facades/Excel.php";}}s:9:"namespace";s:25:"Maatwebsite\Excel\Facades";s:4:"name";s:31:"Maatwebsite\Excel\Facades\Excel";s:9:"shortName";s:5:"Excel";s:11:"isInterface";b:0;s:7:"isTrait";b:0;s:6:"isEnum";b:0;s:12:"isBackedEnum";b:0;s:9:"modifiers";i:0;s:10:"docComment";s:1913:"/**
+ * @method static BinaryFileResponse download(Export $export, string $fileName, string $writerType = null, array<string, string> $headers = [])
+ * @method static bool store(Export $export, string $filePath, string $disk = null, string $writerType = null, mixed $diskOptions = [])
+ * @method static PendingDispatch queue(Export $export, string $filePath, string $disk = null, string $writerType = null, mixed $diskOptions = [])
+ * @method static string raw(Export $export, string $writerType)
+ * @method static BaseExcel import(Import $import, string|UploadedFile $filePath, string $disk = null, string $readerType = null)
+ * @method static array<array-key, array<int, array<array-key, mixed>>> toArray(Import $import, string|UploadedFile $filePath, string $disk = null, string $readerType = null)
+ * @method static Collection<array-key, Collection<int, Collection<array-key, mixed>>> toCollection(?Import $import, string|UploadedFile $filePath, string $disk = null, string $readerType = null)
+ * @method static PendingDispatch queueImport(Import $import, string|UploadedFile $filePath, string $disk = null, string $readerType = null)
+ * @method static void registerSourceHandler(SheetSourceHandler|QueuedSheetSourceHandler|string ...$handlers)
+ * @method static void matchByRegex()
+ * @method static void doNotMatchByRegex()
+ * @method static void assertDownloaded(string $fileName, callable $callback = null)
+ * @method static void assertStored(string $filePath, string|callable $disk = null, callable $callback = null)
+ * @method static void assertQueued(string $filePath, string|callable $disk = null, callable $callback = null)
+ * @method static void assertQueuedWithChain(array<int, object> $chain)
+ * @method static void assertExportedInRaw(string $classname, callable $callback = null)
+ * @method static void assertImported(string $filePath, string|callable $disk = null, callable $callback = null)
+ */";s:10:"attributes";a:0:{}s:9:"startLine";i:36;s:7:"endLine";i:53;s:11:"startColumn";i:1;s:9:"endColumn";i:1;s:15:"parentClassName";s:33:"Illuminate\Support\Facades\Facade";s:20:"implementsClassNames";a:0:{}s:15:"traitClassNames";a:0:{}s:18:"immediateConstants";a:0:{}s:19:"immediateProperties";a:0:{}s:16:"immediateMethods";a:2:{s:4:"fake";a:20:{s:4:"name";s:4:"fake";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:4:"void";s:12:"isIdentifier";b:1;}}s:10:"attributes";a:0:{}s:10:"docComment";s:50:"/**
+ * Replace the bound instance with a fake.
+ */";s:9:"startLine";i:41;s:7:"endLine";i:44;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:17;s:9:"namespace";s:25:"Maatwebsite\Excel\Facades";s:18:"declaringClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:21:"implementingClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:16:"currentClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:9:"aliasName";N;}s:17:"getFacadeAccessor";a:20:{s:4:"name";s:17:"getFacadeAccessor";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:6:"string";s:12:"isIdentifier";b:1;}}s:10:"attributes";a:0:{}s:10:"docComment";s:52:"/**
+ * Get the registered name of the component.
+ */";s:9:"startLine";i:49;s:7:"endLine";i:52;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:18;s:9:"namespace";s:25:"Maatwebsite\Excel\Facades";s:18:"declaringClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:21:"implementingClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:16:"currentClassName";s:31:"Maatwebsite\Excel\Facades\Excel";s:9:"aliasName";N;}}s:10:"traitsData";a:4:{s:7:"aliases";a:0:{}s:9:"modifiers";a:0:{}s:11:"precedences";a:0:{}s:6:"hashes";a:0:{}}}}

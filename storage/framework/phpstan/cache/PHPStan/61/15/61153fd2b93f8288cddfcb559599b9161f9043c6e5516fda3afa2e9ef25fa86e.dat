@@ -1,0 +1,31 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:83:"v2-c22d6a50b0bd0ee5bfcc1712c53d7f3e8827bc4c9b004231d0a491eea88d527f-8.4.26-6.73.0.5";s:4:"data";a:22:{s:13:"locatedSource";a:2:{s:5:"class";s:60:"PHPStan\BetterReflection\SourceLocator\Located\LocatedSource";s:4:"data";a:2:{s:4:"name";s:36:"Maatwebsite\Excel\Concerns\FromQuery";s:8:"filename";s:90:"C:/xampp/htdocs/LiquifyCRM/vendor/composer/../maatwebsite/excel/src/Concerns/FromQuery.php";}}s:9:"namespace";s:26:"Maatwebsite\Excel\Concerns";s:4:"name";s:36:"Maatwebsite\Excel\Concerns\FromQuery";s:9:"shortName";s:9:"FromQuery";s:11:"isInterface";b:1;s:7:"isTrait";b:0;s:6:"isEnum";b:0;s:12:"isBackedEnum";b:0;s:9:"modifiers";i:0;s:10:"docComment";N;s:10:"attributes";a:0:{}s:9:"startLine";i:13;s:7:"endLine";i:47;s:11:"startColumn";i:1;s:9:"endColumn";i:1;s:15:"parentClassName";N;s:20:"implementsClassNames";a:1:{i:0;s:33:"Maatwebsite\Excel\Concerns\Export";}s:15:"traitClassNames";a:0:{}s:18:"immediateConstants";a:0:{}s:19:"immediateProperties";a:0:{}s:16:"immediateMethods";a:1:{s:5:"query";a:20:{s:4:"name";s:5:"query";s:10:"parameters";a:0:{}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionUnionType";s:4:"data";a:1:{s:5:"types";a:3:{i:0;a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:33:"Illuminate\Database\Query\Builder";s:12:"isIdentifier";b:0;}}i:1;a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:36:"Illuminate\Database\Eloquent\Builder";s:12:"isIdentifier";b:0;}}i:2;a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:47:"Illuminate\Database\Eloquent\Relations\Relation";s:12:"isIdentifier";b:0;}}}}}s:10:"attributes";a:0:{}s:10:"docComment";s:1584:"/**
+ * Return the builder whose rows should be exported.
+ *
+ * The export walks this query in chunks via Laravel's `Builder::chunk()`,
+ * which paginates with `LIMIT/OFFSET`. For chunked pagination to be safe
+ * the query MUST have a deterministic, unique `ORDER BY`. If multiple
+ * rows share the primary sort value, the database engine is free to
+ * return tied rows in a different order between paginated queries —
+ * which causes some rows to appear in two chunks and others to be
+ * skipped entirely, with no error raised.
+ *
+ * Always append a unique tie-breaker — typically the primary key:
+ *
+ *     return Person::query()
+ *         ->orderBy('created_at', 'desc')
+ *         ->orderBy('id', 'asc');   // stable tie-breaker
+ *
+ * UUID primary keys make this pitfall noticeably more likely to bite.
+ * With auto-incrementing integer keys, InnoDB stores rows in PK order,
+ * which often happens to match insertion order — so ties in
+ * `created_at` resolve "naturally" in a stable way and the bug stays
+ * latent. With random (v4) UUIDs the storage layout is decorrelated
+ * from insertion time and the filesort no longer hides ties; the same
+ * code that ran fine for years on integer PKs starts dropping and
+ * duplicating rows the day it's deployed against a UUID table. UUIDs
+ * have a deterministic lexicographic total order, so `orderBy('id')`
+ * still works as a tie-breaker — there's no special handling needed,
+ * just always set one.
+ *
+ * @return Builder|EloquentBuilder<covariant Model>|Relation<covariant Model, covariant Model, Collection<int, Model>>
+ */";s:9:"startLine";i:46;s:7:"endLine";i:46;s:11:"startColumn";i:5;s:9:"endColumn";i:62;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:9:"modifiers";i:1;s:9:"namespace";s:26:"Maatwebsite\Excel\Concerns";s:18:"declaringClassName";s:36:"Maatwebsite\Excel\Concerns\FromQuery";s:21:"implementingClassName";s:36:"Maatwebsite\Excel\Concerns\FromQuery";s:16:"currentClassName";s:36:"Maatwebsite\Excel\Concerns\FromQuery";s:9:"aliasName";N;}}s:10:"traitsData";a:4:{s:7:"aliases";a:0:{}s:9:"modifiers";a:0:{}s:11:"precedences";a:0:{}s:6:"hashes";a:0:{}}}}
