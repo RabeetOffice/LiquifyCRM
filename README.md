@@ -5,9 +5,10 @@ Facebook Lead Ads, Messenger) land in one database, and each person sees only th
 brands and leads shared with them. The architecture document in
 [`docs/`](docs/) is the single source of truth.
 
-**Stack:** Laravel 13 · PHP 8.4 · MySQL/MariaDB · Filament 5 (Livewire 4, Tailwind 4, Vite) ·
-Pest 5 · spatie permission, activitylog, backup, settings, health, schedule-monitor ·
-Deployer 8 + GitHub Actions → Hostinger.
+**Stack:** Laravel 13 · PHP 8.4 · MySQL/MariaDB · Livewire 4 + Laravel Fortify (Tailwind 4, Vite,
+Chart.js, Heroicons) with LiquifyCRM's own layout and design system · Pest 5 · spatie permission,
+activitylog, backup, settings, health, schedule-monitor · Laravel-Excel · Deployer 8 + GitHub
+Actions → Hostinger.
 
 ## Build status (phase plan from the document)
 
@@ -50,7 +51,6 @@ for Composer and Artisan while XAMPP's MariaDB stays as the database.
    cp .env.example .env            # then set DB_*, DB_DUMP_BINARY_PATH, DEPLOY_HOOK_TOKEN
    php artisan key:generate
    php artisan migrate
-   php artisan filament:assets
    php artisan storage:link
    npm run build                   # or `npm run dev` while working on the theme
    php artisan liquify:install     # seeds roles and creates the first Super Admin
@@ -58,10 +58,11 @@ for Composer and Artisan while XAMPP's MariaDB stays as the database.
    php artisan serve
    ```
 
-5. Open <http://localhost:8000/admin>, sign in as the Super Admin, set up the authenticator
-   app when asked (2FA is required for Super Admins and Admins unless `LIQUIFY_REQUIRE_TWO_FACTOR=false`
-   is set locally), then open a brand from the
-   user menu or go to <http://localhost:8000/b>.
+5. Open <http://localhost:8000/login> and sign in as the Super Admin. You are sent to
+   **Password and 2FA** to set up the authenticator app (2FA is required for Super Admins and
+   Admins unless `LIQUIFY_REQUIRE_TWO_FACTOR=false` is set locally). The admin area is at
+   <http://localhost:8000/admin>; a brand workspace at <http://localhost:8000/b/{brand}>.
+   `php artisan db:seed --class=LeadsDemoSeeder` adds sample leads to every brand (local only).
 
 **Laravel Herd** works too: use Herd's PHP 8.4 and point `DB_*` at any MySQL 8 / MariaDB 10.4+.
 
@@ -167,9 +168,12 @@ Set these per environment (`production` for `main`, `staging` for `develop`):
 
 ```
 app/Modules/<Module>/            Models, Policies, Actions, Jobs, Http, Database/Migrations,
-                                 resources/views, Filament/Admin|App/{Resources,Pages,Widgets}
-app/Providers/Filament/          AdminPanelProvider (/admin) and AppPanelProvider (/b/{brand})
-resources/css/filament/liquify/  the Liquify theme (tokens from the design section)
+                                 Livewire/Admin|App (full-page screens), resources/views/livewire
+app/Providers/FortifyServiceProvider.php  sign-in, password reset, 2FA, profile actions
+routes/web.php                   admin.* under /admin, brand.* under /b/{brand}
+resources/css/app.css            the design system (tokens from the design section)
+resources/views/components/ui/   buttons, fields, cards, stats, tables, modals, toasts…
+resources/views/components/layouts/, partials/   the shell (sidebar, top bar), guest layout
 tests/Feature/<Module>/          Pest feature tests
 deploy.php                       Deployer recipe (no migrations)
 docs/                            the architecture document

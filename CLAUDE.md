@@ -5,8 +5,11 @@ is the single source of truth. Read it before changing behaviour. Build happens
 in the document's weekly phases; never skip a phase or silently change the design.
 
 ## Stack
-- Laravel 13, PHP 8.4, MySQL/MariaDB, Filament 5 (Livewire 4, Tailwind 4, Vite), Pest 5.
-- Only packages from the document's "Libraries and packages" table. Ask before adding any other.
+- Laravel 13, PHP 8.4, MySQL/MariaDB, Livewire 4 + Laravel Fortify (Tailwind 4, Vite, Chart.js,
+  blade-heroicons), Pest 5. Filament was removed on the user's decision (8 Oct 2026): never
+  reintroduce it; every screen is a Livewire page on LiquifyCRM's own layout and design system.
+- Only packages from the document's "Libraries and packages" table (plus the approved
+  blade-ui-kit/blade-heroicons and chart.js). Ask before adding any other.
 - Hostinger shared hosting: database queue drained by the scheduler (one cron), no Redis, no daemons.
 
 ## Local toolchain (Windows, XAMPP)
@@ -17,16 +20,21 @@ in the document's weekly phases; never skip a phase or silently change the desig
 
 ## Layout
 - `app/Modules/<Module>/` holds Models, Policies, Actions, Jobs, Http, Database/Migrations,
-  resources/views and `Filament/Admin|App/{Resources,Pages,Widgets}`. Each module has a
+  `Livewire/Admin|App` (full-page screens) and `resources/views/livewire`. Each module has a
   `<Module>ServiceProvider` extending `App\Modules\Core\ModuleServiceProvider` and is registered
   in `bootstrap/providers.php`.
-- Two Filament panels: `/admin` (global, Super Admin + Admin) and `/b/{brand}` (brand workspace,
-  Brand is the tenant). Resources are discovered from `Filament/Admin` and `Filament/App` folders.
+- Two areas routed in `routes/web.php`: `admin.*` under `/admin` (`global-admin` / `super-admin`
+  middleware) and `brand.*` under `/b/{brand}` (the brand is bound in `BrandsServiceProvider`,
+  `brand.member` middleware sets `CurrentBrand`; strangers get 404). Screens use
+  `#[Layout('components.layouts.app')]`, the `x-ui.*` components and the traits in
+  `App\Modules\Core\Livewire\Concerns` (WithToasts, WithConfirmation, WithTableState).
+  `Menu::for()` builds the sidebar; `AppNotification` is the one bell + email notification.
 - Brand isolation: `BelongsToBrand` trait (global scope from `CurrentBrand`), Policies, permission
   names in `App\Modules\Core\Enums\Permission`. Super Admin/Admin are `users.role`; Manager/Agent are
   brand memberships mirrored into spatie teams (team = brand_id).
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
-- Theme: `resources/css/filament/liquify/theme.css`. Palette tokens come from the document.
+- Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
+  `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,
