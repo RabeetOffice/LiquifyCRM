@@ -48,7 +48,11 @@ final class UserFactory extends Factory
 
     public function withTwoFactor(): static
     {
-        return $this->state(fn (): array => ['app_authentication_secret' => Str::random(32)]);
+        return $this->state(fn (): array => [
+            'two_factor_secret' => encrypt(Str::random(32)),
+            'two_factor_recovery_codes' => encrypt(json_encode([Str::random(10).'-'.Str::random(10)])),
+            'two_factor_confirmed_at' => now(),
+        ]);
     }
 
     public function unverified(): static

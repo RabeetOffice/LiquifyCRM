@@ -6,19 +6,19 @@ use App\Modules\Auth\AuthServiceProvider;
 use App\Modules\Brands\BrandsServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Departments\DepartmentsServiceProvider;
+use App\Modules\Leads\LeadsServiceProvider;
 use App\Modules\System\SystemServiceProvider;
 use App\Providers\AppServiceProvider;
-use App\Providers\Filament\AdminPanelProvider;
-use App\Providers\Filament\AppPanelProvider;
+use App\Providers\FortifyServiceProvider;
 
 return [
     AppServiceProvider::class,
-    AdminPanelProvider::class,
-    AppPanelProvider::class,
+    FortifyServiceProvider::class,
     CoreServiceProvider::class,
     AuthServiceProvider::class,
     BrandsServiceProvider::class,
     DepartmentsServiceProvider::class,
+    LeadsServiceProvider::class,
     ActivityServiceProvider::class,
     SystemServiceProvider::class,
 ];

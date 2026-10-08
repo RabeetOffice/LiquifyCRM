@@ -54,11 +54,9 @@ it('returns 404 on Brand B for a Manager of Brand A', function (): void {
 });
 
 it('does not list Brand B in the brand switcher for a member of Brand A', function (): void {
-    $panel = filament()->getPanel('app');
-
-    expect($this->agentA->getTenants($panel)->pluck('slug')->all())->toBe(['brand-a'])
-        ->and($this->agentA->canAccessTenant($this->brandB))->toBeFalse()
-        ->and($this->agentA->canAccessTenant($this->brandA))->toBeTrue();
+    expect($this->agentA->accessibleBrands()->pluck('slug')->all())->toBe(['brand-a'])
+        ->and($this->agentA->canAccessBrand($this->brandB))->toBeFalse()
+        ->and($this->agentA->canAccessBrand($this->brandA))->toBeTrue();
 });
 
 it('lets a global Admin open every brand', function (): void {

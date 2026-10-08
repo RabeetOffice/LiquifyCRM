@@ -15,25 +15,17 @@ use App\Modules\Core\Enums\MembershipStatus;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Departments\Models\DepartmentUser;
 use Carbon\CarbonImmutable;
-use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
-use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasAvatar;
-use Filament\Models\Contracts\HasDefaultTenant;
-use Filament\Models\Contracts\HasName;
-use Filament\Models\Contracts\HasTenants;
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use SensitiveParameter;
+use Illuminate\Support\Str;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -49,12 +41,12 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $timezone
  * @property CarbonImmutable|null $last_login_at
  * @property string|null $last_login_ip
- * @property string|null $app_authentication_secret
- * @property array<int, string>|null $app_authentication_recovery_codes
- * @property bool $has_email_authentication
+ * @property string|null $two_factor_secret
+ * @property string|null $two_factor_recovery_codes
+ * @property CarbonImmutable|null $two_factor_confirmed_at
  * @property int|null $created_by
  */
-class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasAvatar, HasDefaultTenant, HasName, HasTenants
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
@@ -62,6 +54,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     use HasRoles;
     use Notifiable;
     use SoftDeletes;
+    use TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name', 'email', 'password', 'role', 'is_protected', 'status',
@@ -69,7 +62,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes',
+        'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
     ];
 
     protected function casts(): array
@@ -81,9 +74,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'is_protected' => 'boolean',
             'status' => MembershipStatus::class,
             'last_login_at' => 'datetime',
-            'app_authentication_secret' => 'encrypted',
-            'app_authentication_recovery_codes' => 'encrypted:array',
-            'has_email_authentication' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
@@ -206,6 +197,17 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $this->brandRole($brand) === BrandRole::Agent;
     }
 
+    /** Plain-words role for the sidebar and profile. */
+    public function roleLabelIn(?Brand $brand = null): string
+    {
+        return match (true) {
+            $this->isSuperAdmin() => 'Super Admin',
+            $this->isAdmin() => 'Administrator',
+            $brand !== null => $this->brandRole($brand)?->getLabel() ?? 'Member',
+            default => 'Member',
+        };
+    }
+
     // ------------------------------------------------------------- departments
 
     /** @return BelongsToMany<Department, $this, DepartmentUser> */
@@ -271,31 +273,21 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $this->departments()->acrossBrands()->where('departments.id', $departmentId)->exists();
     }
 
-    // ---------------------------------------------------------------- Filament
+    // ----------------------------------------------------------------- access
 
-    public function canAccessPanel(Panel $panel): bool
+    /** The admin area is for Super Admins and Admins who are not suspended. */
+    public function canAccessAdminArea(): bool
     {
-        // Soft-deleted users never reach the guard, so only suspension matters here.
-        if ($this->isSuspended()) {
-            return false;
-        }
-
-        if ($panel->getId() === 'admin') {
-            return $this->isGlobalAdmin();
-        }
-
-        if ($this->isGlobalAdmin()) {
-            return true;
-        }
-
-        return $this->memberships()
-            ->acrossBrands()
-            ->where('status', MembershipStatus::Active->value)
-            ->exists();
+        return $this->isActive() && $this->isGlobalAdmin();
     }
 
-    /** @return Collection<int, Brand> */
-    public function getTenants(Panel $panel): Collection
+    /**
+     * Brands this person may open: every active brand for global admins,
+     * their active memberships otherwise.
+     *
+     * @return Collection<int, Brand>
+     */
+    public function accessibleBrands(): Collection
     {
         if ($this->isGlobalAdmin()) {
             return Brand::query()->where('is_active', true)->orderBy('name')->get();
@@ -308,9 +300,9 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             ->get();
     }
 
-    public function canAccessTenant(Model $tenant): bool
+    public function canAccessBrand(Brand $brand): bool
     {
-        if (! $tenant instanceof Brand || ! $tenant->is_active) {
+        if (! $brand->is_active || $this->isSuspended()) {
             return false;
         }
 
@@ -320,24 +312,31 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
         return $this->memberships()
             ->acrossBrands()
-            ->where('brand_id', $tenant->getKey())
+            ->where('brand_id', $brand->getKey())
             ->where('status', MembershipStatus::Active->value)
             ->exists();
     }
 
-    public function getDefaultTenant(Panel $panel): ?Model
+    public function defaultBrand(): ?Brand
     {
-        return $this->getTenants($panel)->first();
+        $brand = $this->accessibleBrands()->first();
+
+        return $brand instanceof Brand ? $brand : null;
     }
 
-    public function getFilamentName(): string
-    {
-        return $this->name;
-    }
-
-    public function getFilamentAvatarUrl(): ?string
+    public function avatarUrl(): ?string
     {
         return $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : null;
+    }
+
+    public function initials(): string
+    {
+        return Str::of($this->name)
+            ->explode(' ')
+            ->filter()
+            ->take(2)
+            ->map(fn (string $part): string => mb_strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
     }
 
     // --------------------------------------------------------- two-factor auth
@@ -350,33 +349,6 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     public function hasTwoFactorEnabled(): bool
     {
-        return filled($this->app_authentication_secret);
-    }
-
-    public function getAppAuthenticationSecret(): ?string
-    {
-        return $this->app_authentication_secret;
-    }
-
-    public function saveAppAuthenticationSecret(#[SensitiveParameter] ?string $secret): void
-    {
-        $this->app_authentication_secret = $secret;
-        $this->save();
-    }
-
-    public function getAppAuthenticationHolderName(): string
-    {
-        return $this->email;
-    }
-
-    public function getAppAuthenticationRecoveryCodes(): ?array
-    {
-        return $this->app_authentication_recovery_codes;
-    }
-
-    public function saveAppAuthenticationRecoveryCodes(#[SensitiveParameter] ?array $codes): void
-    {
-        $this->app_authentication_recovery_codes = $codes;
-        $this->save();
+        return $this->hasEnabledTwoFactorAuthentication();
     }
 }

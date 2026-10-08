@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Core\Support;
 
 use App\Modules\Brands\Models\Brand;
-use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Resolves the brand the current request or job is working in.
  *
- * Inside the brand panel the Filament tenant is the source of truth. Jobs,
+ * The /b/{brand} route binding sets it for every brand screen; jobs,
  * commands and tests call set() explicitly. Setting a brand also sets the
  * spatie permission team so brand roles resolve correctly.
  */
@@ -39,13 +38,7 @@ final class CurrentBrand
 
     public function get(): ?Brand
     {
-        if ($this->explicit) {
-            return $this->brand;
-        }
-
-        $tenant = Filament::getTenant();
-
-        return $tenant instanceof Brand ? $tenant : null;
+        return $this->explicit ? $this->brand : null;
     }
 
     public function id(): ?int

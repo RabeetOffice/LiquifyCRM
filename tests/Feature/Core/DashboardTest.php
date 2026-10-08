@@ -2,59 +2,62 @@
 
 declare(strict_types=1);
 
+use App\Modules\Leads\Models\Lead;
+
 /*
- * The two dashboards render the Liquify cards: a hero stat, the footer
- * links, the setup checklist with its artwork, and one primary action.
+ * The two dashboards: admin overview and brand dashboard with the setup
+ * checklist, the New / Unassigned queue, cards and charts, by role.
  */
 
-it('shows the admin overview with the hero card and the add brand button', function (): void {
-    filament()->setCurrentPanel(filament()->getPanel('admin'));
-    brand(['name' => 'UK Publishing', 'slug' => 'ukph']);
+it('shows the admin overview with cards and the add brand button', function (): void {
+    brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
 
     $this->actingAs(superAdmin())
         ->get('/admin')
         ->assertOk()
         ->assertSee('Here is the summary across all brands.')
-        ->assertSee('lq-stat-hero')
+        ->assertSee('Active brands')
         ->assertSee('Manage brands')
         ->assertSee('Add brand')
-        ->assertSee('Database is up to date')
-        ->assertSee('Scheduler quiet');
+        ->assertSee('Database is up to date');
 });
 
-it('shows the brand dashboard with the setup checklist for a global admin', function (): void {
-    $brand = brand(['name' => 'UK Publishing', 'slug' => 'ukph']);
-    department($brand, ['name' => 'Sales Team A']);
+it('keeps Managers and Agents out of the admin area', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+    $department = department($brand);
+
+    $this->actingAs(managerOf($department))->get('/admin')->assertForbidden();
+    $this->flushSession();
+    $this->actingAs(agentOf($department))->get('/admin/brands')->assertForbidden();
+});
+
+it('shows the brand dashboard with the setup checklist and the queue to a global admin', function (): void {
+    $brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
+    $department = department($brand, ['name' => 'Sales Team A']);
+    managerOf($department);
+    Lead::factory()->create(['brand_id' => $brand->getKey(), 'name' => 'Sarah Lee']);
 
     $this->actingAs(superAdmin())
         ->get('/b/ukph')
         ->assertOk()
-        ->assertSee('Here is the summary for UK Publishing.')
-        ->assertSee('Set up UK Publishing')
-        ->assertSee('onboarding-welcome.webp')
-        ->assertSee('lq-stat-hero')
-        ->assertSee('Manage team')
-        ->assertSee('Invite by email');
+        ->assertSee('Here is the summary for UK Publishing House.')
+        ->assertSee('New / Unassigned')
+        ->assertSee('Sarah Lee')
+        ->assertSee('New leads today')
+        ->assertSee('Leads per day');
 });
 
-it('gives a Manager the team cards and an Agent only their role', function (): void {
-    $brand = brand(['name' => 'UK Publishing', 'slug' => 'ukph']);
+it('gives an Agent their own numbers and follow-ups instead of the queue', function (): void {
+    $brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
     $department = department($brand, ['name' => 'Sales Team A']);
+    $agent = agentOf($department);
+    Lead::factory()->create(['brand_id' => $brand->getKey(), 'name' => 'Queued Lead']);
 
-    $this->actingAs(managerOf($department))
+    $this->actingAs($agent)
         ->get('/b/ukph')
         ->assertOk()
-        ->assertSee('Manage team')
-        ->assertSee('View departments')
-        ->assertDontSee('Set up UK Publishing');
-
-    $this->flushSession();
-
-    $this->actingAs(agentOf($department))
-        ->get('/b/ukph')
-        ->assertOk()
-        ->assertSee('Your role here')
-        ->assertSee('In UK Publishing')
-        ->assertDontSee('Manage team')
-        ->assertDontSee('Invite by email');
+        ->assertSee('My open leads')
+        ->assertSee('Follow-ups due today')
+        ->assertDontSee('Set up UK Publishing House')
+        ->assertDontSee('Queued Lead');
 });

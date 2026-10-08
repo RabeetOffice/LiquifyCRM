@@ -8,9 +8,6 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Database\Factories\BrandFactory;
 use App\Modules\Departments\Models\Department;
 use Carbon\CarbonImmutable;
-use Filament\Models\Contracts\HasAvatar;
-use Filament\Models\Contracts\HasCurrentTenantLabel;
-use Filament\Models\Contracts\HasName;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,7 +35,7 @@ use Illuminate\Support\Str;
  * @property CarbonImmutable|null $identity_fetched_at
  * @property int|null $created_by
  */
-class Brand extends Model implements HasAvatar, HasCurrentTenantLabel, HasName
+class Brand extends Model
 {
     /** @use HasFactory<BrandFactory> */
     use HasFactory;
@@ -162,20 +159,19 @@ class Brand extends Model implements HasAvatar, HasCurrentTenantLabel, HasName
         return $this->favicon_path ? Storage::disk('public')->url($this->favicon_path) : null;
     }
 
-    // ---------------------------------------------------------------- Filament
-
-    public function getFilamentName(): string
-    {
-        return $this->name;
-    }
-
-    public function getFilamentAvatarUrl(): ?string
+    /** Small image for the brand chip: favicon, else logo, else nothing (the chip shows the initial). */
+    public function avatarUrl(): ?string
     {
         return $this->faviconUrl() ?? $this->logoUrl();
     }
 
-    public function getCurrentTenantLabel(): string
+    public function initial(): string
     {
-        return 'Current brand';
+        return mb_strtoupper(mb_substr($this->name, 0, 1));
+    }
+
+    public function url(string $path = ''): string
+    {
+        return url('/b/'.$this->slug.($path !== '' ? '/'.ltrim($path, '/') : ''));
     }
 }

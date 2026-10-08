@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\System\Enums;
 
-use Filament\Support\Contracts\HasColor;
-use Filament\Support\Contracts\HasIcon;
-use Filament\Support\Contracts\HasLabel;
+use App\Modules\Core\Contracts\HasColor;
+use App\Modules\Core\Contracts\HasIcon;
+use App\Modules\Core\Contracts\HasLabel;
 
 enum DeploymentType: string implements HasColor, HasIcon, HasLabel
 {

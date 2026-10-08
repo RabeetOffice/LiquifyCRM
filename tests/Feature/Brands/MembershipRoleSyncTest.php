@@ -103,7 +103,7 @@ it('denies everything to a suspended global admin', function (): void {
     $admin = admin(['status' => MembershipStatus::Suspended]);
 
     expect($admin->can(Permission::LeadsView->value))->toBeFalse()
-        ->and($admin->canAccessPanel(filament()->getPanel('admin')))->toBeFalse();
+        ->and($admin->canAccessAdminArea())->toBeFalse();
 });
 
 it('writes an audit entry when a member is added', function (): void {

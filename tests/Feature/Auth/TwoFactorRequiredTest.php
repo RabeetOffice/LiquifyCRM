@@ -16,7 +16,7 @@ it('sends an Admin without an authenticator app to the 2FA set-up page in the ad
     $response = $this->actingAs($admin)->get('/admin/brands');
 
     $response->assertRedirect();
-    expect($response->headers->get('Location'))->toContain('multi-factor-authentication');
+    expect($response->headers->get('Location'))->toContain('profile/security');
 });
 
 it('sends a Super Admin without 2FA to set-up from the brand panel too', function (): void {
@@ -26,7 +26,7 @@ it('sends a Super Admin without 2FA to set-up from the brand panel too', functio
     $response = $this->actingAs($super)->get('/b/ukph');
 
     $response->assertRedirect();
-    expect($response->headers->get('Location'))->toContain('multi-factor-authentication');
+    expect($response->headers->get('Location'))->toContain('profile/security');
 });
 
 it('lets an Admin with 2FA in', function (): void {

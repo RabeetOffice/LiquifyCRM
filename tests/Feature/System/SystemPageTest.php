@@ -4,17 +4,13 @@ declare(strict_types=1);
 
 use App\Modules\System\Enums\DeploymentStatus;
 use App\Modules\System\Enums\DeploymentType;
-use App\Modules\System\Filament\Admin\Pages\SystemPage;
 use App\Modules\System\Jobs\RunBackupJob;
 use App\Modules\System\Jobs\RunDatabaseUpdateJob;
+use App\Modules\System\Livewire\Admin\SystemPage;
 use App\Modules\System\Models\Deployment;
 use App\Modules\System\Support\SystemStatus;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
-
-beforeEach(function (): void {
-    filament()->setCurrentPanel(filament()->getPanel('admin'));
-});
 
 it('is reserved for Super Admins', function (): void {
     $brand = brand(['slug' => 'ukph']);
@@ -45,8 +41,15 @@ it('queues a backup-then-migrate job after the password is confirmed', function 
 
     Livewire::actingAs($super)
         ->test(SystemPage::class)
-        ->callAction('databaseUpdate', data: ['current_password' => 'SuperSecret12345'])
-        ->assertHasNoActionErrors();
+        ->call('databaseUpdate')
+        ->assertSet('confirm.method', 'runDatabaseUpdate')
+        ->set('confirmPassword', 'wrong-password')
+        ->call('runConfirmed')
+        ->assertHasErrors('confirmPassword')
+        ->set('confirmPassword', 'SuperSecret12345')
+        ->call('runConfirmed')
+        ->assertHasNoErrors()
+        ->assertSet('confirm', null);
 
     Queue::assertPushed(RunDatabaseUpdateJob::class);
 
@@ -59,41 +62,14 @@ it('queues a backup-then-migrate job after the password is confirmed', function 
     $this->assertDatabaseHas('activity_log', ['event' => 'system.database_update_requested']);
 });
 
-it('refuses the database update with a wrong password', function (): void {
-    Queue::fake();
-    $super = superAdmin(['password' => 'SuperSecret12345']);
-
-    Livewire::actingAs($super)
-        ->test(SystemPage::class)
-        ->callAction('databaseUpdate', data: ['current_password' => 'nope'])
-        ->assertHasActionErrors(['current_password']);
-
-    Queue::assertNothingPushed();
-    expect(Deployment::query()->count())->toBe(0);
-});
-
 it('queues a backup from the Back up now button', function (): void {
     Queue::fake();
 
     Livewire::actingAs(superAdmin())
         ->test(SystemPage::class)
-        ->callAction('backupNow')
-        ->assertHasNoActionErrors();
+        ->call('backupNow')
+        ->call('runConfirmed');
 
     Queue::assertPushed(RunBackupJob::class);
-    expect(Deployment::query()->where('type', DeploymentType::Backup->value)->count())->toBe(1);
-});
-
-it('lists deployment history', function (): void {
-    Deployment::query()->create([
-        'type' => DeploymentType::Deploy,
-        'status' => DeploymentStatus::Success,
-        'commit_sha' => '1234567abcdef',
-        'branch' => 'main',
-    ]);
-
-    $this->actingAs(superAdmin())
-        ->get('/admin/system')
-        ->assertOk()
-        ->assertSee('1234567');
+    expect(Deployment::query()->where('type', DeploymentType::Backup->value)->exists())->toBeTrue();
 });

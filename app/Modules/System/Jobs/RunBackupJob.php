@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\System\Jobs;
 
+use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\System\Models\Deployment;
-use Filament\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Artisan;
@@ -62,10 +62,12 @@ final class RunBackupJob implements ShouldQueue
             return;
         }
 
-        Notification::make()
-            ->title($success ? 'Backup finished' : 'Backup failed')
-            ->body($success ? 'The database backup is stored on the backups disk.' : 'Open the System screen to read the log.')
-            ->status($success ? 'success' : 'danger')
-            ->sendToDatabase($user);
+        $user->notify(new AppNotification(
+            $success ? 'Backup finished' : 'Backup failed',
+            $success ? 'The database backup is stored on the backups disk.' : 'Open the System screen to read the log.',
+            $success ? 'success' : 'danger',
+            url('/admin/system'),
+            actionLabel: 'Open System',
+        ));
     }
 }

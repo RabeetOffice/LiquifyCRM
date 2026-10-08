@@ -15,6 +15,6 @@
                 The link is not valid. Ask the person who invited you to send a new one.
             @endif
         </p>
-        <a href="{{ url('/b/login') }}" class="lq-btn-primary">Go to sign in</a>
+        <a href="{{ url('/b/login') }}" class="lq-btn lq-btn-primary lq-btn-block">Go to sign in</a>
     </div>
 </x-core::guest-layout>

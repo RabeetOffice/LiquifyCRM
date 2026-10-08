@@ -1,6 +1,6 @@
 <x-core::guest-layout :title="'Join '.$invitation->brand->name">
-    <div class="lq-card">
-        <div class="lq-card-header">
+    <div class="lq-glass">
+        <div class="lq-card-header-stack">
             @if ($invitation->brand->logoUrl())
                 <img src="{{ $invitation->brand->logoUrl() }}" alt="{{ $invitation->brand->name }}" class="lq-brand-logo">
             @else
@@ -51,7 +51,7 @@
                 </div>
             @endif
 
-            <button type="submit" class="lq-btn-primary">
+            <button type="submit" class="lq-btn lq-btn-primary lq-btn-block">
                 {{ $existingUser ? 'Join brand' : 'Create my account' }}
             </button>
 

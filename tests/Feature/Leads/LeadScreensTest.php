@@ -1,0 +1,130 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Modules\Leads\Livewire\App\FollowUps;
+use App\Modules\Leads\Livewire\App\LeadPanel;
+use App\Modules\Leads\Livewire\App\LeadsIndex;
+use App\Modules\Leads\Livewire\App\Pipeline;
+use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Leads\Models\Task;
+use Illuminate\Support\Facades\Notification;
+use Livewire\Livewire;
+
+/*
+ * The Week 2 screens: list with saved views, slide-over with masked contact
+ * and Reveal, bulk assign, pipeline drag and drop, follow-ups.
+ */
+
+beforeEach(function (): void {
+    Notification::fake();
+
+    $this->brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
+    $this->department = department($this->brand, ['name' => 'Sales Team A']);
+    $this->manager = managerOf($this->department);
+    $this->agent = agentOf($this->department);
+    $this->admin = admin();
+
+    inBrand($this->brand);
+});
+
+it('lists only the leads a person may see, with masked contacts for Agents', function (): void {
+    $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey(), 'name' => 'Sarah Lee', 'phone' => '+447700900123', 'email' => 'sarah@example.com']);
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Someone Else']);
+
+    $this->actingAs($this->agent)
+        ->get('/b/ukph/leads')
+        ->assertOk()
+        ->assertSee('My leads')
+        ->assertSee('Sarah Lee')
+        ->assertSee('s•••@example.com')
+        ->assertDontSee('sarah@example.com')
+        ->assertDontSee('Someone Else');
+
+    $this->flushSession();
+
+    $this->actingAs($this->admin)
+        ->get('/b/ukph/leads?tab=unassigned')
+        ->assertOk()
+        ->assertSee('Someone Else')
+        ->assertDontSee('Sarah Lee');
+});
+
+it('reveals a contact from the lead panel and shows the full details afterwards', function (): void {
+    $lead = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey(), 'phone' => '+447700900123', 'email' => 'sarah@example.com']);
+
+    Livewire::actingAs($this->agent)
+        ->test(LeadPanel::class, ['leadId' => $lead->getKey()])
+        ->assertSee('+44 77•• •••123')
+        ->assertDontSee('sarah@example.com')
+        ->call('reveal')
+        ->assertSee('sarah@example.com')
+        ->assertSee('+447700900123');
+
+    $this->assertDatabaseHas('activity_log', ['event' => 'leads.contact_revealed', 'subject_id' => $lead->getKey()]);
+});
+
+it('lets a Manager assign from the list in bulk and an Agent change status from the panel', function (): void {
+    $leads = Lead::factory()->count(2)->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey()]);
+
+    Livewire::actingAs($this->manager)
+        ->test(LeadsIndex::class, ['brand' => $this->brand])
+        ->set('selected', $leads->pluck('id')->all())
+        ->set('bulkAssignTo', (string) $this->agent->getKey())
+        ->call('bulkAssign')
+        ->assertSet('selected', []);
+
+    expect(Lead::query()->where('assigned_to', $this->agent->getKey())->count())->toBe(2);
+
+    $contacted = LeadStatus::query()->forBrand($this->brand)->where('slug', 'contacted')->firstOrFail();
+
+    Livewire::actingAs($this->agent)
+        ->test(LeadPanel::class, ['leadId' => $leads[0]->getKey()])
+        ->call('openStatus')
+        ->set('statusTo', (string) $contacted->getKey())
+        ->call('changeStatus')
+        ->assertDispatched('lead-updated');
+
+    expect($leads[0]->fresh()->status->slug)->toBe('contacted');
+});
+
+it('moves a lead along the pipeline by drag and drop and refuses leads a person may not touch', function (): void {
+    $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey()]);
+    $other = Lead::factory()->create(['brand_id' => $this->brand->getKey()]);
+    $qualified = LeadStatus::query()->forBrand($this->brand)->where('slug', 'qualified')->firstOrFail();
+
+    Livewire::actingAs($this->agent)
+        ->test(Pipeline::class, ['brand' => $this->brand])
+        ->call('move', $mine->getKey(), $qualified->getKey())
+        ->assertHasNoErrors()
+        ->call('move', $other->getKey(), $qualified->getKey())
+        ->assertForbidden();
+
+    expect($mine->fresh()->status->slug)->toBe('qualified')
+        ->and($other->fresh()->status->slug)->toBe('new');
+});
+
+it('completes a follow-up from the Follow-ups screen', function (): void {
+    $lead = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'assigned_to' => $this->agent->getKey()]);
+    $task = Task::query()->create(['brand_id' => $this->brand->getKey(), 'lead_id' => $lead->getKey(), 'user_id' => $this->agent->getKey(), 'title' => 'Call back', 'due_at' => now()]);
+    $lead->forceFill(['next_follow_up_at' => now()])->save();
+
+    Livewire::actingAs($this->agent)
+        ->test(FollowUps::class, ['brand' => $this->brand])
+        ->assertSee('Call back')
+        ->call('complete', $task->getKey());
+
+    expect($task->fresh()->done_at)->not->toBeNull()
+        ->and($lead->fresh()->next_follow_up_at)->toBeNull();
+});
+
+it('returns 404 for a lead of another brand even to its own Manager', function (): void {
+    $other = brand(['slug' => 'anz']);
+    inBrand($other);
+    $foreign = Lead::factory()->create(['brand_id' => $other->getKey()]);
+    inBrand($this->brand);
+
+    $this->actingAs($this->manager)->get('/b/ukph/leads/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($this->admin)->get('/b/anz/leads/'.$foreign->getKey())->assertOk();
+});

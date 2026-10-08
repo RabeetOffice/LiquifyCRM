@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Enums;
 
-use Filament\Support\Contracts\HasColor;
-use Filament\Support\Contracts\HasLabel;
+use App\Modules\Core\Contracts\HasColor;
+use App\Modules\Core\Contracts\HasLabel;
 
 enum DepartmentRole: string implements HasColor, HasLabel
 {

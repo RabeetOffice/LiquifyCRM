@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Auth;
 
 use App\Modules\Auth\Console\InstallCommand;
-use App\Modules\Auth\Http\Responses\LoginResponse;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Policies\UserPolicy;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Core\Support\Audit;
-use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -28,11 +26,6 @@ final class AuthServiceProvider extends ModuleServiceProvider
     protected array $commands = [
         InstallCommand::class,
     ];
-
-    public function register(): void
-    {
-        $this->app->bind(LoginResponseContract::class, LoginResponse::class);
-    }
 
     protected function bootModule(): void
     {

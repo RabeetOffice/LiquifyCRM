@@ -6,15 +6,13 @@ namespace App\Modules\Auth\Http\Middleware;
 
 use App\Modules\Auth\Models\User;
 use Closure;
-use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Two-factor authentication is optional for Managers and Agents but forced
- * for Super Admins and Admins. The admin panel requires it natively; this
- * middleware applies the same rule inside the brand panel by sending a
- * global admin without an authenticator app to the admin set-up page.
+ * for Super Admins and Admins: a global admin without an authenticator app
+ * is sent to the security page until it is set up.
  */
 final class EnsureGlobalAdminHasTwoFactor
 {
@@ -22,12 +20,15 @@ final class EnsureGlobalAdminHasTwoFactor
     {
         $user = $request->user();
 
-        if ($user instanceof User && $user->requiresTwoFactor() && ! $user->hasTwoFactorEnabled()) {
-            $url = Filament::getPanel('admin')->getSetUpRequiredMultiFactorAuthenticationUrl();
-
-            if ($url !== null && ! $request->is(ltrim((string) parse_url($url, PHP_URL_PATH), '/').'*')) {
-                return redirect()->to($url);
-            }
+        if (
+            $user instanceof User
+            && $user->requiresTwoFactor()
+            && ! $user->hasTwoFactorEnabled()
+            && ! $request->routeIs('profile.security', 'logout')
+        ) {
+            return redirect()
+                ->route('profile.security')
+                ->with('status', 'Set up your authenticator app to continue. Two-factor authentication is required for Admins.');
         }
 
         return $next($request);

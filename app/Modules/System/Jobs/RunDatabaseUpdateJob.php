@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\System\Jobs;
 
+use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\System\Models\Deployment;
 use App\Modules\System\Support\SystemStatus;
-use Filament\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Artisan;
@@ -104,12 +104,14 @@ final class RunDatabaseUpdateJob implements ShouldQueue
             return;
         }
 
-        Notification::make()
-            ->title($success ? 'Database update finished' : 'Database update failed')
-            ->body($success
+        $user->notify(new AppNotification(
+            $success ? 'Database update finished' : 'Database update failed',
+            $success
                 ? count($deployment->migrations_run ?? []).' migration(s) applied after a fresh backup.'
-                : 'Open the System screen to read the log.')
-            ->status($success ? 'success' : 'danger')
-            ->sendToDatabase($user);
+                : 'Open the System screen to read the log.',
+            $success ? 'success' : 'danger',
+            url('/admin/system'),
+            actionLabel: 'Open System',
+        ));
     }
 }

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Modules\Auth\Http\Middleware\EnsureGlobalAdmin;
+use App\Modules\Auth\Http\Middleware\EnsureGlobalAdminHasTwoFactor;
+use App\Modules\Auth\Http\Middleware\EnsureSuperAdmin;
+use App\Modules\Core\Http\Middleware\EnsureBrandMember;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Machine endpoints are token or signature authenticated, never session based.
         $middleware->validateCsrfTokens(except: ['hooks/deploy/*', 'webhooks/*', 'api/*']);
+
+        $middleware->alias([
+            'global-admin' => EnsureGlobalAdmin::class,
+            'super-admin' => EnsureSuperAdmin::class,
+            'two-factor' => EnsureGlobalAdminHasTwoFactor::class,
+            'brand.member' => EnsureBrandMember::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

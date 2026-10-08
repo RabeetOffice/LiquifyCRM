@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\System\Http\Controllers;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\System\Enums\DeploymentStatus;
 use App\Modules\System\Enums\DeploymentType;
 use App\Modules\System\Models\Deployment;
 use App\Modules\System\Support\SystemStatus;
-use Filament\Notifications\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * POST /hooks/deploy/{token}: called by GitHub Actions after Deployer has
@@ -63,13 +64,13 @@ final class DeployHookController
         ], 'Deployed '.($deployment->shortSha() ?? 'new release'), logName: 'system');
 
         if ($pending !== []) {
-            $superAdmins = User::superAdmins()->get();
-
-            Notification::make()
-                ->title(count($pending).' pending database update'.(count($pending) === 1 ? '' : 's'))
-                ->body('A new release is live. Open System and click "Backup and run database update".')
-                ->warning()
-                ->sendToDatabase($superAdmins);
+            Notification::send(User::superAdmins()->get(), new AppNotification(
+                count($pending).' pending database update'.(count($pending) === 1 ? '' : 's'),
+                'A new release is live. Open System and click "Backup and run database update".',
+                'warning',
+                url('/admin/system'),
+                actionLabel: 'Open System',
+            ));
         }
 
         return response()->json([
