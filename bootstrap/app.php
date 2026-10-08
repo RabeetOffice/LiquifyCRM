@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Machine endpoints are token or signature authenticated, never session based.
         $middleware->validateCsrfTokens(except: ['hooks/deploy/*', 'webhooks/*', 'api/*']);
 
+        // Behind a tunnel or proxy (ngrok, Cloudflare) the visitor's https address
+        // arrives in forwarded headers. Trust them only where TRUSTED_PROXIES says so.
+        if (filled(env('TRUSTED_PROXIES'))) {
+            $middleware->trustProxies(at: env('TRUSTED_PROXIES') === '*' ? '*' : array_map('trim', explode(',', (string) env('TRUSTED_PROXIES'))));
+        }
+
         $middleware->alias([
             'global-admin' => EnsureGlobalAdmin::class,
             'super-admin' => EnsureSuperAdmin::class,

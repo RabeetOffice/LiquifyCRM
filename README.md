@@ -111,6 +111,7 @@ The Super Admin is whatever you entered in `liquify:install`.
 | `INGEST_REPLAY_WINDOW`, `INGEST_RATE_LIMIT`, `SITE_QUIET_HOURS` | Website leads: seconds a signed request stays valid (300), requests per website per minute (120), hours without a lead before a website turns amber (48) |
 | `LOG_STACK=daily`, `LOG_DAILY_DAYS=14` | Laravel error log as daily files, kept 14 days |
 | `BACKUP_DISKS` | Where backups go, comma separated. `backups` is on the server; add an off-server disk (for example `backups,s3`) once its credentials are set |
+| `TRUSTED_PROXIES` | Leave empty on Hostinger. Set to `*` on a local machine behind ngrok or a Cloudflare tunnel so links and the Facebook redirect use the tunnel's https address |
 | `LIQUIFY_REQUIRE_TWO_FACTOR` | `true` (default) forces an authenticator app on Super Admins and Admins; set `false` only on a local machine |
 | `APP_DEBUG=false`, `APP_ENV=production` | Always in production |
 
