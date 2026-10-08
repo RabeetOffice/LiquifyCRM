@@ -7,6 +7,7 @@ namespace App\Modules\Core\Navigation;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Meta\Models\Conversation;
 use Closure;
 
 /**
@@ -44,10 +45,17 @@ final class Menu
             return $count > 0 ? (string) $count : null;
         };
 
+        $unread = function () use ($user): ?string {
+            $count = (int) Conversation::query()->visibleTo($user)->sum('unread_count');
+
+            return $count > 0 ? (string) $count : null;
+        };
+
         $main = [
             self::item('Dashboard', 'heroicon-o-home', route('brand.dashboard', $params), $isActive('brand.dashboard')),
             self::item($agent ? 'My leads' : 'Leads', 'heroicon-o-inbox-arrow-down', route('brand.leads.index', $params), $isActive('brand.leads.index', 'brand.leads.create', 'brand.leads.show'), $queueCount),
             self::item('Pipeline', 'heroicon-o-view-columns', route('brand.leads.pipeline', $params), $isActive('brand.leads.pipeline')),
+            self::item('Inbox', 'heroicon-o-chat-bubble-left-right', route('brand.inbox', $params), $isActive('brand.inbox'), $unread),
             self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
         ];
 
@@ -91,10 +99,17 @@ final class Menu
             self::item('Brands', 'heroicon-o-building-storefront', route('admin.brands.index'), $isActive('admin.brands.index', 'admin.brands.create', 'admin.brands.edit')),
         ]]];
 
+        $settings = [
+            self::item('Integrations', 'heroicon-o-link', route('admin.integrations'), $isActive('admin.integrations')),
+        ];
+
         if ($user->isSuperAdmin()) {
-            $groups[] = ['label' => 'Settings', 'items' => [
-                self::item('Admin accounts', 'heroicon-o-shield-check', route('admin.admins.index'), $isActive('admin.admins.index', 'admin.admins.create', 'admin.admins.edit')),
-            ]];
+            $settings[] = self::item('Admin accounts', 'heroicon-o-shield-check', route('admin.admins.index'), $isActive('admin.admins.index', 'admin.admins.create', 'admin.admins.edit'));
+        }
+
+        $groups[] = ['label' => 'Settings', 'items' => $settings];
+
+        if ($user->isSuperAdmin()) {
             $groups[] = ['label' => 'System', 'items' => [
                 self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
             ]];

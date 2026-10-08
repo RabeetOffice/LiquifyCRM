@@ -7,6 +7,7 @@ use App\Modules\Brands\BrandsServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Departments\DepartmentsServiceProvider;
 use App\Modules\Leads\LeadsServiceProvider;
+use App\Modules\Meta\MetaServiceProvider;
 use App\Modules\Sites\SitesServiceProvider;
 use App\Modules\System\SystemServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -21,6 +22,7 @@ return [
     DepartmentsServiceProvider::class,
     LeadsServiceProvider::class,
     SitesServiceProvider::class,
+    MetaServiceProvider::class,
     ActivityServiceProvider::class,
     SystemServiceProvider::class,
 ];

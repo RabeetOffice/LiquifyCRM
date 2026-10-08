@@ -7,6 +7,8 @@ namespace App\Modules\Sites;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Sites\Console\CheckSitesCommand;
 use App\Modules\Sites\Console\PullSitesCommand;
+use App\Modules\Sites\Jobs\IngestLead;
+use App\Modules\Sites\Models\InboundEvent;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Policies\SitePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -28,6 +30,8 @@ final class SitesServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
+        InboundEvent::processWith(InboundEvent::SOURCE_SITE, IngestLead::class);
+
         // 120 requests a minute per source, as the security section asks.
         RateLimiter::for('ingest', fn (Request $request): Limit => Limit::perMinute((int) config('liquify.ingest.rate_limit', 120))
             ->by('ingest:'.$request->route('site_key')));

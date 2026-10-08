@@ -31,6 +31,34 @@ class InboundEvent extends Model
 {
     public const SOURCE_SITE = 'site';
 
+    /** @var array<string, class-string> source => queued job that takes the event id */
+    private static array $processors = [];
+
+    /**
+     * Each channel registers the job that turns its events into leads or
+     * messages, so the event log can retry any of them.
+     *
+     * @param  class-string  $job
+     */
+    public static function processWith(string $source, string $job): void
+    {
+        self::$processors[$source] = $job;
+    }
+
+    /** Run (or queue) the job of this event's channel again. */
+    public function process(bool $sync = false): void
+    {
+        $job = self::$processors[$this->source] ?? null;
+
+        if ($job === null) {
+            $this->markFailed('Nothing can process events from "'.$this->source.'".');
+
+            return;
+        }
+
+        $sync ? $job::dispatchSync((int) $this->getKey()) : $job::dispatch((int) $this->getKey());
+    }
+
     protected $fillable = ['source', 'source_id', 'brand_id', 'external_id', 'payload', 'status', 'error', 'attempts', 'lead_id', 'processed_at'];
 
     protected $attributes = ['status' => 'pending', 'attempts' => 0];

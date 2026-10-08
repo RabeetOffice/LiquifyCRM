@@ -113,9 +113,16 @@
         <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'message']) wire:click="$set('tab', 'message')" role="tab"><x-heroicon-o-chat-bubble-bottom-center-text class="h-4 w-4" /> Message</button>
         <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'notes']) wire:click="$set('tab', 'notes')" role="tab"><x-heroicon-o-pencil-square class="h-4 w-4" /> Notes @if ($lead->notes->isNotEmpty())<span class="lq-count" style="background: var(--lq-raised); color: inherit">{{ $lead->notes->count() }}</span>@endif</button>
         <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'tasks']) wire:click="$set('tab', 'tasks')" role="tab"><x-heroicon-o-calendar-days class="h-4 w-4" /> Follow-ups @if ($openTasks->isNotEmpty())<span class="lq-count">{{ $openTasks->count() }}</span>@endif</button>
+        @if ($conversationId)
+            <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right class="h-4 w-4" /> Messenger</button>
+        @endif
     </div>
 
-    @if ($tab === 'timeline')
+    @if ($tab === 'chat' && $conversationId)
+        <div class="lq-thread-embed">
+            @livewire(\App\Modules\Meta\Livewire\App\ConversationThread::class, ['conversationId' => $conversationId], key('lead-thread-'.$conversationId))
+        </div>
+    @elseif ($tab === 'timeline')
         @if ($timeline->isEmpty())
             <p class="lq-help">Nothing on the timeline yet.</p>
         @else

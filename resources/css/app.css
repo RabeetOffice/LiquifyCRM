@@ -2650,4 +2650,132 @@ a.lq-stat:hover .lq-stat-link svg {
     word-break: break-all;
 }
 
+/* ------------------------------------------------------------------- inbox */
+
+.lq-inbox {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .lq-inbox {
+        grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    }
+}
+
+.lq-inbox-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 34rem;
+    overflow-y: auto;
+}
+
+.lq-inbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    border-top: 1px solid var(--lq-hairline);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.lq-inbox-item:hover {
+    background: var(--lq-raised);
+}
+
+.lq-inbox-item-active,
+.lq-inbox-item-active:hover {
+    background: var(--lq-orange-tint);
+}
+
+.lq-inbox-time {
+    flex: none;
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-thread {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.lq-thread-head,
+.lq-thread-foot,
+.lq-thread-lead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+}
+
+.lq-thread-foot {
+    display: block;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-thread-lead {
+    justify-content: flex-start;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-thread-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 1rem 1.5rem;
+    min-height: 12rem;
+    max-height: 26rem;
+    overflow-y: auto;
+    border-top: 1px solid var(--lq-hairline);
+    background: var(--lq-bg);
+}
+
+.lq-thread-embed {
+    border: 1px solid var(--lq-hairline);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.lq-bubble {
+    align-self: flex-start;
+    max-width: min(32rem, 85%);
+    padding: 0.5rem 0.875rem;
+    border-radius: 14px 14px 14px 4px;
+    background: var(--lq-surface);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+.lq-bubble p {
+    margin: 0;
+}
+
+.lq-bubble-out {
+    align-self: flex-end;
+    border-radius: 14px 14px 4px 14px;
+    background: var(--lq-orange-tint);
+}
+
+.lq-bubble-failed {
+    background: var(--lq-danger-tint);
+}
+
+.lq-bubble-meta {
+    display: block;
+    margin-top: 0.125rem;
+    font-size: 0.6875rem;
+    color: var(--lq-muted);
+}
+
 } /* @layer components */

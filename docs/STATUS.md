@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -10,8 +10,8 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 | Week 1 · Foundation | **Done** | Rebuilt on 8 October without Filament (see "Agreed differences") |
 | Week 2 · Leads core | **Done** | Facebook source arrives in week 4 |
 | Week 3 · Website sources | **Done** | Built 8 October; health checks and pull mode ported from the LeadsHub folder |
-| Week 4 · Meta | **Next** | Needs Meta app credentials |
-| Week 5 · Sales and targets | Pending (departments done) | |
+| Week 4 · Meta | **Done** | Built 8 October against the Graph API with faked responses; a live run needs your Meta app keys in `.env` |
+| Week 5 · Sales and targets | **Next** (departments done) | |
 | Week 6 · Hardening and launch | Pending (theme and isolation tests done) | |
 | Phase 2 · Files, NDA, client portal | Pending | Tables designed in the document, not created (agreed) |
 
@@ -20,7 +20,7 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 ### Project and stack
 - [x] Laravel 13 on PHP 8.4, Livewire 4, Tailwind 4, Vite, Pest 5, Pint, Larastan level 6.
 - [x] Packages: laravel/fortify, livewire/livewire, sanctum, spatie permission / activitylog / backup / health / schedule-monitor / settings / query-builder, laravel-excel, laravel-phone, league/color-extractor, deployer, blade-ui-kit/blade-heroicons (icons), chart.js (dashboard charts).
-- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, Sites, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
+- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, Meta, Sites, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
 - [x] Two areas: `/admin` (Super Admin and Admin) and `/b/{brand}` (brand workspace; the brand in the URL is the tenant, bound before every other route parameter).
 - [x] Own design system in `resources/css/app.css` (tokens from the document, plain-CSS components) and a Blade component set (`resources/views/components/ui`): buttons, fields, cards, stat cards, badges, status pills, tables, tabs, modals, slide-over, confirm dialog, toasts with Undo, empty states, pagination.
 - [x] Shell: full-height sidebar with logo, brand switcher, menus by role and user card; top bar with greeting, scheduler status, Ctrl K / ⌘K search, notification bell, theme toggle and avatar menu. Light and dark follow the device with a manual switch.
@@ -75,6 +75,19 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 - [x] Brand email settings (`/b/{brand}/settings/email`): the brand's own SMTP stored as encrypted `mail_settings`, "Send me a test email", and the optional automatic reply to the customer, noted on the lead's timeline.
 - [x] Setup checklist step "Connect your first website" ticks itself.
 
+### Meta (week 4)
+- [x] Tables `meta_connections` (encrypted token), `meta_sources` (each Page, its encrypted Page token and its brand), `conversations` and `messages`.
+- [x] `GET /webhooks/meta` (verify token) and `POST /webhooks/meta` (`X-Hub-Signature-256`): every event is stored in `inbound_events` and answered with 200 at once; repeats are stored once; 120 calls a minute per Page.
+- [x] Connect Facebook (`/integrations/facebook/connect` and `/callback`): Facebook Login (Login for Business when a configuration id is set), 60-day token, every Page listed and subscribed to leads and messages. Or paste a System User token that never expires.
+- [x] Integrations screen (`/admin/integrations`, Super Admin and Admin): setup steps with the webhook and redirect addresses, connection state, Page to brand mapping, Refresh Pages, Disconnect (password re-confirm), and the event log for websites and Facebook with Retry.
+- [x] Lead Ads: the lead is fetched from Graph API v26, fields recognised like website fields, form, campaign and ad names kept, lead lands in the brand's New / Unassigned queue with notifications.
+- [x] A Page without a brand keeps its events; mapping the Page processes them.
+- [x] Messenger: messages attach to a conversation by PSID; the first message creates a lead (so does a new message on a closed lead); later ones notify the lead's owner; delivered and seen receipts update replies.
+- [x] Inbox (`/b/{brand}/inbox`) for visible leads only, with unread counts, search, the 24-hour reply window countdown and a reply box; the same thread on the lead page (Messenger tab). `POST /b/{brand}/conversations/{conversation}/messages` for the API.
+- [x] Replies are queued, shown as Sending, Sent, Delivered, Seen or Not sent; "reply sent" and "reply failed" are logged on the lead; a reply outside the window is refused.
+- [x] Token refresh in the scheduler (`meta:refresh-tokens`, daily); the Super Admins are told when Facebook must be connected again.
+- [x] Setup checklist step "Connect Facebook" ticks itself; Inbox in every role's menu, Integrations in the admin menu.
+
 ### System screen and deployment
 - [x] System screen (Super Admin): version, environment, pending-migrations banner, Backup and run database update with password re-confirm (backup first, then `migrate --force`, output kept), Back up now, retry failed jobs, release rollback (password re-confirm), health checks, queue and cron health, deployment history with logs, latest backups. Refreshes itself while a job runs.
 - [x] `POST /hooks/deploy/{token}` records each deployment and tells Super Admins when database updates wait.
@@ -95,6 +108,9 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 - The email and database checks look from inside the website, so they need the LeadsHub agent file on it (or, for the database, the pull-mode connection); without either they show "Not set up" rather than a guess.
 - Pull mode starts from the newest row and never imports history; old leads come in through the import tool in week 5.
 - The received-leads log with Retry lives on each website's page; the global Integrations screen arrives with Facebook in week 4.
+- Meta tables carry a few columns beyond the document's list: `meta_connections` (`is_system_user`, `last_refreshed_at`, `error`), `meta_sources` (`meta_connection_id`, `subscribed_at`, `last_event_at`, `error`), `conversations` (`contact_name`, `last_message_at`, `last_message_preview`, `unread_count`), `messages` (`error`, plus a `sending` status before `sent`).
+- Delivered and seen receipts update messages directly and are not kept in the event log (they carry no lead).
+- Attachments in Messenger show as "[1 attachment]"; the Files module (Phase 2) will store them.
 - Light page background is `#f4f4f2` (a shade below the document's `#FAFAF9`) so white cards stand out, and stat-card icons sit in rounded tiles rather than circles, both from the reference designs the user chose.
 
 ## Pending
@@ -103,15 +119,12 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] Gmail and Outlook logos on the email settings screen (a text badge shows the detected provider today; the official SVGs go in `resources/svg/brands/` together with the Facebook and Messenger logos in week 4).
 - [ ] Website favicon as the source logo in the lead list (the lead shows the website name under extra fields today).
 
-### Week 4 · Meta (next)
-- [ ] Tables `meta_connections`, `meta_sources`, `conversations`, `messages`.
-- [ ] Connect Facebook once (Login for Business now, System User token for production), Integrations screen mapping each Page to its brand.
-- [ ] `GET / POST /webhooks/meta` with `X-Hub-Signature-256`; Lead Ads fetched from Graph API v26; Messenger messages attached by PSID.
-- [ ] Inbox: Messenger threads for visible leads, 24-hour reply window indicator, replies from the lead page.
-- [ ] Integrations screen event log with Retry for every source (`inbound_events` and the website Retry exist); token refresh in the scheduler; Cloudflare tunnel for local webhook tests.
-- [ ] Facebook and Messenger logos (local SVGs in `resources/svg/brands/`).
+### Week 4 · left over
+- [ ] A live run against your real Meta app (everything so far is tested with faked Graph API answers).
+- [ ] Official Facebook, Messenger, Gmail and Outlook logos as local SVGs in `resources/svg/brands/`; they must come from each company's brand page, so they are not drawn by hand. Heroicons stand in today.
+- [ ] A brand rule such as "all Facebook leads go to Sales Team A" (the document mentions it as optional; leads go to the New queue for the Admin today).
 
-### Week 5 · Sales and targets
+### Week 5 · Sales and targets (next)
 - [x] Departments (done in week 1).
 - [ ] People profiles: photo, login email, password or invite, department, role and monthly target in one form (photo and profile exist; targets do not).
 - [ ] Mark as Won sheet (amount, brand currency, service or package, close date); `sales` and `clients` tables; lifetime value; repeat purchases attach to the same client.
@@ -140,7 +153,7 @@ State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
-- Week 4 can start once the Meta details below are here: say "continue".
-- Week 4: Meta app id and secret, Business Manager access, and the Cloudflare tunnel hostname.
+- Week 5 can start now: say "continue".
+- Week 4 live test: put the Meta app id, secret and a verify token in `.env`, run the Cloudflare tunnel, then Connect Facebook on the Integrations screen.
 - First deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain.
 - Backups: where off-server backups should go (Cloudflare R2, Backblaze, FTP).

@@ -23,6 +23,7 @@ use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Meta\Models\Conversation;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -262,6 +263,7 @@ final class LeadPanel extends Component
             'canSeeFull' => $canSeeFull,
             'timeline' => $timeline,
             'openTasks' => $lead->tasks->whereNull('done_at'),
+            'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
             'statuses' => LeadStatus::query()->ordered()->get(),
             'agentOptions' => $this->agentOptions($lead->department_id),
             'departmentOptions' => $this->departmentOptions(),

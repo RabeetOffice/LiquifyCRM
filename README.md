@@ -17,7 +17,7 @@ Actions → Hostinger.
 | 1 | Foundation: project, auth, brands, memberships, roles, brand switcher, departments, System screen, CI/deploy | ✅ done |
 | 2 | Leads core: leads, statuses, notes, tasks, timeline, list/detail/kanban, import, New queue, assignment, Reveal | ✅ done |
 | 3 | Website sources: sites, ingest API + liquify.php, pull mode, health checks | ✅ done |
-| 4 | Meta: Connect Facebook, Page mapping, Lead Ads, Messenger inbox | ⏳ |
+| 4 | Meta: Connect Facebook, Page mapping, Lead Ads, Messenger inbox | ✅ done |
 | 5 | Sales and targets: people profiles, Mark as Won, clients, targets, dashboards, brand identity fetch, distribution | ⏳ |
 | 6 | Hardening: logs screen, retention, theme polish, speed checks, backups, launch | ⏳ |
 
@@ -106,9 +106,29 @@ The Super Admin is whatever you entered in `liquify:install`.
 | `DEPLOY_HOOK_TOKEN` | Shared secret for `POST /hooks/deploy/{token}` (GitHub Actions secret `DEPLOY_TOKEN`) |
 | `DEPLOY_PATH` | Deployer root on the server, e.g. `/home/USER/crm`; enables release rollback on the System screen |
 | `REPORTING_CURRENCY`, `DEFAULT_CURRENCY`, `DEFAULT_TIMEZONE`, `REVEAL_LIMIT_PER_HOUR` | Defaults from the document (GBP, Europe/London, 30) |
+| `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | The Meta app: id, secret (signs incoming webhooks) and a verify token of your choice (any long random text, also entered in the Meta app) |
+| `META_LOGIN_CONFIG_ID`, `META_GRAPH_VERSION` | Optional Facebook Login for Business configuration id; Graph API version (`v26.0`) |
 | `INGEST_REPLAY_WINDOW`, `INGEST_RATE_LIMIT`, `SITE_QUIET_HOURS` | Website leads: seconds a signed request stays valid (300), requests per website per minute (120), hours without a lead before a website turns amber (48) |
 | `LIQUIFY_REQUIRE_TWO_FACTOR` | `true` (default) forces an authenticator app on Super Admins and Admins; set `false` only on a local machine |
 | `APP_DEBUG=false`, `APP_ENV=production` | Always in production |
+
+## Facebook (Lead Ads and Messenger)
+
+1. Put `META_APP_ID`, `META_APP_SECRET` and `META_VERIFY_TOKEN` in `.env`, then `php artisan config:clear`.
+2. In the Meta app dashboard: **Webhooks > Page**, callback `https://YOUR-DOMAIN/webhooks/meta` with the same verify token;
+   **Facebook Login > Settings**, valid redirect `https://YOUR-DOMAIN/integrations/facebook/callback`.
+3. Sign in as a Super Admin or Admin, open **Admin area > Integrations** and click **Connect Facebook**. Every Page is
+   listed and subscribed to leads and messages; choose the brand of each Page.
+4. For production, create a System User in Business Manager and paste its token under **Use a System User token**:
+   it does not expire.
+
+Meta only calls https addresses. To test webhooks on localhost, run a Cloudflare tunnel and use its address as `APP_URL`:
+
+```
+cloudflared tunnel --url http://localhost:8000
+```
+
+The scheduler renews a Facebook login token (`meta:refresh-tokens`, daily) before its 60 days run out.
 
 ## Quality checks
 

@@ -21,6 +21,10 @@ use App\Modules\Leads\Livewire\App\LeadForm;
 use App\Modules\Leads\Livewire\App\LeadShow;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
 use App\Modules\Leads\Livewire\App\Pipeline;
+use App\Modules\Meta\Http\Controllers\ConversationMessageController;
+use App\Modules\Meta\Http\Controllers\FacebookConnectController;
+use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
+use App\Modules\Meta\Livewire\App\Inbox;
 use App\Modules\Sites\Http\Controllers\SiteCheckController;
 use App\Modules\Sites\Http\Controllers\SiteSnippetController;
 use App\Modules\Sites\Livewire\App\SiteShow;
@@ -42,6 +46,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/brands/create', BrandForm::class)->name('brands.create');
         Route::get('/brands/{brandId}/edit', BrandForm::class)->name('brands.edit');
         Route::post('/sites/{site}/check', SiteCheckController::class)->whereNumber('site')->name('sites.check');
+        Route::get('/integrations', IntegrationsPage::class)->name('integrations');
 
         Route::middleware('super-admin')->group(function (): void {
             Route::get('/admins', AdminAccountsIndex::class)->name('admins.index');
@@ -49,6 +54,12 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
             Route::get('/admins/{userId}/edit', AdminAccountForm::class)->name('admins.edit');
             Route::get('/system', SystemPage::class)->name('system');
         });
+    });
+
+    // Connect Facebook: once, globally, by a Super Admin or Admin.
+    Route::middleware('global-admin')->prefix('integrations/facebook')->name('integrations.facebook.')->group(function (): void {
+        Route::get('/connect', [FacebookConnectController::class, 'connect'])->name('connect');
+        Route::get('/callback', [FacebookConnectController::class, 'callback'])->name('callback');
     });
 
     // Brand workspace: Brand is the tenant, every screen is scoped to it.
@@ -62,6 +73,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/leads/pipeline', Pipeline::class)->name('leads.pipeline');
         Route::get('/leads/{lead}', LeadShow::class)->name('leads.show');
         Route::get('/follow-ups', FollowUps::class)->name('follow-ups');
+        Route::get('/inbox', Inbox::class)->name('inbox');
+        Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
 
         Route::get('/departments', DepartmentsIndex::class)->name('departments.index');
         Route::get('/departments/create', DepartmentForm::class)->name('departments.create');

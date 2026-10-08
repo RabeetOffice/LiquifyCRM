@@ -36,6 +36,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks
   reuse that pipeline (`PullSiteLeads`, `SiteHealthChecker`). Secrets use encrypted casts and never reach a view.
+- Facebook (`app/Modules/Meta`): `/webhooks/meta` verifies `X-Hub-Signature-256` and stores `InboundEvent`s;
+  `ProcessMetaEvent` turns them into leads (Lead Ads, via `MetaGraph`) or `Conversation` / `Message` rows (Messenger).
+  One global connection (`MetaConnection`), Pages mapped to brands (`MetaSource`, not brand-scoped). Each channel
+  registers its job with `InboundEvent::processWith()` so the event log can retry anything.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
   `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
 

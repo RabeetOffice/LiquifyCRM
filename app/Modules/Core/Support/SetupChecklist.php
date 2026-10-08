@@ -7,6 +7,7 @@ namespace App\Modules\Core\Support;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Meta\Models\MetaSource;
 use App\Modules\Sites\Models\Site;
 
 /**
@@ -26,6 +27,7 @@ final class SetupChecklist
         $managers = $brand->memberships()->where('role', BrandRole::Manager->value)->count();
         $leads = Lead::query()->forBrand($brand)->count();
         $sites = Site::query()->forBrand($brand)->count();
+        $pages = MetaSource::query()->where('brand_id', $brand->getKey())->count();
 
         $steps = [
             [
@@ -65,10 +67,10 @@ final class SetupChecklist
             ],
             [
                 'title' => 'Connect Facebook',
-                'description' => 'One connection for all brands; map each Page to its brand.',
-                'done' => false,
-                'url' => null,
-                'soon' => 'Week 4',
+                'description' => $pages > 0 ? $pages.' Facebook '.str('Page')->plural($pages).' mapped to this brand.' : 'One connection for all brands; map each Page to its brand.',
+                'done' => $pages > 0,
+                'url' => route('admin.integrations'),
+                'soon' => null,
             ],
             [
                 'title' => 'Set monthly targets',

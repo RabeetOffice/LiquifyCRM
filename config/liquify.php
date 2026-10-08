@@ -53,6 +53,24 @@ return [
         'rate_limit' => (int) env('INGEST_RATE_LIMIT', 120),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta (Facebook Lead Ads and Messenger)
+    |--------------------------------------------------------------------------
+    | One Meta app for every brand. The secret signs incoming webhooks; the
+    | verify token is any long random text you also enter in the Meta app.
+    | login_config_id is the optional "Facebook Login for Business"
+    | configuration; without it the classic permission list is requested.
+    */
+    'meta' => [
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
+        'verify_token' => env('META_VERIFY_TOKEN'),
+        'login_config_id' => env('META_LOGIN_CONFIG_ID'),
+        'graph_version' => env('META_GRAPH_VERSION', 'v26.0'),
+        'rate_limit' => (int) env('META_WEBHOOK_RATE_LIMIT', 120),
+    ],
+
     'sites' => [
         'quiet_hours' => (int) env('SITE_QUIET_HOURS', 48),
     ],
