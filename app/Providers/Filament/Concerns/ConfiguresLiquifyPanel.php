@@ -71,7 +71,8 @@ trait ConfiguresLiquifyPanel
             ->sidebarCollapsibleOnDesktop()
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            // 'mod' is ⌘ on a Mac and Ctrl elsewhere, so the field hint reads ⌘K or CTRL+K.
+            ->globalSearchKeyBindings(['mod+k'])
             ->globalSearchFieldKeyBindingSuffix()
             ->unsavedChangesAlerts()
             ->middleware([
