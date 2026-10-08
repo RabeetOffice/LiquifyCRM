@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -12,7 +12,7 @@ State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
 | Week 3 · Website sources | **Done** | Built 8 October; health checks and pull mode ported from the LeadsHub folder |
 | Week 4 · Meta | **Done** | Built 8 October against the Graph API with faked responses; a live run needs your Meta app keys in `.env` |
 | Week 5 · Sales and targets | **Done** | Built 8 October |
-| Week 6 · Hardening and launch | **Next** (theme and isolation tests done) | |
+| Week 6 · Hardening and launch | **Built** | Staging deploy, off-server backups and the first client need details from you |
 | Phase 2 · Files, NDA, client portal | Pending | Tables designed in the document, not created (agreed) |
 
 ## Done
@@ -102,6 +102,21 @@ State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
 - [x] Distribute leads (`/b/{brand}/leads/distribute`): the Admin filters leads and splits them across departments equally, by percentage or by count; a Manager shares their department's leads among Agents equally or by count; preview before moving; one notification per department or Agent; every run (and bulk assigns from the Leads list, as "by hand") in the `lead_distributions` history.
 - [x] Setup checklist step "Set monthly targets" ticks itself; menus: Sales / My target, Targets, Clients, Distribute leads, Sales dashboard, Exchange rates.
 
+### Hardening (week 6)
+- [x] Logs screen (`/admin/logs` for every brand, `/b/{brand}/logs` for one): filters by brand, person, kind of event and dates; search by lead name or email; click a row for the details. Admins see everything; a Manager sees and downloads their own departments' logs; Agents have no Logs screen.
+- [x] Download last 7 / 15 / 30 days: CSV inside a ZIP built in the queue, link in notifications and on the screen, valid 24 hours, the download itself is logged, expired files are removed.
+- [x] Nightly `logs:archive`: every finished day goes to `logs/YYYY/MM/DATE.jsonl.gz` in private storage with row count and checksum (`log_archives`); rows past the database retention are deleted in batches of 1,000, only when their day is safely archived; archive files past the archive retention are deleted. Archive files can be downloaded by Admins, filtered by date.
+- [x] Retention settings (Super Admin): 7 / 15 / 30 / 60 / 90 days in the database, 90 / 180 / 365 days as archives. Storage card with rows and archive size.
+- [x] Delete logs before a date (Super Admin, password re-confirm, never the last 7 days, archived first, in the queue, logged).
+- [x] `inbound_events` pruned daily: processed after 14 days, failed after 30. Laravel error log as daily files for 14 days.
+- [x] Dashboard numbers cached 60 seconds per brand and cleared when a lead arrives, is assigned, changes status or is distributed.
+- [x] Speed check `php artisan liquify:speed-check`: 100,000 leads in one brand, lead list 19 ms, Unassigned view 20 ms, search 10 ms, dashboard numbers 244 ms uncached, queue 2 ms on the local XAMPP database. Four indexes were added to `leads` for this.
+- [x] Backups: the daily backup now carries the database and the log archive folder; the destination disks come from `BACKUP_DISKS`.
+- [x] PWA manifest for add-to-home-screen on iPhone and Android.
+- [x] Onboarding: 3-step Add brand wizard (basics, look fetched from the website, check at the end), 3-tip welcome tour for new Managers and Agents (skippable, shown once), inline "?" help next to settings.
+- [x] `POST /b/{brand}/leads/{lead}/reveal`.
+- [x] `deploy.php` no longer calls the two Filament commands (they would have failed the first deploy).
+
 ### System screen and deployment
 - [x] System screen (Super Admin): version, environment, pending-migrations banner, Backup and run database update with password re-confirm (backup first, then `migrate --force`, output kept), Back up now, retry failed jobs, release rollback (password re-confirm), health checks, queue and cron health, deployment history with logs, latest backups. Refreshes itself while a job runs.
 - [x] `POST /hooks/deploy/{token}` records each deployment and tells Super Admins when database updates wait.
@@ -128,6 +143,10 @@ State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
 - `targets` has a `brand_id` (a person can work in two brands, each with its own target and currency); `clients` adds `last_sale_at`; `sales` adds `recorded_by`.
 - The document's `/dashboard/sales` lives at `/admin/sales` (all brands) and `/b/{brand}/sales` (one brand), matching the two areas of the app. Distribution is a screen at `/b/{brand}/leads/distribute` rather than a bare POST.
 - Bulk distribution writes one history line and one notification per department or Agent, not a timeline entry on each of the leads.
+- Log clean-up keeps the entries on a lead's own timeline in the database (they are still archived). The document deletes everything after 30 days, which would empty the timeline of every older lead.
+- "Delete logs" checks that the period is archived; it cannot check an off-server backup until one is set up.
+- The Logs routes are `/admin/logs` and `/b/{brand}/logs`; export and delete are actions on the screen rather than bare `POST /logs/export` and `DELETE /admin/logs`.
+- The speed check times the database queries behind the screens, not a full page in a browser.
 - Light page background is `#f4f4f2` (a shade below the document's `#FAFAF9`) so white cards stand out, and stat-card icons sit in rounded tiles rather than circles, both from the reference designs the user chose.
 
 ## Pending
@@ -146,24 +165,19 @@ State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] A progress bar on each person's own Profile screen (it is on Sales / My target, the leaderboard and Targets).
 - [ ] The two CSV drill-downs the document hints at ("Per brand and department" for sources, "Per Agent" for speed) show inside the brand and department views rather than as separate expanding cards.
 
-### Week 6 · Hardening and launch (next)
-- [x] Brand-isolation test suite (done in week 1).
-- [x] Apple-style theme, light and dark (done; polish continues as screens land).
-- [ ] Logs screen: filters by brand, user, event and date; search by lead; 7 / 15 / 30-day downloads built in the queue with a 24-hour link; delete before a date (Super Admin, password re-confirm, never the last 7 days); retention settings; storage card.
-- [ ] Nightly log archive (`logs/YYYY/MM/date.jsonl.gz`, 180 days), `log_archives` and `log_exports` tables, pruning of `inbound_events` and daily log files.
-- [ ] Dashboard numbers cached 60 seconds per brand and refreshed on new leads.
-- [ ] Speed checks: 100,000 leads under 300 ms, production caches (`Model::preventLazyLoading()` is already on in development).
-- [ ] Off-server backup destination (S3-compatible or FTP) in `config/backup.php`; today backups stay on the server.
-- [ ] PWA manifest for add-to-home-screen (touch icon exists).
-- [ ] Onboarding: 3-step Add brand wizard with a test at the end, 3-tip welcome tour for new Agents and Managers, inline "?" help next to settings.
-- [ ] Log retention entries for messages and integrations (the areas arrive with their modules).
-- [ ] First staging deploy and the first client (UK Publishing House) with its Managers and Agents; Meta App Review if ever needed.
+### Week 6 · needs you
+- [ ] Off-server backup destination. The S3-compatible driver (`league/flysystem-aws-s3-v3`) or the FTP driver (`league/flysystem-ftp`) is not installed and neither is in the document's package table, so it needs your approval and the destination (Cloudflare R2, Backblaze or FTP). Then set `BACKUP_DISKS=backups,s3`.
+- [ ] First staging deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain. Then run `liquify:speed-check` there.
+- [ ] A live run against the real Meta app (keys in `.env`, Cloudflare tunnel).
+- [ ] The first client (UK Publishing House) with its Managers and Agents; Meta App Review only if ever needed.
+- [ ] Official brand logos (Facebook, Messenger, Gmail, Outlook) as local SVGs.
+- [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today.
 
 ### Phase 2 and later
 - [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
-- Week 6 can start now: say "continue".
+- The six weeks are built. What is left is in "Week 6 · needs you" above.
 - Week 4 live test: put the Meta app id, secret and a verify token in `.env`, run the Cloudflare tunnel, then Connect Facebook on the Integrations screen.
 - First deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain.
 - Backups: where off-server backups should go (Cloudflare R2, Backblaze, FTP).

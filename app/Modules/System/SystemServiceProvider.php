@@ -6,6 +6,7 @@ namespace App\Modules\System;
 
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\System\Console\HeartbeatCommand;
+use App\Modules\System\Console\SpeedCheckCommand;
 use App\Modules\System\Support\ReleaseManager;
 use App\Modules\System\Support\SystemStatus;
 use Spatie\Health\Checks\Checks\CacheCheck;
@@ -24,6 +25,7 @@ final class SystemServiceProvider extends ModuleServiceProvider
 
     protected array $commands = [
         HeartbeatCommand::class,
+        SpeedCheckCommand::class,
     ];
 
     public function register(): void

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Activity\Http\Controllers\LogDownloadController;
+use App\Modules\Activity\Livewire\LogsPage;
 use App\Modules\Auth\Livewire\Admin\AdminAccountForm;
 use App\Modules\Auth\Livewire\Admin\AdminAccountsIndex;
 use App\Modules\Auth\Livewire\Profile;
@@ -10,6 +12,7 @@ use App\Modules\Brands\Http\Controllers\BrandRedirectController;
 use App\Modules\Brands\Http\Controllers\FetchIdentityController;
 use App\Modules\Brands\Livewire\Admin\BrandForm;
 use App\Modules\Brands\Livewire\Admin\BrandsIndex;
+use App\Modules\Brands\Livewire\Admin\BrandWizard;
 use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
@@ -17,6 +20,7 @@ use App\Modules\Core\Livewire\AdminDashboard;
 use App\Modules\Core\Livewire\BrandDashboard;
 use App\Modules\Departments\Livewire\App\DepartmentForm;
 use App\Modules\Departments\Livewire\App\DepartmentsIndex;
+use App\Modules\Leads\Http\Controllers\RevealContactController;
 use App\Modules\Leads\Livewire\App\FollowUps;
 use App\Modules\Leads\Livewire\App\LeadForm;
 use App\Modules\Leads\Livewire\App\LeadShow;
@@ -51,10 +55,12 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
     Route::middleware('global-admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/', AdminDashboard::class)->name('dashboard');
         Route::get('/brands', BrandsIndex::class)->name('brands.index');
-        Route::get('/brands/create', BrandForm::class)->name('brands.create');
+        Route::get('/brands/create/{brandId?}', BrandWizard::class)->whereNumber('brandId')->name('brands.create');
         Route::get('/brands/{brandId}/edit', BrandForm::class)->name('brands.edit');
         Route::post('/sites/{site}/check', SiteCheckController::class)->whereNumber('site')->name('sites.check');
         Route::get('/integrations', IntegrationsPage::class)->name('integrations');
+        Route::get('/logs', LogsPage::class)->name('logs');
+        Route::get('/logs/archives/{archive}', [LogDownloadController::class, 'archive'])->whereNumber('archive')->name('logs.archives.download');
         Route::get('/sales', SalesDashboard::class)->name('sales');
         Route::get('/exchange-rates', ExchangeRatesPage::class)->name('exchange-rates');
         Route::post('/brands/{brandId}/fetch-identity', FetchIdentityController::class)->whereNumber('brandId')->name('brands.fetch-identity');
@@ -66,6 +72,9 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
             Route::get('/system', SystemPage::class)->name('system');
         });
     });
+
+    // A person's own log download, while its 24 hours last.
+    Route::get('/logs/exports/{export}', [LogDownloadController::class, 'export'])->whereNumber('export')->name('logs.exports.download');
 
     // Connect Facebook: once, globally, by a Super Admin or Admin.
     Route::middleware('global-admin')->prefix('integrations/facebook')->name('integrations.facebook.')->group(function (): void {
@@ -85,6 +94,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/leads/distribute', DistributePage::class)->name('leads.distribute');
         Route::get('/leads/{lead}', LeadShow::class)->name('leads.show');
         Route::post('/leads/{lead}/won', RecordSaleController::class)->name('leads.won');
+        Route::post('/leads/{lead}/reveal', RevealContactController::class)->name('leads.reveal');
+        Route::get('/logs', LogsPage::class)->name('logs');
         Route::get('/follow-ups', FollowUps::class)->name('follow-ups');
         Route::get('/sales', SalesDashboard::class)->name('sales');
         Route::get('/targets', TargetsPage::class)->name('targets');

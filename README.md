@@ -19,7 +19,7 @@ Actions → Hostinger.
 | 3 | Website sources: sites, ingest API + liquify.php, pull mode, health checks | ✅ done |
 | 4 | Meta: Connect Facebook, Page mapping, Lead Ads, Messenger inbox | ✅ done |
 | 5 | Sales and targets: people profiles, Mark as Won, clients, targets, dashboards, brand identity fetch, distribution | ✅ done |
-| 6 | Hardening: logs screen, retention, theme polish, speed checks, backups, launch | ⏳ |
+| 6 | Hardening: logs screen, retention, theme polish, speed checks, backups, launch | ✅ built; staging deploy and off-server backups need your details |
 
 ---
 
@@ -109,6 +109,8 @@ The Super Admin is whatever you entered in `liquify:install`.
 | `META_APP_ID`, `META_APP_SECRET`, `META_VERIFY_TOKEN` | The Meta app: id, secret (signs incoming webhooks) and a verify token of your choice (any long random text, also entered in the Meta app) |
 | `META_LOGIN_CONFIG_ID`, `META_GRAPH_VERSION` | Optional Facebook Login for Business configuration id; Graph API version (`v26.0`) |
 | `INGEST_REPLAY_WINDOW`, `INGEST_RATE_LIMIT`, `SITE_QUIET_HOURS` | Website leads: seconds a signed request stays valid (300), requests per website per minute (120), hours without a lead before a website turns amber (48) |
+| `LOG_STACK=daily`, `LOG_DAILY_DAYS=14` | Laravel error log as daily files, kept 14 days |
+| `BACKUP_DISKS` | Where backups go, comma separated. `backups` is on the server; add an off-server disk (for example `backups,s3`) once its credentials are set |
 | `LIQUIFY_REQUIRE_TWO_FACTOR` | `true` (default) forces an authenticator app on Super Admins and Admins; set `false` only on a local machine |
 | `APP_DEBUG=false`, `APP_ENV=production` | Always in production |
 
@@ -129,6 +131,18 @@ cloudflared tunnel --url http://localhost:8000
 ```
 
 The scheduler renews a Facebook login token (`meta:refresh-tokens`, daily) before its 60 days run out.
+
+## Before launch
+
+```
+php artisan liquify:speed-check --leads=100000
+```
+
+Creates a throwaway brand with 100,000 leads, times the queries behind the lead list and the dashboard against the 300 ms
+target, then removes the brand. Run it once on the Hostinger database.
+
+The nightly `logs:archive` writes each day of the audit trail to `storage/app/private/logs/YYYY/MM/DATE.jsonl.gz` and applies the
+retention chosen on the Logs screen. The daily backup carries the database and that folder.
 
 ## Quality checks
 

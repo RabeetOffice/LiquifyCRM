@@ -7,7 +7,9 @@ namespace App\Modules\Sites\Models;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sites\Enums\InboundStatus;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -29,6 +31,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class InboundEvent extends Model
 {
+    use Prunable;
+
     public const SOURCE_SITE = 'site';
 
     /** @var array<string, class-string> source => queued job that takes the event id */
@@ -76,6 +80,19 @@ class InboundEvent extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class)->withoutGlobalScopes();
+    }
+
+    /**
+     * Retention from the document: processed events go after 14 days, failed ones
+     * (which may still be retried) after 30.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        return static::query()->where(fn (Builder $query): Builder => $query
+            ->where(fn (Builder $done): Builder => $done->where('status', InboundStatus::Done->value)->where('created_at', '<', now()->subDays(14)))
+            ->orWhere('created_at', '<', now()->subDays(30)));
     }
 
     public function isTest(): bool

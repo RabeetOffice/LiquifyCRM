@@ -43,6 +43,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Sales (`app/Modules/Sales`): a lead only becomes Won through `RecordSale` (amount required); it creates or updates the
   `Client`. `SalesReport` produces every dashboard number for a scope (all brands in the reporting currency, or one brand
   narrowed by role); `Progress` is the achieved-versus-target maths; `DistributeLeads` moves leads in bulk.
+- Logs (`app/Modules/Activity`): `LogArchiver` writes daily archive files and is the only code that deletes from
+  `activity_log`; entries on a lead's timeline are never deleted. Retention lives in `LogSettings` (spatie settings).
+- Dashboard numbers go through `DashboardCache` (60 seconds, flushed by the lead events). After changing lead queries run
+  `php artisan liquify:speed-check`.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
   `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
 

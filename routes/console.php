@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Sites\Models\InboundEvent;
 use Illuminate\Support\Facades\Schedule;
 
 /*
@@ -40,7 +41,13 @@ Schedule::command('brands:refresh-identity')->weeklyOn(1, '04:00')->doNotMonitor
 
 // Backups: daily database backup, then prune according to config/backup.php.
 Schedule::command('backup:clean')->dailyAt('01:30')->graceTimeInMinutes(60);
-Schedule::command('backup:run --only-db')->dailyAt('02:00')->graceTimeInMinutes(60);
+Schedule::command('backup:run')->dailyAt('02:00')->graceTimeInMinutes(60);
+
+// Logs: archive yesterday to a compressed file, then apply the retention settings.
+Schedule::command('logs:archive')->dailyAt('00:40')->graceTimeInMinutes(60);
+
+// Raw copies of received leads: done ones go after 14 days, failed ones after 30.
+Schedule::command('model:prune', ['--model' => [InboundEvent::class]])->dailyAt('00:55')->doNotMonitor();
 
 // Housekeeping.
 Schedule::command('schedule-monitor:clean-log')->daily();

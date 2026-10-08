@@ -1,0 +1,1 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:74:"v2-e1ae5e6b39afb4998339022f9793f9825be615bd5a70c50adfbbcba2a7bebf25-8.4.26";s:4:"data";a:3:{s:7:"classes";a:1:{s:50:"spatie\laravelsettings\migrations\settingsmigrator";b:1;}s:9:"functions";a:0:{}s:9:"constants";a:0:{}}}

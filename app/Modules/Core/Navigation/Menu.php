@@ -83,6 +83,8 @@ final class Menu
                 self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
             ];
 
+            $settings[] = self::item('Logs', 'heroicon-o-clipboard-document-list', route('brand.logs', $params), $isActive('brand.logs'));
+
             if ($user->isGlobalAdmin()) {
                 $settings[] = self::item('Email settings', 'heroicon-o-envelope', route('brand.email-settings', $params), $isActive('brand.email-settings'));
             }
@@ -113,6 +115,7 @@ final class Menu
         $settings = [
             self::item('Integrations', 'heroicon-o-link', route('admin.integrations'), $isActive('admin.integrations')),
             self::item('Exchange rates', 'heroicon-o-currency-pound', route('admin.exchange-rates'), $isActive('admin.exchange-rates')),
+            self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
         ];
 
         if ($user->isSuperAdmin()) {

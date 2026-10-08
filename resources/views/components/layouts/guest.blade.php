@@ -7,6 +7,9 @@
     <title>{{ $title ?? 'Sign in' }} · LiquifyCRM</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brand/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="LiquifyCRM">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f2">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0a09">
     <script>

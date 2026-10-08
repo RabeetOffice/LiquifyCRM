@@ -1,7 +1,12 @@
-@props(['label' => null, 'name' => null, 'help' => null, 'required' => false, 'for' => null])
+@props(['label' => null, 'name' => null, 'help' => null, 'required' => false, 'for' => null, 'tip' => null])
 <div {{ $attributes->class(['lq-field']) }}>
     @if ($label)
-        <label @if ($for ?? $name) for="{{ $for ?? $name }}" @endif @class(['lq-label', 'lq-label-required' => $required])>{{ $label }}</label>
+        <div class="lq-label-row">
+            <label @if ($for ?? $name) for="{{ $for ?? $name }}" @endif @class(['lq-label', 'lq-label-required' => $required])>{{ $label }}</label>
+            @if ($tip)
+                <x-ui.help :text="$tip" />
+            @endif
+        </div>
     @endif
 
     {{ $slot }}

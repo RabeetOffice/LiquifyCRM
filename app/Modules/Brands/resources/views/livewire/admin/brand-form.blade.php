@@ -77,10 +77,10 @@
 
         <x-ui.card title="Rules" description="Defaults that apply inside this brand.">
             <div class="lq-form-grid lq-form-grid-2">
-                <x-ui.field label="Reveals per Agent per hour" name="revealLimit" required help="How many phone numbers or emails one Agent may reveal in an hour.">
+                <x-ui.field label="Reveals per Agent per hour" name="revealLimit" required help="How many phone numbers or emails one Agent may reveal in an hour." tip="Agents see contact details masked until they click Reveal. Each reveal is logged. This limit stops someone copying the whole list; Managers and Admins are not limited.">
                     <x-ui.input type="number" min="1" max="500" wire:model="revealLimit" name="revealLimit" />
                 </x-ui.field>
-                <x-ui.field label="Notification emails" name="notificationEmails" help="One per line. Who hears about new leads before they are sent to a department.">
+                <x-ui.field label="Notification emails" name="notificationEmails" help="One per line. Who hears about new leads before they are sent to a department." tip="These addresses get an email for every new lead of this brand, even without a LiquifyCRM login. Department Managers are told separately once a lead is sent to them.">
                     <x-ui.textarea wire:model="notificationEmails" name="notificationEmails" rows="3" />
                 </x-ui.field>
             </div>

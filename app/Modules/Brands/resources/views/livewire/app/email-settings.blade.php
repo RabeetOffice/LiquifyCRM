@@ -23,7 +23,7 @@
                     <x-ui.field label="Port" name="port">
                         <x-ui.input wire:model="port" name="port" inputmode="numeric" />
                     </x-ui.field>
-                    <x-ui.field label="Security" name="encryption">
+                    <x-ui.field label="Security" name="encryption" tip="Use TLS with port 587 unless your email provider says otherwise. SSL goes with port 465.">
                         <x-ui.select wire:model="encryption" name="encryption">
                             <option value="tls">TLS (port 587)</option>
                             <option value="ssl">SSL (port 465)</option>

@@ -8,6 +8,7 @@ use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
+use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Core\Support\SetupChecklist;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Enums\LeadSource;
@@ -61,17 +62,51 @@ final class BrandDashboard extends Component
         $agent = ! $user->isGlobalAdmin() && $user->isAgentIn($this->brand);
         $visible = fn (): Builder => Lead::query()->visibleTo($user);
 
-        $today = now()->startOfDay();
-        $todayCount = $visible()->where('created_at', '>=', $today)->count();
-        $yesterdayCount = $visible()->whereBetween('created_at', [$today->copy()->subDay(), $today])->count();
-        $weekCount = $visible()->where('created_at', '>=', now()->subDays(7))->count();
-        $previousWeekCount = $visible()->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count();
-        $unassigned = $agent ? null : $visible()->unassigned()->count();
-        $myOpen = $agent ? $visible()->open()->count() : null;
-        $overdue = Task::query()->visibleTo($user)->overdue()->count();
+        // The counts and chart numbers: cached per brand for 60 seconds, per person
+        // for anyone who does not see the whole brand.
+        $stats = DashboardCache::remember((int) $this->brand->getKey(), $user->isGlobalAdmin() ? 'all' : 'user-'.$user->getKey(), function () use ($visible, $user, $agent): array {
+            $today = now()->startOfDay();
 
-        $total = $visible()->count();
-        $won = $visible()->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', true))->count();
+            return [
+                'today' => $visible()->where('created_at', '>=', $today)->count(),
+                'yesterday' => $visible()->whereBetween('created_at', [$today->copy()->subDay(), $today])->count(),
+                'week' => $visible()->where('created_at', '>=', now()->subDays(7))->count(),
+                'previousWeek' => $visible()->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count(),
+                'unassigned' => $agent ? null : $visible()->unassigned()->count(),
+                'myOpen' => $agent ? $visible()->open()->count() : null,
+                'overdue' => Task::query()->visibleTo($user)->overdue()->count(),
+                'total' => $visible()->count(),
+                // By status id, so the count is answered from the index.
+                'won' => $visible()->whereIn('status_id', LeadStatus::query()->where('is_won', true)->pluck('id'))->count(),
+                'byDay' => $visible()
+                    ->where('created_at', '>=', now()->subDays(29)->startOfDay())
+                    ->selectRaw('date(created_at) as day, count(*) as total')
+                    ->groupBy('day')
+                    ->orderBy('day')
+                    ->pluck('total', 'day')
+                    ->all(),
+                'bySource' => $visible()
+                    ->where('created_at', '>=', now()->subDays(30))
+                    ->groupBy('source_type')
+                    ->toBase()
+                    ->pluck(DB::raw('count(*) as total'), 'source_type')
+                    ->all(),
+                'byStatus' => $visible()->groupBy('status_id')->pluck(DB::raw('count(*) as total'), 'status_id')->all(),
+            ];
+        });
+
+        $todayCount = $stats['today'];
+        $yesterdayCount = $stats['yesterday'];
+        $weekCount = $stats['week'];
+        $previousWeekCount = $stats['previousWeek'];
+        $unassigned = $stats['unassigned'];
+        $myOpen = $stats['myOpen'];
+        $overdue = $stats['overdue'];
+        $total = $stats['total'];
+        $won = $stats['won'];
+        $byDay = $stats['byDay'];
+        $bySource = collect($stats['bySource']);
+        $byStatus = $stats['byStatus'];
 
         $queue = $agent
             ? collect()
@@ -81,22 +116,9 @@ final class BrandDashboard extends Component
             ? Task::query()->visibleTo($user)->open()->where('due_at', '<=', now()->endOfDay())->with('lead')->orderBy('due_at')->limit(8)->get()
             : collect();
 
-        $byDay = $visible()
-            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
-            ->selectRaw('date(created_at) as day, count(*) as total')
-            ->groupBy('day')
-            ->orderBy('day')
-            ->pluck('total', 'day');
-
         $days = collect(range(29, 0))->map(fn (int $i): string => now()->subDays($i)->toDateString());
 
-        $bySource = $visible()
-            ->where('created_at', '>=', now()->subDays(30))
-            ->groupBy('source_type')
-            ->pluck(DB::raw('count(*) as total'), 'source_type');
-
         $statuses = LeadStatus::query()->ordered()->get();
-        $byStatus = $visible()->groupBy('status_id')->pluck(DB::raw('count(*) as total'), 'status_id');
 
         $agents = $agent ? collect() : $this->agentOptions();
 
@@ -124,7 +146,7 @@ final class BrandDashboard extends Component
                 'values' => $days->map(fn (string $day): int => (int) ($byDay[$day] ?? 0))->all(),
             ],
             'chartSource' => [
-                'labels' => $bySource->keys()->map(fn (string $source): string => LeadSource::tryFrom($source)?->getLabel() ?? $source)->all(),
+                'labels' => $bySource->keys()->map(fn (int|string $source): string => LeadSource::tryFrom((string) $source)?->getLabel() ?? (string) $source)->all(),
                 'values' => $bySource->values()->map(fn ($value): int => (int) $value)->all(),
             ],
             'chartStatus' => [

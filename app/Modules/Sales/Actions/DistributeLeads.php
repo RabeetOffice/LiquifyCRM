@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Models\LeadDistribution;
@@ -135,6 +136,8 @@ final class DistributeLeads
         });
 
         if ($moved > 0) {
+            DashboardCache::flush((int) $brand->getKey());
+
             Audit::log('leads.distributed', $brand, ['to' => $toType, 'method' => $method, 'split' => $summary, 'filters' => $filters], $moved.' '.str('lead')->plural($moved).' distributed to '.implode(', ', array_keys($summary)), brand: $brand, causer: $by, logName: 'leads');
         }
 

@@ -79,8 +79,6 @@ task('deploy:update_code', function (): void {
     ]);
 })->desc('Upload the release built by GitHub Actions');
 
-task('artisan:filament:assets', artisan('filament:assets'))->desc('Publish Filament assets');
-task('artisan:filament:optimize', artisan('filament:optimize'))->desc('Cache Filament components and icons');
 task('artisan:permission:cache-reset', artisan('permission:cache-reset'))->desc('Reset the permission cache');
 
 // The Laravel recipe's default deploy task runs migrations; ours does not.
@@ -88,12 +86,10 @@ task('deploy', [
     'deploy:prepare',
     'deploy:vendors',
     'artisan:storage:link',
-    'artisan:filament:assets',
     'artisan:config:cache',
     'artisan:route:cache',
     'artisan:view:cache',
     'artisan:event:cache',
-    'artisan:filament:optimize',
     'artisan:permission:cache-reset',
     'deploy:publish',
 ])->desc('Deploy LiquifyCRM (no migrations)');

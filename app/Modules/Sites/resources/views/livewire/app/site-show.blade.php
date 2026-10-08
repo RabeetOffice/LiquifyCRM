@@ -171,7 +171,7 @@
                         <x-ui.input wire:model="url" name="url" required />
                     </x-ui.field>
                     @unless ($site->usesWebhook())
-                        <x-ui.field label="Form handler path" name="formPath" help="The file the form posts to. Used for the form health check.">
+                        <x-ui.field label="Form handler path" name="formPath" help="The file the form posts to. Used for the form health check." tip="The address of the file that receives the form on the website, for example /form-submission.php or /contact.php. If it is wrong the Form check turns red even though leads arrive.">
                             <x-ui.input wire:model="formPath" name="formPath" placeholder="/form-submission.php" />
                         </x-ui.field>
                     @endunless
