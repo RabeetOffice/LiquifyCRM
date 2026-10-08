@@ -22,11 +22,11 @@
     --lq-ink: #1c1917;
     --lq-ink-soft: #44403c;
     --lq-muted: #78716c;
-    --lq-bg: #fafaf9;
+    --lq-bg: #f4f4f2; /* a shade below the document's #FAFAF9 so white cards stand out */
     --lq-surface: #ffffff;
-    --lq-surface-translucent: rgb(255 255 255 / 0.72);
-    --lq-raised: rgb(28 25 23 / 0.04);
-    --lq-hairline: #e7e5e4;
+    --lq-surface-translucent: rgb(255 255 255 / 0.82);
+    --lq-raised: rgb(28 25 23 / 0.045);
+    --lq-hairline: #e8e6e3;
 
     --lq-orange: #ff6b2c;
     --lq-orange-hover: #f7631b;
@@ -57,11 +57,11 @@
     --lq-ink: #fafaf9;
     --lq-ink-soft: #d6d3d1;
     --lq-muted: #a8a29e;
-    --lq-bg: #0c0a09;
-    --lq-surface: #1c1917;
-    --lq-surface-translucent: rgb(20 17 16 / 0.72);
-    --lq-raised: rgb(255 255 255 / 0.05);
-    --lq-hairline: #292524;
+    --lq-bg: #0b0a09;
+    --lq-surface: #171412;
+    --lq-surface-translucent: rgb(18 15 14 / 0.8);
+    --lq-raised: rgb(255 255 255 / 0.055);
+    --lq-hairline: #2a2522;
 
     --lq-orange: #ff8a4c;
     --lq-orange-hover: #ff9a63;
@@ -277,6 +277,379 @@ html {
     background: var(--lq-orange-tint);
     color: var(--lq-orange-deep);
     font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- shell */
+
+/* Full-height sidebar with the logo inside; the top bar only spans the content. */
+.fi-body {
+    --sidebar-width: 17rem;
+    --collapsed-sidebar-width: 4.75rem;
+}
+
+.lq-sidebar {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--lq-surface-translucent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border-inline-end: 1px solid var(--lq-hairline);
+    box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+    .fi-body-has-topbar .fi-sidebar.lq-sidebar {
+        top: 0;
+        height: 100dvh;
+        margin-top: calc(-1 * var(--topbar-height));
+        z-index: 40;
+    }
+
+    .lq-topbar-ctn.lq-sidebar-open .lq-topbar {
+        padding-inline-start: calc(var(--sidebar-width) + 1.5rem);
+    }
+
+    .lq-topbar-ctn:not(.lq-sidebar-open) .lq-topbar {
+        padding-inline-start: calc(var(--collapsed-sidebar-width) + 1.5rem);
+    }
+}
+
+.lq-side-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex: none;
+    height: var(--topbar-height);
+    padding: 0 1.25rem;
+}
+
+.lq-side-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    color: var(--lq-ink);
+    font-weight: 700;
+    font-size: 1.125rem;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+}
+
+.lq-side-logo-mark {
+    height: 1.5rem;
+    width: auto;
+    flex: none;
+}
+
+.lq-side-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: var(--lq-radius-control);
+    background: transparent;
+    color: var(--lq-muted);
+    cursor: pointer;
+}
+
+.lq-side-close:hover {
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+}
+
+.lq-side-close-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+    .lq-side-close {
+        display: none;
+    }
+}
+
+.lq-side-brand {
+    flex: none;
+    padding: 0.25rem 0.875rem 0.75rem;
+}
+
+.lq-side-brand .fi-tenant-menu-trigger {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 12px;
+    border: 1px solid var(--lq-hairline);
+    background: var(--lq-surface);
+    padding: 0.5rem 0.625rem;
+}
+
+.dark .lq-side-brand .fi-tenant-menu-trigger {
+    background: var(--lq-raised);
+}
+
+.lq-side-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0.5rem 0.875rem 1rem;
+    scrollbar-gutter: stable;
+}
+
+.lq-side-group-label {
+    margin: 0 0 0.375rem;
+    padding: 0 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lq-muted);
+}
+
+.lq-side-items,
+.lq-side-subitems {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.lq-side-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--lq-radius-control);
+    color: var(--lq-ink-soft);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 180ms var(--lq-ease), color 180ms var(--lq-ease), box-shadow 180ms var(--lq-ease);
+}
+
+.lq-side-link .fi-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    color: var(--lq-muted);
+    transition: color 180ms var(--lq-ease);
+}
+
+.lq-side-link:hover {
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+}
+
+.lq-side-link:hover .fi-icon {
+    color: var(--lq-ink);
+}
+
+.lq-side-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lq-side-badge {
+    display: inline-flex;
+    margin-inline-start: auto;
+}
+
+/* Active item: a solid Liquify Orange pill with ink text, like the primary button. */
+.lq-side-item.lq-active > .lq-side-link {
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+    font-weight: 600;
+    box-shadow: 0 8px 18px -6px var(--lq-glow);
+}
+
+.lq-side-item.lq-active > .lq-side-link .fi-icon {
+    color: var(--lq-on-orange);
+}
+
+.lq-side-item.lq-active > .lq-side-link .fi-badge {
+    background-color: rgb(28 25 23 / 0.12);
+    color: var(--lq-on-orange);
+    --tw-ring-color: transparent;
+}
+
+.lq-side-item.lq-has-active-child > .lq-side-link {
+    color: var(--lq-ink);
+}
+
+.lq-side-subitems {
+    margin: 0.125rem 0 0.25rem 2.25rem;
+}
+
+.lq-side-sublink {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+    text-decoration: none;
+}
+
+.lq-side-sublink:hover {
+    color: var(--lq-ink);
+    background: var(--lq-raised);
+}
+
+.lq-side-subitem.lq-active > .lq-side-sublink {
+    color: var(--lq-orange-deep);
+    font-weight: 600;
+}
+
+.lq-side-footer {
+    flex: none;
+    padding: 0.75rem 0.875rem 1rem;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-side-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 12px;
+    color: var(--lq-ink);
+    text-decoration: none;
+    transition: background-color 180ms var(--lq-ease);
+}
+
+.lq-side-user:hover {
+    background: var(--lq-raised);
+}
+
+.lq-side-user .fi-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    flex: none;
+}
+
+.lq-side-user-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.125rem;
+}
+
+.lq-side-user-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lq-side-user-role {
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+}
+
+/* Collapsed sidebar on desktop: icons only. */
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-header {
+    justify-content: center;
+    padding: 0;
+}
+
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-brand,
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-nav,
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-footer {
+    padding-inline: 0.625rem;
+}
+
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-brand .fi-tenant-menu-trigger,
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-link,
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-user {
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-brand .fi-tenant-menu-trigger-text,
+.fi-sidebar:not(.fi-sidebar-open) .lq-side-brand .fi-tenant-menu-trigger .fi-icon {
+    display: none;
+}
+
+/* Top bar */
+.lq-topbar {
+    gap: 0.75rem;
+    padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+    .lq-topbar {
+        padding-inline: 1.5rem;
+    }
+}
+
+.lq-top-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border: 0;
+    border-radius: var(--lq-radius-control);
+    background: transparent;
+    color: var(--lq-muted);
+    cursor: pointer;
+    transition: background-color 180ms var(--lq-ease), color 180ms var(--lq-ease);
+}
+
+.lq-top-icon-btn:hover {
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+}
+
+.lq-top-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.lq-top-greeting {
+    display: none;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+@media (min-width: 1024px) {
+    .lq-top-greeting {
+        display: flex;
+    }
+}
+
+.lq-top-greeting-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--lq-ink);
+    white-space: nowrap;
+}
+
+.lq-top-greeting-date {
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+    white-space: nowrap;
+}
+
+.lq-top-end {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* ------------------------------------------------------------ navigation */
@@ -542,9 +915,50 @@ a.lq-stat:focus-visible {
     flex: none;
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 9999px;
+    border-radius: 12px;
     background: var(--lq-orange-tint);
     color: var(--lq-orange-deep);
+}
+
+.lq-stat-value-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+}
+
+.lq-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.125rem;
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+    white-space: nowrap;
+}
+
+.lq-delta svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-delta-up {
+    background: color-mix(in srgb, var(--lq-success) 14%, transparent);
+    color: var(--lq-success);
+}
+
+.lq-delta-down {
+    background: color-mix(in srgb, var(--lq-danger) 14%, transparent);
+    color: var(--lq-danger);
+}
+
+.lq-stat-hero .lq-delta {
+    background: rgb(255 255 255 / 0.3);
+    color: var(--lq-on-orange);
 }
 
 .lq-stat-icon svg {

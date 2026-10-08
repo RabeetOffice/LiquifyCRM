@@ -9,6 +9,8 @@
     $descriptionIcon = $getDescriptionIcon();
     $descriptionIconPosition = $getDescriptionIconPosition();
     $linkLabel = $getLinkLabel();
+    $delta = $getDelta();
+    $deltaIsPositive = $getDeltaIsPositive();
 @endphp
 
 <{!! $tag !!}
@@ -33,11 +35,24 @@
         <span class="lq-stat-label">{{ $getLabel() }}</span>
     </div>
 
-    @if (filled($value))
-        <div class="lq-stat-value">{{ $value }}</div>
-    @else
-        <div class="lq-stat-value lq-stat-placeholder">{{ $getPlaceholder() }}</div>
-    @endif
+    <div class="lq-stat-value-row">
+        @if (filled($value))
+            <div class="lq-stat-value">{{ $value }}</div>
+        @else
+            <div class="lq-stat-value lq-stat-placeholder">{{ $getPlaceholder() }}</div>
+        @endif
+
+        @if (filled($delta))
+            <span @class(['lq-delta', 'lq-delta-up' => $deltaIsPositive === true, 'lq-delta-down' => $deltaIsPositive === false])>
+                @if ($deltaIsPositive === true)
+                    <x-filament::icon icon="heroicon-m-arrow-trending-up" />
+                @elseif ($deltaIsPositive === false)
+                    <x-filament::icon icon="heroicon-m-arrow-trending-down" />
+                @endif
+                {{ $delta }}
+            </span>
+        @endif
+    </div>
 
     @if (filled($description))
         <div
