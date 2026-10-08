@@ -166,9 +166,9 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] The two CSV drill-downs the document hints at ("Per brand and department" for sources, "Per Agent" for speed) show inside the brand and department views rather than as separate expanding cards.
 
 ### Week 6 · needs you
-- [ ] Off-server backup destination. The S3-compatible driver (`league/flysystem-aws-s3-v3`) or the FTP driver (`league/flysystem-ftp`) is not installed and neither is in the document's package table, so it needs your approval and the destination (Cloudflare R2, Backblaze or FTP). Then set `BACKUP_DISKS=backups,s3`.
-- [ ] First staging deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain. Then run `liquify:speed-check` there.
-- [ ] A live run against the real Meta app (keys in `.env`, Cloudflare tunnel).
+- [x] Off-server backups: decided against on 8 October. Backups stay on the server (`BACKUP_DISKS=backups`); the switch remains in `.env` if this changes.
+- [ ] First staging deploy: postponed (8 October). Needs the Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain. Then run `liquify:speed-check` there.
+- [ ] A live run against the real Meta app. The app id and secret are in the local `.env` and Facebook accepts them (app "LiquifyCRM"); still to do: run the Cloudflare tunnel, enter the webhook and redirect addresses in the Meta app, click Connect Facebook, map a Page.
 - [ ] The first client (UK Publishing House) with its Managers and Agents; Meta App Review only if ever needed.
 - [ ] Official brand logos (Facebook, Messenger, Gmail, Outlook) as local SVGs.
 - [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today.
@@ -180,4 +180,3 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 - The six weeks are built. What is left is in "Week 6 · needs you" above.
 - Week 4 live test: put the Meta app id, secret and a verify token in `.env`, run the Cloudflare tunnel, then Connect Facebook on the Integrations screen.
 - First deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain.
-- Backups: where off-server backups should go (Cloudflare R2, Backblaze, FTP).
