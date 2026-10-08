@@ -10,6 +10,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 
 /**
  * /admin: everything that is not inside one brand. Super Admins and Admins
@@ -24,6 +25,8 @@ final class AdminPanelProvider extends PanelProvider
         $panel = $this->configureLiquifyPanel($panel)
             ->id('admin')
             ->path('admin')
+            // Scheduler health in the top bar, next to search (the Hostinger cron drains the queue).
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => view('core::filament.topbar-status')->render())
             ->navigationGroups([
                 NavigationGroup::make('Settings')->icon(Heroicon::OutlinedCog6Tooth),
                 NavigationGroup::make('System')->icon(Heroicon::OutlinedServerStack),

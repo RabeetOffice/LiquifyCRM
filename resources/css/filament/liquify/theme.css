@@ -2,9 +2,11 @@
  * LiquifyCRM custom Filament theme.
  *
  * Tokens follow the "Colours, icons and logos" section of the architecture
- * document exactly: Liquify Orange on warm neutral surfaces, dark ink text on
- * primary buttons, 14 px card corners, 10 px controls, translucent blurred
- * sidebar and top bar, light and dark mode, system font stack.
+ * document: Liquify Orange only where attention is needed, warm neutral
+ * surfaces, dark ink text on orange, 14 px cards, 10 px controls, pills fully
+ * round, translucent blurred sidebar and top bar, light and dark mode, system
+ * font stack. The liquid gradient is reserved for the logo, the login screen
+ * and onboarding artwork.
  */
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
@@ -18,10 +20,12 @@
     --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif !important;
 
     --lq-ink: #1c1917;
+    --lq-ink-soft: #44403c;
     --lq-muted: #78716c;
     --lq-bg: #fafaf9;
     --lq-surface: #ffffff;
     --lq-surface-translucent: rgb(255 255 255 / 0.72);
+    --lq-raised: rgb(28 25 23 / 0.04);
     --lq-hairline: #e7e5e4;
 
     --lq-orange: #ff6b2c;
@@ -29,7 +33,14 @@
     --lq-orange-pressed: #e04e0b;
     --lq-orange-tint: #fff4ed;
     --lq-orange-deep: #c2410c;
+    --lq-on-orange: #1c1917;
+    --lq-glow: rgb(255 107 44 / 0.3);
     --lq-gradient: linear-gradient(135deg, #ff8a3d 0%, #ff5e62 100%);
+
+    --lq-warning: #a16207;
+    --lq-success: #15803d;
+    --lq-danger: #be123c;
+    --lq-info: #0369a1;
 
     --lq-radius-card: 14px;
     --lq-radius-control: 10px;
@@ -37,15 +48,19 @@
     --lq-shadow-float: 0 1px 2px rgb(28 25 23 / 0.08), 0 16px 40px rgb(28 25 23 / 0.12);
     --lq-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-    --sidebar-width: 17rem;
+    --lq-login-art: url('/images/brand/login-light.webp');
+
+    --sidebar-width: 16.5rem;
 }
 
 .dark {
     --lq-ink: #fafaf9;
+    --lq-ink-soft: #d6d3d1;
     --lq-muted: #a8a29e;
     --lq-bg: #0c0a09;
     --lq-surface: #1c1917;
-    --lq-surface-translucent: rgb(28 25 23 / 0.72);
+    --lq-surface-translucent: rgb(20 17 16 / 0.72);
+    --lq-raised: rgb(255 255 255 / 0.05);
     --lq-hairline: #292524;
 
     --lq-orange: #ff8a4c;
@@ -53,8 +68,17 @@
     --lq-orange-pressed: #ff7a33;
     --lq-orange-tint: #2a1a10;
     --lq-orange-deep: #ffae78;
+    --lq-glow: rgb(255 138 76 / 0.35);
+
+    --lq-warning: #fcd34d;
+    --lq-success: #4ade80;
+    --lq-danger: #fda4af;
+    --lq-info: #7dd3fc;
+
     --lq-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
     --lq-shadow-float: 0 1px 2px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 0 0 / 0.5);
+
+    --lq-login-art: url('/images/brand/login-dark.webp');
 }
 
 /* -------------------------------------------------------------- surfaces */
@@ -67,41 +91,48 @@ html {
 .fi-body {
     background-color: var(--lq-bg);
     color: var(--lq-ink);
+    position: relative;
+    isolation: isolate;
 }
 
-/* Translucent, blurred sidebar and top bar (macOS style). */
-.fi-sidebar,
-.fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar {
-    background-color: var(--lq-surface-translucent);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
-    border-inline-end: 1px solid var(--lq-hairline);
-    box-shadow: none;
+/* A warm glow behind the page: faint peach in light mode, the Liquify
+   Orange light on deep warm black in dark mode (plus a fading grid). */
+.fi-body::before,
+.fi-body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
 }
 
-.fi-sidebar-header {
-    background-color: transparent;
-    box-shadow: none;
+.fi-body::before {
+    background: radial-gradient(55% 40% at 70% -5%, rgb(255 138 61 / 0.1), transparent 70%);
 }
 
-.fi-sidebar-header::after {
+.fi-body::after {
     display: none;
 }
 
-.fi-topbar > nav,
-.fi-topbar nav {
-    background-color: var(--lq-surface-translucent);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    backdrop-filter: blur(20px) saturate(1.4);
-    border-bottom: 1px solid var(--lq-hairline);
-    box-shadow: none;
-    --tw-ring-color: transparent;
+.dark .fi-body::before {
+    background:
+        radial-gradient(45% 38% at 60% -8%, rgb(255 107 44 / 0.26), transparent 70%),
+        radial-gradient(30% 25% at 15% 110%, rgb(255 94 98 / 0.08), transparent 70%);
 }
 
-/* Cards: 14 px corners, hairline border, very soft shadow, no hard borders. */
+.dark .fi-body::after {
+    display: block;
+    background-image:
+        linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(70% 60% at 60% 0%, #000 0%, transparent 100%);
+    mask-image: radial-gradient(70% 60% at 60% 0%, #000 0%, transparent 100%);
+}
+
+/* Cards: 14 px corners, hairline ring, very soft shadow. */
 .fi-section,
 .fi-ta-ctn,
-.fi-wi-stats-overview-stat,
 .fi-wi-chart,
 .fi-wi-widget > .fi-section,
 .fi-fo-tabs,
@@ -109,7 +140,6 @@ html {
 .fi-in-section,
 .fi-sc-section,
 .fi-fieldset,
-.fi-simple-main,
 .fi-ac-modal-window,
 .fi-modal-window {
     border-radius: var(--lq-radius-card);
@@ -127,8 +157,7 @@ html {
     border-radius: 12px;
     box-shadow: var(--lq-shadow-float);
     --tw-ring-color: var(--lq-hairline);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background-color: var(--lq-surface);
 }
 
 .fi-section-header-heading,
@@ -146,6 +175,11 @@ html {
 .fi-header-subheading,
 .fi-section-header-description {
     color: var(--lq-muted);
+}
+
+.fi-header-subheading {
+    font-size: 0.9375rem;
+    margin-top: 0.25rem;
 }
 
 /* ------------------------------------------------------------- controls */
@@ -189,11 +223,8 @@ html {
     box-shadow: none;
 }
 
+.fi-input-wrp:focus-within,
 .dark .fi-input-wrp:focus-within {
-    --tw-ring-color: var(--lq-orange);
-}
-
-.fi-input-wrp:focus-within {
     --tw-ring-color: var(--lq-orange);
 }
 
@@ -207,7 +238,7 @@ html {
     --dark-hover-bg: var(--primary-300);
     --dark-text: #1c1917;
     --dark-hover-text: #1c1917;
-    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.25);
+    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), 0 8px 20px -8px var(--lq-glow), inset 0 1px 0 rgb(255 255 255 / 0.25);
     font-weight: 600;
 }
 
@@ -228,34 +259,49 @@ html {
     padding-inline: 0.625rem;
 }
 
-/* ------------------------------------------------------------ navigation */
-
-.fi-sidebar-item-btn {
-    border-radius: var(--lq-radius-control);
-    transition: background-color 180ms var(--lq-ease), color 180ms var(--lq-ease);
-    min-height: 2.5rem;
+.lq-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+    white-space: nowrap;
 }
 
-.fi-sidebar-item-btn:hover {
-    background-color: rgb(28 25 23 / 0.04);
-}
-
-.dark .fi-sidebar-item-btn:hover {
-    background-color: rgb(255 255 255 / 0.06);
-}
-
-.fi-sidebar-item.fi-active > .fi-sidebar-item-btn,
-.fi-sidebar-item-active > .fi-sidebar-item-btn,
-.fi-sidebar-item.fi-active > .fi-sidebar-item-btn:hover {
-    background-color: var(--lq-orange-tint);
-}
-
-.fi-sidebar-item.fi-active .fi-sidebar-item-label,
-.fi-sidebar-item.fi-active .fi-sidebar-item-icon,
-.fi-sidebar-item-active .fi-sidebar-item-label,
-.fi-sidebar-item-active .fi-sidebar-item-icon {
+.lq-pill-orange {
+    background: var(--lq-orange-tint);
     color: var(--lq-orange-deep);
     font-weight: 600;
+}
+
+/* ------------------------------------------------------------ navigation */
+
+.fi-sidebar,
+.fi-body-has-sidebar-collapsible-on-desktop .fi-sidebar {
+    background-color: var(--lq-surface-translucent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border-inline-end: 1px solid var(--lq-hairline);
+    box-shadow: none;
+}
+
+.fi-sidebar-header {
+    background-color: transparent;
+    box-shadow: none;
+    --tw-ring-color: transparent;
+}
+
+.fi-sidebar-header::after {
+    display: none;
+}
+
+.fi-sidebar-nav {
+    padding-block: 0.75rem 1.5rem;
 }
 
 .fi-sidebar-group-label {
@@ -266,8 +312,51 @@ html {
     text-transform: uppercase;
 }
 
-.fi-sidebar-nav {
-    padding-block: 1.25rem;
+.fi-sidebar-item-btn {
+    border-radius: var(--lq-radius-control);
+    min-height: 2.5rem;
+    gap: 0.75rem;
+    transition: background-color 180ms var(--lq-ease), color 180ms var(--lq-ease), box-shadow 180ms var(--lq-ease);
+}
+
+.fi-sidebar .fi-sidebar-item-label {
+    color: var(--lq-ink-soft);
+    font-weight: 500;
+}
+
+.fi-sidebar .fi-sidebar-item-icon {
+    color: var(--lq-muted);
+}
+
+.fi-sidebar .fi-sidebar-item-btn:hover {
+    background-color: var(--lq-raised);
+}
+
+.fi-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-icon {
+    color: var(--lq-ink);
+}
+
+/* Active item: a solid Liquify Orange pill with ink text, like the primary button. */
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn,
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn:hover,
+.fi-sidebar .fi-sidebar-item-active > .fi-sidebar-item-btn {
+    background-color: var(--lq-orange);
+    box-shadow: 0 8px 18px -6px var(--lq-glow);
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon,
+.fi-sidebar .fi-sidebar-item-active .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item-active .fi-sidebar-item-icon {
+    color: var(--lq-on-orange);
+    font-weight: 600;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active .fi-badge {
+    background-color: rgb(28 25 23 / 0.12);
+    color: var(--lq-on-orange);
+    --tw-ring-color: transparent;
 }
 
 /* Tenant (brand) switcher and user menu triggers. */
@@ -276,6 +365,110 @@ html {
 .fi-tenant-menu .fi-dropdown-trigger > button,
 .fi-user-menu .fi-dropdown-trigger > button {
     border-radius: var(--lq-radius-control);
+}
+
+.fi-tenant-menu-trigger {
+    background-color: var(--lq-surface);
+    --tw-ring-color: var(--lq-hairline);
+}
+
+.fi-topbar,
+.fi-topbar > nav,
+.fi-topbar nav {
+    background-color: var(--lq-surface-translucent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 1px solid var(--lq-hairline);
+    box-shadow: none;
+    --tw-ring-color: transparent;
+}
+
+.fi-topbar-ctn {
+    box-shadow: none;
+}
+
+/* Search in the top bar: a quiet field; the panel adds the Ctrl K / ⌘K hint as a suffix. */
+.fi-global-search-field .fi-input-wrp {
+    background-color: var(--lq-raised);
+    --tw-ring-color: transparent;
+    box-shadow: none;
+    min-width: 16rem;
+}
+
+@media (min-width: 1280px) {
+    .fi-global-search-field .fi-input-wrp {
+        min-width: 22rem;
+    }
+}
+
+.fi-global-search-field .fi-input-wrp:focus-within {
+    background-color: var(--lq-surface);
+    --tw-ring-color: var(--lq-orange);
+}
+
+.fi-global-search-field .fi-input-wrp-suffix {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--lq-muted);
+    border: 1px solid var(--lq-hairline);
+    border-radius: 6px;
+    padding: 0.0625rem 0.375rem;
+    background: var(--lq-surface);
+    margin-inline-end: 0.25rem;
+}
+
+.fi-user-menu .fi-avatar,
+.fi-user-menu-trigger .fi-avatar {
+    box-shadow: 0 0 0 2px var(--lq-surface), 0 0 0 3px var(--lq-hairline);
+}
+
+/* Scheduler status pill (admin top bar), like a monitor's "Running · last run". */
+.lq-status {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--lq-hairline);
+    background: var(--lq-raised);
+    padding: 0.375rem 0.875rem 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--lq-ink-soft);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 180ms var(--lq-ease);
+}
+
+.lq-status:hover {
+    background: var(--lq-surface);
+}
+
+@media (min-width: 768px) {
+    .lq-status {
+        display: inline-flex;
+    }
+}
+
+.lq-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--lq-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lq-success) 25%, transparent);
+    flex: none;
+}
+
+.lq-status-warn .lq-status-dot {
+    background: var(--lq-warning);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lq-warning) 25%, transparent);
+}
+
+.lq-status-label {
+    font-weight: 600;
+}
+
+.lq-status-detail {
+    color: var(--lq-muted);
 }
 
 /* --------------------------------------------------------------- tables */
@@ -289,7 +482,6 @@ html {
 }
 
 .fi-ta-text,
-.fi-wi-stats-overview-stat-value,
 .fi-in-text,
 .fi-ta-text-item-label,
 .lq-tabular {
@@ -309,56 +501,371 @@ html {
     padding-block: 0.875rem;
 }
 
-/* ------------------------------------------------------------- widgets */
+/* --------------------------------------------------------- stat cards */
 
-.fi-wi-stats-overview-stat {
-    padding: 1.25rem 1.5rem;
+.lq-stat {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+    padding: 1.25rem 1.375rem;
+    border-radius: var(--lq-radius-card);
+    background-color: var(--lq-surface);
+    color: var(--lq-ink);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px var(--lq-hairline);
+    text-decoration: none;
+    transition: transform 180ms var(--lq-ease), box-shadow 180ms var(--lq-ease);
 }
 
-.fi-wi-stats-overview-stat-value {
-    font-size: 1.75rem;
-    line-height: 2.25rem;
+a.lq-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lq-shadow-float), 0 0 0 1px var(--lq-hairline);
+}
+
+a.lq-stat:focus-visible {
+    outline: none;
+    box-shadow: var(--lq-shadow-card), 0 0 0 2px var(--lq-orange);
+}
+
+.lq-stat-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lq-stat-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+.lq-stat-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.lq-stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--lq-muted);
+}
+
+.lq-stat-value {
+    font-size: 2rem;
+    line-height: 2.5rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
 }
 
-.fi-wi-stats-overview-stat-label {
+.lq-stat-placeholder {
     color: var(--lq-muted);
     font-weight: 500;
 }
 
-.fi-wi-stats-overview-stat-icon {
-    background-color: var(--lq-orange-tint);
+.lq-stat-sub {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: -0.375rem;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-stat-sub svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+}
+
+.lq-stat-sub-warning {
+    color: var(--lq-warning);
+}
+
+.lq-stat-sub-success {
+    color: var(--lq-success);
+}
+
+.lq-stat-sub-danger {
+    color: var(--lq-danger);
+}
+
+.lq-stat-sub-info {
+    color: var(--lq-info);
+}
+
+.lq-stat-foot {
+    margin-top: auto;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-stat-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
     color: var(--lq-orange-deep);
+}
+
+.lq-stat-link-icon {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 180ms var(--lq-ease);
+}
+
+a.lq-stat:hover .lq-stat-link-icon {
+    transform: translateX(3px);
+}
+
+/* The hero card: a Liquify Orange face with ink text and a soft droplet watermark. */
+.lq-stat-hero {
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgb(255 255 255 / 0.28), transparent 55%),
+        var(--lq-orange);
+    color: var(--lq-on-orange);
+    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), 0 14px 30px -12px var(--lq-glow);
+}
+
+a.lq-stat-hero:hover {
+    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), 0 20px 36px -12px var(--lq-glow);
+}
+
+.lq-stat-hero::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    right: -1.25rem;
+    bottom: -1.5rem;
+    width: 9rem;
+    height: 5.75rem;
+    background: url('/images/liquify-mark.svg') no-repeat center / contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.22;
+    pointer-events: none;
+}
+
+.lq-stat-hero .lq-stat-icon {
+    background: rgb(255 255 255 / 0.4);
+    color: var(--lq-on-orange);
+}
+
+.lq-stat-hero .lq-stat-label,
+.lq-stat-hero .lq-stat-sub,
+.lq-stat-hero .lq-stat-placeholder {
+    color: rgb(28 25 23 / 0.75);
+}
+
+.lq-stat-hero .lq-stat-foot {
+    border-top-color: rgb(28 25 23 / 0.18);
+}
+
+.lq-stat-hero .lq-stat-link {
+    color: var(--lq-on-orange);
+}
+
+/* ------------------------------------------------------ setup checklist */
+
+.lq-setup {
+    display: grid;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-radius: var(--lq-radius-card);
+    background-color: var(--lq-surface);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px var(--lq-hairline);
+}
+
+@media (min-width: 1024px) {
+    .lq-setup {
+        grid-template-columns: minmax(0, 1fr) 18rem;
+    }
+}
+
+.lq-setup-main {
+    min-width: 0;
+}
+
+.lq-setup-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lq-setup-title {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.lq-setup-desc {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: var(--lq-muted);
+}
+
+.lq-progress {
+    height: 0.5rem;
+    margin: 1rem 0 1.25rem;
     border-radius: 9999px;
-    padding: 0.5rem;
-    height: 2.5rem;
-    width: 2.5rem;
+    background: var(--lq-orange-tint);
+    overflow: hidden;
+}
+
+.lq-progress-bar {
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--lq-orange);
+    transition: width 500ms var(--lq-ease);
+}
+
+.lq-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 0.875rem 0;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-step:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.lq-step:last-child {
+    padding-bottom: 0;
+}
+
+.lq-step-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: 0.125rem;
+    border-radius: 9999px;
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-step-done .lq-step-mark {
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+}
+
+.lq-step-check {
+    width: 1rem;
+    height: 1rem;
+}
+
+.lq-step-soon {
+    opacity: 0.55;
+}
+
+.lq-step-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.lq-step-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-step-desc {
+    margin: 0.125rem 0 0;
+    font-size: 0.875rem;
+    color: var(--lq-muted);
+}
+
+.lq-step-action {
+    flex: none;
+    align-self: center;
+}
+
+.lq-setup-art {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .lq-setup-art {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        border-radius: 12px;
+        background: #fff4ed;
+        overflow: hidden;
+    }
+}
+
+.lq-setup-art img {
+    width: 100%;
+    height: auto;
+    mix-blend-mode: multiply;
 }
 
 /* ------------------------------------------------------ simple (login) */
 
 .fi-simple-layout {
-    background-color: var(--lq-bg);
     position: relative;
     isolation: isolate;
+    min-height: 100dvh;
+    background: var(--lq-bg) var(--lq-login-art) center right / cover no-repeat;
 }
 
-.fi-simple-layout::before {
-    content: '';
-    position: fixed;
-    inset: -20%;
-    z-index: -1;
-    pointer-events: none;
-    background:
-        radial-gradient(60% 50% at 15% 10%, rgb(255 138 61 / 0.22), transparent 62%),
-        radial-gradient(50% 45% at 90% 95%, rgb(255 94 98 / 0.18), transparent 62%);
+.fi-simple-main-ctn {
+    padding: 2rem 1rem;
+}
+
+@media (min-width: 1024px) {
+    .fi-simple-main-ctn {
+        justify-content: flex-start;
+        padding-inline-start: 7vw;
+    }
 }
 
 .fi-simple-main {
     border-radius: 20px;
     padding: 2.5rem;
+    background-color: rgb(255 255 255 / 0.84);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    backdrop-filter: blur(24px) saturate(1.3);
+    border: 1px solid rgb(255 255 255 / 0.7);
     box-shadow: var(--lq-shadow-float);
+    --tw-ring-color: transparent;
+}
+
+.dark .fi-simple-main {
+    background-color: rgb(28 25 23 / 0.8);
+    border-color: rgb(255 255 255 / 0.08);
 }
 
 .fi-simple-header-heading {
@@ -418,15 +925,14 @@ html {
     align-items: center;
     gap: 0.625rem;
     color: var(--lq-ink);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.125rem;
     letter-spacing: -0.02em;
 }
 
 .lq-logo-mark {
-    height: 2rem;
-    width: 2rem;
-    border-radius: 0.625rem;
+    height: 1.5rem;
+    width: auto;
     flex: none;
 }
 
@@ -460,22 +966,9 @@ html {
 .lq-guest-body {
     margin: 0;
     min-height: 100dvh;
-    background-color: var(--lq-bg);
+    background: var(--lq-bg) var(--lq-login-art) center right / cover no-repeat;
     color: var(--lq-ink);
     font-family: var(--font-family);
-    position: relative;
-    isolation: isolate;
-}
-
-.lq-guest-body::before {
-    content: '';
-    position: fixed;
-    inset: -20%;
-    z-index: -1;
-    pointer-events: none;
-    background:
-        radial-gradient(60% 50% at 15% 10%, rgb(255 138 61 / 0.22), transparent 62%),
-        radial-gradient(50% 45% at 90% 95%, rgb(255 94 98 / 0.18), transparent 62%);
 }
 
 .lq-guest-main {
@@ -487,22 +980,27 @@ html {
     gap: 1.5rem;
 }
 
+@media (min-width: 1024px) {
+    .lq-guest-main {
+        margin-inline-start: 7vw;
+    }
+}
+
 .lq-wordmark {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
     color: var(--lq-ink);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.25rem;
     letter-spacing: -0.02em;
     text-decoration: none;
 }
 
 .lq-wordmark-mark {
-    height: 2.25rem;
-    width: 2.25rem;
-    border-radius: 0.75rem;
+    height: 1.75rem;
+    width: auto;
 }
 
 .lq-wordmark-accent {
@@ -510,14 +1008,21 @@ html {
 }
 
 .lq-card {
-    background: var(--lq-surface);
+    background: rgb(255 255 255 / 0.84);
+    -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    backdrop-filter: blur(24px) saturate(1.3);
     border-radius: 20px;
     padding: 2rem;
     box-shadow: var(--lq-shadow-float);
-    border: 1px solid var(--lq-hairline);
+    border: 1px solid rgb(255 255 255 / 0.7);
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+}
+
+.dark .lq-card {
+    background: rgb(28 25 23 / 0.8);
+    border-color: rgb(255 255 255 / 0.08);
 }
 
 .lq-card-header {
@@ -670,7 +1175,7 @@ html {
     padding: 0.625rem 1.25rem;
     text-decoration: none;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.25);
+    box-shadow: 0 1px 2px rgb(224 78 11 / 0.25), 0 8px 20px -8px var(--lq-glow), inset 0 1px 0 rgb(255 255 255 / 0.25);
     transition: background-color 150ms var(--lq-ease), transform 150ms var(--lq-ease);
 }
 

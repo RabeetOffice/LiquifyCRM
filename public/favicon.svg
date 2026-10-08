@@ -1,11 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="LiquifyCRM">
-  <defs>
-    <linearGradient id="lq-g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FF8A3D"/>
-      <stop offset="1" stop-color="#FF5E62"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#lq-g)"/>
-  <path d="M32 11c7.5 9.4 13.5 16.6 13.5 25a13.5 13.5 0 1 1-27 0c0-8.4 6-15.6 13.5-25z" fill="#fff" fill-opacity=".96"/>
-  <path d="M19 55h26" stroke="#fff" stroke-opacity=".9" stroke-width="4" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -15 68 68" width="64" height="64" role="img" aria-label="LiquifyCRM">
+  <path d="M17 2C26.4 2 34 9.6 34 19C34 25 37.5 29 43 29L60.5 29A2.5 2.5 0 0 1 60.5 34L40 34C30 34 25 36 17 36C7.6 36 0 28.4 0 19C0 9.6 7.6 2 17 2Z" fill="#FF6B2C"/>
 </svg>

@@ -18,6 +18,9 @@ final class SetupChecklistWidget extends Widget
 {
     protected static bool $isDiscovered = false;
 
+    /** Rendered with the page: one request, no skeleton flash. */
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
 
     protected string $view = 'core::filament.widgets.setup-checklist';

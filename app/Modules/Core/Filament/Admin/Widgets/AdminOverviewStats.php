@@ -5,20 +5,30 @@ declare(strict_types=1);
 namespace App\Modules\Core\Filament\Admin\Widgets;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Filament\Admin\Resources\BrandResource;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Membership;
 use App\Modules\Core\Enums\BrandRole;
+use App\Modules\Core\Filament\Support\LiquifyStat;
 use App\Modules\Departments\Models\Department;
 use App\Modules\System\Support\SystemStatus;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
 
 final class AdminOverviewStats extends StatsOverviewWidget
 {
     protected static bool $isDiscovered = false;
 
+    /** Rendered with the page: one request, no skeleton flash. */
+    protected static bool $isLazy = false;
+
     protected ?string $pollingInterval = null;
+
+    /** @return array<string, int> */
+    protected function getColumns(): array
+    {
+        return ['default' => 1, 'sm' => 2, 'xl' => max(2, min(4, count($this->getCachedStats())))];
+    }
 
     protected function getStats(): array
     {
@@ -26,29 +36,38 @@ final class AdminOverviewStats extends StatsOverviewWidget
         $departments = Department::query()->acrossBrands()->count();
         $managers = Membership::query()->acrossBrands()->where('role', BrandRole::Manager->value)->count();
         $agents = Membership::query()->acrossBrands()->where('role', BrandRole::Agent->value)->count();
-        $pending = app(SystemStatus::class)->pendingMigrationCount();
         $user = auth()->user();
 
         $stats = [
-            Stat::make('Active brands', (string) $brands)
+            LiquifyStat::make('Active brands', (string) $brands)
                 ->description($brands === 0 ? 'Add your first brand to begin' : 'Workspaces collecting leads')
                 ->icon(Heroicon::OutlinedBuildingStorefront)
-                ->url(url('/admin/brands')),
-            Stat::make('Departments', (string) $departments)
+                ->url(BrandResource::getUrl())
+                ->linkLabel('Manage brands')
+                ->hero(),
+            LiquifyStat::make('Departments', (string) $departments)
                 ->description('Teams across all brands')
                 ->icon(Heroicon::OutlinedRectangleGroup),
-            Stat::make('Managers and Agents', $managers.' / '.$agents)
+            LiquifyStat::make('Managers and Agents', $managers.' / '.$agents)
                 ->description('People working leads')
                 ->icon(Heroicon::OutlinedUserGroup),
         ];
 
         if ($user instanceof User && $user->isSuperAdmin()) {
-            $stats[] = Stat::make('Pending database updates', (string) $pending)
+            $pending = app(SystemStatus::class)->pendingMigrationCount();
+
+            $stats[] = LiquifyStat::make('Database updates', (string) $pending)
                 ->description($pending > 0 ? 'Open System to apply them' : 'Database is up to date')
                 ->descriptionIcon($pending > 0 ? Heroicon::OutlinedExclamationTriangle : Heroicon::OutlinedCheckCircle)
-                ->color($pending > 0 ? 'warning' : 'success')
+                ->descriptionColor($pending > 0 ? 'warning' : 'success')
                 ->icon(Heroicon::OutlinedCircleStack)
-                ->url(url('/admin/system'));
+                ->url(url('/admin/system'))
+                ->linkLabel('Open System');
+        } else {
+            $stats[] = LiquifyStat::make('Leads this month', null)
+                ->placeholder('—')
+                ->description('Lead collection arrives in week 2')
+                ->icon(Heroicon::OutlinedInboxArrowDown);
         }
 
         return $stats;

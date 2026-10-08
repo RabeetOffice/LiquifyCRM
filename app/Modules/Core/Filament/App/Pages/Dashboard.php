@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Filament\App\Pages;
 
+use App\Modules\Brands\Filament\App\Resources\MemberResource;
+use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Filament\App\Widgets\BrandOverviewStats;
 use App\Modules\Core\Filament\App\Widgets\SetupChecklistWidget;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Support\Icons\Heroicon;
 
@@ -20,6 +23,13 @@ final class Dashboard extends BaseDashboard
 
     protected static ?int $navigationSort = -10;
 
+    public function getSubheading(): ?string
+    {
+        $brand = Filament::getTenant();
+
+        return $brand instanceof Brand ? 'Here is the summary for '.$brand->name.'.' : null;
+    }
+
     public function getWidgets(): array
     {
         return [
@@ -31,5 +41,14 @@ final class Dashboard extends BaseDashboard
     public function getColumns(): int
     {
         return 1;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            // The same modal as the Members screen: one primary (orange) button per screen.
+            MemberResource::inviteAction()
+                ->visible(fn (): bool => MemberResource::canCreate()),
+        ];
     }
 }

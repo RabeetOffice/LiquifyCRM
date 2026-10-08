@@ -13,6 +13,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -63,6 +64,7 @@ trait ConfiguresLiquifyPanel
             ->brandLogo(fn () => view('filament.brand-logo'))
             ->brandLogoHeight('2rem')
             ->favicon(asset('favicon.svg'))
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => view('core::filament.head-extras')->render())
             ->darkMode()
             ->defaultThemeMode(ThemeMode::System)
             ->spa()
@@ -70,6 +72,7 @@ trait ConfiguresLiquifyPanel
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchFieldKeyBindingSuffix()
             ->unsavedChangesAlerts()
             ->middleware([
                 EncryptCookies::class,

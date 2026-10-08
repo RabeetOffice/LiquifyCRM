@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Filament\Admin\Pages;
 
+use App\Modules\Brands\Filament\Admin\Resources\BrandResource;
 use App\Modules\Core\Filament\Admin\Widgets\AdminOverviewStats;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Support\Icons\Heroicon;
 
@@ -23,6 +25,8 @@ final class Dashboard extends BaseDashboard
 
     protected static ?int $navigationSort = -10;
 
+    protected ?string $subheading = 'Here is the summary across all brands.';
+
     public function getWidgets(): array
     {
         return [
@@ -33,5 +37,16 @@ final class Dashboard extends BaseDashboard
     public function getColumns(): int
     {
         return 1;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('addBrand')
+                ->label('Add brand')
+                ->icon(Heroicon::OutlinedPlus)
+                ->url(fn (): string => BrandResource::getUrl('create'))
+                ->visible(fn (): bool => BrandResource::canCreate()),
+        ];
     }
 }
