@@ -6,6 +6,12 @@
       "runtimeExecutable": "C:/php84/php.exe",
       "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
       "port": 8000
+    },
+    {
+      "name": "liquify-8010",
+      "runtimeExecutable": "C:/php84/php.exe",
+      "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8010"],
+      "port": 8010
     }
   ]
 }

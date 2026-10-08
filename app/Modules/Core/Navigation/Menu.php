@@ -60,6 +60,18 @@ final class Menu
             ]];
         }
 
+        if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
+            $settings = [
+                self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
+            ];
+
+            if ($user->isGlobalAdmin()) {
+                $settings[] = self::item('Email settings', 'heroicon-o-envelope', route('brand.email-settings', $params), $isActive('brand.email-settings'));
+            }
+
+            $groups[] = ['label' => 'Settings', 'items' => $settings];
+        }
+
         if ($user->isGlobalAdmin()) {
             $groups[] = ['label' => 'Admin', 'items' => [
                 self::item('Admin area', 'heroicon-o-shield-check', route('admin.dashboard'), false),

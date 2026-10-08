@@ -33,6 +33,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   names in `App\Modules\Core\Enums\Permission`. Super Admin/Admin are `users.role`; Manager/Agent are
   brand memberships mirrored into spatie teams (team = brand_id).
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
+- Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
+  `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks
+  reuse that pipeline (`PullSiteLeads`, `SiteHealthChecker`). Secrets use encrypted casts and never reach a view.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
   `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
 

@@ -42,6 +42,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Website leads
+    |--------------------------------------------------------------------------
+    | The signed entry point for liquify.php: a request older than the replay
+    | window is refused, each website may send 120 requests a minute, and a
+    | website with no lead for 48 hours turns amber.
+    */
+    'ingest' => [
+        'replay_window' => (int) env('INGEST_REPLAY_WINDOW', 300),
+        'rate_limit' => (int) env('INGEST_RATE_LIMIT', 120),
+    ],
+
+    'sites' => [
+        'quiet_hours' => (int) env('SITE_QUIET_HOURS', 48),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Brand palette (Liquify Orange)
     |--------------------------------------------------------------------------
     | Exact values from the design section of the architecture document.

@@ -31,6 +31,7 @@ use Illuminate\Support\Str;
  * @property string $currency
  * @property string $timezone
  * @property array<string, mixed>|null $settings
+ * @property array<string, mixed>|null $mail_settings
  * @property bool $is_active
  * @property CarbonImmutable|null $identity_fetched_at
  * @property int|null $created_by
@@ -44,7 +45,7 @@ class Brand extends Model
 
     protected $fillable = [
         'name', 'slug', 'website', 'logo_path', 'favicon_path', 'colors',
-        'currency', 'timezone', 'settings', 'is_active', 'identity_fetched_at', 'created_by',
+        'currency', 'timezone', 'settings', 'mail_settings', 'is_active', 'identity_fetched_at', 'created_by',
     ];
 
     protected function casts(): array
@@ -52,6 +53,7 @@ class Brand extends Model
         return [
             'colors' => 'array',
             'settings' => 'array',
+            'mail_settings' => 'encrypted:array',
             'is_active' => 'boolean',
             'identity_fetched_at' => 'datetime',
         ];
@@ -142,6 +144,42 @@ class Brand extends Model
     public function notificationEmails(): array
     {
         return array_values(array_filter((array) $this->setting('notification_emails', [])));
+    }
+
+    /**
+     * The brand's own SMTP account and auto-reply text, with defaults filled in.
+     *
+     * @return array{host: string, port: int, encryption: string, username: string, password: string, from_address: string, from_name: string, auto_reply: bool, auto_reply_subject: string, auto_reply_body: string}
+     */
+    public function mailSettings(): array
+    {
+        // A brand created a moment ago has no mail_settings attribute loaded yet.
+        $settings = array_key_exists('mail_settings', $this->attributes) ? ($this->mail_settings ?? []) : [];
+
+        return [
+            'host' => (string) ($settings['host'] ?? ''),
+            'port' => (int) ($settings['port'] ?? 587) ?: 587,
+            'encryption' => (string) ($settings['encryption'] ?? 'tls'),
+            'username' => (string) ($settings['username'] ?? ''),
+            'password' => (string) ($settings['password'] ?? ''),
+            'from_address' => (string) ($settings['from_address'] ?? ''),
+            'from_name' => (string) ($settings['from_name'] ?? ''),
+            'auto_reply' => (bool) ($settings['auto_reply'] ?? false),
+            'auto_reply_subject' => (string) ($settings['auto_reply_subject'] ?? 'Thank you for contacting {brand}'),
+            'auto_reply_body' => (string) ($settings['auto_reply_body'] ?? "Hi {name},\n\nThank you for your enquiry. A member of our team will be in touch shortly.\n\n{brand}"),
+        ];
+    }
+
+    public function hasMailSettings(): bool
+    {
+        $settings = $this->mailSettings();
+
+        return $settings['host'] !== '' && $settings['from_address'] !== '';
+    }
+
+    public function autoReplyEnabled(): bool
+    {
+        return $this->hasMailSettings() && $this->mailSettings()['auto_reply'];
     }
 
     public function primaryColor(): ?string

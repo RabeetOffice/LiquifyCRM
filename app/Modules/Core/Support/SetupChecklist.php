@@ -7,6 +7,7 @@ namespace App\Modules\Core\Support;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Sites\Models\Site;
 
 /**
  * Setup checklist from the "Easy for new users" section: each step ticks
@@ -24,6 +25,7 @@ final class SetupChecklist
         $departments = $brand->departments()->count();
         $managers = $brand->memberships()->where('role', BrandRole::Manager->value)->count();
         $leads = Lead::query()->forBrand($brand)->count();
+        $sites = Site::query()->forBrand($brand)->count();
 
         $steps = [
             [
@@ -49,17 +51,17 @@ final class SetupChecklist
             ],
             [
                 'title' => 'Add your first lead',
-                'description' => $leads > 0 ? $leads.' '.str('lead')->plural($leads).' in this brand.' : 'Add one by hand or import a CSV while the website connection is being built.',
+                'description' => $leads > 0 ? $leads.' '.str('lead')->plural($leads).' in this brand.' : 'Add one by hand, import a CSV, or connect a website.',
                 'done' => $leads > 0,
                 'url' => route('brand.leads.index', ['brand' => $brand->slug]),
                 'soon' => null,
             ],
             [
                 'title' => 'Connect your first website',
-                'description' => 'Download the pre-filled liquify.php and paste 2 lines into the form handler.',
-                'done' => false,
-                'url' => null,
-                'soon' => 'Week 3',
+                'description' => $sites > 0 ? $sites.' '.str('website')->plural($sites).' connected.' : 'Download the pre-filled liquify.php and paste 2 lines into the form handler.',
+                'done' => $sites > 0,
+                'url' => $sites > 0 ? route('brand.sites.index', ['brand' => $brand->slug]) : route('brand.sites.connect', ['brand' => $brand->slug]),
+                'soon' => null,
             ],
             [
                 'title' => 'Connect Facebook',

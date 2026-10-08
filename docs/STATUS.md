@@ -1,16 +1,16 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code: 84 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code: 109 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
 | Phase in the document | Status | Notes |
 | --- | --- | --- |
 | Week 1 · Foundation | **Done** | Rebuilt on 8 October without Filament (see "Agreed differences") |
-| Week 2 · Leads core | **Done** | Website and Facebook sources arrive in weeks 3 and 4 |
-| Week 3 · Website sources | **Next** | Needs the LeadsHub / LuminoCRM folders for the health-check port |
-| Week 4 · Meta | Pending | Needs Meta app credentials |
+| Week 2 · Leads core | **Done** | Facebook source arrives in week 4 |
+| Week 3 · Website sources | **Done** | Built 8 October; health checks and pull mode ported from the LeadsHub folder |
+| Week 4 · Meta | **Next** | Needs Meta app credentials |
 | Week 5 · Sales and targets | Pending (departments done) | |
 | Week 6 · Hardening and launch | Pending (theme and isolation tests done) | |
 | Phase 2 · Files, NDA, client portal | Pending | Tables designed in the document, not created (agreed) |
@@ -20,7 +20,7 @@ State of the code: 84 Pest tests passing, Pint and Larastan level 6 clean.
 ### Project and stack
 - [x] Laravel 13 on PHP 8.4, Livewire 4, Tailwind 4, Vite, Pest 5, Pint, Larastan level 6.
 - [x] Packages: laravel/fortify, livewire/livewire, sanctum, spatie permission / activitylog / backup / health / schedule-monitor / settings / query-builder, laravel-excel, laravel-phone, league/color-extractor, deployer, blade-ui-kit/blade-heroicons (icons), chart.js (dashboard charts).
-- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
+- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, Sites, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
 - [x] Two areas: `/admin` (Super Admin and Admin) and `/b/{brand}` (brand workspace; the brand in the URL is the tenant, bound before every other route parameter).
 - [x] Own design system in `resources/css/app.css` (tokens from the document, plain-CSS components) and a Blade component set (`resources/views/components/ui`): buttons, fields, cards, stat cards, badges, status pills, tables, tabs, modals, slide-over, confirm dialog, toasts with Undo, empty states, pagination.
 - [x] Shell: full-height sidebar with logo, brand switcher, menus by role and user card; top bar with greeting, scheduler status, Ctrl K / ⌘K search, notification bell, theme toggle and avatar menu. Light and dark follow the device with a manual switch.
@@ -61,6 +61,20 @@ State of the code: 84 Pest tests passing, Pint and Larastan level 6 clean.
 - [x] Sidebar by role: Agents see My leads, Pipeline and Follow-ups; Managers and Admins also Departments and Members.
 - [x] Events for later automations: LeadCreated, LeadAssigned, LeadStatusChanged.
 
+### Website sources (week 3)
+- [x] Tables `sites` (site key, encrypted secret, push / pull mode, encrypted `pull_config`, last lead at), `site_checks` (health history) and `inbound_events` (raw copy of every incoming lead, with status, error and attempts).
+- [x] `POST /api/v1/ingest/site/{site_key}`: HMAC-SHA256 of timestamp.body, 5-minute replay window, de-duplication on site + external id, raw payload stored, 202 Accepted, 120 requests a minute per website.
+- [x] `IngestLead` job on top of `CreateLead`: site to brand, field names recognised by their many spellings (list carried over from LeadsHub), phone in E.164, UTM tags, unknown fields kept as extra fields, repeat enquiries joined to the open lead, New / Unassigned queue, timeline entry, notifications. A lead with nobody to contact, or with a filled hidden field, is kept as failed.
+- [x] Websites screen (`/b/{brand}/sites`): favicon, platform badge (PHP, WordPress, Elementor), green "Connected" badge with the last lead time, amber "Quiet for 48 hours", the five health checks in red / amber / green, Check now. Managers look, Admins edit.
+- [x] Connect website wizard in 3 steps: add the website, download the pre-filled `liquify.php` and copy the 2 lines (or copy the webhook address, or enter the pull details), Test connection (website answers, file uploaded, a signed test passes, first real lead).
+- [x] Website page: health checks with messages and history, every lead received with Retry (one or all failed), settings, new secret and remove (both with password re-confirm).
+- [x] Elementor / WordPress: the form's Webhook action posts to the same address with a token; simple and "Advanced data" formats are both read.
+- [x] Pull mode (`sites:pull` every 5 minutes): new rows of the website's own leads table through the LeadsHub agent (`hub-agent.php`) or straight from its database. The first run only notes where the table ends.
+- [x] Health checks ported from LeadsHub (`sites:check` every 30 minutes, `POST /admin/sites/{site}/check`): website is up, SSL expiry (amber under 14 days), form handler in place, and email and database through the LeadsHub agent (database also through the pull-mode connection).
+- [x] Quiet for 48 hours: the website turns amber and the Admins get one bell notification and email; it resets when the next lead arrives.
+- [x] Brand email settings (`/b/{brand}/settings/email`): the brand's own SMTP stored as encrypted `mail_settings`, "Send me a test email", and the optional automatic reply to the customer, noted on the lead's timeline.
+- [x] Setup checklist step "Connect your first website" ticks itself.
+
 ### System screen and deployment
 - [x] System screen (Super Admin): version, environment, pending-migrations banner, Backup and run database update with password re-confirm (backup first, then `migrate --force`, output kept), Back up now, retry failed jobs, release rollback (password re-confirm), health checks, queue and cron health, deployment history with logs, latest backups. Refreshes itself while a job runs.
 - [x] `POST /hooks/deploy/{token}` records each deployment and tells Super Admins when database updates wait.
@@ -76,26 +90,25 @@ State of the code: 84 Pest tests passing, Pint and Larastan level 6 clean.
 - Meta App Review treated as optional (only your own Business Manager connects).
 - A repeat enquiry on a Won lead creates a new lead (linked to the client from week 5).
 - Ingest endpoint will answer 202 Accepted.
+- `inbound_events` carries four columns beyond the document's list (`source_id`, `brand_id`, `lead_id`, `processed_at`) so an event links to its website, brand and lead; `sites` adds `url`, `platform`, `form_path`, `favicon_path`, `pull_cursor`, health and timing columns.
+- Elementor cannot sign a request, so its address carries a token derived from the site secret (`?token=`) instead of the HMAC headers.
+- The email and database checks look from inside the website, so they need the LeadsHub agent file on it (or, for the database, the pull-mode connection); without either they show "Not set up" rather than a guess.
+- Pull mode starts from the newest row and never imports history; old leads come in through the import tool in week 5.
+- The received-leads log with Retry lives on each website's page; the global Integrations screen arrives with Facebook in week 4.
 - Light page background is `#f4f4f2` (a shade below the document's `#FAFAF9`) so white cards stand out, and stat-card icons sit in rounded tiles rather than circles, both from the reference designs the user chose.
 
 ## Pending
 
-### Week 3 · Website sources (next)
-- [ ] Tables `sites` (site key, encrypted secret, push / pull mode, last lead at) and `site_checks`; `inbound_events` with Retry.
-- [ ] `POST /api/v1/ingest/site/{site_key}`: HMAC-SHA256 of timestamp.body, 5-minute replay window, de-duplication on site + external id, raw payload stored, 202 Accepted, rate limit 120 per minute per source.
-- [ ] `IngestLead` job on top of the existing `CreateLead` action: resolve source to brand, normalise, de-duplicate, queue, timeline entry, notifications.
-- [ ] Sites screen and the 3-step Connect website wizard: pre-filled `liquify.php` download, the 2 lines to paste, Test connection, green "Connected" badge with last lead time.
-- [ ] Pull mode (`PullSiteLeads` every 5 minutes) for sites that cannot be touched; Elementor webhook on the same URL.
-- [ ] Per-site health checks ported from LeadsHub / SiteWatch: form, SMTP, database, SSL expiry, uptime; red / amber / green; amber plus email when a site is quiet for 48 hours.
-- [ ] Brand SMTP (encrypted `mail_settings`) for the optional auto-reply to the customer.
-- [ ] Site favicon and platform badge (PHP, WordPress, Elementor) on the Websites screen.
+### Week 3 · left over
+- [ ] Gmail and Outlook logos on the email settings screen (a text badge shows the detected provider today; the official SVGs go in `resources/svg/brands/` together with the Facebook and Messenger logos in week 4).
+- [ ] Website favicon as the source logo in the lead list (the lead shows the website name under extra fields today).
 
-### Week 4 · Meta
+### Week 4 · Meta (next)
 - [ ] Tables `meta_connections`, `meta_sources`, `conversations`, `messages`.
 - [ ] Connect Facebook once (Login for Business now, System User token for production), Integrations screen mapping each Page to its brand.
 - [ ] `GET / POST /webhooks/meta` with `X-Hub-Signature-256`; Lead Ads fetched from Graph API v26; Messenger messages attached by PSID.
 - [ ] Inbox: Messenger threads for visible leads, 24-hour reply window indicator, replies from the lead page.
-- [ ] Webhook event log with Retry; token refresh in the scheduler; Cloudflare tunnel for local webhook tests.
+- [ ] Integrations screen event log with Retry for every source (`inbound_events` and the website Retry exist); token refresh in the scheduler; Cloudflare tunnel for local webhook tests.
 - [ ] Facebook and Messenger logos (local SVGs in `resources/svg/brands/`).
 
 ### Week 5 · Sales and targets
@@ -127,8 +140,7 @@ State of the code: 84 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
-- Week 3 can start now: say "continue".
-- Week 3: the LeadsHub and LuminoCRM source folders (the document's open question) so the health checks and the pull-mode lead import can be ported file by file.
+- Week 4 can start once the Meta details below are here: say "continue".
 - Week 4: Meta app id and secret, Business Manager access, and the Cloudflare tunnel hostname.
 - First deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain.
 - Backups: where off-server backups should go (Cloudflare R2, Backblaze, FTP).

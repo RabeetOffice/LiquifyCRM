@@ -28,6 +28,10 @@ Schedule::command('health:check')->everyFiveMinutes()->doNotMonitor();
 Schedule::command('health:schedule-check-heartbeat')->everyMinute()->doNotMonitor();
 Schedule::command('health:queue-check-heartbeat')->everyMinute()->doNotMonitor();
 
+// Websites: read new leads in pull mode, and the per-site health checks.
+Schedule::command('sites:pull')->everyFiveMinutes()->doNotMonitor();
+Schedule::command('sites:check')->everyThirtyMinutes()->doNotMonitor();
+
 // Backups: daily database backup, then prune according to config/backup.php.
 Schedule::command('backup:clean')->dailyAt('01:30')->graceTimeInMinutes(60);
 Schedule::command('backup:run --only-db')->dailyAt('02:00')->graceTimeInMinutes(60);

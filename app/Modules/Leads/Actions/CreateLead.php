@@ -74,11 +74,14 @@ final class CreateLead
                 'created_by' => $by?->getKey(),
             ];
 
+            $lead = new Lead($attributes);
+
+            // Imported and website leads keep their original date.
             if (isset($data['created_at'])) {
-                $attributes['created_at'] = $data['created_at'];
+                $lead->created_at = $data['created_at'];
             }
 
-            $lead = Lead::query()->create($attributes);
+            $lead->save();
 
             Audit::log(
                 'leads.created',

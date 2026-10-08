@@ -9,6 +9,7 @@ use App\Modules\Auth\Livewire\ProfileSecurity;
 use App\Modules\Brands\Http\Controllers\BrandRedirectController;
 use App\Modules\Brands\Livewire\Admin\BrandForm;
 use App\Modules\Brands\Livewire\Admin\BrandsIndex;
+use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
 use App\Modules\Core\Livewire\AdminDashboard;
@@ -20,6 +21,11 @@ use App\Modules\Leads\Livewire\App\LeadForm;
 use App\Modules\Leads\Livewire\App\LeadShow;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
 use App\Modules\Leads\Livewire\App\Pipeline;
+use App\Modules\Sites\Http\Controllers\SiteCheckController;
+use App\Modules\Sites\Http\Controllers\SiteSnippetController;
+use App\Modules\Sites\Livewire\App\SiteShow;
+use App\Modules\Sites\Livewire\App\SitesIndex;
+use App\Modules\Sites\Livewire\App\SiteWizard;
 use App\Modules\System\Livewire\Admin\SystemPage;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +41,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/brands', BrandsIndex::class)->name('brands.index');
         Route::get('/brands/create', BrandForm::class)->name('brands.create');
         Route::get('/brands/{brandId}/edit', BrandForm::class)->name('brands.edit');
+        Route::post('/sites/{site}/check', SiteCheckController::class)->whereNumber('site')->name('sites.check');
 
         Route::middleware('super-admin')->group(function (): void {
             Route::get('/admins', AdminAccountsIndex::class)->name('admins.index');
@@ -62,5 +69,11 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
 
         Route::get('/members', MembersIndex::class)->name('members.index');
         Route::get('/members/create', MemberForm::class)->name('members.create');
+
+        Route::get('/sites', SitesIndex::class)->name('sites.index');
+        Route::get('/sites/connect/{site?}', SiteWizard::class)->name('sites.connect');
+        Route::get('/sites/{site}', SiteShow::class)->name('sites.show');
+        Route::get('/sites/{site}/download', SiteSnippetController::class)->name('sites.download');
+        Route::get('/settings/email', EmailSettings::class)->name('email-settings');
     });
 });

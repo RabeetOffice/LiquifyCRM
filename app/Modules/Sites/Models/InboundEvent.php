@@ -1,0 +1,76 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Sites\Models;
+
+use App\Modules\Leads\Models\Lead;
+use App\Modules\Sites\Enums\InboundStatus;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * The raw copy of one incoming lead, kept before anything is processed.
+ * A failed event keeps its error and can be retried, so no lead is lost.
+ *
+ * @property int $id
+ * @property string $source
+ * @property int|null $source_id
+ * @property int|null $brand_id
+ * @property string|null $external_id
+ * @property array<string, mixed> $payload
+ * @property InboundStatus $status
+ * @property string|null $error
+ * @property int $attempts
+ * @property int|null $lead_id
+ * @property CarbonImmutable|null $processed_at
+ * @property CarbonImmutable|null $created_at
+ */
+class InboundEvent extends Model
+{
+    public const SOURCE_SITE = 'site';
+
+    protected $fillable = ['source', 'source_id', 'brand_id', 'external_id', 'payload', 'status', 'error', 'attempts', 'lead_id', 'processed_at'];
+
+    protected $attributes = ['status' => 'pending', 'attempts' => 0];
+
+    protected function casts(): array
+    {
+        return [
+            'payload' => 'array',
+            'status' => InboundStatus::class,
+            'processed_at' => 'datetime',
+        ];
+    }
+
+    /** @return BelongsTo<Lead, $this> */
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class)->withoutGlobalScopes();
+    }
+
+    public function isTest(): bool
+    {
+        return (bool) ($this->payload['test'] ?? false);
+    }
+
+    public function markDone(?Lead $lead = null): void
+    {
+        $this->forceFill([
+            'status' => InboundStatus::Done,
+            'error' => null,
+            'lead_id' => $lead?->getKey(),
+            'processed_at' => now(),
+        ])->save();
+    }
+
+    public function markFailed(string $error): void
+    {
+        $this->forceFill([
+            'status' => InboundStatus::Failed,
+            'error' => mb_substr($error, 0, 2000),
+            'processed_at' => now(),
+        ])->save();
+    }
+}
