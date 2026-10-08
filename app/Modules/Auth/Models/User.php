@@ -342,10 +342,10 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     // --------------------------------------------------------- two-factor auth
 
-    /** Super Admins and Admins must set up an authenticator app. */
+    /** Super Admins and Admins must set up an authenticator app (unless switched off by LIQUIFY_REQUIRE_TWO_FACTOR). */
     public function requiresTwoFactor(): bool
     {
-        return $this->isGlobalAdmin();
+        return $this->isGlobalAdmin() && (bool) config('liquify.require_two_factor');
     }
 
     public function hasTwoFactorEnabled(): bool

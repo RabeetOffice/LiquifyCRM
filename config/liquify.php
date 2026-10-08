@@ -34,6 +34,10 @@ return [
     'reveal_limit_per_hour' => (int) env('REVEAL_LIMIT_PER_HOUR', 30),
     'invitation_expiry_days' => (int) env('INVITATION_EXPIRY_DAYS', 7),
 
+    // Two-factor is forced for Super Admins and Admins (document rule). Set the
+    // env key to false locally to sign in without an authenticator app.
+    'require_two_factor' => (bool) env('LIQUIFY_REQUIRE_TWO_FACTOR', true),
+
     'currencies' => ['GBP', 'AUD', 'USD', 'EUR', 'CAD', 'NZD'],
 
     /*

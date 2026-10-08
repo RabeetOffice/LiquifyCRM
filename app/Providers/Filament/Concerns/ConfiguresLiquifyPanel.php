@@ -47,7 +47,7 @@ trait ConfiguresLiquifyPanel
                         ->regenerableRecoveryCodes()
                         ->brandName('LiquifyCRM'),
                 ],
-                isRequired: $requireTwoFactor,
+                isRequired: $requireTwoFactor && (bool) config('liquify.require_two_factor'),
             )
             ->colors([
                 'primary' => config('liquify.palette.primary'),

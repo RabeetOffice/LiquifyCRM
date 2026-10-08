@@ -55,3 +55,14 @@ it('records sign-ins in the audit trail', function (): void {
 
     expect($agent->fresh()->last_login_at)->not->toBeNull();
 });
+
+it('can be switched off locally with LIQUIFY_REQUIRE_TWO_FACTOR', function (): void {
+    config()->set('liquify.require_two_factor', false);
+
+    $brand = brand(['slug' => 'ukph']);
+    $super = User::factory()->superAdmin()->create()->refresh();
+
+    expect($super->requiresTwoFactor())->toBeFalse();
+
+    $this->actingAs($super)->get('/b/ukph')->assertOk();
+});

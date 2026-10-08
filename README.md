@@ -59,7 +59,8 @@ for Composer and Artisan while XAMPP's MariaDB stays as the database.
    ```
 
 5. Open <http://localhost:8000/admin>, sign in as the Super Admin, set up the authenticator
-   app when asked (2FA is required for Super Admins and Admins), then open a brand from the
+   app when asked (2FA is required for Super Admins and Admins unless `LIQUIFY_REQUIRE_TWO_FACTOR=false`
+   is set locally), then open a brand from the
    user menu or go to <http://localhost:8000/b>.
 
 **Laravel Herd** works too: use Herd's PHP 8.4 and point `DB_*` at any MySQL 8 / MariaDB 10.4+.
@@ -104,6 +105,7 @@ The Super Admin is whatever you entered in `liquify:install`.
 | `DEPLOY_HOOK_TOKEN` | Shared secret for `POST /hooks/deploy/{token}` (GitHub Actions secret `DEPLOY_TOKEN`) |
 | `DEPLOY_PATH` | Deployer root on the server, e.g. `/home/USER/crm`; enables release rollback on the System screen |
 | `REPORTING_CURRENCY`, `DEFAULT_CURRENCY`, `DEFAULT_TIMEZONE`, `REVEAL_LIMIT_PER_HOUR` | Defaults from the document (GBP, Europe/London, 30) |
+| `LIQUIFY_REQUIRE_TWO_FACTOR` | `true` (default) forces an authenticator app on Super Admins and Admins; set `false` only on a local machine |
 | `APP_DEBUG=false`, `APP_ENV=production` | Always in production |
 
 ## Quality checks
