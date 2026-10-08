@@ -14,6 +14,7 @@ use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Leads\Support\LeadNotifier;
 use App\Modules\Leads\Support\PhoneNormalizer;
+use App\Modules\Sales\Models\Client;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -72,6 +73,7 @@ final class CreateLead
                 'utm' => $data['utm'] ?? null,
                 'fields' => $data['fields'] ?? null,
                 'created_by' => $by?->getKey(),
+                'client_id' => Client::match($brand, $data['email'], $data['phone'])?->getKey(),
             ];
 
             $lead = new Lead($attributes);
@@ -94,6 +96,11 @@ final class CreateLead
             );
 
             LeadCreated::dispatch($lead);
+
+            // Bulk imports of old leads stay quiet; nobody wants 2,000 emails.
+            if ($data['silent'] ?? false) {
+                return new LeadCreation($lead, wasMerged: false);
+            }
 
             if ($lead->assigned_to === null) {
                 app(LeadNotifier::class)->newLead($lead);

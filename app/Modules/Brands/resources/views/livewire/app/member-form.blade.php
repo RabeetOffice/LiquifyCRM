@@ -32,6 +32,12 @@
                         @endforeach
                     </x-ui.select>
                 </x-ui.field>
+                <x-ui.field label="Monthly revenue target ({{ $brand->currency }})" name="targetRevenue" help="For {{ now()->format('F') }}. Leave empty for none; change it any time under Targets.">
+                    <x-ui.input type="number" min="0" step="1" inputmode="decimal" wire:model="targetRevenue" name="targetRevenue" />
+                </x-ui.field>
+                <x-ui.field label="Monthly sales target" name="targetCount" help="Number of sales.">
+                    <x-ui.input type="number" min="0" step="1" inputmode="numeric" wire:model="targetCount" name="targetCount" />
+                </x-ui.field>
             </div>
         </x-ui.card>
 

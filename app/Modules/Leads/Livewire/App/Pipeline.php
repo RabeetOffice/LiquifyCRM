@@ -48,6 +48,12 @@ final class Pipeline extends Component
             return;
         }
 
+        if ($status->is_won) {
+            $this->toastWarning('Record the sale first', 'Open '.$lead->name.' and click Mark as Won to enter the amount.');
+
+            return;
+        }
+
         $previous = $lead->status_id;
 
         app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());

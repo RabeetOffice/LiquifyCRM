@@ -18,7 +18,7 @@ Actions → Hostinger.
 | 2 | Leads core: leads, statuses, notes, tasks, timeline, list/detail/kanban, import, New queue, assignment, Reveal | ✅ done |
 | 3 | Website sources: sites, ingest API + liquify.php, pull mode, health checks | ✅ done |
 | 4 | Meta: Connect Facebook, Page mapping, Lead Ads, Messenger inbox | ✅ done |
-| 5 | Sales and targets: people profiles, Mark as Won, clients, targets, dashboards, brand identity fetch, distribution | ⏳ |
+| 5 | Sales and targets: people profiles, Mark as Won, clients, targets, dashboards, brand identity fetch, distribution | ✅ done |
 | 6 | Hardening: logs screen, retention, theme polish, speed checks, backups, launch | ⏳ |
 
 ---

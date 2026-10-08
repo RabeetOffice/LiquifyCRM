@@ -35,6 +35,9 @@ Schedule::command('sites:check')->everyThirtyMinutes()->doNotMonitor();
 // Facebook: renew the connection token before its 60 days run out.
 Schedule::command('meta:refresh-tokens')->dailyAt('03:15')->doNotMonitor();
 
+// Brands: refresh each favicon weekly in case the website changed it.
+Schedule::command('brands:refresh-identity')->weeklyOn(1, '04:00')->doNotMonitor();
+
 // Backups: daily database backup, then prune according to config/backup.php.
 Schedule::command('backup:clean')->dailyAt('01:30')->graceTimeInMinutes(60);
 Schedule::command('backup:run --only-db')->dailyAt('02:00')->graceTimeInMinutes(60);

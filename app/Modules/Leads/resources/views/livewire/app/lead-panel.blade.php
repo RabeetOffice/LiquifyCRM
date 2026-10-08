@@ -102,10 +102,27 @@
             <x-ui.button size="sm" wire:click="openNote" icon="heroicon-o-pencil-square" title="Shortcut: N">Add note</x-ui.button>
             <x-ui.button size="sm" wire:click="openFollowUp" icon="heroicon-o-calendar-days" title="Shortcut: F">Follow up on</x-ui.button>
         @endif
+        @if ($can['recordSale'])
+            <x-ui.button size="sm" wire:click="openWon" icon="heroicon-o-trophy">{{ $lead->status->is_won ? 'Add another sale' : 'Mark as Won' }}</x-ui.button>
+        @endif
         @if ($can['delete'])
             <x-ui.button size="sm" variant="ghost" wire:click="confirmDelete" icon="heroicon-o-trash">Delete</x-ui.button>
         @endif
     </div>
+
+    @if ($sales->isNotEmpty())
+        <div class="lq-alert lq-alert-success">
+            <x-heroicon-o-trophy />
+            <div class="min-w-0 flex-1">
+                @foreach ($sales as $sale)
+                    <div class="flex flex-wrap items-center justify-between gap-x-4">
+                        <span><strong>{{ \App\Modules\Sales\Support\Money::format($sale->amount, $sale->currency) }}</strong>{{ $sale->service ? ' · '.$sale->service : '' }}</span>
+                        <span>{{ $sale->closed_at->format('j M Y') }}{{ $sale->closer ? ' · '.$sale->closer->name : '' }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     {{-- Tabs --}}
     <div class="lq-tabs" role="tablist">
@@ -258,6 +275,27 @@
         <x-slot:footer>
             <x-ui.button variant="ghost" wire:click="$set('showStatus', false)">Cancel</x-ui.button>
             <x-ui.button type="submit" form="status-form" variant="primary">Save</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <x-ui.modal model="showWon" title="Mark as Won" description="Record the sale. The person becomes a client of this brand and the sale counts towards this month's targets." size="sm">
+        <form wire:submit="recordSale" class="lq-form" id="won-form">
+            <x-ui.field label="Amount" name="wonAmount" required>
+                <div class="lq-input-group">
+                    <span class="lq-input-prefix">{{ $brandCurrency }}</span>
+                    <x-ui.input type="number" step="0.01" min="0" wire:model="wonAmount" name="wonAmount" inputmode="decimal" placeholder="1500" />
+                </div>
+            </x-ui.field>
+            <x-ui.field label="Service or package" name="wonService">
+                <x-ui.input wire:model="wonService" name="wonService" placeholder="Publishing package" />
+            </x-ui.field>
+            <x-ui.field label="Close date" name="wonClosedAt" required>
+                <x-ui.input type="date" wire:model="wonClosedAt" name="wonClosedAt" max="{{ now()->toDateString() }}" />
+            </x-ui.field>
+        </form>
+        <x-slot:footer>
+            <x-ui.button variant="ghost" wire:click="$set('showWon', false)">Cancel</x-ui.button>
+            <x-ui.button type="submit" form="won-form" variant="primary" wire:loading.attr="disabled" wire:target="recordSale">Record sale</x-ui.button>
         </x-slot:footer>
     </x-ui.modal>
 

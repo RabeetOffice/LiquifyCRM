@@ -40,6 +40,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `ProcessMetaEvent` turns them into leads (Lead Ads, via `MetaGraph`) or `Conversation` / `Message` rows (Messenger).
   One global connection (`MetaConnection`), Pages mapped to brands (`MetaSource`, not brand-scoped). Each channel
   registers its job with `InboundEvent::processWith()` so the event log can retry anything.
+- Sales (`app/Modules/Sales`): a lead only becomes Won through `RecordSale` (amount required); it creates or updates the
+  `Client`. `SalesReport` produces every dashboard number for a scope (all brands in the reporting currency, or one brand
+  narrowed by role); `Progress` is the achieved-versus-target maths; `DistributeLeads` moves leads in bulk.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
   `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
 

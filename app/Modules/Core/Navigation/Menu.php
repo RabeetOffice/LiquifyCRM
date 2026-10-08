@@ -61,6 +61,16 @@ final class Menu
 
         $groups = [['label' => 'Main menu', 'items' => $main]];
 
+        $sales = [self::item($agent ? 'My target' : 'Sales', 'heroicon-o-trophy', route('brand.sales', $params), $isActive('brand.sales'))];
+
+        if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
+            $sales[] = self::item('Targets', 'heroicon-o-flag', route('brand.targets', $params), $isActive('brand.targets'));
+            $sales[] = self::item('Clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive('brand.clients.index', 'brand.clients.show'));
+            $sales[] = self::item('Distribute leads', 'heroicon-o-arrows-right-left', route('brand.leads.distribute', $params), $isActive('brand.leads.distribute'));
+        }
+
+        $groups[] = ['label' => 'Sales', 'items' => $sales];
+
         if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
             $groups[] = ['label' => 'Team', 'items' => [
                 self::item('Departments', 'heroicon-o-rectangle-group', route('brand.departments.index', $params), $isActive('brand.departments.index', 'brand.departments.create', 'brand.departments.edit')),
@@ -96,11 +106,13 @@ final class Menu
 
         $groups = [['label' => 'Main menu', 'items' => [
             self::item('Overview', 'heroicon-o-home', route('admin.dashboard'), $isActive('admin.dashboard')),
+            self::item('Sales dashboard', 'heroicon-o-trophy', route('admin.sales'), $isActive('admin.sales')),
             self::item('Brands', 'heroicon-o-building-storefront', route('admin.brands.index'), $isActive('admin.brands.index', 'admin.brands.create', 'admin.brands.edit')),
         ]]];
 
         $settings = [
             self::item('Integrations', 'heroicon-o-link', route('admin.integrations'), $isActive('admin.integrations')),
+            self::item('Exchange rates', 'heroicon-o-currency-pound', route('admin.exchange-rates'), $isActive('admin.exchange-rates')),
         ];
 
         if ($user->isSuperAdmin()) {

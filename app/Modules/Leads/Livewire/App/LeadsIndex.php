@@ -20,6 +20,7 @@ use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Sales\Models\LeadDistribution;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -162,6 +163,10 @@ final class LeadsIndex extends Component
             }
         }
 
+        if ($done > 1) {
+            LeadDistribution::query()->create(['brand_id' => $this->brand->getKey(), 'from_user_id' => $this->user()->getKey(), 'to_type' => 'user', 'to_id' => $agent->getKey(), 'lead_count' => $done, 'method' => 'manual']);
+        }
+
         $this->showBulkAssign = false;
         $this->selected = [];
         $this->toastSuccess("{$done} ".str('lead')->plural($done).' assigned to '.$agent->name);
@@ -179,6 +184,10 @@ final class LeadsIndex extends Component
             app(SendLeadToDepartment::class)->handle($lead, $department, $this->user());
         }
 
+        if ($leads->count() > 1) {
+            LeadDistribution::query()->create(['brand_id' => $this->brand->getKey(), 'from_user_id' => $this->user()->getKey(), 'to_type' => 'department', 'to_id' => $department->getKey(), 'lead_count' => $leads->count(), 'method' => 'manual']);
+        }
+
         $this->showBulkSend = false;
         $this->selected = [];
         $this->toastSuccess($leads->count().' '.str('lead')->plural($leads->count()).' sent to '.$department->name);
@@ -190,6 +199,13 @@ final class LeadsIndex extends Component
 
         $status = LeadStatus::query()->findOrFail((int) $this->bulkStatusTo);
         $done = 0;
+
+        if ($status->is_won) {
+            $this->showBulkStatus = false;
+            $this->toastWarning('Won needs an amount', 'Open each lead and click Mark as Won to record its sale.');
+
+            return;
+        }
 
         foreach ($this->selectedLeads() as $lead) {
             if ($this->user()->can('update', $lead)) {

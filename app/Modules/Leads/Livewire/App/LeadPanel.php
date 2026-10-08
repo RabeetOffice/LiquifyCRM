@@ -24,6 +24,9 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Sales\Actions\RecordSale;
+use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -69,6 +72,14 @@ final class LeadPanel extends Component
     public string $followUpAt = '';
 
     public string $followUpTitle = 'Follow up';
+
+    public bool $showWon = false;
+
+    public string $wonAmount = '';
+
+    public string $wonService = '';
+
+    public string $wonClosedAt = '';
 
     public function mount(int $leadId): void
     {
@@ -142,11 +153,49 @@ final class LeadPanel extends Component
         $status = LeadStatus::query()->findOrFail((int) $this->statusTo);
         $previous = $lead->status_id;
 
+        // Won always goes through the sale sheet, so every won lead has an amount.
+        if ($status->is_won && $previous !== $status->getKey()) {
+            $this->showStatus = false;
+            $this->openWon();
+
+            return;
+        }
+
         app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
 
         $this->showStatus = false;
         $this->changed();
         $this->toast('Status: '.$status->name, null, 'success', $this->undoPayload($lead, 'status', $previous));
+    }
+
+    public function openWon(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('recordSale', $lead);
+
+        $this->wonAmount = '';
+        $this->wonService = (string) ($lead->fields['service'] ?? '');
+        $this->wonClosedAt = now()->toDateString();
+        $this->resetErrorBag();
+        $this->showWon = true;
+    }
+
+    public function recordSale(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('recordSale', $lead);
+
+        $data = $this->validate([
+            'wonAmount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
+            'wonService' => ['nullable', 'string', 'max:190'],
+            'wonClosedAt' => ['required', 'date', 'before_or_equal:today'],
+        ], attributes: ['wonAmount' => 'amount', 'wonService' => 'service or package', 'wonClosedAt' => 'close date']);
+
+        $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user());
+
+        $this->showWon = false;
+        $this->changed();
+        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), 'It counts towards this month\'s targets.');
     }
 
     public function openNote(): void
@@ -263,6 +312,8 @@ final class LeadPanel extends Component
             'canSeeFull' => $canSeeFull,
             'timeline' => $timeline,
             'openTasks' => $lead->tasks->whereNull('done_at'),
+            'sales' => Sale::query()->where('lead_id', $lead->getKey())->with('closer')->latest('closed_at')->get(),
+            'brandCurrency' => $this->brand()->currency,
             'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
             'statuses' => LeadStatus::query()->ordered()->get(),
             'agentOptions' => $this->agentOptions($lead->department_id),
@@ -271,6 +322,7 @@ final class LeadPanel extends Component
                 'assign' => $user->can('assign', $lead),
                 'distribute' => $user->can('distribute', $lead),
                 'update' => $user->can('update', $lead),
+                'recordSale' => $user->can('recordSale', $lead),
                 'reveal' => ! $canSeeFull && $user->can('reveal', $lead),
                 'delete' => $user->can('delete', $lead),
             ],

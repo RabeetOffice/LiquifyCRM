@@ -10,6 +10,7 @@ use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Sites\Enums\CheckType;
 use App\Modules\Sites\Enums\InboundStatus;
+use App\Modules\Sites\Jobs\ImportSiteHistory;
 use App\Modules\Sites\Jobs\IngestLead;
 use App\Modules\Sites\Jobs\PullSiteLeads;
 use App\Modules\Sites\Livewire\Concerns\EditsPullConfig;
@@ -53,6 +54,12 @@ final class SiteShow extends Component
     public string $formPath = '';
 
     public bool $isActive = true;
+
+    public bool $showImport = false;
+
+    public string $importFrom = '';
+
+    public string $importUntil = '';
 
     public function mount(Brand $brand, Site $site): void
     {
@@ -98,6 +105,39 @@ final class SiteShow extends Component
         $this->site->refresh();
 
         $this->toast('Leads read', $this->site->last_pull_note, str_starts_with((string) $this->site->last_pull_note, 'Failed') ? 'danger' : 'success');
+    }
+
+    public function openImport(): void
+    {
+        $this->authorize('update', $this->site);
+
+        $this->importFrom = now()->subYear()->toDateString();
+        $this->importUntil = now()->toDateString();
+        $this->showImport = true;
+    }
+
+    /** Old leads from the website's own leads table, for a chosen date range. */
+    public function importHistory(): void
+    {
+        $this->authorize('update', $this->site);
+
+        $data = $this->validate([
+            'importFrom' => ['required', 'date'],
+            'importUntil' => ['required', 'date', 'after_or_equal:importFrom', 'before_or_equal:today'],
+        ], attributes: ['importFrom' => 'start date', 'importUntil' => 'end date']);
+
+        if ($this->site->pullDriver() === null) {
+            $this->addError('importFrom', 'Add the agent or database details of this website under Settings first.');
+
+            return;
+        }
+
+        ImportSiteHistory::dispatch((int) $this->site->getKey(), $data['importFrom'], $data['importUntil'], (int) auth()->id());
+
+        Audit::log('leads.history_import_started', $this->site, ['from' => $data['importFrom'], 'until' => $data['importUntil']], 'Import of old leads started for '.$this->site->domain, logName: 'leads');
+
+        $this->showImport = false;
+        $this->toastSuccess('Import started', 'You get a notification when it is done. Nobody is emailed about the old leads.');
     }
 
     public function retry(int $eventId): void

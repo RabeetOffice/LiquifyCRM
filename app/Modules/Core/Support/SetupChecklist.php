@@ -8,6 +8,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\MetaSource;
+use App\Modules\Sales\Models\Target;
 use App\Modules\Sites\Models\Site;
 
 /**
@@ -27,6 +28,7 @@ final class SetupChecklist
         $managers = $brand->memberships()->where('role', BrandRole::Manager->value)->count();
         $leads = Lead::query()->forBrand($brand)->count();
         $sites = Site::query()->forBrand($brand)->count();
+        $targets = Target::query()->forBrand($brand)->where('period', now()->format('Y-m'))->count();
         $pages = MetaSource::query()->where('brand_id', $brand->getKey())->count();
 
         $steps = [
@@ -74,14 +76,15 @@ final class SetupChecklist
             ],
             [
                 'title' => 'Set monthly targets',
-                'description' => 'Revenue or number of sales for the brand, each department and each person.',
-                'done' => false,
-                'url' => null,
-                'soon' => 'Week 5',
+                'description' => $targets > 0 ? $targets.' '.str('target')->plural($targets).' set for '.now()->format('F').'.' : 'Revenue or number of sales for the brand, each department and each person.',
+                'done' => $targets > 0,
+                'url' => route('brand.targets', ['brand' => $brand->slug]),
+                'soon' => null,
             ],
         ];
 
-        $available = array_filter($steps, fn (array $step): bool => $step['soon'] === null);
+        // Every step is live now; "soon" stays in the shape for steps of later phases.
+        $available = $steps;
         $done = count(array_filter($available, fn (array $step): bool => $step['done']));
         $total = count($available);
 

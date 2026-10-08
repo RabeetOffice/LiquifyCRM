@@ -12,6 +12,7 @@ use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Sales\Models\Target;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -45,6 +46,10 @@ final class MemberForm extends Component
 
     public string $department = '';
 
+    public string $targetRevenue = '';
+
+    public string $targetCount = '';
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
@@ -61,7 +66,9 @@ final class MemberForm extends Component
             'password' => ['required', 'string', Password::min(10)->letters()->numbers()],
             'role' => ['required', Rule::in(array_keys($this->roleOptions()))],
             'department' => [$user->isGlobalAdmin() ? 'nullable' : 'required', 'integer'],
-        ]);
+            'targetRevenue' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'targetCount' => ['nullable', 'integer', 'min:0', 'max:100000'],
+        ], attributes: ['targetRevenue' => 'revenue target', 'targetCount' => 'sales target']);
 
         $role = BrandRole::from($data['role']);
         $department = filled($data['department']) ? Department::query()->findOrFail((int) $data['department']) : null;
@@ -93,6 +100,14 @@ final class MemberForm extends Component
                 $user,
             );
         });
+
+        // The monthly target in the same form, for this month.
+        if ((float) ($data['targetRevenue'] ?: 0) > 0 || (int) ($data['targetCount'] ?: 0) > 0) {
+            Target::query()->updateOrCreate(
+                ['brand_id' => $this->brand->getKey(), 'targetable_type' => Target::USER, 'targetable_id' => $membership->user_id, 'period' => now()->format('Y-m')],
+                ['revenue_target' => (float) ($data['targetRevenue'] ?: 0) > 0 ? (float) $data['targetRevenue'] : null, 'sales_count_target' => (int) ($data['targetCount'] ?: 0) > 0 ? (int) $data['targetCount'] : null, 'set_by' => $user->getKey()],
+            );
+        }
 
         $this->toastSuccess(($membership->user->name ?? 'Person').' added to '.$this->brand->name);
         $this->redirectRoute('brand.members.index', ['brand' => $this->brand->slug], navigate: true);

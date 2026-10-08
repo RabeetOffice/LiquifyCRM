@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code: 141 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -11,8 +11,8 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 | Week 2 · Leads core | **Done** | Facebook source arrives in week 4 |
 | Week 3 · Website sources | **Done** | Built 8 October; health checks and pull mode ported from the LeadsHub folder |
 | Week 4 · Meta | **Done** | Built 8 October against the Graph API with faked responses; a live run needs your Meta app keys in `.env` |
-| Week 5 · Sales and targets | **Next** (departments done) | |
-| Week 6 · Hardening and launch | Pending (theme and isolation tests done) | |
+| Week 5 · Sales and targets | **Done** | Built 8 October |
+| Week 6 · Hardening and launch | **Next** (theme and isolation tests done) | |
 | Phase 2 · Files, NDA, client portal | Pending | Tables designed in the document, not created (agreed) |
 
 ## Done
@@ -20,7 +20,7 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 ### Project and stack
 - [x] Laravel 13 on PHP 8.4, Livewire 4, Tailwind 4, Vite, Pest 5, Pint, Larastan level 6.
 - [x] Packages: laravel/fortify, livewire/livewire, sanctum, spatie permission / activitylog / backup / health / schedule-monitor / settings / query-builder, laravel-excel, laravel-phone, league/color-extractor, deployer, blade-ui-kit/blade-heroicons (icons), chart.js (dashboard charts).
-- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, Meta, Sites, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
+- [x] Module layout `app/Modules/<Module>` (Activity, Auth, Brands, Core, Departments, Leads, Meta, Sales, Sites, System), each with its own service provider, migrations, policies, actions, jobs, Livewire screens and views.
 - [x] Two areas: `/admin` (Super Admin and Admin) and `/b/{brand}` (brand workspace; the brand in the URL is the tenant, bound before every other route parameter).
 - [x] Own design system in `resources/css/app.css` (tokens from the document, plain-CSS components) and a Blade component set (`resources/views/components/ui`): buttons, fields, cards, stat cards, badges, status pills, tables, tabs, modals, slide-over, confirm dialog, toasts with Undo, empty states, pagination.
 - [x] Shell: full-height sidebar with logo, brand switcher, menus by role and user card; top bar with greeting, scheduler status, Ctrl K / ⌘K search, notification bell, theme toggle and avatar menu. Light and dark follow the device with a manual switch.
@@ -88,6 +88,20 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 - [x] Token refresh in the scheduler (`meta:refresh-tokens`, daily); the Super Admins are told when Facebook must be connected again.
 - [x] Setup checklist step "Connect Facebook" ticks itself; Inbox in every role's menu, Integrations in the admin menu.
 
+### Sales and targets (week 5)
+- [x] Tables `clients`, `sales`, `targets`, `exchange_rates`, `lead_distributions`.
+- [x] Mark as Won sheet on the lead (amount in the brand's currency, service or package, close date) and `POST /b/{brand}/leads/{lead}/won`. A lead can only become Won with an amount: choosing Won under Change status opens the sheet, and the pipeline and bulk status refuse it. "Add another sale" on a won lead.
+- [x] Clients: created on the first sale, a later purchase by the same email or phone joins the same client, lifetime value and sales count recounted from the sales; a new enquiry from a buyer is linked to its client. Clients screen by lifetime value and a client page with every sale, who closed it, and every lead (Admins all, a Manager the clients their departments sold to).
+- [x] Monthly targets at three levels (brand, department, person) as revenue, number of sales, or both. Targets screen: month grid with live progress, Copy last month, planning up to a year ahead. The Admin sets every row; a Manager sets their own Agents.
+- [x] Progress bars and the Over-achieved badge ("132%, £4,800 over target"); the leaderboard sorts by % of target.
+- [x] Sales dashboard: `/admin/sales` for all brands in the reporting currency with drill-down brand, department, Agents; `/b/{brand}/sales` for a Manager (own departments) and an Agent ("My target": own bar and sales). Cards: revenue and sales vs last month, target, brand performance (leads, conversion, revenue, % of target), department ranking, leaderboard, top clients, lead sources with conversion, speed to first contact, sales of the month. Month picker.
+- [x] Exchange rates screen (`/admin/exchange-rates`): monthly rate per currency to the reporting currency; a month without a rate uses the latest earlier one; saving re-converts the sales it affects; the dashboard warns when a sale has no rate instead of guessing.
+- [x] People profiles: Add person now also takes the monthly revenue and sales target (photo, login, password or invite, department and role were there).
+- [x] Brand favicon and colours fetched from the website (theme-color, web manifest, else the icon's main colours through league/color-extractor): by itself when a brand is added, "Fetch from website" on the brand form with the colours left adjustable, `POST /admin/brands/{id}/fetch-identity`, and a weekly favicon refresh.
+- [x] Import old leads from a website's own leads table for a date range (website page, needs the agent or database details): original dates kept, duplicates joined, marked Imported, no per-lead notifications, one summary to the person who started it.
+- [x] Distribute leads (`/b/{brand}/leads/distribute`): the Admin filters leads and splits them across departments equally, by percentage or by count; a Manager shares their department's leads among Agents equally or by count; preview before moving; one notification per department or Agent; every run (and bulk assigns from the Leads list, as "by hand") in the `lead_distributions` history.
+- [x] Setup checklist step "Set monthly targets" ticks itself; menus: Sales / My target, Targets, Clients, Distribute leads, Sales dashboard, Exchange rates.
+
 ### System screen and deployment
 - [x] System screen (Super Admin): version, environment, pending-migrations banner, Backup and run database update with password re-confirm (backup first, then `migrate --force`, output kept), Back up now, retry failed jobs, release rollback (password re-confirm), health checks, queue and cron health, deployment history with logs, latest backups. Refreshes itself while a job runs.
 - [x] `POST /hooks/deploy/{token}` records each deployment and tells Super Admins when database updates wait.
@@ -111,6 +125,9 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 - Meta tables carry a few columns beyond the document's list: `meta_connections` (`is_system_user`, `last_refreshed_at`, `error`), `meta_sources` (`meta_connection_id`, `subscribed_at`, `last_event_at`, `error`), `conversations` (`contact_name`, `last_message_at`, `last_message_preview`, `unread_count`), `messages` (`error`, plus a `sending` status before `sent`).
 - Delivered and seen receipts update messages directly and are not kept in the event log (they carry no lead).
 - Attachments in Messenger show as "[1 attachment]"; the Files module (Phase 2) will store them.
+- `targets` has a `brand_id` (a person can work in two brands, each with its own target and currency); `clients` adds `last_sale_at`; `sales` adds `recorded_by`.
+- The document's `/dashboard/sales` lives at `/admin/sales` (all brands) and `/b/{brand}/sales` (one brand), matching the two areas of the app. Distribution is a screen at `/b/{brand}/leads/distribute` rather than a bare POST.
+- Bulk distribution writes one history line and one notification per department or Agent, not a timeline entry on each of the leads.
 - Light page background is `#f4f4f2` (a shade below the document's `#FAFAF9`) so white cards stand out, and stat-card icons sit in rounded tiles rather than circles, both from the reference designs the user chose.
 
 ## Pending
@@ -124,19 +141,12 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] Official Facebook, Messenger, Gmail and Outlook logos as local SVGs in `resources/svg/brands/`; they must come from each company's brand page, so they are not drawn by hand. Heroicons stand in today.
 - [ ] A brand rule such as "all Facebook leads go to Sales Team A" (the document mentions it as optional; leads go to the New queue for the Admin today).
 
-### Week 5 · Sales and targets (next)
-- [x] Departments (done in week 1).
-- [ ] People profiles: photo, login email, password or invite, department, role and monthly target in one form (photo and profile exist; targets do not).
-- [ ] Mark as Won sheet (amount, brand currency, service or package, close date); `sales` and `clients` tables; lifetime value; repeat purchases attach to the same client.
-- [ ] Monthly targets at three levels (brand, department, person) as revenue, count or both; Targets month grid with live progress and "copy last month".
-- [ ] Progress bars and Over-achieved badges; leaderboard.
-- [ ] Reporting currency and monthly exchange rates screen (`exchange_rates`), cross-brand totals in GBP.
-- [ ] Admin sales dashboard with drill-down: sales this month, brand performance, department ranking, agent leaderboard, top clients, lead sources, speed to first contact. Managers see their department, Agents their own.
-- [ ] Clients screen.
-- [ ] Brand favicon and colours fetched automatically from the website (column `identity_fetched_at` and league/color-extractor are ready); weekly refresh.
-- [ ] Old lead import from a website's leads table and two-level distribution (equal, percent, count, manual) with the `lead_distributions` log (CSV / Excel import with mapping already exists).
+### Week 5 · left over
+- [ ] Editing or removing a recorded sale (a wrong amount is corrected today by adding the right sale; removal needs a decision on who may do it).
+- [ ] A progress bar on each person's own Profile screen (it is on Sales / My target, the leaderboard and Targets).
+- [ ] The two CSV drill-downs the document hints at ("Per brand and department" for sources, "Per Agent" for speed) show inside the brand and department views rather than as separate expanding cards.
 
-### Week 6 · Hardening and launch
+### Week 6 · Hardening and launch (next)
 - [x] Brand-isolation test suite (done in week 1).
 - [x] Apple-style theme, light and dark (done; polish continues as screens land).
 - [ ] Logs screen: filters by brand, user, event and date; search by lead; 7 / 15 / 30-day downloads built in the queue with a 24-hour link; delete before a date (Super Admin, password re-confirm, never the last 7 days); retention settings; storage card.
@@ -153,7 +163,7 @@ State of the code: 125 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
-- Week 5 can start now: say "continue".
+- Week 6 can start now: say "continue".
 - Week 4 live test: put the Meta app id, secret and a verify token in `.env`, run the Cloudflare tunnel, then Connect Facebook on the Integrations screen.
 - First deploy: Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain.
 - Backups: where off-server backups should go (Cloudflare R2, Backblaze, FTP).

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Brands;
 
+use App\Modules\Brands\Console\RefreshIdentityCommand;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Invitation;
 use App\Modules\Brands\Models\Membership;
@@ -22,6 +23,10 @@ final class BrandsServiceProvider extends ModuleServiceProvider
         Brand::class => BrandPolicy::class,
         Membership::class => MembershipPolicy::class,
         Invitation::class => InvitationPolicy::class,
+    ];
+
+    protected array $commands = [
+        RefreshIdentityCommand::class,
     ];
 
     protected function bootModule(): void

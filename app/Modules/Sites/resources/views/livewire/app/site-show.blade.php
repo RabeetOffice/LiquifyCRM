@@ -7,6 +7,9 @@
                 @else
                     <x-ui.button variant="ghost" icon="heroicon-o-wrench-screwdriver" :href="route('brand.sites.connect', ['brand' => $brand->slug, 'site' => $site])">Setup steps</x-ui.button>
                 @endif
+                @if ($site->pullDriver() !== null)
+                    <x-ui.button variant="ghost" icon="heroicon-o-arrow-down-on-square-stack" wire:click="openImport">Import old leads</x-ui.button>
+                @endif
                 <x-ui.button variant="primary" icon="heroicon-o-arrow-path" wire:click="checkNow" wire:loading.attr="disabled" wire:target="checkNow">Check now</x-ui.button>
             @endif
         </x-slot:actions>
@@ -204,6 +207,21 @@
             </x-slot:footer>
         </x-ui.card>
     @endif
+
+    <x-ui.modal model="showImport" title="Import old leads" description="Reads this website's own leads table once. Original dates are kept, duplicates join the lead that is already here, and each lead is marked Imported." size="sm">
+        <form wire:submit="importHistory" class="lq-form" id="import-history-form">
+            <x-ui.field label="Received from" name="importFrom" required>
+                <x-ui.input type="date" wire:model="importFrom" name="importFrom" />
+            </x-ui.field>
+            <x-ui.field label="Received until" name="importUntil" required>
+                <x-ui.input type="date" wire:model="importUntil" name="importUntil" max="{{ now()->toDateString() }}" />
+            </x-ui.field>
+        </form>
+        <x-slot:footer>
+            <x-ui.button variant="ghost" wire:click="$set('showImport', false)">Cancel</x-ui.button>
+            <x-ui.button type="submit" form="import-history-form" variant="secondary" wire:loading.attr="disabled" wire:target="importHistory">Start import</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
 
     <x-ui.confirm :confirm="$confirm" />
 </div>

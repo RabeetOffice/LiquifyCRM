@@ -7,6 +7,7 @@ use App\Modules\Auth\Livewire\Admin\AdminAccountsIndex;
 use App\Modules\Auth\Livewire\Profile;
 use App\Modules\Auth\Livewire\ProfileSecurity;
 use App\Modules\Brands\Http\Controllers\BrandRedirectController;
+use App\Modules\Brands\Http\Controllers\FetchIdentityController;
 use App\Modules\Brands\Livewire\Admin\BrandForm;
 use App\Modules\Brands\Livewire\Admin\BrandsIndex;
 use App\Modules\Brands\Livewire\App\EmailSettings;
@@ -25,6 +26,13 @@ use App\Modules\Meta\Http\Controllers\ConversationMessageController;
 use App\Modules\Meta\Http\Controllers\FacebookConnectController;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
 use App\Modules\Meta\Livewire\App\Inbox;
+use App\Modules\Sales\Http\Controllers\RecordSaleController;
+use App\Modules\Sales\Livewire\Admin\ExchangeRatesPage;
+use App\Modules\Sales\Livewire\App\ClientShow;
+use App\Modules\Sales\Livewire\App\ClientsIndex;
+use App\Modules\Sales\Livewire\App\DistributePage;
+use App\Modules\Sales\Livewire\App\TargetsPage;
+use App\Modules\Sales\Livewire\SalesDashboard;
 use App\Modules\Sites\Http\Controllers\SiteCheckController;
 use App\Modules\Sites\Http\Controllers\SiteSnippetController;
 use App\Modules\Sites\Livewire\App\SiteShow;
@@ -47,6 +55,9 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/brands/{brandId}/edit', BrandForm::class)->name('brands.edit');
         Route::post('/sites/{site}/check', SiteCheckController::class)->whereNumber('site')->name('sites.check');
         Route::get('/integrations', IntegrationsPage::class)->name('integrations');
+        Route::get('/sales', SalesDashboard::class)->name('sales');
+        Route::get('/exchange-rates', ExchangeRatesPage::class)->name('exchange-rates');
+        Route::post('/brands/{brandId}/fetch-identity', FetchIdentityController::class)->whereNumber('brandId')->name('brands.fetch-identity');
 
         Route::middleware('super-admin')->group(function (): void {
             Route::get('/admins', AdminAccountsIndex::class)->name('admins.index');
@@ -71,8 +82,14 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/leads', LeadsIndex::class)->name('leads.index');
         Route::get('/leads/create', LeadForm::class)->name('leads.create');
         Route::get('/leads/pipeline', Pipeline::class)->name('leads.pipeline');
+        Route::get('/leads/distribute', DistributePage::class)->name('leads.distribute');
         Route::get('/leads/{lead}', LeadShow::class)->name('leads.show');
+        Route::post('/leads/{lead}/won', RecordSaleController::class)->name('leads.won');
         Route::get('/follow-ups', FollowUps::class)->name('follow-ups');
+        Route::get('/sales', SalesDashboard::class)->name('sales');
+        Route::get('/targets', TargetsPage::class)->name('targets');
+        Route::get('/clients', ClientsIndex::class)->name('clients.index');
+        Route::get('/clients/{client}', ClientShow::class)->name('clients.show');
         Route::get('/inbox', Inbox::class)->name('inbox');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
 

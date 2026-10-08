@@ -13,7 +13,7 @@
                         <x-ui.input wire:model="slug" name="slug" required />
                     </div>
                 </x-ui.field>
-                <x-ui.field label="Website" name="website" help="Favicon and colours will be fetched from here automatically (coming in week 5).">
+                <x-ui.field label="Website" name="website" help="The favicon and colours are fetched from here when the brand is added.">
                     <x-ui.input type="url" wire:model="website" name="website" placeholder="https://ukpublishinghouse.co.uk" />
                 </x-ui.field>
                 <x-ui.field label="Currency" name="currency" required help="Every sale in this brand is recorded in this currency.">
@@ -38,6 +38,11 @@
         </x-ui.card>
 
         <x-ui.card title="Look" description="Logo and colours used for the brand chip, chart line and header strip. The app itself stays Liquify Orange.">
+            @if ($brand)
+                <x-slot:actions>
+                    <x-ui.button variant="secondary" icon="heroicon-o-arrow-down-tray" wire:click="fetchIdentity" wire:loading.attr="disabled" wire:target="fetchIdentity">Fetch from website</x-ui.button>
+                </x-slot:actions>
+            @endif
             <div class="lq-form-grid lq-form-grid-2">
                 <x-ui.field label="Logo" name="logo" help="SVG or PNG on a transparent background works best.">
                     <div class="flex items-center gap-3">

@@ -96,6 +96,12 @@ final class LeadPolicy
             && ($lead->department_id === null || in_array($lead->department_id, $user->managedDepartmentIds($lead->brand_id), true));
     }
 
+    /** "Record a sale (mark Won)": Admins, a Manager in their department, an Agent on their own leads. */
+    public function recordSale(User $user, Lead $lead): bool
+    {
+        return $this->update($user, $lead) && ($user->isGlobalAdmin() || $user->can(Permission::SalesRecord->value));
+    }
+
     /** Anyone who may see the lead may reveal its contact details (logged, limited for Agents). */
     public function reveal(User $user, Lead $lead): bool
     {

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Brands\Livewire\Admin;
 
+use App\Modules\Brands\Jobs\FetchBrandIdentity;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Brands\Support\BrandIdentity;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use DateTimeZone;
@@ -86,6 +88,33 @@ final class BrandForm extends Component
         }
     }
 
+    /** Read the favicon and colours from the website; the Admin can still adjust them before saving. */
+    public function fetchIdentity(BrandIdentity $identity): void
+    {
+        abort_if($this->brand === null, 404);
+        $this->authorize('update', $this->brand);
+
+        $this->validate(['website' => ['required', 'url', 'max:255']]);
+        $this->brand->update(['website' => $this->website]);
+
+        $result = $identity->fetch($this->brand);
+
+        if ($result['error'] !== null) {
+            $this->toast('Nothing fetched', $result['error'], 'warning');
+
+            return;
+        }
+
+        $this->primaryColor = $result['colors']['primary'] ?? $this->primaryColor;
+        $this->secondaryColor = $result['colors']['secondary'] ?? $this->secondaryColor;
+
+        Audit::log('brands.identity_fetched', $this->brand, ['favicon' => $result['favicon'], 'colors' => $result['colors']], 'Favicon and colours fetched from the website', brand: $this->brand, logName: 'brands');
+
+        $found = array_filter([$result['favicon'] ? 'the favicon' : null, $result['colors'] !== [] ? count($result['colors']).' '.str('colour')->plural(count($result['colors'])) : null]);
+
+        $this->toast($found === [] ? 'Nothing found on the website' : 'Fetched '.implode(' and ', $found), $found === [] ? 'Upload a favicon and pick the colours by hand.' : 'Adjust the colours if you like, then save.', $found === [] ? 'warning' : 'success');
+    }
+
     public function save(): void
     {
         $currencies = (array) config('liquify.currencies');
@@ -137,6 +166,12 @@ final class BrandForm extends Component
 
         if ($this->brand === null) {
             $brand = Brand::query()->create([...$attributes, 'created_by' => auth()->id()]);
+
+            // A new brand with a website gets its favicon and colours by itself.
+            if (filled($brand->website) && $this->favicon === null) {
+                FetchBrandIdentity::dispatch((int) $brand->getKey(), blank($data['primaryColor']) || $data['primaryColor'] === '#FF6B2C');
+            }
+
             Audit::log('brands.created', $brand, ['name' => $brand->name], 'Brand created', brand: $brand, logName: 'brands');
             $this->toastSuccess($brand->name.' created', 'Now create its departments and invite a Manager.');
         } else {
