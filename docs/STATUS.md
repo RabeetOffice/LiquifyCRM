@@ -168,7 +168,13 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 ### Week 6 · needs you
 - [x] Off-server backups: decided against on 8 October. Backups stay on the server (`BACKUP_DISKS=backups`); the switch remains in `.env` if this changes.
 - [ ] First staging deploy: postponed (8 October). Needs the Hostinger SSH key, host, user and port as GitHub secrets, plus the staging subdomain. Then run `liquify:speed-check` there.
-- [ ] A live run against the real Meta app. The app id and secret are in the local `.env` and Facebook accepts them (app "LiquifyCRM"); still to do: run the Cloudflare tunnel, enter the webhook and redirect addresses in the Meta app, click Connect Facebook, map a Page.
+- [ ] A live run against the real Meta app: **in progress, paused 8 October, resume here.**
+  - Done: the first Meta app ("LiquifyCRM", id 1409421898009379) cannot hold the Page, lead and Messenger use cases, so a second app **"LiquifyCRM Leads" (id 1736979774197502)** was created with all three. Its six permissions are "Ready for testing" (`pages_show_list`, `pages_read_engagement`, `pages_manage_metadata`, `business_management`, `leads_retrieval`, `pages_messaging`). Its Page webhook points at `https://audience-percolate-unclog.ngrok-free.dev/webhooks/meta` and is verified, and the five fields are subscribed (`leadgen`, `messages`, `messaging_postbacks`, `message_deliveries`, `message_reads`).
+  - Done locally: `TRUSTED_PROXIES=*` so links are https behind the tunnel; the tunnel must forward to port 8000 (`ngrok http 8000`), not to XAMPP's port 80.
+  - **Next 1:** the local `.env` still holds the id and secret of the *first* app. Put the new app's `META_APP_ID` (1736979774197502) and its App secret (Meta dashboard > App settings > Basic > Show) into `.env`, then `php artisan config:clear`. Until then signed webhooks from the new app are refused and Connect Facebook uses the wrong app.
+  - **Next 2:** start `php artisan serve`, `php artisan queue:work` and `ngrok http 8000`.
+  - **Next 3:** Admin area > Integrations > Connect Facebook, then choose a brand for each Page. If Facebook refuses the redirect, add `http://localhost:8000/integrations/facebook/callback` (or the ngrok one) under Facebook Login for Business > Settings > Valid OAuth Redirect URIs.
+  - **Next 4:** use the "Test" buttons next to `leadgen` and `messages` on the Meta Webhooks page and check Admin area > Integrations > Received. While the app is unpublished Meta only delivers these dashboard tests, no real leads or messages, so a real end-to-end test needs the app published.
 - [ ] The first client (UK Publishing House) with its Managers and Agents; Meta App Review only if ever needed.
 - [ ] Official brand logos (Facebook, Messenger, Gmail, Outlook) as local SVGs.
 - [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today.
