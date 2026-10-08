@@ -38,6 +38,11 @@ return [
     // env key to false locally to sign in without an authenticator app.
     'require_two_factor' => (bool) env('LIQUIFY_REQUIRE_TWO_FACTOR', true),
 
+    // Behind a tunnel or proxy (ngrok, Cloudflare) the visitor's https address
+    // arrives in forwarded headers. Empty on Hostinger; "*" on a local machine
+    // behind a tunnel; or a comma-separated list of proxy addresses.
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
     'currencies' => ['GBP', 'AUD', 'USD', 'EUR', 'CAD', 'NZD'],
 
     /*

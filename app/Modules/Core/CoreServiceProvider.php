@@ -14,6 +14,7 @@ use App\Modules\Leads\Events\LeadCreated;
 use App\Modules\Leads\Events\LeadStatusChanged;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,13 @@ final class CoreServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // Forwarded headers are trusted only where the configuration says so.
+        $proxies = (string) config('liquify.trusted_proxies');
+
+        if ($proxies !== '') {
+            TrustProxies::at($proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
 
         // Fail loudly on N+1 queries and silently discarded attributes while
         // building; production only logs so a stray query never breaks a page.
