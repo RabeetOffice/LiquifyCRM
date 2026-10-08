@@ -120,6 +120,9 @@
                         <span>{{ $sale->closed_at->format('j M Y') }}{{ $sale->closer ? ' · '.$sale->closer->name : '' }}</span>
                     </div>
                 @endforeach
+                @if (auth()->user()?->isGlobalAdmin() && $lead->client_id)
+                    <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => $lead->brand_id ? \App\Modules\Brands\Models\Brand::query()->whereKey($lead->brand_id)->value('slug') : '', 'client' => $lead->client_id]) }}" wire:navigate>Correct or remove a sale</a>
+                @endif
             </div>
         </div>
     @endif

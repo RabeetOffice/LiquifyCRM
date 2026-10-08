@@ -11,7 +11,7 @@
     <x-ui.card title="Sales" description="Every purchase and who closed it." flush>
         <div class="lq-table-wrap">
             <table class="lq-table">
-                <thead><tr><th>Closed</th><th>Service</th><th>Closed by</th><th>Department</th><th class="lq-table-end">Amount</th></tr></thead>
+                <thead><tr><th>Closed</th><th>Service</th><th>Closed by</th><th>Department</th><th class="lq-table-end">Amount</th>@if ($canCorrect)<th class="lq-table-end">Actions</th>@endif</tr></thead>
                 <tbody>
                     @foreach ($sales as $sale)
                         <tr wire:key="sale-{{ $sale->getKey() }}">
@@ -26,6 +26,14 @@
                                     {{ Money::format($sale->amount, $sale->currency) }}
                                 @endif
                             </td>
+                            @if ($canCorrect)
+                                <td class="lq-table-end">
+                                    <div class="flex justify-end gap-1">
+                                        <x-ui.button size="sm" variant="ghost" icon="heroicon-o-pencil-square" wire:click="edit({{ $sale->getKey() }})">Correct</x-ui.button>
+                                        <x-ui.button size="sm" variant="ghost" icon="heroicon-o-trash" wire:click="confirmRemove({{ $sale->getKey() }})">Remove</x-ui.button>
+                                    </div>
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>
@@ -50,4 +58,28 @@
             </ul>
         @endif
     </x-ui.card>
+    @if ($canCorrect)
+        <x-ui.modal model="showEdit" title="Correct this sale" description="Targets and this client's lifetime value are counted again. The change is written to the lead's timeline." size="sm">
+            <form wire:submit="update" class="lq-form" id="sale-edit-form">
+                <x-ui.field label="Amount" name="amount" required>
+                    <div class="lq-input-group">
+                        <span class="lq-input-prefix">{{ $brand->currency }}</span>
+                        <x-ui.input type="number" step="0.01" min="0" wire:model="amount" name="amount" inputmode="decimal" />
+                    </div>
+                </x-ui.field>
+                <x-ui.field label="Service or package" name="service">
+                    <x-ui.input wire:model="service" name="service" />
+                </x-ui.field>
+                <x-ui.field label="Close date" name="closedAt" required tip="Moving the date to another month moves the sale to that month's targets.">
+                    <x-ui.input type="date" wire:model="closedAt" name="closedAt" max="{{ now()->toDateString() }}" />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showEdit', false)">Cancel</x-ui.button>
+                <x-ui.button type="submit" form="sale-edit-form" variant="primary" wire:loading.attr="disabled" wire:target="update">Save correction</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+
+        <x-ui.confirm :confirm="$confirm" />
+    @endif
 </div>

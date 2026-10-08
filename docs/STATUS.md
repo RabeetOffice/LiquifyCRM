@@ -161,7 +161,7 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 - [ ] A brand rule such as "all Facebook leads go to Sales Team A" (the document mentions it as optional; leads go to the New queue for the Admin today).
 
 ### Week 5 · left over
-- [ ] Editing or removing a recorded sale (a wrong amount is corrected today by adding the right sale; removal needs a decision on who may do it).
+- [x] Correcting or removing a recorded sale: Super Admins and Admins only (decided 8 October), from the client page. Lifetime value, lead value and targets are counted again, both are written to the lead's timeline, removal asks for the password, and a lead whose only sale is removed leaves Won for the last open status.
 - [ ] A progress bar on each person's own Profile screen (it is on Sales / My target, the leaderboard and Targets).
 - [ ] The two CSV drill-downs the document hints at ("Per brand and department" for sources, "Per Agent" for speed) show inside the brand and department views rather than as separate expanding cards.
 
