@@ -1,0 +1,7 @@
+# Shared hosting where the document root is the project folder (Hostinger
+# Git deployments into public_html): every request is served from public/,
+# so nothing outside it (.env, storage, vendor) can be reached from the web.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
