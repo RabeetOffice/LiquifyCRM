@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Support\BrandMailer;
+use App\Modules\Brands\Support\MailProviders;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sites\Enums\InboundStatus;
@@ -200,6 +201,54 @@ it('stores the brand email account encrypted and sends a test through it', funct
 
     $this->flushSession();
     $this->actingAs($this->manager)->get('/b/ukph/settings/email')->assertForbidden();
+});
+
+it('fills in the server details from a ready-made email provider', function (): void {
+    $this->brand->update(['website' => 'https://www.ukpublishinghouse.co.uk']);
+
+    Livewire::actingAs($this->admin)
+        ->test(EmailSettings::class, ['brand' => $this->brand])
+        ->assertSee('Who provides your email?')
+        ->assertSee('Microsoft 365 / Exchange')
+        ->assertSee('mail.ukpublishinghouse.co.uk')
+        // Nothing to fill in until a provider is chosen.
+        ->assertDontSee('Server details')
+        ->call('usePreset', 'google')
+        ->assertSet('host', 'smtp.gmail.com')
+        ->assertSet('port', '587')
+        ->assertSet('encryption', 'tls')
+        ->assertSee('Server details')
+        ->assertSee('16-character app password')
+        // SSL and TLS keep their usual ports together.
+        ->set('encryption', 'ssl')
+        ->assertSet('port', '465')
+        ->call('usePreset', 'hostinger')
+        ->assertSet('host', 'smtp.hostinger.com')
+        ->assertSet('port', '465')
+        ->assertSet('encryption', 'ssl')
+        ->call('usePreset', 'webmail')
+        ->assertSet('host', 'mail.ukpublishinghouse.co.uk')
+        // A service with a fixed username fills it in; a username already typed is never replaced.
+        ->call('usePreset', 'sendgrid')
+        ->assertSet('username', 'apikey')
+        ->set('username', 'hello@ukph.test')
+        ->call('usePreset', 'zoho')
+        ->assertSet('username', 'hello@ukph.test')
+        ->assertSet('host', 'smtp.zoho.com')
+        // Typing a server by hand moves the picker; "Another provider" keeps what is entered.
+        ->set('host', 'smtp.office365.com')
+        ->assertSet('preset', 'microsoft')
+        ->call('usePreset', 'other')
+        ->assertSet('host', 'smtp.office365.com')
+        ->call('usePreset', 'not-a-provider')
+        ->assertSet('preset', 'other');
+
+    expect(MailProviders::detect('mail.privateemail.com'))->toBe('namecheap')
+        ->and(MailProviders::detect('smtp.mail.me.com'))->toBe('icloud')
+        ->and(MailProviders::detect('mail.example.org'))->toBe('webmail')
+        ->and(MailProviders::detect('relay.example.org'))->toBe('other')
+        ->and(MailProviders::detect(''))->toBeNull()
+        ->and(MailProviders::webmailHost(null))->toBe('');
 });
 
 it('shows the website favicon and name as the source of its leads, and nothing of a Facebook Page with the same id', function (): void {

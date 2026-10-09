@@ -6,6 +6,7 @@ namespace App\Modules\Brands\Livewire\App;
 
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Support\BrandMailer;
+use App\Modules\Brands\Support\MailProviders;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use Illuminate\Contracts\View\View;
@@ -18,7 +19,9 @@ use Throwable;
 
 /**
  * The brand's own email account (SMTP), stored encrypted, and the optional
- * auto-reply a customer gets after sending a website form.
+ * auto-reply a customer gets after sending a website form. A picker of
+ * ready-made providers (Google, Microsoft 365, Hostinger, webmail and more)
+ * fills in the server details.
  */
 #[Layout('components.layouts.app')]
 #[Title('Email settings')]
@@ -28,6 +31,9 @@ final class EmailSettings extends Component
     use WithToasts;
 
     public Brand $brand;
+
+    /** The provider chosen in the picker; empty until one is chosen or a server is saved. */
+    public string $preset = '';
 
     public string $host = '';
 
@@ -65,6 +71,56 @@ final class EmailSettings extends Component
         $this->autoReply = $settings['auto_reply'];
         $this->autoReplySubject = $settings['auto_reply_subject'];
         $this->autoReplyBody = $settings['auto_reply_body'];
+        $this->preset = (string) MailProviders::detect($this->host);
+    }
+
+    /**
+     * Choose a ready-made provider: its server, port and security are filled
+     * in. The username, password and From address are never touched, except
+     * where the service fixes the username (SendGrid's "apikey").
+     */
+    public function usePreset(string $key): void
+    {
+        $provider = MailProviders::find($key);
+
+        if ($provider === null) {
+            return;
+        }
+
+        $this->preset = $key;
+        $this->resetErrorBag(['host', 'port', 'encryption']);
+
+        if ($key === MailProviders::OTHER) {
+            return;
+        }
+
+        $this->host = $key === MailProviders::WEBMAIL ? MailProviders::webmailHost($this->brand->website) : $provider['host'];
+        $this->port = (string) $provider['port'];
+        $this->encryption = $provider['encryption'];
+
+        if (isset($provider['username']) && $this->username === '') {
+            $this->username = $provider['username'];
+        }
+    }
+
+    /** Typing a server by hand moves the picker to the provider it belongs to. */
+    public function updatedHost(string $value): void
+    {
+        $detected = MailProviders::detect($value);
+
+        if ($detected !== null && ! ($detected === MailProviders::OTHER && $this->preset === MailProviders::WEBMAIL)) {
+            $this->preset = $detected;
+        }
+    }
+
+    /** SSL goes with port 465 and TLS with 587: keep the pair together unless a custom port was typed. */
+    public function updatedEncryption(string $value): void
+    {
+        if ($value === 'ssl' && in_array($this->port, ['587', '25', ''], true)) {
+            $this->port = '465';
+        } elseif ($value === 'tls' && in_array($this->port, ['465', '25', ''], true)) {
+            $this->port = '587';
+        }
     }
 
     public function save(): void
@@ -128,7 +184,9 @@ final class EmailSettings extends Component
     public function render(): View
     {
         return view('brands::livewire.app.email-settings', [
-            'provider' => BrandMailer::provider($this->host),
+            'provider' => MailProviders::find($this->preset),
+            'groups' => MailProviders::grouped(),
+            'webmailHost' => MailProviders::webmailHost($this->brand->website),
             'hasPassword' => $this->brand->mailSettings()['password'] !== '',
             'saved' => $this->brand->hasMailSettings(),
         ]);
