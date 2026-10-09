@@ -6,12 +6,16 @@ namespace App\Modules\Auth\Livewire;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Brands\Models\Membership;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Leads\Models\Lead;
+use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\Progress;
 use App\Modules\Sales\Support\SalesReport;
 use DateTimeZone;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -19,7 +23,10 @@ use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
-/** Name, email, phone, timezone and photo. */
+/**
+ * A person's own profile: who they are (photo, name, designation, role,
+ * brands and departments), how their month is going, and their details.
+ */
 #[Layout('components.layouts.app')]
 #[Title('Profile')]
 final class Profile extends Component
@@ -28,6 +35,8 @@ final class Profile extends Component
     use WithToasts;
 
     public string $name = '';
+
+    public string $designation = '';
 
     public string $email = '';
 
@@ -42,6 +51,7 @@ final class Profile extends Component
         $user = $this->user();
 
         $this->name = $user->name;
+        $this->designation = (string) $user->designation;
         $this->email = $user->email;
         $this->phone = (string) $user->phone;
         $this->timezone = (string) ($user->timezone ?? config('liquify.default_timezone'));
@@ -53,19 +63,15 @@ final class Profile extends Component
 
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
+            'designation' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->getKey())],
             'phone' => ['nullable', 'string', 'max:40'],
             'timezone' => ['required', 'string', 'timezone:all'],
-            'avatar' => ['nullable', 'image', 'max:2048'],
         ]);
-
-        if ($this->avatar !== null) {
-            $user->avatar_path = $this->avatar->store('avatars', 'public');
-            $this->avatar = null;
-        }
 
         $user->forceFill([
             'name' => $data['name'],
+            'designation' => $data['designation'] ?: null,
             'email' => mb_strtolower(trim($data['email'])),
             'phone' => $data['phone'] ?: null,
             'timezone' => $data['timezone'],
@@ -76,6 +82,18 @@ final class Profile extends Component
         $this->toastSuccess('Profile saved');
     }
 
+    /** The photo saves itself as soon as it is chosen: no second Save button. */
+    public function updatedAvatar(): void
+    {
+        $this->validate(['avatar' => ['required', 'image', 'max:2048']], attributes: ['avatar' => 'photo']);
+
+        $user = $this->user();
+        $user->forceFill(['avatar_path' => $this->avatar?->store('avatars', 'public')])->save();
+        $this->avatar = null;
+
+        $this->toastSuccess('Photo updated');
+    }
+
     public function removeAvatar(): void
     {
         $this->user()->forceFill(['avatar_path' => null])->save();
@@ -84,11 +102,47 @@ final class Profile extends Component
 
     public function render(): View
     {
+        $user = $this->user();
+        $memberships = $user->isGlobalAdmin()
+            ? collect()
+            : Membership::query()->acrossBrands()->where('user_id', $user->getKey())->with('brand')->get()->filter(fn (Membership $membership): bool => $membership->brand !== null)->values();
+
         return view('auth::livewire.profile', [
-            'user' => $this->user(),
+            'user' => $user,
+            'memberships' => $memberships,
+            'departments' => $user->isGlobalAdmin() ? collect() : $user->departments()->acrossBrands()->orderBy('name')->get(),
+            'facts' => $this->facts($user),
             'timezones' => DateTimeZone::listIdentifiers(),
             'targets' => $this->targets(),
         ]);
+    }
+
+    /**
+     * Four numbers under the name: what this person has on their plate.
+     *
+     * @return list<array{label: string, value: string}>
+     */
+    private function facts(User $user): array
+    {
+        $since = ['label' => 'With LiquifyCRM since', 'value' => $user->created_at?->format('M Y') ?? '—'];
+
+        if ($user->isGlobalAdmin()) {
+            return [
+                ['label' => 'Brands', 'value' => (string) Brand::query()->where('is_active', true)->count()],
+                ['label' => 'People', 'value' => (string) User::query()->count()],
+                ['label' => 'Leads this month', 'value' => number_format(Lead::query()->acrossBrands()->where('created_at', '>=', now()->startOfMonth())->count())],
+                $since,
+            ];
+        }
+
+        $mine = fn () => Lead::query()->acrossBrands()->where('assigned_to', $user->getKey());
+
+        return [
+            ['label' => 'Open leads', 'value' => number_format($mine()->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', false)->where('is_lost', false))->count())],
+            ['label' => 'Leads this month', 'value' => number_format($mine()->where('assigned_at', '>=', now()->startOfMonth())->count())],
+            ['label' => 'Sales this month', 'value' => number_format(Sale::query()->acrossBrands()->where('user_id', $user->getKey())->inPeriod(SalesReport::currentPeriod())->count())],
+            $since,
+        ];
     }
 
     /**

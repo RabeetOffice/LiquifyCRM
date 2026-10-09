@@ -60,7 +60,7 @@ final class AdminDashboard extends Component
             'agents' => $agents,
             'leadsThisMonth' => $leadsThisMonth,
             'leadsDelta' => $this->delta($leadsThisMonth, $leadsLastMonth),
-            'pendingMigrations' => $user->isSuperAdmin() ? app(SystemStatus::class)->pendingMigrationCount() : null,
+            'pendingMigrations' => app(SystemStatus::class)->pendingMigrationCount(),
             'chart' => [
                 'labels' => $leadsByBrand->pluck('name')->all(),
                 'values' => $leadsByBrand->pluck('total')->map(fn ($value): int => (int) $value)->all(),

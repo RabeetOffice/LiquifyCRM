@@ -29,7 +29,7 @@
 
     <div class="lq-stat-value-row">
         @if ($value !== null && $value !== '')
-            <div class="lq-stat-value">{{ $value }}</div>
+            <div class="lq-stat-value" x-count>{{ $value }}</div>
         @else
             <div class="lq-stat-value lq-stat-placeholder">{{ $placeholder }}</div>
         @endif

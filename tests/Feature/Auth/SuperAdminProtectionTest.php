@@ -9,7 +9,8 @@ use App\Modules\Core\Enums\GlobalRole;
 /*
  * Super Admin protection: nobody else can remove, demote, suspend or edit a
  * Super Admin; only a Super Admin can create another; the last one can never
- * be removed.
+ * be removed. Apart from that an Admin has the same control as a Super Admin
+ * (decided 9 October): they add and manage Admins, Managers and Agents.
  */
 
 it('marks every Super Admin as protected', function (): void {
@@ -38,13 +39,13 @@ it('does not let another Super Admin edit, suspend or delete a Super Admin', fun
         ->and($super->can('update', $super))->toBeTrue();
 });
 
-it('only lets a Super Admin hand out global roles', function (): void {
+it('lets Admins make Admins, and only a Super Admin make a Super Admin', function (): void {
     $super = superAdmin();
     $admin = admin();
 
     expect($super->can('assignGlobalRole', [User::class, GlobalRole::SuperAdmin]))->toBeTrue()
         ->and($super->can('assignGlobalRole', [User::class, GlobalRole::Admin]))->toBeTrue()
-        ->and($admin->can('assignGlobalRole', [User::class, GlobalRole::Admin]))->toBeFalse()
+        ->and($admin->can('assignGlobalRole', [User::class, GlobalRole::Admin]))->toBeTrue()
         ->and($admin->can('assignGlobalRole', [User::class, GlobalRole::SuperAdmin]))->toBeFalse()
         ->and($admin->can('assignGlobalRole', [User::class, null]))->toBeTrue();
 });
@@ -78,11 +79,17 @@ it('allows demoting a Super Admin when another one remains', function (): void {
         ->and($first->fresh()->isSuperAdmin())->toBeTrue();
 });
 
-it('keeps the admin accounts screen for Super Admins only', function (): void {
-    $this->actingAs(admin())->get('/admin/admins')->assertForbidden();
+it('opens the People screen to Admins and Super Admins, and to nobody else', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+
+    $this->actingAs(admin())->get('/admin/people')->assertOk()->assertSee('Add person');
+    $this->actingAs(admin())->get('/admin/admins')->assertRedirect('/admin/people');
 
     $this->flushSession();
-    $this->actingAs(superAdmin())->get('/admin/admins')->assertOk();
+    $this->actingAs(superAdmin())->get('/admin/people')->assertOk();
+
+    $this->flushSession();
+    $this->actingAs(managerOf(department($brand)))->get('/admin/people')->assertForbidden();
 });
 
 it('keeps Managers and Agents out of the admin panel', function (): void {
@@ -95,7 +102,7 @@ it('keeps Managers and Agents out of the admin panel', function (): void {
     $this->actingAs(agentOf($dept))->get('/admin/brands')->assertForbidden();
 });
 
-it('lets an Admin manage Managers and Agents but not other Admins', function (): void {
+it('lets an Admin manage Managers, Agents and other Admins, but never themselves', function (): void {
     $brand = brand();
     $dept = department($brand);
     $admin = admin();
@@ -106,7 +113,9 @@ it('lets an Admin manage Managers and Agents but not other Admins', function ():
 
     expect($admin->can('update', $manager))->toBeTrue()
         ->and($admin->can('delete', $manager))->toBeTrue()
-        ->and($admin->can('update', $otherAdmin))->toBeFalse()
-        ->and($admin->can('delete', $otherAdmin))->toBeFalse()
+        ->and($admin->can('update', $otherAdmin))->toBeTrue()
+        ->and($admin->can('suspend', $otherAdmin))->toBeTrue()
+        ->and($admin->can('delete', $otherAdmin))->toBeTrue()
+        ->and($admin->can('suspend', $admin))->toBeFalse()
         ->and($admin->can('delete', $admin))->toBeFalse();
 });

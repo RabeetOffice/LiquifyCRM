@@ -29,9 +29,17 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `#[Layout('components.layouts.app')]`, the `x-ui.*` components and the traits in
   `App\Modules\Core\Livewire\Concerns` (WithToasts, WithConfirmation, WithTableState).
   `Menu::for()` builds the sidebar; `AppNotification` is the one bell + email notification.
+  The switcher at the top of the sidebar moves between "All brands" (the admin area) and each brand; the
+  account menu (profile, password, sign out) is the user card at the bottom. Modals, sheets and confirm
+  dialogs teleport to `<body>` (`x-teleport`), because a blurred or animated parent would trap a fixed element.
 - Brand isolation: `BelongsToBrand` trait (global scope from `CurrentBrand`), Policies, permission
   names in `App\Modules\Core\Enums\Permission`. Super Admin/Admin are `users.role`; Manager/Agent are
   brand memberships mirrored into spatie teams (team = brand_id).
+- Roles (user decision, 9 Oct 2026): an Admin has the same control as a Super Admin (People, System, logs,
+  every permission). The only difference is protection: nobody else can edit, suspend or remove a Super
+  Admin, only a Super Admin can make another one, and the last one cannot be removed. Admins and Super
+  Admins add Admins, Managers and Agents on `/admin/people` (`PeopleIndex`, `PersonForm`); people carry a
+  `designation`.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks
@@ -41,18 +49,32 @@ in the document's weekly phases; never skip a phase or silently change the desig
   One global connection (`MetaConnection`), Pages mapped to brands (`MetaSource`, not brand-scoped). Each channel
   registers its job with `InboundEvent::processWith()` so the event log can retry anything.
 - Sales (`app/Modules/Sales`): a lead only becomes Won through `RecordSale` (amount required); it creates or updates the
-  `Client`. `SalesReport` produces every dashboard number for a scope (all brands in the reporting currency, or one brand
-  narrowed by role); `Progress` is the achieved-versus-target maths; `DistributeLeads` moves leads in bulk.
+  `Client`. `SalesReport` produces every dashboard number for a scope (one brand, narrowed by role); `Progress` is the
+  achieved-versus-target maths; `DistributeLeads` moves leads in bulk. The exchange rates screen was removed on the
+  user's decision (9 Oct 2026): the admin sales dashboard shows one brand at a time in its own currency, never a
+  converted total. Do not bring cross-currency totals back without asking.
+- Round robin: a department's `assignment_mode` is `manual` or `round_robin` (set on the Distribute screen by its
+  Manager or an Admin). `AutoAssignLead` gives a lead that lands in a round-robin department to the next active
+  Agent in turn; it is called from `SendLeadToDepartment`, `CreateLead` and `DistributeLeads`.
 - Logs (`app/Modules/Activity`): `LogArchiver` writes daily archive files and is the only code that deletes from
   `activity_log`; entries on a lead's timeline are never deleted. Retention lives in `LogSettings` (spatie settings).
 - Dashboard numbers go through `DashboardCache` (60 seconds, flushed by the lead events). After changing lead queries run
   `php artisan liquify:speed-check`.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in
-  `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class.
+  `@layer components`) and `resources/views/components/ui`. Light and dark via the `.dark` class; the choice is
+  kept in localStorage and the `lq_theme` cookie, which the layout reads so the mode survives `wire:navigate`.
+  One corner scale: 16 px cards (`--lq-radius-card`), 12 px inner panes and menus (`--lq-radius-inner`), 10 px
+  controls. Cards use `--lq-card` (translucent in dark mode); only the sidebar, top bar, menus and dialogs blur.
+- Live updates are Livewire polling (`wire:poll`), never websockets: the hosting has no daemons. The bell checks
+  every 15 seconds and toasts what arrived; dashboards, the leads list and the inbox refresh by themselves.
+  A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,
   queued Jobs for slow work. `declare(strict_types=1)` everywhere. Pint (laravel preset) and
   Larastan level 6 must pass: `composer lint`, `composer analyse`, `composer test`.
-- Heroicons only. One primary (orange) button per screen. Plain words on user screens.
+- Heroicons only, plus the service marks in `x-ui.brand-icon` (Facebook, Messenger). One primary (orange)
+  button per screen. Plain words on user screens.
+- When a helper script rewrites a file, never write the result of a failed `preg_replace` (it returns null and
+  blanks the file): use `str_replace`, and check the length before writing.
 - Commit after each meaningful step. Never commit `.env` or secrets.

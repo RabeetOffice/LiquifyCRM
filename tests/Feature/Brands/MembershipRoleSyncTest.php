@@ -95,8 +95,8 @@ it('resolves global roles through Gate::before', function (): void {
         ->and($super->can(Permission::LogsDelete->value))->toBeTrue()
         ->and($admin->can(Permission::LeadsDelete->value))->toBeTrue()
         ->and($admin->can(Permission::BrandsManage->value))->toBeTrue()
-        ->and($admin->can(Permission::SystemManage->value))->toBeFalse()
-        ->and($admin->can(Permission::LogsDelete->value))->toBeFalse();
+        ->and($admin->can(Permission::SystemManage->value))->toBeTrue()
+        ->and($admin->can(Permission::LogsDelete->value))->toBeTrue();
 });
 
 it('denies everything to a suspended global admin', function (): void {

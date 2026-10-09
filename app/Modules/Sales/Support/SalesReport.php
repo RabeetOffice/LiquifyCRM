@@ -145,6 +145,30 @@ final class SalesReport
     }
 
     /**
+     * Revenue and number of sales for the last months up to this one, for the
+     * trend chart. Works for every scope: a brand, a department or one person.
+     *
+     * @return array{labels: list<string>, revenue: list<float>, count: list<int>}
+     */
+    public function trend(int $months = 6): array
+    {
+        $labels = [];
+        $revenue = [];
+        $count = [];
+
+        for ($back = $months - 1; $back >= 0; $back--) {
+            $month = $this->start()->subMonths($back);
+            $sum = $this->sum($this->sales($month->format('Y-m')));
+
+            $labels[] = $month->format('M');
+            $revenue[] = round($sum['revenue'], 2);
+            $count[] = $sum['count'];
+        }
+
+        return ['labels' => $labels, 'revenue' => $revenue, 'count' => $count];
+    }
+
+    /**
      * One row per brand: leads, conversion rate, revenue, % of target.
      *
      * @return list<array{brand: Brand, leads: int, won: int, conversion: ?int, progress: Progress}>

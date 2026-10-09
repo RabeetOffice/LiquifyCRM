@@ -4,11 +4,17 @@
     <form wire:submit="save" class="flex flex-col gap-6">
         <x-ui.card title="Person" description="If this email already has a LiquifyCRM account, that account is added to the brand and the password is left unchanged.">
             <div class="lq-form-grid lq-form-grid-2">
-                <x-ui.field label="Name" name="name" required>
-                    <x-ui.input wire:model="name" name="name" required autofocus />
+                <x-ui.field label="Full name" name="name" required>
+                    <x-ui.input wire:model="name" name="name" required autofocus placeholder="Aisha Khan" />
                 </x-ui.field>
-                <x-ui.field label="Email address" name="email" required>
-                    <x-ui.input type="email" wire:model="email" name="email" required />
+                <x-ui.field label="Designation" name="designation" help="Their job title, shown on their profile and in lists.">
+                    <x-ui.input wire:model="designation" name="designation" placeholder="Senior Sales Executive" />
+                </x-ui.field>
+                <x-ui.field label="Email address" name="email" required help="They sign in with this.">
+                    <x-ui.input type="email" wire:model="email" name="email" required placeholder="aisha@company.com" />
+                </x-ui.field>
+                <x-ui.field label="Phone" name="phone">
+                    <x-ui.input type="tel" wire:model="phone" name="phone" autocomplete="off" placeholder="+44 7700 900123" />
                 </x-ui.field>
                 <x-ui.field label="Password" name="password" required help="At least 10 characters with letters and numbers. Share it with them securely." class="lq-col-full">
                     <x-ui.input type="password" wire:model="password" name="password" autocomplete="new-password" required />
@@ -16,7 +22,7 @@
             </div>
         </x-ui.card>
 
-        <x-ui.card title="Access">
+        <x-ui.card title="Role and target" description="What they can do in this brand, the team they belong to and what they should sell this month.">
             <div class="lq-form-grid lq-form-grid-2">
                 <x-ui.field label="Role in this brand" name="role" required>
                     <x-ui.select wire:model="role" name="role">

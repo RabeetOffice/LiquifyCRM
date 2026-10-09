@@ -15,10 +15,11 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * The sales dashboard. In the admin area it covers every brand in the
- * reporting currency and drills down: brand, then department, then its
- * Agents. Inside a brand, a Manager sees their departments and an Agent
- * their own target bar and sales.
+ * The sales dashboard. In the admin area it shows one brand at a time in
+ * that brand's own currency (pick the brand from the cards on top) and
+ * drills down to a department and its Agents. Inside a brand, a Manager
+ * sees their departments and an Agent their own target and sales. Every
+ * scope gets the same charts: revenue trend and where the leads came from.
  */
 #[Layout('components.layouts.app')]
 final class SalesDashboard extends Component
@@ -62,14 +63,22 @@ final class SalesDashboard extends Component
         $user = $this->user();
         $period = SalesReport::cleanPeriod($this->period);
         $departmentId = ctype_digit($this->departmentFilter) ? (int) $this->departmentFilter : null;
-        $brandId = $this->brand === null && ctype_digit($this->brandFilter) ? (int) $this->brandFilter : null;
+
+        // The admin area shows one brand at a time, in that brand's own currency.
+        $brandChoices = $this->brand === null ? Brand::query()->where('is_active', true)->orderBy('name')->get() : collect();
+        $focusBrand = $this->brand
+            ?? $brandChoices->firstWhere('id', ctype_digit($this->brandFilter) ? (int) $this->brandFilter : 0)
+            ?? $brandChoices->first();
+
+        if ($focusBrand === null) {
+            return view('sales::livewire.sales-dashboard-empty')->title('Sales dashboard');
+        }
 
         $report = $this->brand !== null
             ? SalesReport::forBrand($this->brand, $user, $period, $departmentId)
-            : SalesReport::forAdmin($period, $brandId, $departmentId);
+            : SalesReport::forAdmin($period, (int) $focusBrand->getKey(), $departmentId);
 
-        $focusBrand = $this->brand ?? ($brandId !== null ? Brand::query()->find($brandId) : null);
-        $focusDepartment = $departmentId !== null ? Department::query()->acrossBrands()->find($departmentId) : null;
+        $focusDepartment = $departmentId !== null ? Department::query()->acrossBrands()->where('brand_id', $focusBrand->getKey())->find($departmentId) : null;
 
         $title = match (true) {
             $report->isPersonal() => 'My target',
@@ -77,25 +86,31 @@ final class SalesDashboard extends Component
             default => 'Sales dashboard',
         };
 
+        $totals = $report->totals();
+
         return view('sales::livewire.sales-dashboard', [
             'report' => $report,
             'title' => $title,
             'month' => $report->start(),
             'isCurrent' => $period === SalesReport::currentPeriod(),
-            'totals' => $report->totals(),
+            'totals' => $totals,
+            'average' => $totals['count'] > 0 ? $totals['revenue'] / $totals['count'] : null,
             'progress' => $report->progress(),
-            'brandRows' => $this->brand === null && $brandId === null ? $report->brandRows() : [],
+            'trend' => $report->trend(),
+            'brandCards' => $brandChoices->map(fn (Brand $item): array => [
+                'brand' => $item,
+                'progress' => SalesReport::forAdmin($period, (int) $item->getKey())->progress(),
+            ])->all(),
             'departmentRows' => $report->isPersonal() || $focusDepartment !== null ? [] : $report->departmentRows(),
             'agentRows' => $report->agentRows(),
             'topClients' => $report->isPersonal() ? [] : $report->topClients(),
             'sources' => $report->sources(),
             'speed' => $report->isPersonal() ? [] : $report->speed(),
-            'missingRates' => $report->missingRates(),
             'recent' => $report->recentSales(),
             'focusBrand' => $focusBrand,
             'focusDepartment' => $focusDepartment,
             'isAdminArea' => $this->brand === null,
-            'canSeeClients' => $user->isGlobalAdmin() || ($focusBrand !== null && $user->isManagerIn($focusBrand)),
+            'canSeeClients' => $user->isGlobalAdmin() || $user->isManagerIn($focusBrand),
         ])->title($title);
     }
 

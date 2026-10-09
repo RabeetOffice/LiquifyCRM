@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (9 October): 158 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (9 October): 167 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -95,7 +95,7 @@ State of the code (9 October): 158 Pest tests passing, Pint and Larastan level 6
 - [x] Monthly targets at three levels (brand, department, person) as revenue, number of sales, or both. Targets screen: month grid with live progress, Copy last month, planning up to a year ahead. The Admin sets every row; a Manager sets their own Agents.
 - [x] Progress bars and the Over-achieved badge ("132%, £4,800 over target"); the leaderboard sorts by % of target.
 - [x] Sales dashboard: `/admin/sales` for all brands in the reporting currency with drill-down brand, department, Agents; `/b/{brand}/sales` for a Manager (own departments) and an Agent ("My target": own bar and sales). Cards: revenue and sales vs last month, target, brand performance (leads, conversion, revenue, % of target), department ranking, leaderboard, top clients, lead sources with conversion, speed to first contact, sales of the month. Month picker.
-- [x] Exchange rates screen (`/admin/exchange-rates`): monthly rate per currency to the reporting currency; a month without a rate uses the latest earlier one; saving re-converts the sales it affects; the dashboard warns when a sale has no rate instead of guessing.
+- [x] ~~Exchange rates screen~~: built, then removed on 9 October (see "Agreed differences").
 - [x] People profiles: Add person now also takes the monthly revenue and sales target (photo, login, password or invite, department and role were there).
 - [x] Brand favicon and colours fetched from the website (theme-color, web manifest, else the icon's main colours through league/color-extractor): by itself when a brand is added, "Fetch from website" on the brand form with the colours left adjustable, `POST /admin/brands/{id}/fetch-identity`, and a weekly favicon refresh.
 - [x] Import old leads from a website's own leads table for a date range (website page, needs the agent or database details): original dates kept, duplicates joined, marked Imported, no per-lead notifications, one summary to the person who started it.
@@ -123,7 +123,25 @@ State of the code (9 October): 158 Pest tests passing, Pint and Larastan level 6
 - [x] GitHub Actions: `ci.yml` (Pint, Larastan, Pest) and `deploy.yml` (`main` → production, `develop` → staging) with Deployer release folders and symlink switch, then the deploy hook.
 - [x] Scheduler for the single Hostinger cron: queue drained by the scheduler, heartbeat, health checks, daily database backup and clean-up, pruning.
 
+### Refinement pass (9 October, asked for by the user)
+- [x] Look: one corner scale (16 / 12 / 10 px), more room in cards and forms, calmer glass surfaces in dark mode (translucent cards, frosted sidebar, top bar, menus and dialogs), a redrawn orange hero card, quiet scrollbars.
+- [x] Motion: pages arrive block by block, numbers count up, bars grow, menus and dialogs pop in, rows that arrive live are lit for a moment. Reduced-motion is respected.
+- [x] Fixed: dark mode was lost when moving to another page; the search box opened trapped inside the top bar (it is a centred palette now, and every dialog renders at the end of the page).
+- [x] Navigation: one switcher at the top of the sidebar for "All brands" (admin area) and each brand; one account menu at the bottom. The duplicate avatar menu, "Admin area" and "Open a brand" entries are gone.
+- [x] People (`/admin/people`): Admins and Super Admins add Admins, Managers and Agents from one form (role, brand, department, designation, phone, monthly target) and see everyone in one list with role tabs and a brand filter.
+- [x] Profile: header with photo (click to change, saves at once), name, designation, role, brands and departments, four numbers for the month, the target bars, and the details form. The second Save button is gone.
+- [x] Sales dashboard: the admin area shows one brand at a time in its own currency (brand cards on top). Every scope (brand, department, one person) gets a six-month revenue chart and a lead-source doughnut, plus an Average sale card.
+- [x] Integrations in three tabs: Facebook (three numbered steps with Copy buttons until it is connected; the Pages only afterwards), Websites (every brand's websites, Connect website with a brand picker), Received (the event log, refreshing by itself).
+- [x] Add brand: paste the website link and the name and address fill themselves in; a live preview; the look step shows what was fetched and proper colour pickers.
+- [x] Round robin: each department is shared "By hand" or "Round robin" (Distribute screen; a Manager for their own departments, an Admin for all). A new lead in a round-robin department goes to the next active Agent in turn; "Share the waiting leads" does the same for the queue.
+- [x] Live updates without reloading: the bell checks every 15 seconds and shows a toast for what arrived; the dashboards, the leads list, the inbox and Received refresh by themselves (polling; the hosting has no websockets).
+
 ### Agreed differences from the document
+- **Admin equals Super Admin, except protection (9 October, user decision).** The document reserves admin accounts, the System screen, log retention and log deletion for the Super Admin. Now every Admin has them too. What stays: nobody else can edit, suspend or remove a Super Admin, only a Super Admin can make another one, and the last one cannot be removed.
+- **Exchange rates removed (9 October, user decision).** The document converts all brands into one reporting currency with monthly rates. The screen, its menu entry and the cross-brand totals are gone; the admin sales dashboard shows one brand at a time in that brand's currency. The `exchange_rates` table and the `amount_reporting` column stay unused.
+- **Round robin** is an addition to the document (its "all Facebook leads go to Sales Team A" rule is still open).
+- **Designation** on people is an addition to the document.
+- Live updates are polling, not websockets (no daemons on the hosting).
 - **Filament removed (8 October, user decision).** The document chose Filament for the dashboard; the user did not like the result and asked for a custom panel. Auth is now Laravel Fortify (which the document also lists), screens are Livewire 4 pages on LiquifyCRM's own layout and design system. Two packages were added with the user's approval: blade-ui-kit/blade-heroicons for the Heroicons the document specifies, and chart.js for dashboard charts.
 - `spatie/laravel-webhook-client` and the Facebook PHP SDK dropped; webhooks and Graph API calls will use plain controllers and the Laravel HTTP client.
 - Departments built in week 1 instead of week 5.

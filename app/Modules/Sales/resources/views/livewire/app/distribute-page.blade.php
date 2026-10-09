@@ -1,6 +1,52 @@
 <div class="flex flex-col gap-6">
-    <x-ui.page-header title="Distribute leads" :subtitle="$isAdmin ? 'Filter leads, then split them across departments. Each department\'s Manager shares them among their Agents.' : 'Share your department\'s leads among your Agents.'"
+    <x-ui.page-header title="Distribute leads" :subtitle="$isAdmin ? 'Choose how each department shares its new leads, or filter the leads you have and split them across departments now.' : 'Choose how your department shares its new leads, or share the leads you have among your Agents now.'"
         :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), 'Distribute' => null]" />
+
+    {{-- From now on: how each department shares the leads it receives. --}}
+    @if ($sharing !== [])
+        <x-ui.card title="How new leads are shared" description="Choose once for each department. By hand, the leads wait in the queue for you; round robin gives each new lead to the next Agent in turn, so everyone gets the same number." flush>
+            <ul class="flex flex-col">
+                @foreach ($sharing as $row)
+                    @php
+                        $item = $row['department'];
+                        $on = $item->assignment_mode === \App\Modules\Core\Enums\AssignmentMode::RoundRobin;
+                    @endphp
+                    <li class="lq-rank" wire:key="sharing-{{ $item->getKey() }}">
+                        <span @class(['lq-logo-tile lq-logo-sm', 'lq-logo-web' => $on])>
+                            @if ($on)
+                                <x-heroicon-o-arrow-path-rounded-square />
+                            @else
+                                <x-heroicon-o-hand-raised />
+                            @endif
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="lq-cell-title">{{ $item->name }}</span>
+                            <span class="lq-cell-sub">
+                                @if ($on && $row['agents'] === 0)
+                                    Round robin is on, but this department has no Agent yet, so leads wait in the queue.
+                                @elseif ($on)
+                                    Each new lead goes to the next of {{ $row['agents'] }} {{ str('Agent')->plural($row['agents']) }}.
+                                @else
+                                    New leads wait in the queue until you assign them.
+                                @endif
+                                @if ($row['waiting'] > 0)
+                                    · {{ $row['waiting'] }} waiting now
+                                @endif
+                            </span>
+                        </span>
+                        @if ($on && $row['waiting'] > 0 && $row['agents'] > 0)
+                            <x-ui.button size="sm" variant="ghost" wire:click="shareWaiting({{ $item->getKey() }})" wire:loading.attr="disabled" wire:target="shareWaiting({{ $item->getKey() }})">Share the {{ $row['waiting'] }} waiting</x-ui.button>
+                        @endif
+                        <div class="lq-tabs flex-none" role="radiogroup" aria-label="How {{ $item->name }} shares leads">
+                            @foreach ($modes as $mode)
+                                <button type="button" role="radio" aria-checked="{{ $item->assignment_mode === $mode ? 'true' : 'false' }}" title="{{ $mode->getDescription() }}" wire:click="setSharing({{ $item->getKey() }}, '{{ $mode->value }}')" @class(['lq-tab', 'lq-tab-active' => $item->assignment_mode === $mode])>{{ $mode->getLabel() }}</button>
+                            @endforeach
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        </x-ui.card>
+    @endif
 
     <div class="lq-grid-main">
         <div class="flex flex-col gap-6">

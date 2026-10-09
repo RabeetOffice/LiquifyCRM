@@ -1,4 +1,4 @@
-{{-- Top bar over the content: menu toggle, greeting, status, search, bell, theme, avatar. --}}
+{{-- Top bar over the content: menu toggle, greeting, status, search, bell, theme. The account menu lives in the sidebar. --}}
 @php
     $timezone = $user?->timezone ?: config('app.timezone');
     $now = now($timezone);
@@ -20,7 +20,7 @@
     @endif
 
     <div class="lq-top-end">
-        @if ($brand === null && $user?->isSuperAdmin())
+        @if ($brand === null && $user?->isGlobalAdmin())
             @php
                 $status = app(\App\Modules\System\Support\SystemStatus::class);
                 $last = $status->lastCronRun();
@@ -47,44 +47,5 @@
             <x-heroicon-o-moon class="h-5 w-5" x-show="$store.theme.current !== 'dark'" />
         </button>
 
-        @if ($user)
-            <div class="relative" x-data="dropdown" x-on:click.outside="close()" x-on:keydown.escape="close()">
-                <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" x-on:click="toggle()" aria-haspopup="menu" x-bind:aria-expanded="open" title="{{ $user->name }}">
-                    <x-ui.avatar :name="$user->name" :src="$user->avatarUrl()" size="sm" />
-                </button>
-
-                <div class="lq-menu lq-menu-end" style="top: calc(100% + 0.5rem); min-width: 14rem;" x-show="open" x-transition.opacity x-cloak role="menu">
-                    <div class="lq-menu-header">
-                        <div class="lq-ink font-semibold text-sm">{{ $user->name }}</div>
-                        <div class="truncate">{{ $user->email }}</div>
-                    </div>
-                    <div class="lq-menu-divider"></div>
-                    <a href="{{ route('profile') }}" class="lq-menu-item" role="menuitem" wire:navigate>
-                        <x-heroicon-o-user-circle /> Profile
-                    </a>
-                    <a href="{{ route('profile.security') }}" class="lq-menu-item" role="menuitem" wire:navigate>
-                        <x-heroicon-o-lock-closed /> Password and 2FA
-                    </a>
-                    @if ($user->isGlobalAdmin())
-                        @if ($brand !== null)
-                            <a href="{{ route('admin.dashboard') }}" class="lq-menu-item" role="menuitem" wire:navigate>
-                                <x-heroicon-o-shield-check /> Admin area
-                            </a>
-                        @elseif ($user->defaultBrand())
-                            <a href="{{ $user->defaultBrand()->url() }}" class="lq-menu-item" role="menuitem" wire:navigate>
-                                <x-heroicon-o-squares-2x2 /> Open a brand
-                            </a>
-                        @endif
-                    @endif
-                    <div class="lq-menu-divider"></div>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="lq-menu-item lq-menu-item-danger" role="menuitem">
-                            <x-heroicon-o-arrow-right-start-on-rectangle /> Sign out
-                        </button>
-                    </form>
-                </div>
-            </div>
-        @endif
     </div>
 </header>

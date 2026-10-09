@@ -6,9 +6,13 @@ namespace App\Modules\Sales\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Enums\AssignmentMode;
 use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
+use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Actions\AutoAssignLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
@@ -26,7 +30,9 @@ use Livewire\Component;
 /**
  * Distribute leads. The Admin filters leads and splits them across
  * departments (equally, by percentage or by count); a Manager does the same
- * inside their department, to Agents (equally or by count).
+ * inside their department, to Agents (equally or by count). On top, each
+ * department chooses how its new leads are shared from now on: by hand, or
+ * round robin (the next Agent in turn gets each new lead by itself).
  */
 #[Layout('components.layouts.app')]
 #[Title('Distribute leads')]
@@ -76,6 +82,54 @@ final class DistributePage extends Component
     {
         $this->include = [];
         $this->amounts = [];
+    }
+
+    /** A Manager (or an Admin) chooses how a department shares its new leads from now on. */
+    public function setSharing(int $departmentId, string $mode): void
+    {
+        $this->authorizeAccess();
+
+        $department = Department::query()->findOrFail($departmentId);
+        abort_unless($this->isAdmin() || $this->managedDepartments()->has($departmentId), 403);
+
+        $mode = AssignmentMode::tryFrom($mode) ?? AssignmentMode::Manual;
+
+        if ($department->assignment_mode === $mode) {
+            return;
+        }
+
+        $department->update(['assignment_mode' => $mode]);
+
+        Audit::log('departments.sharing_changed', $department, ['mode' => $mode->value], $department->name.' now shares leads '.mb_strtolower($mode->getLabel()), department: $department, logName: 'departments');
+
+        $mode === AssignmentMode::RoundRobin
+            ? $this->toastSuccess($department->name.': round robin is on', 'Each new lead goes to the next Agent in turn.')
+            : $this->toastSuccess($department->name.': shared by hand', 'New leads wait in the queue until someone assigns them.');
+    }
+
+    /** Share the leads already waiting in a round-robin department, in the same turn order. */
+    public function shareWaiting(int $departmentId, AutoAssignLead $auto): void
+    {
+        $this->authorizeAccess();
+
+        $department = Department::query()->findOrFail($departmentId);
+        abort_unless($this->isAdmin() || $this->managedDepartments()->has($departmentId), 403);
+
+        $leadIds = Lead::query()->open()->where('department_id', $departmentId)->whereNull('assigned_to')->oldest('id')->limit(self::LIMIT)->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $shared = $auto->spread($department, $leadIds);
+
+        if ($shared === []) {
+            $this->toastWarning('Nothing shared', $leadIds === [] ? 'No leads are waiting in '.$department->name.'.' : 'Turn on round robin and make sure the department has an active Agent.');
+
+            return;
+        }
+
+        $total = array_sum($shared);
+
+        DashboardCache::flush((int) $this->brand->getKey());
+        Audit::log('leads.distributed', $this->brand, ['to' => 'user', 'method' => 'round_robin', 'department_id' => $departmentId, 'split' => $shared], $total.' waiting leads shared round robin in '.$department->name, brand: $this->brand, department: $department, logName: 'leads');
+
+        $this->toastSuccess($total.' '.str('lead')->plural($total).' shared', 'Among '.count($shared).' '.str('Agent')->plural(count($shared)).' in '.$department->name.'.');
     }
 
     public function distribute(DistributeLeads $action): void
@@ -148,8 +202,21 @@ final class DistributePage extends Component
             ->limit(15)
             ->get();
 
+        $sharing = Department::query()
+            ->when(! $this->isAdmin(), fn (Builder $query): Builder => $query->whereIn('id', $this->managedDepartments()->keys()))
+            ->withCount('agents')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Department $department): array => [
+                'department' => $department,
+                'agents' => (int) $department->getAttribute('agents_count'),
+                'waiting' => Lead::query()->open()->where('department_id', $department->getKey())->whereNull('assigned_to')->count(),
+            ])->all();
+
         return view('sales::livewire.app.distribute-page', [
             'isAdmin' => $this->isAdmin(),
+            'sharing' => $sharing,
+            'modes' => AssignmentMode::cases(),
             'targets' => $targets,
             'matching' => $matching,
             'preview' => $preview,

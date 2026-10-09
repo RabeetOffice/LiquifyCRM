@@ -10,6 +10,7 @@ use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Actions\AutoAssignLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Models\LeadDistribution;
 use Illuminate\Support\Facades\DB;
@@ -105,7 +106,20 @@ final class DistributeLeads
                     $query->update(['department_id' => $department->getKey(), 'assigned_to' => null, 'assigned_at' => null, 'last_activity_at' => now()]);
                     $recipients = $department->managers()->get();
                     $text = count($slice).' '.str('lead')->plural(count($slice)).' sent to '.$name;
-                    $body = $by->name.' sent them to your department. Share them among your Agents.';
+
+                    // A round-robin department shares them among its Agents straight away.
+                    $shared = app(AutoAssignLead::class)->spread($department, $slice);
+                    $body = $shared !== []
+                        ? $by->name.' sent them to your department. They were shared round robin among '.count($shared).' '.str('Agent')->plural(count($shared)).'.'
+                        : $by->name.' sent them to your department. Share them among your Agents.';
+
+                    foreach ($shared as $agentId => $received) {
+                        $agent = User::query()->find($agentId);
+
+                        if ($agent !== null && ! $agent->is($by)) {
+                            Notification::send($agent, new AppNotification($received.' '.str('lead')->plural($received).' assigned to you', 'Shared round robin in '.$name.'.', 'info', $brand->url('leads'), mail: true, icon: 'heroicon-o-arrows-right-left', actionLabel: 'Open leads'));
+                        }
+                    }
                     $url = $brand->url('leads/distribute');
                 } else {
                     $person = User::query()->findOrFail($targetId);

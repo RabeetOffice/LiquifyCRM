@@ -12,13 +12,13 @@ use App\Modules\System\Support\SystemStatus;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
-it('is reserved for Super Admins', function (): void {
+it('is open to Super Admins and Admins, and to nobody else', function (): void {
     $brand = brand(['slug' => 'ukph']);
 
     $this->actingAs(superAdmin())->get('/admin/system')->assertOk();
 
     $this->flushSession();
-    $this->actingAs(admin())->get('/admin/system')->assertForbidden();
+    $this->actingAs(admin())->get('/admin/system')->assertOk();
 
     $this->flushSession();
     $this->actingAs(managerOf(department($brand)))->get('/admin/system')->assertForbidden();

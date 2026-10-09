@@ -60,16 +60,16 @@
                         <input type="file" wire:model="favicon" accept="image/*" class="lq-input" style="padding: 0.375rem 0.625rem">
                     </div>
                 </x-ui.field>
-                <x-ui.field label="Primary colour" name="primaryColor">
-                    <div class="flex items-center gap-2">
-                        <input type="color" wire:model.live="primaryColor" class="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0">
-                        <x-ui.input wire:model="primaryColor" name="primaryColor" placeholder="#FF6B2C" class="lq-tabular" />
+                <x-ui.field label="Main colour" name="primaryColor" help="The brand's chip and its line in charts.">
+                    <div class="lq-swatch">
+                        <input type="color" wire:model.live="primaryColor" aria-label="Main colour">
+                        <input type="text" class="lq-swatch-text" wire:model.blur="primaryColor" name="primaryColor" maxlength="7" placeholder="#FF6B2C">
                     </div>
                 </x-ui.field>
-                <x-ui.field label="Secondary colour" name="secondaryColor">
-                    <div class="flex items-center gap-2">
-                        <input type="color" wire:model.live="secondaryColor" class="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0">
-                        <x-ui.input wire:model="secondaryColor" name="secondaryColor" placeholder="#000000" class="lq-tabular" />
+                <x-ui.field label="Second colour" name="secondaryColor" help="Optional accent.">
+                    <div class="lq-swatch">
+                        <input type="color" wire:model.live="secondaryColor" aria-label="Second colour">
+                        <input type="text" class="lq-swatch-text" wire:model.blur="secondaryColor" name="secondaryColor" maxlength="7" placeholder="None">
                     </div>
                 </x-ui.field>
             </div>

@@ -10,6 +10,7 @@ use App\Modules\Meta\Jobs\ProcessMetaEvent;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
+use App\Modules\Meta\Models\MetaConnection;
 use App\Modules\Meta\Models\MetaSource;
 use App\Modules\Sites\Enums\InboundStatus;
 use App\Modules\Sites\Models\InboundEvent;
@@ -134,10 +135,15 @@ it('keeps events of an unmapped Page and processes them once it is mapped', func
         ->and($event->error)->toContain('not mapped to a brand')
         ->and(Lead::query()->acrossBrands()->count())->toBe(0);
 
+    MetaConnection::query()->firstOrCreate(['fb_user_id' => '42'], ['fb_user_name' => 'Rabeet', 'user_token' => 'long-token']);
+
     Livewire::actingAs(admin())
         ->test(IntegrationsPage::class)
         ->assertSee('UKPH Page')
+        ->assertSee('Waiting for a brand')
+        ->set('tab', 'received')
         ->assertSee('not mapped to a brand')
+        ->set('tab', 'facebook')
         ->call('mapPage', $this->page->getKey(), (string) $this->brand->getKey());
 
     expect($event->refresh()->status)->toBe(InboundStatus::Done)

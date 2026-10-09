@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" wire:poll.20s.visible>
     <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.'">
         <x-slot:actions>
             @if ($can['export'])
@@ -105,7 +105,7 @@
         @endif
 
         @if ($leads->isEmpty())
-            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent ? 'No leads assigned to you yet' : 'No leads yet')" :description="$search !== '' || $hasFilters ? 'Try another search or clear the filters.' : ($agent ? 'Your Manager assigns leads to you; they appear here with a notification.' : 'Add a lead by hand or import a CSV. Website and Facebook sources arrive in weeks 3 and 4.')" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
+            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent ? 'No leads assigned to you yet' : 'No leads yet')" :description="$search !== '' || $hasFilters ? 'Try another search or clear the filters.' : ($agent ? 'Your Manager assigns leads to you; they appear here with a notification.' : 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.')" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
                 <x-slot:actions>
                     @if ($search !== '' || $hasFilters)
                         <x-ui.button variant="secondary" wire:click="clearFilters">Clear search and filters</x-ui.button>
@@ -133,7 +133,7 @@
                             <x-ui.sort-th field="created_at" :sort="$sort" :direction="$direction" label="Received" />
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="lq-live">
                         @foreach ($leads as $lead)
                             <tr wire:key="lead-{{ $lead->getKey() }}" @class(['lq-row-click', 'lq-selected' => in_array($lead->getKey(), $selected, true)])>
                                 <td x-on:click.stop><input type="checkbox" class="h-4 w-4" style="accent-color: var(--lq-orange)" value="{{ $lead->getKey() }}" wire:model.live="selected"></td>

@@ -170,12 +170,13 @@ it('archives each finished day to a compressed file and applies the retention', 
     Storage::disk('local')->assertMissing('logs/old/very-old.jsonl.gz');
 });
 
-it('lets only a Super Admin change retention and delete, never the last 7 days', function (): void {
+it('lets Admins and Super Admins change retention and delete, never the last 7 days, and no Manager', function (): void {
     ($this->entry)('Twelve days old', 12);
     ($this->entry)('Three days old', 3);
 
-    Livewire::actingAs($this->admin)->test(LogsPage::class)->assertDontSee('Delete logs')->call('saveRetention')->assertForbidden();
-    Livewire::actingAs($this->admin)->test(LogsPage::class)->call('deleteLogs')->assertForbidden();
+    // Since 9 October an Admin has the same control as a Super Admin.
+    Livewire::actingAs($this->admin)->test(LogsPage::class)->assertSee('Delete logs');
+    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->assertDontSee('Delete logs')->call('saveRetention')->assertForbidden();
 
     Livewire::actingAs($this->super)
         ->test(LogsPage::class)

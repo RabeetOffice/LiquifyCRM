@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" wire:poll.30s.visible>
     <x-ui.page-header title="Dashboard" :subtitle="'Here is the summary for '.$brand->name.'.'">
         <x-slot:actions>
             @can('create', \App\Modules\Leads\Models\Lead::class)
@@ -108,7 +108,7 @@
                                     <th class="lq-table-end">Assign to</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="lq-live">
                                 @foreach ($queue as $lead)
                                     <tr wire:key="queue-{{ $lead->getKey() }}">
                                         <td>
@@ -142,7 +142,7 @@
                 <span class="lq-muted text-sm">of leads marked Won</span>
             </div>
             @if ($chartStatus['values'] !== [] && array_sum($chartStatus['values']) > 0)
-                <div class="lq-chart mt-4" style="height: 11rem" wire:ignore x-data="chart({
+                <div class="lq-chart mt-4" style="height: 11rem" wire:ignore wire:key="status-{{ md5(json_encode($chartStatus)) }}" x-data="chart({
                     type: 'bar',
                     data: { labels: @js($chartStatus['labels']), datasets: [{ data: @js($chartStatus['values']), backgroundColor: @js($chartStatus['colors']), borderRadius: 6, maxBarThickness: 28 }] },
                     options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false } } } }

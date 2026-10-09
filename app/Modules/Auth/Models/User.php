@@ -31,6 +31,7 @@ use Spatie\Permission\Traits\HasRoles;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $designation
  * @property string $email
  * @property string $password
  * @property GlobalRole|null $role
@@ -57,7 +58,7 @@ class User extends Authenticatable
     use TwoFactorAuthenticatable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'is_protected', 'status',
+        'name', 'designation', 'email', 'password', 'role', 'is_protected', 'status',
         'phone', 'avatar_path', 'timezone', 'created_by',
     ];
 

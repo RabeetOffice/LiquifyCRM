@@ -140,7 +140,7 @@ final class LogsPage extends Component
 
     public function saveRetention(LogSettings $settings): void
     {
-        abort_unless($this->user()->isSuperAdmin(), 403);
+        abort_unless($this->user()->isGlobalAdmin(), 403);
 
         $this->validate([
             'databaseDays' => ['required', Rule::in(LogSettings::DATABASE_OPTIONS)],
@@ -159,7 +159,7 @@ final class LogsPage extends Component
 
     public function confirmDelete(): void
     {
-        abort_unless($this->user()->isSuperAdmin(), 403);
+        abort_unless($this->user()->isGlobalAdmin(), 403);
 
         $this->validate([
             'deleteBefore' => ['required', 'date', 'before_or_equal:'.now()->subDays(LogSettings::PROTECTED_DAYS)->toDateString()],
@@ -170,7 +170,7 @@ final class LogsPage extends Component
 
     public function deleteLogs(): void
     {
-        abort_unless($this->user()->isSuperAdmin(), 403);
+        abort_unless($this->user()->isGlobalAdmin(), 403);
 
         // Checked again: the confirm dialog must not be a way around the 7-day rule.
         if ($this->deleteBefore === '' || $this->deleteBefore > now()->subDays(LogSettings::PROTECTED_DAYS)->toDateString()) {
@@ -197,7 +197,7 @@ final class LogsPage extends Component
             'brands' => $this->brand === null ? Brand::query()->orderBy('name')->pluck('name', 'id') : collect(),
             'people' => $this->peopleOptions(),
             'isAdmin' => $admin,
-            'isSuperAdmin' => $user->isSuperAdmin(),
+            'isSuperAdmin' => $user->isGlobalAdmin(),
             'canDownload' => $admin || $user->can(Permission::LogsDownload->value),
             'ranges' => LogExport::RANGES,
             'exports' => LogExport::query()->where('user_id', $user->getKey())->latest('id')->limit(5)->get(),

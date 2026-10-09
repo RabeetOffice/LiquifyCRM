@@ -18,6 +18,7 @@ use App\Modules\Meta\Support\MetaApp;
 use App\Modules\Meta\Support\MetaGraph;
 use App\Modules\Sites\Enums\InboundStatus;
 use App\Modules\Sites\Models\InboundEvent;
+use App\Modules\Sites\Models\Site;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
@@ -27,8 +28,10 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * Integrations: connect Facebook once for all brands, map each Page to its
- * brand, and the log of everything received (websites and Facebook) with Retry.
+ * Integrations, in three tabs: Facebook (connect once for all brands in
+ * three guided steps, then map each Page to its brand), Websites (every
+ * brand's websites in one list) and Received (everything websites and
+ * Facebook sent, with Retry).
  */
 #[Layout('components.layouts.app')]
 #[Title('Integrations')]
@@ -38,6 +41,10 @@ final class IntegrationsPage extends Component
     use WithConfirmation;
     use WithPagination;
     use WithToasts;
+
+    /** facebook | websites | received */
+    #[Url(except: 'facebook')]
+    public string $tab = 'facebook';
 
     #[Url(except: '')]
     public string $eventSource = '';
@@ -187,13 +194,19 @@ final class IntegrationsPage extends Component
     public function render(): View
     {
         $connection = MetaConnection::query()->with('connectedBy')->latest('id')->first();
+        $tab = in_array($this->tab, ['facebook', 'websites', 'received'], true) ? $this->tab : 'facebook';
+        $sites = $tab === 'websites' ? Site::query()->with('brand')->orderBy('name')->get() : collect();
 
         return view('meta::livewire.admin.integrations-page', [
+            'tab' => $tab,
+            'sites' => $sites,
+            'siteCount' => Site::query()->count(),
+            'failedCount' => InboundEvent::query()->where('status', InboundStatus::Failed->value)->count(),
             'configured' => MetaApp::isConfigured(),
             'verifyTokenSet' => MetaApp::verifyToken() !== '',
             'connection' => $connection,
             'pages' => MetaSource::query()->with('brand')->orderBy('name')->get(),
-            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug', 'logo_path', 'favicon_path', 'colors']),
             'events' => InboundEvent::query()
                 ->with('lead')
                 ->when($this->eventSource !== '', fn ($query) => $query->where('source', $this->eventSource))

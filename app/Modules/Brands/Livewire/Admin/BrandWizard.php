@@ -21,9 +21,10 @@ use Livewire\Component;
 use Throwable;
 
 /**
- * Add brand in 3 steps: the basics, the look (favicon and colours fetched
- * from the website, adjustable), and a check at the end that the brand is
- * ready to receive leads.
+ * Add brand in 3 steps: the basics (paste the website link and the name and
+ * address fill themselves in), the look (favicon and colours fetched from
+ * the website, adjustable), and a check at the end that the brand is ready
+ * to receive leads.
  */
 #[Layout('components.layouts.app')]
 #[Title('Add brand')]
@@ -50,6 +51,11 @@ final class BrandWizard extends Component
 
     public string $secondaryColor = '';
 
+    /** The name came from the website, so a new link may replace it. */
+    public bool $nameFromWebsite = false;
+
+    public ?string $websiteNote = null;
+
     /** @var list<array{label: string, ok: ?bool, message: string}> */
     public array $checks = [];
 
@@ -72,9 +78,51 @@ final class BrandWizard extends Component
 
     public function updatedName(string $value, ?string $old = null): void
     {
+        $this->nameFromWebsite = false;
+
         if ($this->slug === '' || $this->slug === Str::slug((string) $old)) {
             $this->slug = Str::slug($value);
         }
+    }
+
+    /**
+     * Paste the link first: the brand name and its address are read from the
+     * website. A name typed by hand is never replaced.
+     */
+    public function updatedWebsite(string $value): void
+    {
+        $value = trim($value);
+        $this->websiteNote = null;
+
+        if ($value === '') {
+            return;
+        }
+
+        if (! preg_match('~^https?://~i', $value)) {
+            $value = 'https://'.$value;
+        }
+
+        $this->website = $value;
+
+        if ($this->name !== '' && ! $this->nameFromWebsite) {
+            return;
+        }
+
+        $host = (string) parse_url($value, PHP_URL_HOST);
+
+        if ($host === '') {
+            return;
+        }
+
+        $found = app(BrandIdentity::class)->nameFor($value);
+        $name = $found ?? Str::headline((string) Str::of($host)->replaceStart('www.', '')->before('.'));
+
+        $this->name = $name;
+        $this->nameFromWebsite = true;
+        $this->slug = $this->freeSlug(Str::slug($name));
+        $this->websiteNote = $found !== null
+            ? 'Name and address filled in from the website. Change them if you like.'
+            : 'The website could not be read, so the name comes from its address. Change it if you like.';
     }
 
     /** Step 1: create the brand, then read its website for the look. */
@@ -178,6 +226,20 @@ final class BrandWizard extends Component
             'currencies' => (array) config('liquify.currencies'),
             'timezones' => DateTimeZone::listIdentifiers(),
         ]);
+    }
+
+    /** The first address nobody uses yet: name, name-2, name-3. */
+    private function freeSlug(string $slug): string
+    {
+        $base = $slug !== '' ? mb_substr($slug, 0, 70) : 'brand';
+        $candidate = $base;
+        $number = 1;
+
+        while (Brand::query()->where('slug', $candidate)->exists()) {
+            $candidate = $base.'-'.(++$number);
+        }
+
+        return $candidate;
     }
 
     /** @return array{label: string, ok: ?bool, message: string} */

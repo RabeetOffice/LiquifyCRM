@@ -102,6 +102,11 @@ final class CreateLead
                 return new LeadCreation($lead, wasMerged: false);
             }
 
+            // A lead that arrives straight in a round-robin department goes to the next Agent in turn.
+            if ($lead->assigned_to === null && $lead->department_id !== null && app(AutoAssignLead::class)->handle($lead, $by) !== null) {
+                return new LeadCreation($lead, wasMerged: false);
+            }
+
             if ($lead->assigned_to === null) {
                 app(LeadNotifier::class)->newLead($lead);
             } elseif ($lead->assigned_to !== $by?->getKey()) {

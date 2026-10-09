@@ -11,9 +11,11 @@ use App\Modules\Core\Support\CurrentBrand;
 
 /**
  * Layer 2 for people. Encodes the "Manage users" row of the permission table
- * and the Super Admin protection rules: nobody else can remove, demote,
- * suspend or edit a Super Admin, only a Super Admin can create another, and
- * the last one can never be removed.
+ * and the Super Admin protection rules. Since 9 October an Admin holds the
+ * same control as a Super Admin (adds and manages Admins, Managers and
+ * Agents); the one difference is that a Super Admin is protected: nobody
+ * else can edit, suspend, demote or remove one, only a Super Admin can
+ * create another, and the last one can never be removed.
  */
 final class UserPolicy
 {
@@ -42,10 +44,6 @@ final class UserPolicy
             return $user->is($target);
         }
 
-        if ($target->isAdmin()) {
-            return $user->isSuperAdmin() || $user->is($target);
-        }
-
         if ($user->is($target) || $user->isGlobalAdmin()) {
             return true;
         }
@@ -59,10 +57,6 @@ final class UserPolicy
             return false;
         }
 
-        if ($target->isAdmin()) {
-            return $user->isSuperAdmin();
-        }
-
         return $user->isGlobalAdmin() || $this->managesTarget($user, $target);
     }
 
@@ -70,10 +64,6 @@ final class UserPolicy
     {
         if ($user->is($target) || $target->isSuperAdmin()) {
             return false;
-        }
-
-        if ($target->isAdmin()) {
-            return $user->isSuperAdmin();
         }
 
         return $user->isGlobalAdmin() || $this->managesTarget($user, $target);
@@ -90,16 +80,16 @@ final class UserPolicy
     }
 
     /**
-     * Who may hand out a global role. Only a Super Admin can create Admins or
-     * another Super Admin; an Admin can never grant global roles.
+     * Who may hand out a global role. Admins and Super Admins can make someone
+     * an Admin; only a Super Admin can make another Super Admin.
      */
     public function assignGlobalRole(User $user, ?GlobalRole $role): bool
     {
-        if ($role === null) {
-            return $user->isGlobalAdmin();
+        if ($role === GlobalRole::SuperAdmin) {
+            return $user->isSuperAdmin();
         }
 
-        return $user->isSuperAdmin();
+        return $user->isGlobalAdmin();
     }
 
     /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Modules\Activity\Http\Controllers\LogDownloadController;
 use App\Modules\Activity\Livewire\LogsPage;
-use App\Modules\Auth\Livewire\Admin\AdminAccountForm;
-use App\Modules\Auth\Livewire\Admin\AdminAccountsIndex;
+use App\Modules\Auth\Livewire\Admin\PeopleIndex;
+use App\Modules\Auth\Livewire\Admin\PersonForm;
 use App\Modules\Auth\Livewire\Profile;
 use App\Modules\Auth\Livewire\ProfileSecurity;
 use App\Modules\Brands\Http\Controllers\BrandRedirectController;
@@ -31,7 +31,6 @@ use App\Modules\Meta\Http\Controllers\FacebookConnectController;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
 use App\Modules\Meta\Livewire\App\Inbox;
 use App\Modules\Sales\Http\Controllers\RecordSaleController;
-use App\Modules\Sales\Livewire\Admin\ExchangeRatesPage;
 use App\Modules\Sales\Livewire\App\ClientShow;
 use App\Modules\Sales\Livewire\App\ClientsIndex;
 use App\Modules\Sales\Livewire\App\DistributePage;
@@ -62,15 +61,14 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/logs', LogsPage::class)->name('logs');
         Route::get('/logs/archives/{archive}', [LogDownloadController::class, 'archive'])->whereNumber('archive')->name('logs.archives.download');
         Route::get('/sales', SalesDashboard::class)->name('sales');
-        Route::get('/exchange-rates', ExchangeRatesPage::class)->name('exchange-rates');
         Route::post('/brands/{brandId}/fetch-identity', FetchIdentityController::class)->whereNumber('brandId')->name('brands.fetch-identity');
 
-        Route::middleware('super-admin')->group(function (): void {
-            Route::get('/admins', AdminAccountsIndex::class)->name('admins.index');
-            Route::get('/admins/create', AdminAccountForm::class)->name('admins.create');
-            Route::get('/admins/{userId}/edit', AdminAccountForm::class)->name('admins.edit');
-            Route::get('/system', SystemPage::class)->name('system');
-        });
+        // People and the System screen: every Super Admin and Admin (since 9 October).
+        Route::get('/people', PeopleIndex::class)->name('people.index');
+        Route::get('/people/create', PersonForm::class)->name('people.create');
+        Route::get('/people/{userId}/edit', PersonForm::class)->whereNumber('userId')->name('people.edit');
+        Route::redirect('/admins', '/admin/people');
+        Route::get('/system', SystemPage::class)->name('system');
     });
 
     // A person's own log download, while its 24 hours last.

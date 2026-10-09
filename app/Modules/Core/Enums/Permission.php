@@ -42,7 +42,7 @@ enum Permission: string
      */
     public static function superAdminOnly(): array
     {
-        return [self::LogsDelete, self::SystemManage];
+        return [];
     }
 
     /** @return list<string> */

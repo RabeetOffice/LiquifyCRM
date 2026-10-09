@@ -25,7 +25,8 @@ use Livewire\Component;
 
 /**
  * "Add person": create the login here with a password (the alternative to
- * an invite link), give them a role and a department in one step.
+ * an invite link), and give them a designation, a role, a department and a
+ * monthly target in one step.
  */
 #[Layout('components.layouts.app')]
 #[Title('Add person')]
@@ -39,6 +40,10 @@ final class MemberForm extends Component
     public string $name = '';
 
     public string $email = '';
+
+    public string $designation = '';
+
+    public string $phone = '';
 
     public string $password = '';
 
@@ -63,6 +68,8 @@ final class MemberForm extends Component
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
+            'designation' => ['nullable', 'string', 'max:120'],
+            'phone' => ['nullable', 'string', 'max:40'],
             'password' => ['required', 'string', Password::min(10)->letters()->numbers()],
             'role' => ['required', Rule::in(array_keys($this->roleOptions()))],
             'department' => [$user->isGlobalAdmin() ? 'nullable' : 'required', 'integer'],
@@ -85,6 +92,8 @@ final class MemberForm extends Component
                 $person = User::query()->create([
                     'name' => $data['name'],
                     'email' => mb_strtolower(trim($data['email'])),
+                    'designation' => $data['designation'] ?: null,
+                    'phone' => $data['phone'] ?: null,
                     'password' => $data['password'],
                     'created_by' => $user->getKey(),
                 ]);

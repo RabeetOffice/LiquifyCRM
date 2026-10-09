@@ -61,6 +61,52 @@ class BrandIdentity
     }
 
     /**
+     * The name a website gives itself, for filling in the brand name from its
+     * link: og:site_name, then application-name, then the page title without
+     * its tagline ("UK Publishing House | Book publishing" becomes
+     * "UK Publishing House"). Null when the site cannot be read.
+     */
+    public function nameFor(string $url): ?string
+    {
+        try {
+            $response = Http::timeout(8)->connectTimeout(4)->withUserAgent('LiquifyCRM')->get(rtrim($url, '/').'/');
+        } catch (Throwable) {
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $html = mb_substr($response->body(), 0, 200000);
+        $name = null;
+
+        foreach ([
+            '~<meta\b[^>]*property=["\']og:site_name["\'][^>]*content=["\']([^"\']+)~i',
+            '~<meta\b[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:site_name["\']~i',
+            '~<meta\b[^>]*name=["\']application-name["\'][^>]*content=["\']([^"\']+)~i',
+            '~<title[^>]*>([^<]+)</title>~i',
+        ] as $index => $pattern) {
+            if (preg_match($pattern, $html, $match)) {
+                $name = trim(html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5));
+
+                // A page title usually carries a tagline after the name.
+                if ($index === 3) {
+                    $name = trim((string) preg_split('~\s+[|\-–—:·»]\s+~u', $name)[0]);
+                }
+
+                break;
+            }
+        }
+
+        if ($name === null || $name === '' || in_array(mb_strtolower($name), ['home', 'homepage', 'welcome'], true)) {
+            return null;
+        }
+
+        return mb_substr($name, 0, 80);
+    }
+
+    /**
      * Icon addresses in the page, largest first, then /favicon.ico.
      *
      * @return list<string>

@@ -8,11 +8,9 @@ use App\Modules\Leads\Livewire\App\Pipeline;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Sales\Actions\RecordSale;
-use App\Modules\Sales\Livewire\Admin\ExchangeRatesPage;
 use App\Modules\Sales\Livewire\App\TargetsPage;
 use App\Modules\Sales\Livewire\SalesDashboard;
 use App\Modules\Sales\Models\Client;
-use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\Target;
 use App\Modules\Sales\Support\Progress;
@@ -22,7 +20,7 @@ use Livewire\Livewire;
 
 /*
  * Week 5: Mark as Won, clients with lifetime value, monthly targets at three
- * levels, exchange rates and the sales dashboard.
+ * levels and the sales dashboard (one brand at a time, in its own currency).
  */
 
 beforeEach(function (): void {
@@ -158,12 +156,15 @@ it('shows the sales dashboard by role', function (): void {
     ($this->setTarget)(Target::USER, $this->agent->getKey(), 1000);
     app(RecordSale::class)->handle($this->lead, 1500, 'Publishing', now(), $this->agent);
 
+    // The admin area: one brand at a time, picked from the brand cards, with the trend chart.
     $this->actingAs($this->admin)->get('/admin/sales')
         ->assertOk()
-        ->assertSee('Brand performance')
+        ->assertSee('One brand at a time')
         ->assertSee('UK Publishing House')
         ->assertSee('£1,500')
-        ->assertSee('150%, £500 over target');
+        ->assertSee('Average sale')
+        ->assertSee('The last six months')
+        ->assertSee('Leaderboard');
 
     $this->flushSession();
     $this->actingAs($this->agent)->get('/b/ukph/sales')->assertOk()->assertSee('My target')->assertSee('150%, £500 over target')->assertDontSee('Leaderboard');
@@ -182,33 +183,38 @@ it('shows the sales dashboard by role', function (): void {
         ->assertSee('Omar Other');
 });
 
-it('converts other currencies with the monthly rate and re-converts when a rate is entered', function (): void {
+it('shows each brand in its own currency in the admin area, never a converted total', function (): void {
     $anz = brand(['name' => 'ANZ Publishing House', 'slug' => 'anz', 'currency' => 'AUD']);
     inBrand($anz);
     $lead = Lead::factory()->create(['brand_id' => $anz->getKey(), 'name' => 'Tom Hall', 'email' => 'tom@example.com']);
+    app(RecordSale::class)->handle($lead, 2000, 'Printing', now(), $this->admin);
 
-    $sale = app(RecordSale::class)->handle($lead, 2000, 'Printing', now(), $this->admin);
+    inBrand($this->brand);
+    app(RecordSale::class)->handle($this->lead, 1500, 'Publishing', now(), $this->agent);
 
-    expect($sale->refresh()->amount_reporting)->toBeNull()
-        ->and(SalesReport::forAdmin($this->period)->missingRates())->toBe(1);
+    $report = SalesReport::forAdmin($this->period, (int) $anz->getKey());
 
+    expect($report->currency())->toBe('AUD')
+        ->and($report->totals()['revenue'])->toBe(2000.0)
+        ->and(SalesReport::forAdmin($this->period, (int) $this->brand->getKey())->totals()['revenue'])->toBe(1500.0)
+        ->and($report->trend()['labels'])->toHaveCount(6)
+        ->and(array_sum($report->trend()['revenue']))->toBe(2000.0)
+        ->and(last($report->trend()['count']))->toBe(1);
+
+    inBrand(null);
+
+    // Both brand cards show their own month; the chosen one fills the page.
     Livewire::actingAs($this->admin)
-        ->test(ExchangeRatesPage::class)
-        ->assertSee('1 sale is missing')
-        ->set('rates.AUD', '0.52')
-        ->call('save')
-        ->assertHasNoErrors();
+        ->test(SalesDashboard::class)
+        ->assertSee('A$2,000')
+        ->assertSee('£1,500')
+        ->call('drill', (string) $this->brand->getKey())
+        ->assertSee('Sales Team A')
+        ->assertDontSee('Tom Hall')
+        ->call('drill', (string) $anz->getKey())
+        ->assertSee('Tom Hall');
 
-    $report = SalesReport::forAdmin($this->period);
-
-    expect((float) $sale->refresh()->amount_reporting)->toBe(1040.0)
-        ->and(ExchangeRate::rateFor('AUD', now()->addMonths(2)->format('Y-m')))->toBe(0.52)
-        ->and(ExchangeRate::rateFor('AUD', now()->subMonth()->format('Y-m')))->toBeNull()
-        ->and($report->currency())->toBe('GBP')
-        ->and($report->totals()['revenue'])->toBe(1040.0)
-        ->and(SalesReport::forBrand($anz, $this->admin, $this->period)->totals()['revenue'])->toBe(2000.0);
-
-    $this->actingAs($this->manager)->get('/admin/exchange-rates')->assertForbidden();
+    $this->actingAs($this->admin)->get('/admin/exchange-rates')->assertNotFound();
 });
 
 it('sets targets in the month grid: Admin every row, a Manager only their Agents', function (): void {

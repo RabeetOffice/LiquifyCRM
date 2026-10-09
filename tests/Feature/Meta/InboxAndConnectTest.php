@@ -89,7 +89,14 @@ it('connects Facebook, saves the token encrypted and subscribes every Page', fun
 });
 
 it('keeps Integrations and Connect Facebook for Super Admins and Admins', function (): void {
-    $this->actingAs($this->admin)->get('/admin/integrations')->assertOk()->assertSee('Facebook Pages')->assertSee('UKPH Page')->assertDontSee('app-secret')->assertDontSee('page-token');
+    // Before connecting: only the three steps, nothing below them.
+    $this->actingAs($this->admin)->get('/admin/integrations')->assertOk()->assertSee('Connect Facebook')->assertSee('Tell Meta where to send leads and messages')->assertDontSee('Your Pages')->assertDontSee('UKPH Page');
+
+    MetaConnection::query()->create(['fb_user_id' => '42', 'fb_user_name' => 'Rabeet', 'user_token' => 'long-token']);
+
+    $this->get('/admin/integrations')->assertOk()->assertSee('Your Pages')->assertSee('UKPH Page')->assertSee('Connected as')->assertDontSee('app-secret')->assertDontSee('page-token')->assertDontSee('long-token');
+    $this->get('/admin/integrations?tab=websites')->assertOk()->assertSee('No website connected yet');
+    $this->get('/admin/integrations?tab=received')->assertOk()->assertSee('Nothing received yet');
 
     $this->flushSession();
     $this->actingAs($this->manager)->get('/admin/integrations')->assertForbidden();

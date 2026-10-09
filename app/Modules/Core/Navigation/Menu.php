@@ -92,12 +92,7 @@ final class Menu
             $groups[] = ['label' => 'Settings', 'items' => $settings];
         }
 
-        if ($user->isGlobalAdmin()) {
-            $groups[] = ['label' => 'Admin', 'items' => [
-                self::item('Admin area', 'heroicon-o-shield-check', route('admin.dashboard'), false),
-            ]];
-        }
-
+        // Moving to the admin area or another brand is done from the switcher at the top of the sidebar.
         return $groups;
     }
 
@@ -106,39 +101,21 @@ final class Menu
     {
         $isActive = fn (string ...$routes): bool => in_array($currentRoute, $routes, true);
 
-        $groups = [['label' => 'Main menu', 'items' => [
-            self::item('Overview', 'heroicon-o-home', route('admin.dashboard'), $isActive('admin.dashboard')),
-            self::item('Sales dashboard', 'heroicon-o-trophy', route('admin.sales'), $isActive('admin.sales')),
-            self::item('Brands', 'heroicon-o-building-storefront', route('admin.brands.index'), $isActive('admin.brands.index', 'admin.brands.create', 'admin.brands.edit')),
-        ]]];
-
-        $settings = [
-            self::item('Integrations', 'heroicon-o-link', route('admin.integrations'), $isActive('admin.integrations')),
-            self::item('Exchange rates', 'heroicon-o-currency-pound', route('admin.exchange-rates'), $isActive('admin.exchange-rates')),
-            self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
-        ];
-
-        if ($user->isSuperAdmin()) {
-            $settings[] = self::item('Admin accounts', 'heroicon-o-shield-check', route('admin.admins.index'), $isActive('admin.admins.index', 'admin.admins.create', 'admin.admins.edit'));
-        }
-
-        $groups[] = ['label' => 'Settings', 'items' => $settings];
-
-        if ($user->isSuperAdmin()) {
-            $groups[] = ['label' => 'System', 'items' => [
+        // Admins and Super Admins see the same menu: the only difference between
+        // them is that a Super Admin cannot be edited or removed by anyone else.
+        return [
+            ['label' => 'Main menu', 'items' => [
+                self::item('Overview', 'heroicon-o-home', route('admin.dashboard'), $isActive('admin.dashboard')),
+                self::item('Sales dashboard', 'heroicon-o-trophy', route('admin.sales'), $isActive('admin.sales')),
+                self::item('Brands', 'heroicon-o-building-storefront', route('admin.brands.index'), $isActive('admin.brands.index', 'admin.brands.create', 'admin.brands.edit')),
+                self::item('People', 'heroicon-o-users', route('admin.people.index'), $isActive('admin.people.index', 'admin.people.create', 'admin.people.edit')),
+            ]],
+            ['label' => 'Settings', 'items' => [
+                self::item('Integrations', 'heroicon-o-puzzle-piece', route('admin.integrations'), $isActive('admin.integrations')),
+                self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
                 self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
-            ]];
-        }
-
-        $brand = $user->defaultBrand();
-
-        if ($brand !== null) {
-            $groups[] = ['label' => 'Workspace', 'items' => [
-                self::item('Open a brand', 'heroicon-o-squares-2x2', $brand->url(), false),
-            ]];
-        }
-
-        return $groups;
+            ]],
+        ];
     }
 
     /**
