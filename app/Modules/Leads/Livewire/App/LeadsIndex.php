@@ -21,6 +21,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Sales\Models\LeadDistribution;
+use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -262,6 +263,8 @@ final class LeadsIndex extends Component
         $leads = $this->query()
             ->with(['status', 'department', 'assignee'])
             ->paginate($this->perPage);
+
+        LeadSites::attach($leads->getCollection());
 
         $visibility = app(ContactVisibility::class);
 

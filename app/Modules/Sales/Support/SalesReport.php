@@ -66,6 +66,12 @@ final class SalesReport
         return new self($period, $brands, false, null, (int) $user->getKey());
     }
 
+    /** One person's own sales and target in one brand, whatever their role (their Profile). */
+    public static function forPerson(Brand $brand, User $user, string $period): self
+    {
+        return new self($period, collect([$brand->getKey() => $brand]), false, null, (int) $user->getKey());
+    }
+
     public static function currentPeriod(): string
     {
         return now()->format('Y-m');

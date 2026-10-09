@@ -1,6 +1,22 @@
 <div class="flex flex-col gap-6">
     <x-ui.page-header title="Profile" subtitle="Your name, contact details and photo." />
 
+    @if ($targets !== [])
+        <x-ui.card title="Your target this month" description="{{ now()->format('F Y') }}. Sales you closed count towards it.">
+            <div class="flex flex-col gap-5">
+                @foreach ($targets as $row)
+                    <div wire:key="target-{{ $row['brand']->getKey() }}">
+                        <div class="mb-1.5 flex items-center justify-between gap-3">
+                            <span class="lq-cell-title">{{ $row['brand']->name }}</span>
+                            <a class="lq-link text-sm" href="{{ route('brand.sales', ['brand' => $row['brand']->slug]) }}" wire:navigate>See sales</a>
+                        </div>
+                        <x-sales::progress :progress="$row['progress']" />
+                    </div>
+                @endforeach
+            </div>
+        </x-ui.card>
+    @endif
+
     <div class="lq-grid-main">
         <x-ui.card title="Details">
             <form wire:submit="save" class="lq-form">

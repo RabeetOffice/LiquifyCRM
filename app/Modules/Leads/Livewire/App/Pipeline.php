@@ -10,6 +10,7 @@ use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -72,8 +73,11 @@ final class Pipeline extends Component
             ->with(['assignee', 'department'])
             ->orderByDesc('last_activity_at')
             ->limit(400)
-            ->get()
-            ->groupBy('status_id');
+            ->get();
+
+        LeadSites::attach($leads);
+
+        $leads = $leads->groupBy('status_id');
 
         return view('leads::livewire.app.pipeline', [
             'statuses' => $statuses,

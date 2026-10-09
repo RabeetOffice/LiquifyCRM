@@ -27,6 +27,7 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\Money;
+use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -298,6 +299,8 @@ final class LeadPanel extends Component
         $lead = $this->lead()->load(['status', 'department', 'assignee', 'notes.author', 'tasks']);
         $user = $this->user();
         $canSeeFull = app(ContactVisibility::class)->canSeeFull($user, $lead);
+
+        LeadSites::attach([$lead]);
 
         $timeline = Activity::query()
             ->where('subject_type', $lead->getMorphClass())

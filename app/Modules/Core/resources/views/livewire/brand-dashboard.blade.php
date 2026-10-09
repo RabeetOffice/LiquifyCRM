@@ -115,7 +115,7 @@
                                             <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}" class="lq-cell-title" wire:navigate>{{ $lead->name }}</a>
                                             <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
                                         </td>
-                                        <td><x-ui.badge :color="$lead->source_type->getColor()" :icon="$lead->source_type->getIcon()">{{ $lead->source_type->getLabel() }}</x-ui.badge></td>
+                                        <td><x-ui.lead-source :lead="$lead" /></td>
                                         <td class="lq-num">{{ $lead->created_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</td>
                                         <td class="lq-table-end">
                                             @can('assign', $lead)

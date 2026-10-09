@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Auth\Livewire;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Sales\Support\Progress;
+use App\Modules\Sales\Support\SalesReport;
 use DateTimeZone;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -84,7 +87,30 @@ final class Profile extends Component
         return view('auth::livewire.profile', [
             'user' => $this->user(),
             'timezones' => DateTimeZone::listIdentifiers(),
+            'targets' => $this->targets(),
         ]);
+    }
+
+    /**
+     * This month against the person's own target, one row per brand they work
+     * in. Global admins carry no personal target.
+     *
+     * @return list<array{brand: Brand, progress: Progress}>
+     */
+    private function targets(): array
+    {
+        $user = $this->user();
+
+        if ($user->isGlobalAdmin()) {
+            return [];
+        }
+
+        $period = SalesReport::currentPeriod();
+
+        return $user->accessibleBrands()
+            ->map(fn (Brand $brand): array => ['brand' => $brand, 'progress' => SalesReport::forPerson($brand, $user, $period)->progress()])
+            ->values()
+            ->all();
     }
 
     private function user(): User

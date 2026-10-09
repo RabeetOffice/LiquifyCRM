@@ -1279,6 +1279,21 @@ a.lq-stat:hover .lq-stat-link svg {
     height: 0.875rem;
 }
 
+/* A website's favicon in place of the icon, and a name that may be long. */
+.lq-badge-logo {
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 0.1875rem;
+    object-fit: contain;
+}
+
+.lq-badge-text {
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .lq-badge-primary { background: var(--lq-orange-tint); color: var(--lq-orange-deep); font-weight: 600; }
 .lq-badge-info { background: var(--lq-info-tint); color: var(--lq-info); }
 .lq-badge-success { background: var(--lq-success-tint); color: var(--lq-success); }

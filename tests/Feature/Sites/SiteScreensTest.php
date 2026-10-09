@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Support\BrandMailer;
+use App\Modules\Leads\Enums\LeadSource;
+use App\Modules\Leads\Models\Lead;
 use App\Modules\Sites\Enums\InboundStatus;
 use App\Modules\Sites\Enums\SiteMode;
 use App\Modules\Sites\Enums\SitePlatform;
@@ -198,4 +200,20 @@ it('stores the brand email account encrypted and sends a test through it', funct
 
     $this->flushSession();
     $this->actingAs($this->manager)->get('/b/ukph/settings/email')->assertForbidden();
+});
+
+it('shows the website favicon and name as the source of its leads, and nothing of a Facebook Page with the same id', function (): void {
+    $site = Site::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'UKPH main site', 'favicon_path' => 'sites/ukph.png']);
+
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Wendy Website', 'source_type' => LeadSource::Website, 'source_id' => $site->getKey()]);
+    $facebook = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Fiona Facebook', 'source_type' => LeadSource::Facebook, 'source_id' => $site->getKey()]);
+
+    $this->actingAs($this->admin)->get('/b/ukph/leads')
+        ->assertOk()
+        ->assertSee('UKPH main site')
+        ->assertSee('sites/ukph.png');
+
+    $this->get('/b/ukph')->assertOk()->assertSee('sites/ukph.png');
+    $this->get('/b/ukph/leads/pipeline')->assertOk()->assertSee('sites/ukph.png');
+    $this->get('/b/ukph/leads/'.$facebook->getKey())->assertOk()->assertDontSee('UKPH main site');
 });

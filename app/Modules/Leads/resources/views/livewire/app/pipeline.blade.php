@@ -36,7 +36,7 @@
                     >
                         <div class="lq-kcard-title">{{ $lead->name }}</div>
                         <div class="lq-kcard-meta">
-                            <x-ui.badge :color="$lead->source_type->getColor()" :icon="$lead->source_type->getIcon()">{{ $lead->source_type->getLabel() }}</x-ui.badge>
+                            <x-ui.lead-source :lead="$lead" />
                             @if ($lead->assignee)
                                 <span class="flex items-center gap-1"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" style="width: 1.25rem; height: 1.25rem; font-size: 0.5rem" /> {{ str($lead->assignee->name)->before(' ') }}</span>
                             @else

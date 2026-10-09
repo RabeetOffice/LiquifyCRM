@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (9 October): 158 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -153,7 +153,7 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 
 ### Week 3 · left over
 - [ ] Gmail and Outlook logos on the email settings screen (a text badge shows the detected provider today; the official SVGs go in `resources/svg/brands/` together with the Facebook and Messenger logos in week 4).
-- [ ] Website favicon as the source logo in the lead list (the lead shows the website name under extra fields today).
+- [x] Website favicon as the source logo (9 October): a website lead shows the website's favicon and name as its source in the lead list, the pipeline, the lead page and the dashboard queue; without a favicon the globe icon stays next to the name.
 
 ### Week 4 · left over
 - [ ] A live run against your real Meta app (everything so far is tested with faked Graph API answers).
@@ -162,7 +162,7 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
 
 ### Week 5 · left over
 - [x] Correcting or removing a recorded sale: Super Admins and Admins only (decided 8 October), from the client page. Lifetime value, lead value and targets are counted again, both are written to the lead's timeline, removal asks for the password, and a lead whose only sale is removed leaves Won for the last open status.
-- [ ] A progress bar on each person's own Profile screen (it is on Sales / My target, the leaderboard and Targets).
+- [x] A progress bar on each person's own Profile screen (9 October): "Your target this month", one bar per brand the person works in, from their own sales. Super Admins and Admins carry no personal target and see no card.
 - [ ] The two CSV drill-downs the document hints at ("Per brand and department" for sources, "Per Agent" for speed) show inside the brand and department views rather than as separate expanding cards.
 
 ### Week 6 · needs you
@@ -177,7 +177,7 @@ State of the code: 152 Pest tests passing, Pint and Larastan level 6 clean.
   - **Next 4:** use the "Test" buttons next to `leadgen` and `messages` on the Meta Webhooks page and check Admin area > Integrations > Received. While the app is unpublished Meta only delivers these dashboard tests, no real leads or messages, so a real end-to-end test needs the app published.
 - [ ] The first client (UK Publishing House) with its Managers and Agents; Meta App Review only if ever needed.
 - [ ] Official brand logos (Facebook, Messenger, Gmail, Outlook) as local SVGs.
-- [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today.
+- [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today. Needs the original artwork of the app icon at 512 px or larger: enlarging the 180 px file would be blurry.
 
 ### Phase 2 and later
 - [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.

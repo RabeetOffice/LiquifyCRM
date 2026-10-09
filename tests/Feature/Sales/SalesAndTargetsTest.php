@@ -283,3 +283,21 @@ it('lists clients for Admins and for the Manager whose department sold to them',
     $this->flushSession();
     $this->actingAs($this->agent)->get('/b/ukph/clients')->assertForbidden();
 });
+
+it('shows each person their own target bar on Profile, and none to a global admin', function (): void {
+    ($this->setTarget)(Target::USER, $this->agent->getKey(), 5000);
+    app(RecordSale::class)->handle($this->lead, 1500, 'Publishing', now(), $this->agent);
+
+    $this->actingAs($this->agent)->get('/profile')
+        ->assertOk()
+        ->assertSee('Your target this month')
+        ->assertSee('UK Publishing House')
+        ->assertSee('£1,500 of £5,000')
+        ->assertSee('30%');
+
+    $this->flushSession();
+    $this->actingAs($this->otherAgent)->get('/profile')->assertOk()->assertSee('No target set for this month');
+
+    $this->flushSession();
+    $this->actingAs($this->admin)->get('/profile')->assertOk()->assertDontSee('Your target this month');
+});

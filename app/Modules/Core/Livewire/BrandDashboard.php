@@ -16,6 +16,7 @@ use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
+use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -111,6 +112,8 @@ final class BrandDashboard extends Component
         $queue = $agent
             ? collect()
             : $visible()->queue()->with(['status', 'department'])->limit(8)->get();
+
+        LeadSites::attach($queue);
 
         $followUps = $agent
             ? Task::query()->visibleTo($user)->open()->where('due_at', '<=', now()->endOfDay())->with('lead')->orderBy('due_at')->limit(8)->get()

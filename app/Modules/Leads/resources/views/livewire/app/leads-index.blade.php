@@ -142,7 +142,7 @@
                                     <span class="lq-cell-sub">{{ ($fullContact[$lead->getKey()] ?? false) ? ($lead->email ?? $lead->phone) : ($lead->maskedEmail() ?? $lead->maskedPhone()) }}</span>
                                 </td>
                                 <td wire:click="openLead({{ $lead->getKey() }})"><x-ui.status-pill :status="$lead->status" /></td>
-                                <td wire:click="openLead({{ $lead->getKey() }})"><x-ui.badge :color="$lead->source_type->getColor()" :icon="$lead->source_type->getIcon()">{{ $lead->source_type->getLabel() }}</x-ui.badge></td>
+                                <td wire:click="openLead({{ $lead->getKey() }})"><x-ui.lead-source :lead="$lead" /></td>
                                 @unless ($agent)
                                     <td wire:click="openLead({{ $lead->getKey() }})">{{ $lead->department?->name ?? '—' }}</td>
                                     <td wire:click="openLead({{ $lead->getKey() }})">

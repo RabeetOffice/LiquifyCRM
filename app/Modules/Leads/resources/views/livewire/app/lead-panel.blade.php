@@ -29,7 +29,7 @@
     {{-- Essentials --}}
     <div class="flex flex-wrap items-center gap-2">
         <x-ui.status-pill :status="$lead->status" />
-        <x-ui.badge :color="$lead->source_type->getColor()" :icon="$lead->source_type->getIcon()">{{ $lead->source_type->getLabel() }}</x-ui.badge>
+        <x-ui.lead-source :lead="$lead" />
         <span class="lq-muted text-sm" title="{{ $lead->created_at?->format('j M Y, H:i') }}">Received {{ $lead->created_at?->diffForHumans() }}</span>
     </div>
 
