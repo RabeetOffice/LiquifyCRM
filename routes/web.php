@@ -42,6 +42,7 @@ use App\Modules\Sites\Livewire\App\SiteShow;
 use App\Modules\Sites\Livewire\App\SitesIndex;
 use App\Modules\Sites\Livewire\App\SiteWizard;
 use App\Modules\System\Livewire\Admin\SystemPage;
+use App\Modules\System\Livewire\Admin\UpdatesPage;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/b')->name('home');
@@ -69,6 +70,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/people/{userId}/edit', PersonForm::class)->whereNumber('userId')->name('people.edit');
         Route::redirect('/admins', '/admin/people');
         Route::get('/system', SystemPage::class)->name('system');
+        Route::get('/updates', UpdatesPage::class)->name('updates');
     });
 
     // A person's own log download, while its 24 hours last.

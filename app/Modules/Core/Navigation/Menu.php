@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\System\Support\SystemUpdater;
 use Closure;
 
 /**
@@ -113,6 +114,7 @@ final class Menu
             ['label' => 'Settings', 'items' => [
                 self::item('Integrations', 'heroicon-o-puzzle-piece', route('admin.integrations'), $isActive('admin.integrations')),
                 self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
+                self::item('Updates', 'heroicon-o-arrow-up-circle', route('admin.updates'), $isActive('admin.updates'), fn (): ?string => SystemUpdater::flag()['available'] ? 'New' : null),
                 self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
             ]],
         ];

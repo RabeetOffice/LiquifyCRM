@@ -14,6 +14,7 @@ enum DeploymentType: string implements HasColor, HasIcon, HasLabel
     case DatabaseUpdate = 'db_update';
     case Backup = 'backup';
     case Rollback = 'rollback';
+    case Update = 'update';
 
     public function getLabel(): string
     {
@@ -22,6 +23,7 @@ enum DeploymentType: string implements HasColor, HasIcon, HasLabel
             self::DatabaseUpdate => 'Database update',
             self::Backup => 'Backup',
             self::Rollback => 'Rollback',
+            self::Update => 'System update',
         };
     }
 
@@ -32,6 +34,7 @@ enum DeploymentType: string implements HasColor, HasIcon, HasLabel
             self::DatabaseUpdate => 'warning',
             self::Backup => 'gray',
             self::Rollback => 'danger',
+            self::Update => 'success',
         };
     }
 
@@ -42,6 +45,7 @@ enum DeploymentType: string implements HasColor, HasIcon, HasLabel
             self::DatabaseUpdate => 'heroicon-o-circle-stack',
             self::Backup => 'heroicon-o-archive-box',
             self::Rollback => 'heroicon-o-arrow-uturn-left',
+            self::Update => 'heroicon-o-arrow-up-circle',
         };
     }
 }

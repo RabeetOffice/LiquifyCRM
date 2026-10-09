@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (9 October): 167 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (9 October): 171 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -136,7 +136,13 @@ State of the code (9 October): 167 Pest tests passing, Pint and Larastan level 6
 - [x] Round robin: each department is shared "By hand" or "Round robin" (Distribute screen; a Manager for their own departments, an Admin for all). A new lead in a round-robin department goes to the next active Agent in turn; "Share the waiting leads" does the same for the queue.
 - [x] Live updates without reloading: the bell checks every 15 seconds and shows a toast for what arrived; the dashboards, the leads list, the inbox and Received refresh by themselves (polling; the hosting has no websockets).
 
+### Updates and email providers (9 October, asked for by the user)
+- [x] Updates screen (`/admin/updates`, Admins and Super Admins): "What's new" for every version from `resources/changelog.php`, whether a version waits to be applied, the "Update system" button (database backup, pending database changes, caches, version recorded; runs at once, needs no cron) and the update history with details. If the backup cannot be made nothing is changed and "Update without a backup" is offered.
+- [x] A bar on every screen tells Admins when a version is ready; the Overview shows the version; Managers and Agents see none of it.
+- [x] Email settings: a picker of ready-made providers (Google, Microsoft 365 / Exchange, Hostinger, Titan, webmail, Zoho, Yahoo, GoDaddy, Namecheap, iCloud, SendGrid, Brevo, Mailgun, or another) fills in server, port and security and shows what each one asks for. Icons come from Google's favicon service (user's choice).
+
 ### Agreed differences from the document
+- **"Update system" beside "Backup and run database update" (9 October).** The document keeps database updates on the System screen, behind the queue. The Updates screen does the same work inside the request so it works without the scheduler, asks for the password only when the database will change, and lets an Admin go on without a backup when the server cannot make one.
 - **Admin equals Super Admin, except protection (9 October, user decision).** The document reserves admin accounts, the System screen, log retention and log deletion for the Super Admin. Now every Admin has them too. What stays: nobody else can edit, suspend or remove a Super Admin, only a Super Admin can make another one, and the last one cannot be removed.
 - **Exchange rates removed (9 October, user decision).** The document converts all brands into one reporting currency with monthly rates. The screen, its menu entry and the cross-brand totals are gone; the admin sales dashboard shows one brand at a time in that brand's currency. The `exchange_rates` table and the `amount_reporting` column stay unused.
 - **Round robin** is an addition to the document (its "all Facebook leads go to Sales Team A" rule is still open).

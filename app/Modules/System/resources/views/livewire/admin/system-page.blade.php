@@ -29,7 +29,7 @@
         <x-ui.card :title="count($pending).' pending database '.\Illuminate\Support\Str::plural('update', count($pending))">
             <div class="lq-alert lq-alert-warning">
                 <x-heroicon-o-exclamation-triangle />
-                <span>The code is live but these database changes have not been applied yet. Click <strong>Backup and run database update</strong> above.</span>
+                <span>The code is live but these database changes have not been applied yet. Open <a class="lq-link" href="{{ route('admin.updates') }}" wire:navigate>Updates</a> and click <strong>Update system</strong>, or use the button above.</span>
             </div>
             <ul class="mt-3 flex flex-col gap-1 text-sm">
                 @foreach ($pending as $migration)

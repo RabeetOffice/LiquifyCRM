@@ -11,7 +11,7 @@ use App\Modules\Brands\Models\Membership;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
-use App\Modules\System\Support\SystemStatus;
+use App\Modules\System\Support\SystemUpdater;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -60,7 +60,7 @@ final class AdminDashboard extends Component
             'agents' => $agents,
             'leadsThisMonth' => $leadsThisMonth,
             'leadsDelta' => $this->delta($leadsThisMonth, $leadsLastMonth),
-            'pendingMigrations' => app(SystemStatus::class)->pendingMigrationCount(),
+            'update' => SystemUpdater::flag(),
             'chart' => [
                 'labels' => $leadsByBrand->pluck('name')->all(),
                 'values' => $leadsByBrand->pluck('total')->map(fn ($value): int => (int) $value)->all(),

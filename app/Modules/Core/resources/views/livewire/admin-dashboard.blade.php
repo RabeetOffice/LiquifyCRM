@@ -33,9 +33,7 @@
         </x-ui.card>
 
         <div class="flex flex-col gap-6">
-            @if ($pendingMigrations !== null)
-                <x-ui.stat label="Database updates" :value="$pendingMigrations" icon="heroicon-o-circle-stack" :description="$pendingMigrations > 0 ? 'Open System to apply them' : 'Database is up to date'" :description-color="$pendingMigrations > 0 ? 'warning' : 'success'" :description-icon="$pendingMigrations > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle'" :href="route('admin.system')" link="Open System" />
-            @endif
+            <x-ui.stat label="LiquifyCRM version" :value="$update['version']" icon="heroicon-o-arrow-up-circle" :description="$update['available'] ? 'An update is ready to apply' : 'Up to date'" :description-color="$update['available'] ? 'warning' : 'success'" :description-icon="$update['available'] ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-circle'" :href="route('admin.updates')" :link="$update['available'] ? 'Update system' : 'See what changed'" />
 
             <x-ui.card title="Recent activity" description="Latest entries in the audit trail" flush>
                 @if ($activity->isEmpty())

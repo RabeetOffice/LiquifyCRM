@@ -4386,4 +4386,123 @@ a.lq-stat-hero:hover {
     color: var(--lq-orange-deep);
 }
 
+/* ---------------------------------------------------------------- updates */
+
+/* Bar under the top bar for Admins when new code waits to be applied. */
+.lq-updatebar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--lq-orange) 30%, transparent);
+    background: var(--lq-orange-tint);
+    color: var(--lq-ink);
+    font-size: 0.875rem;
+    animation: lq-fade 300ms ease-out;
+}
+
+@media (min-width: 768px) {
+    .lq-updatebar {
+        padding-inline: 1.5rem;
+    }
+}
+
+.lq-updatebar-icon {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--lq-orange-deep);
+}
+
+/* The "version X is ready" card on the Updates screen. */
+.lq-update {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: var(--lq-radius-card);
+    background:
+        radial-gradient(60% 140% at 100% 0%, color-mix(in srgb, var(--lq-orange) 22%, transparent), transparent 60%),
+        var(--lq-card);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px color-mix(in srgb, var(--lq-orange) 45%, var(--lq-card-border)), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-update-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+    box-shadow: 0 10px 22px -10px var(--lq-glow), inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.lq-update-mark svg {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.lq-update-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.lq-update-text {
+    margin: 0.1875rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--lq-ink-soft);
+}
+
+.lq-update-details {
+    margin-top: 0.625rem;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-update-details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--lq-orange-deep);
+}
+
+.lq-update-details ul {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.125rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+/* One line per change in a release: a kind badge and the sentence. */
+.lq-changes {
+    list-style: none;
+    margin: 0.875rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lq-changes li {
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--lq-ink-soft);
+}
+
+.lq-changes .lq-badge {
+    justify-self: start;
+}
+
 } /* @layer components */

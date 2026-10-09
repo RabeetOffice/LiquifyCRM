@@ -58,6 +58,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Agent in turn; it is called from `SendLeadToDepartment`, `CreateLead` and `DistributeLeads`.
 - Logs (`app/Modules/Activity`): `LogArchiver` writes daily archive files and is the only code that deletes from
   `activity_log`; entries on a lead's timeline are never deleted. Retention lives in `LogSettings` (spatie settings).
+- Updates (`app/Modules/System`): the site deploys itself when `main` is pushed, so what is left for an Admin is to
+  apply the new version. `resources/changelog.php` lists every release in plain words; its top entry is the code
+  version. `SystemUpdater` says an update is ready when that version differs from the installed one (the last
+  successful `DeploymentType::Update` row) or when migrations are pending; `/admin/updates` (`UpdatesPage`) shows
+  what changed and the "Update system" button, which backs up, migrates, clears the caches and records the
+  version inside the request (no queue, no scheduler). Admins see a bar on every screen until it is applied.
+  **Every push that changes what a person sees adds its lines to `resources/changelog.php`** (new version on top:
+  last number for fixes, middle number for features). Never cache config or routes on the server: a later
+  deploy would run against the stale cache.
 - Dashboard numbers go through `DashboardCache` (60 seconds, flushed by the lead events). After changing lead queries run
   `php artisan liquify:speed-check`.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in

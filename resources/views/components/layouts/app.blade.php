@@ -35,6 +35,7 @@
 
     <div class="lq-main">
         @include('partials.topbar')
+        @include('partials.update-bar')
 
         <main class="lq-content" id="main-content">
             {{ $slot }}

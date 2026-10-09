@@ -112,7 +112,8 @@ final class SystemStatus
     public function environment(): array
     {
         return [
-            'App version' => $this->version(),
+            'App version' => Changelog::latestVersion(),
+            'Build' => $this->version(),
             'Environment' => (string) app()->environment(),
             'Debug mode' => config('app.debug') ? 'On' : 'Off',
             'PHP' => PHP_VERSION,

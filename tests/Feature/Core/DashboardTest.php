@@ -19,7 +19,8 @@ it('shows the admin overview with cards and the add brand button', function (): 
         ->assertSee('Active brands')
         ->assertSee('Manage brands')
         ->assertSee('Add brand')
-        ->assertSee('Database is up to date');
+        ->assertSee('LiquifyCRM version')
+        ->assertSee('An update is ready to apply');
 });
 
 it('keeps Managers and Agents out of the admin area', function (): void {

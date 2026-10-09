@@ -81,7 +81,7 @@
                                 @svg($item['icon'], 'lq-side-icon')
                                 <span class="lq-side-label">{{ $item['label'] }}</span>
                                 @if ($item['badge'])
-                                    <span class="lq-side-badge"><span class="lq-badge lq-badge-primary">{{ $item['badge'] }}</span></span>
+                                    <span class="lq-side-badge" @if ($item['badge'] === 'New') data-update-flag @endif><span class="lq-badge lq-badge-primary">{{ $item['badge'] }}</span></span>
                                 @endif
                             </a>
                         </li>

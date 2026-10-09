@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+|--------------------------------------------------------------------------
+| What changed in LiquifyCRM, newest first
+|--------------------------------------------------------------------------
+| The Updates screen (Admins only) shows this list, and the newest version
+| here is the version of the code. After new code arrives on the server the
+| Admins see "an update is ready" until someone clicks Update system.
+|
+| Every change a person can see adds a line here, in plain words:
+|   new       something that was not there before
+|   improved  something that works or looks better
+|   fixed     something that was wrong
+|   removed   something that is gone
+| Raise the last number for fixes (1.3.1), the middle one for features (1.4.0).
+*/
+
+return [
+    [
+        'version' => '1.3.0',
+        'date' => '2026-10-09',
+        'title' => 'System updates and email providers',
+        'changes' => [
+            ['new', 'Updates screen for Admins: what changed in every version, and one button that applies a new version (database changes included) after new code arrives.'],
+            ['new', 'A bar at the top tells Admins when an update is ready. Managers and Agents never see it.'],
+            ['new', 'Email settings: choose your provider (Google, Microsoft 365, Hostinger, Titan, webmail, Zoho, Yahoo and more) and the server details fill themselves in, with what each provider asks for.'],
+        ],
+    ],
+    [
+        'version' => '1.2.0',
+        'date' => '2026-10-09',
+        'title' => 'A calmer, clearer LiquifyCRM',
+        'changes' => [
+            ['new', 'People screen in the admin area: add Admins, Managers and Agents from one form, with designation, department and monthly target.'],
+            ['new', 'Round robin: a department can give each new lead to the next Agent in turn. Set it on the Distribute leads screen.'],
+            ['new', 'Sales dashboard brand by brand, with a six-month revenue chart and a lead-source chart for Admins, Managers and Agents.'],
+            ['new', 'Integrations in three tabs: Facebook in three guided steps, Websites of every brand, and everything Received.'],
+            ['new', 'Live updates: the bell, dashboards, leads list and inbox refresh by themselves, and a new notification pops up.'],
+            ['improved', 'A new look in light and dark: more room, consistent corners, soft glass in dark mode, and gentle animations.'],
+            ['improved', 'Profile page with your photo, designation, role, brands and your numbers for the month.'],
+            ['improved', 'Add brand: paste the website link and the name and address fill themselves in.'],
+            ['improved', 'Admins now have the same control as Super Admins. A Super Admin still cannot be edited or removed by anyone else.'],
+            ['fixed', 'Dark mode stayed off after moving to another page.'],
+            ['fixed', 'The search box opened squeezed inside the top bar.'],
+            ['removed', 'The Exchange rates screen. Each brand is shown in its own currency.'],
+        ],
+    ],
+    [
+        'version' => '1.1.0',
+        'date' => '2026-10-09',
+        'title' => 'Sources and targets at a glance',
+        'changes' => [
+            ['new', 'A website lead shows its website icon and name as the source in the lead list, the pipeline and the dashboard queue.'],
+            ['new', 'Your target for the month on your Profile.'],
+            ['new', 'Admins can correct or remove a recorded sale from the client page.'],
+        ],
+    ],
+    [
+        'version' => '1.0.0',
+        'date' => '2026-10-08',
+        'title' => 'LiquifyCRM launches',
+        'changes' => [
+            ['new', 'Brands, departments, Managers and Agents, each seeing only their own leads.'],
+            ['new', 'Leads: list, pipeline, follow-ups, notes, import, and the New queue.'],
+            ['new', 'Leads from your websites, Facebook Lead Ads and Messenger, with an inbox to reply.'],
+            ['new', 'Sales, clients, monthly targets and a leaderboard.'],
+            ['new', 'Logs of everything that happened, with downloads and archives.'],
+        ],
+    ],
+];
