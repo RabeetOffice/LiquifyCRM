@@ -6438,6 +6438,49 @@ a.lq-boardbar-item:hover {
     overflow-wrap: anywhere;
 }
 
+/* Beside the chat: who has this lead (a choice for those who may assign), and what to do with it. */
+.lq-inbox-assign {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.lq-inbox-assign-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--lq-muted);
+}
+
+.lq-inbox-assign-label svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
+.lq-inbox-side-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: auto;
+}
+
+.lq-lead-heading-row {
+    justify-content: space-between;
+}
+
+.lq-lead-heading-row .lq-link {
+    letter-spacing: 0;
+    text-transform: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
 /* A thread fills the inbox pane; on the lead page it has a height of its own. */
 .lq-inbox-chat .lq-thread {
     flex: 1;

@@ -115,6 +115,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - The lead slide-over (`lead-sheet` partial) is always in the page and shown with `x-show="$wire.open !== null"`:
   a click sets `$wire.open` in the browser first, so it opens at once with a skeleton. Dialogs and slide-overs are
   solid (`--lq-panel`) and only the backdrop's dim fades: a blurred panel inside a blurred, fading backdrop flickers.
+- A lead's details (name, phone, email, company, address, service) are changed through `UpdateLeadDetails`; the
+  dialog is the `EditsLeadDetails` trait plus the `lead-details` partial, on `LeadPanel` and in the Inbox. Someone
+  who sees email and phone masked never gets them shown there. The Inbox assigns with `AssignLead` from its side
+  pane (a select) or, below 1440 px where that pane is hidden, from the two buttons in the thread's head.
+- A Messenger contact's name and picture come from `MetaGraph::contactProfile()` (asked again once a day, the
+  picture's address expires). Meta shares them only for people the app may see, and never a profile link.
 - A brand with a logo is a light tile ringed in its colour (`lq-avatar-logo`), the logo `contain`ed with padding.
   `Brand::primaryColor()` skips a colour that says nothing (near white or black) and falls back to the second one.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.

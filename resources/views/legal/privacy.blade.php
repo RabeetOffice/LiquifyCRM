@@ -29,7 +29,7 @@
     <ul>
         <li><strong>From a website form:</strong> what you typed (usually your name, email address, phone number and message), the page you were on, and the campaign tags in the link you followed. The website may also send your IP address and browser type; those stay only in a temporary record that is deleted within 30 days, not with your enquiry.</li>
         <li><strong>From a Facebook or Instagram lead form:</strong> the answers you gave in the form, and the names of the Page, the form, the ad and the campaign it came from.</li>
-        <li><strong>From Messenger:</strong> the messages you send to the business's Page and the replies you get, your name if Facebook shares it, and the ID Facebook gives you for that Page. We do not download attachments; we keep only the reference Facebook sends with the message.</li>
+        <li><strong>From Messenger:</strong> the messages you send to the business's Page and the replies you get, your name and profile picture if Facebook shares them, and the ID Facebook gives you for that Page. We do not download attachments; we keep only the reference Facebook sends with the message.</li>
         <li><strong>What the team adds</strong> while working on your enquiry: notes, follow-up tasks, its status and, if you buy, the amount and date of the sale.</li>
     </ul>
 

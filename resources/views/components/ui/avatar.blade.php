@@ -8,7 +8,8 @@
 {{-- A brand with a logo is a light tile in the brand's colour (`lq-avatar-logo`): the logo sits whole, with air around it. --}}
 <span {{ $attributes->class(['lq-avatar', 'lq-avatar-sm' => $size === 'sm', 'lq-avatar-xs' => $size === 'xs', 'lq-avatar-lg' => $size === 'lg', 'lq-avatar-brand' => $brand, 'lq-avatar-logo' => $brand && $src, 'lq-avatar-tone' => $toned, $toneClass]) }} @if ($brand && $color) style="--brand-color: {{ $color }}" @endif aria-hidden="true">
     @if ($src)
-        <img src="{{ $src }}" alt="">
+        {{-- A picture that no longer loads (a Messenger picture's address expires) gives way to the initials. --}}
+        <img src="{{ $src }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode(@js($initials !== '' ? $initials : '?')))">
     @else
         {{ $initials !== '' ? $initials : '?' }}
     @endif

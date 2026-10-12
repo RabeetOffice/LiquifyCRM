@@ -9,7 +9,7 @@
         @if ($inbox)
             <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-back" x-data x-on:click="$dispatch('inbox-back')" title="Back to the chats"><x-heroicon-o-arrow-left /></button>
         @endif
-        <x-ui.avatar :name="$conversation->displayName()" tone />
+        <x-ui.avatar :name="$conversation->displayName()" :src="$conversation->pictureUrl()" tone />
         <div class="min-w-0 flex-1">
             <span class="lq-cell-title truncate">{{ $conversation->displayName() }}</span>
             <span class="lq-cell-sub truncate">Messenger · {{ $conversation->source?->name ?? 'Page removed' }}</span>
@@ -18,6 +18,11 @@
             <x-ui.badge color="success" icon="heroicon-m-clock" title="Messenger lets you reply for 24 hours after this person's last message">Reply within {{ $ends->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'short' => true]) }}</x-ui.badge>
         @else
             <x-ui.badge color="warning" icon="heroicon-m-lock-closed">Reply window closed</x-ui.badge>
+        @endif
+        {{-- On a screen too narrow for the lead beside the chat, its two actions sit here. --}}
+        @if ($inbox)
+            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-assign')" title="Assign this chat"><x-heroicon-o-user-plus /></button>
+            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-details')" title="Edit details"><x-heroicon-o-pencil-square /></button>
         @endif
         @if ($leadUrl)
             <a href="{{ $leadUrl }}" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" title="Open lead" wire:navigate><x-heroicon-o-arrow-top-right-on-square /></a>

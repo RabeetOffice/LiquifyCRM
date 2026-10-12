@@ -120,16 +120,28 @@ final class MetaGraph
         }
     }
 
-    /** The Messenger contact's name. Meta does not always share it. */
-    public function contactName(MetaSource $page, string $psid): ?string
+    /**
+     * The Messenger contact's name and picture. Meta only shares them for
+     * people it lets the app see (everyone once the app has passed App Review,
+     * before that only people with a role on the app), so both may be null.
+     * It never shares a link to the person's profile.
+     *
+     * @return array{name: ?string, picture: ?string}
+     */
+    public function contactProfile(MetaSource $page, string $psid): array
     {
         try {
-            $profile = $this->get('/'.$psid, $this->pageToken($page), ['fields' => 'first_name,last_name']);
+            $profile = $this->get('/'.$psid, $this->pageToken($page), ['fields' => 'first_name,last_name,profile_pic']);
         } catch (MetaException) {
-            return null;
+            return ['name' => null, 'picture' => null];
         }
 
-        return trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')) ?: null;
+        $picture = (string) ($profile['profile_pic'] ?? '');
+
+        return [
+            'name' => trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')) ?: null,
+            'picture' => str_starts_with($picture, 'https://') ? $picture : null,
+        ];
     }
 
     /** Send a Messenger reply inside the 24-hour window. Returns Meta's message id. */

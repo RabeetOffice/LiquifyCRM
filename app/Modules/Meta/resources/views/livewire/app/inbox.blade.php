@@ -35,7 +35,7 @@
                         <li wire:key="chat-{{ $conversation->getKey() }}">
                             <button type="button" @class(['lq-inbox-item', 'lq-inbox-item-active' => $active, 'lq-inbox-item-unread' => $fresh]) wire:click="open({{ $conversation->getKey() }})" @if ($active) aria-current="true" @endif>
                                 <span class="lq-inbox-avatar">
-                                    <x-ui.avatar :name="$conversation->displayName()" tone />
+                                    <x-ui.avatar :name="$conversation->displayName()" :src="$conversation->pictureUrl()" tone />
                                     <span class="lq-inbox-channel"><x-ui.brand-icon name="messenger" /></span>
                                 </span>
                                 <span class="min-w-0 flex-1">
@@ -76,22 +76,40 @@
                 @php $lead = $selected->lead; @endphp
                 <aside class="lq-inbox-side" aria-label="Lead">
                     <div class="lq-inbox-side-hero">
-                        <x-ui.avatar :name="$lead->name" size="lg" tone />
+                        <x-ui.avatar :name="$lead->name" :src="$selected->pictureUrl()" size="lg" tone />
                         <h2 class="lq-inbox-side-name">{{ $lead->name }}</h2>
                         <x-ui.status-pill :status="$lead->status" />
                     </div>
 
-                    <dl class="lq-kv">
-                        <div>
-                            <dt>Owner</dt>
-                            <dd>
-                                @if ($lead->assignee)
-                                    <span class="lq-person"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="xs" /> {{ $lead->assignee->name }}</span>
-                                @else
-                                    <span class="lq-unassigned">Unassigned</span>
+                    {{-- Hand the chat to someone without leaving it. --}}
+                    @if ($canAssign)
+                        <label class="lq-inbox-assign">
+                            <span class="lq-inbox-assign-label"><x-heroicon-o-user-plus /> Assigned to</span>
+                            <select class="lq-input lq-input-sm" aria-label="Assign this lead to" wire:change="assignLead($event.target.value)" wire:key="assign-{{ $lead->getKey() }}-{{ $lead->assigned_to ?? 'none' }}" wire:loading.attr="disabled" wire:target="assignLead">
+                                <option value="" @selected($lead->assigned_to === null)>Nobody yet</option>
+                                @if ($lead->assignee && ! array_key_exists($lead->assigned_to, $agentOptions))
+                                    <option value="{{ $lead->assigned_to }}" selected disabled>{{ $lead->assignee->name }}</option>
                                 @endif
-                            </dd>
-                        </div>
+                                @foreach ($agentOptions as $id => $name)
+                                    <option value="{{ $id }}" @selected($lead->assigned_to === $id)>{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                    @endif
+
+                    <dl class="lq-kv">
+                        @unless ($canAssign)
+                            <div>
+                                <dt>Owner</dt>
+                                <dd>
+                                    @if ($lead->assignee)
+                                        <span class="lq-person"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="xs" /> {{ $lead->assignee->name }}</span>
+                                    @else
+                                        <span class="lq-unassigned">Unassigned</span>
+                                    @endif
+                                </dd>
+                            </div>
+                        @endunless
                         <div>
                             <dt>Department</dt>
                             <dd>{{ $lead->department?->name ?? 'Not sent yet' }}</dd>
@@ -108,6 +126,14 @@
                                 <dd class="break-all">{{ $fullContact ? $lead->email : $lead->maskedEmail() }}</dd>
                             </div>
                         @endif
+                        @foreach (\App\Modules\Leads\Actions\UpdateLeadDetails::EXTRAS as $key => $label)
+                            @if (filled($lead->fields[$key] ?? null))
+                                <div>
+                                    <dt>{{ $label }}</dt>
+                                    <dd class="whitespace-pre-line">{{ $lead->fields[$key] }}</dd>
+                                </div>
+                            @endif
+                        @endforeach
                         <div>
                             <dt>Follow-up</dt>
                             <dd><x-ui.due :at="$lead->next_follow_up_at" empty="None set" /></dd>
@@ -122,9 +148,37 @@
                         </div>
                     </dl>
 
-                    <x-ui.button block icon="heroicon-o-arrow-top-right-on-square" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead->getKey()])">Open lead</x-ui.button>
+                    <div class="lq-inbox-side-actions">
+                        @if ($canUpdate)
+                            <x-ui.button block icon="heroicon-o-pencil-square" wire:click="openDetails">Edit details</x-ui.button>
+                        @endif
+                        <x-ui.button block variant="ghost" icon="heroicon-o-arrow-top-right-on-square" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead->getKey()])">Open lead</x-ui.button>
+                        @if ($selected->facebookInboxUrl())
+                            <a href="{{ $selected->facebookInboxUrl() }}" class="lq-btn lq-btn-ghost lq-btn-block" target="_blank" rel="noopener noreferrer" title="Facebook does not share a link to a person's profile. Their profile is one click away in the Page's own inbox.">
+                                <x-ui.brand-icon name="facebook" /> Page inbox on Facebook
+                            </a>
+                        @endif
+                    </div>
                 </aside>
             @endif
         </div>
+
+        @include('leads::livewire.app.partials.lead-details')
+
+        <x-ui.modal model="showAssign" title="Assign this chat" description="The lead and its chat go to this person." size="sm">
+            <form wire:submit="assignFromDialog" class="lq-form" id="inbox-assign-form">
+                <x-ui.field label="Agent" name="assignTo">
+                    <x-ui.select wire:model="assignTo" name="assignTo" placeholder="Nobody yet">
+                        @foreach ($agentOptions as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </x-ui.select>
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showAssign', false)">Cancel</x-ui.button>
+                <x-ui.button type="submit" form="inbox-assign-form" variant="primary">Assign</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 </div>

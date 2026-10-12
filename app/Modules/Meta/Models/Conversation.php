@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $channel
  * @property string $contact_external_id
  * @property string|null $contact_name
+ * @property string|null $contact_picture
+ * @property CarbonImmutable|null $contact_synced_at
  * @property int|null $meta_source_id
  * @property CarbonImmutable|null $last_inbound_at
  * @property CarbonImmutable|null $last_message_at
@@ -53,10 +55,31 @@ class Conversation extends Model
     protected function casts(): array
     {
         return [
+            'contact_synced_at' => 'datetime',
             'last_inbound_at' => 'datetime',
             'last_message_at' => 'datetime',
             'unread_count' => 'integer',
         ];
+    }
+
+    /**
+     * The person's Messenger picture, when Facebook shared one. Read from the
+     * raw attributes so a server that has not run "Update system" yet (no
+     * such column) simply shows the initials.
+     */
+    public function pictureUrl(): ?string
+    {
+        $picture = $this->getAttributes()['contact_picture'] ?? null;
+
+        return is_string($picture) && $picture !== '' ? $picture : null;
+    }
+
+    /** The Page's own inbox at Facebook, where the person's profile can be seen. Meta gives no link to a profile. */
+    public function facebookInboxUrl(): ?string
+    {
+        $pageId = $this->source?->external_id;
+
+        return $pageId !== null ? 'https://business.facebook.com/latest/inbox/all?asset_id='.rawurlencode((string) $pageId) : null;
     }
 
     /** @return BelongsTo<Lead, $this> */

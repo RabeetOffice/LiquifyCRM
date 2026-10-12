@@ -19,6 +19,7 @@ use App\Modules\Leads\Actions\RevealLeadContact;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
 use App\Modules\Leads\Exceptions\RevealLimitReached;
+use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
@@ -45,6 +46,7 @@ use Livewire\Component;
 final class LeadPanel extends Component
 {
     use AuthorizesRequests;
+    use EditsLeadDetails;
     use HandlesLeadUndo;
     use WithConfirmation;
 
@@ -382,6 +384,11 @@ final class LeadPanel extends Component
     private function lead(): Lead
     {
         return Lead::query()->findOrFail($this->leadId);
+    }
+
+    protected function detailsLead(): Lead
+    {
+        return $this->lead();
     }
 
     private function changed(): void

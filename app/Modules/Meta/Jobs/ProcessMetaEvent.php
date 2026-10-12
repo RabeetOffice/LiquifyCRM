@@ -22,6 +22,7 @@ use App\Modules\Sites\Support\SiteLeadNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -170,11 +171,12 @@ final class ProcessMetaEvent implements ShouldQueue
                 'brand_id' => $brand->getKey(),
                 'channel' => Conversation::CHANNEL_MESSENGER,
                 'contact_external_id' => $psid,
-                'contact_name' => $graph->contactName($page, $psid),
                 'meta_source_id' => $page->getKey(),
             ]);
             $conversation->setRelation('lead', null);
         }
+
+        $this->syncProfile($conversation, $page, $psid, $graph);
 
         $lead = $conversation->lead;
         $newLead = false;
@@ -228,5 +230,43 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         return $lead;
+    }
+
+    /**
+     * The person's name and picture from Facebook, asked for on the first
+     * message and again once a day (the picture's address expires). A name
+     * the team typed in by hand is never replaced; a lead still called
+     * "Messenger contact" takes the real name when Facebook shares it.
+     */
+    private function syncProfile(Conversation $conversation, MetaSource $page, string $psid, MetaGraph $graph): void
+    {
+        // Until "Update system" has added the two columns, only the name is kept, as before.
+        static $ready = null;
+        $ready ??= Schema::hasColumn('conversations', 'contact_picture');
+
+        $synced = $ready ? $conversation->getAttribute('contact_synced_at') : null;
+
+        if ($synced !== null && CarbonImmutable::parse($synced)->gt(now()->subDay())) {
+            return;
+        }
+
+        if (! $ready && $conversation->contact_name !== null) {
+            return;
+        }
+
+        $profile = $graph->contactProfile($page, $psid);
+        $named = $conversation->contact_name === null && $profile['name'] !== null;
+
+        $conversation->forceFill(array_filter([
+            'contact_name' => $named ? $profile['name'] : $conversation->contact_name,
+            'contact_picture' => $ready ? $profile['picture'] : null,
+            'contact_synced_at' => $ready ? now() : null,
+        ], fn (mixed $value): bool => $value !== null))->save();
+
+        $lead = $conversation->lead;
+
+        if ($named && $lead !== null && $lead->name === 'Messenger contact') {
+            $lead->forceFill(['name' => $profile['name']])->save();
+        }
     }
 }

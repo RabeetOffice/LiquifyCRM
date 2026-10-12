@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Livewire\App;
 
+use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Livewire\Concerns\WithToasts;
+use App\Modules\Leads\Actions\AssignLead;
+use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
+use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Meta\Models\Conversation;
 use Illuminate\Contracts\View\View;
@@ -19,13 +25,17 @@ use Livewire\Component;
 /**
  * Inbox: Messenger threads of the leads a person may see (Admins all,
  * Managers their departments, Agents their own), newest first, in three
- * panes: the chats, the open thread, and the lead it belongs to.
+ * panes: the chats, the open thread, and the lead it belongs to. From the
+ * third pane the lead can be handed to an Agent and its details filled in
+ * without leaving the chat.
  */
 #[Layout('components.layouts.app')]
 #[Title('Inbox')]
 final class Inbox extends Component
 {
     use AuthorizesRequests;
+    use EditsLeadDetails;
+    use WithToasts;
 
     public Brand $brand;
 
@@ -38,6 +48,10 @@ final class Inbox extends Component
     /** all, unread, or open (chats that can still be answered). */
     #[Url(except: 'all')]
     public string $filter = 'all';
+
+    public bool $showAssign = false;
+
+    public string $assignTo = '';
 
     public function mount(Brand $brand): void
     {
@@ -63,9 +77,87 @@ final class Inbox extends Component
         // Re-render so the list shows the reply that was just sent.
     }
 
+    /** The two buttons in the head of the thread, for screens too narrow to show the lead beside the chat. */
+    #[On('inbox-assign')]
+    public function openAssign(): void
+    {
+        $lead = $this->detailsLead();
+
+        if ($lead === null) {
+            return;
+        }
+
+        if (! $this->user()->can('assign', $lead)) {
+            $this->toastWarning('Only a Manager or an Admin can assign a lead');
+
+            return;
+        }
+
+        $this->assignTo = (string) ($lead->assigned_to ?? '');
+        $this->showAssign = true;
+    }
+
+    public function assignFromDialog(): void
+    {
+        $this->assignLead($this->assignTo);
+        $this->showAssign = false;
+    }
+
+    #[On('inbox-details')]
+    public function editDetails(): void
+    {
+        $lead = $this->detailsLead();
+
+        if ($lead !== null && ! $this->user()->can('update', $lead)) {
+            $this->toastWarning('You cannot change this lead');
+
+            return;
+        }
+
+        $this->openDetails();
+    }
+
+    /** Hand the lead of the open chat to an Agent (or back to the queue with ""), without leaving the chat. */
+    public function assignLead(string $agentId): void
+    {
+        $lead = $this->detailsLead();
+
+        if ($lead === null) {
+            return;
+        }
+
+        $this->authorize('assign', $lead);
+
+        $user = $this->user();
+        $agent = null;
+
+        if ($agentId !== '') {
+            abort_unless(array_key_exists((int) $agentId, app(AssignableAgents::class)->for($user, $this->brand)), 403);
+            $agent = User::query()->findOrFail((int) $agentId);
+        }
+
+        if ($lead->assigned_to === $agent?->getKey()) {
+            return;
+        }
+
+        app(AssignLead::class)->handle($lead, $agent, $user);
+
+        $this->toastSuccess($agent !== null ? 'Assigned to '.$agent->name : 'Returned to the queue');
+    }
+
+    /** The lead behind the open chat, when this person may see it. */
+    protected function detailsLead(): ?Lead
+    {
+        if ($this->chat === '') {
+            return null;
+        }
+
+        return Conversation::query()->visibleTo($this->user())->with('lead')->find((int) $this->chat)?->lead;
+    }
+
     public function render(): View
     {
-        $user = auth()->user();
+        $user = $this->user();
         $like = '%'.$this->search.'%';
         $replyableSince = now()->subHours(Conversation::REPLY_WINDOW_HOURS);
         $visible = fn (): Builder => Conversation::query()->visibleTo($user);
@@ -88,12 +180,26 @@ final class Inbox extends Component
             $selected = $visible()->with(['lead.status', 'lead.assignee', 'lead.department', 'source'])->find((int) $this->chat);
         }
 
+        $lead = $selected?->lead;
+        $canAssign = $lead !== null && $user->can('assign', $lead);
+
         return view('meta::livewire.app.inbox', [
             'conversations' => $conversations,
             'selected' => $selected,
             'total' => $visible()->count(),
             'unread' => $visible()->where('unread_count', '>', 0)->count(),
-            'fullContact' => $selected?->lead !== null && app(ContactVisibility::class)->canSeeFull($user, $selected->lead),
+            'fullContact' => $lead !== null && app(ContactVisibility::class)->canSeeFull($user, $lead),
+            'canAssign' => $canAssign,
+            'canUpdate' => $lead !== null && $user->can('update', $lead),
+            'agentOptions' => $canAssign ? app(AssignableAgents::class)->for($user, $this->brand) : [],
         ]);
+    }
+
+    private function user(): User
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        return $user;
     }
 }

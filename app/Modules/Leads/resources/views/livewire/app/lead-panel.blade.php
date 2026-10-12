@@ -169,7 +169,12 @@
         </section>
 
         <section class="lq-lead-section">
-            <h3 class="lq-lead-heading">Details</h3>
+            <h3 class="lq-lead-heading lq-lead-heading-row">
+                Details
+                @if ($can['update'])
+                    <button type="button" class="lq-link text-xs" wire:click="openDetails">Edit details</button>
+                @endif
+            </h3>
             <dl class="lq-kv">
                 <div>
                     <dt>Owner</dt>
@@ -193,6 +198,18 @@
                     <dt>Service</dt>
                     <dd>{{ $lead->fields['service'] ?? '—' }}</dd>
                 </div>
+                @if (filled($lead->fields['company'] ?? null))
+                    <div>
+                        <dt>Company</dt>
+                        <dd>{{ $lead->fields['company'] }}</dd>
+                    </div>
+                @endif
+                @if (filled($lead->fields['address'] ?? null))
+                    <div>
+                        <dt>Address</dt>
+                        <dd class="whitespace-pre-line">{{ $lead->fields['address'] }}</dd>
+                    </div>
+                @endif
             </dl>
         </section>
 
@@ -332,6 +349,8 @@
     </div>
 
     {{-- Modals --}}
+    @include('leads::livewire.app.partials.lead-details')
+
     <x-ui.modal model="showAssign" :title="$lead->assigned_to ? 'Reassign lead' : 'Assign lead'" size="sm">
         <form wire:submit="assign" class="lq-form" id="assign-form">
             <x-ui.field label="Agent" name="assignTo" required>

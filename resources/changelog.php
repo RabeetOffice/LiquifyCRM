@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.10.0',
+        'date' => '2026-10-12',
+        'title' => 'Work a chat without leaving it',
+        'changes' => [
+            ['new', 'Inbox: assign the lead of a chat to an Agent right beside the conversation, or take it back.'],
+            ['new', 'Inbox and every lead: "Edit details" keeps what the person tells you (name, phone, email, company, address, the service they want). It stays on the lead and goes with it when it becomes a client.'],
+            ['new', 'A chat shows the person\'s Messenger name and picture when Facebook shares them, and a lead still called "Messenger contact" takes the real name by itself.'],
+            ['new', 'A link from the chat to the Page\'s own inbox on Facebook, where the person\'s profile can be seen (Facebook gives no link to a profile).'],
+            ['improved', 'On a narrower screen, where the lead does not fit beside the chat, assign and edit sit in the head of the conversation.'],
+        ],
+    ],
+    [
         'version' => '1.9.0',
         'date' => '2026-10-12',
         'title' => 'Live updates, a lead panel that opens at once, clearer brand logos',
