@@ -44,6 +44,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   (`AuthenticatorResetController`, `ResetPasswordWithAuthenticator`) takes the email, the authenticator code and a new
   password. The code is the only proof there, so keep its guards: wrong tries counted per email and per address, one
   answer for every reason, an audit line and a notice to the person, and never sign anybody in from that screen.
+- Public pages (user request, 12 Oct 2026): `/privacy` and `/data-deletion` (`resources/views/legal`, layout
+  `x-layouts.legal`, linked under every guest card). No sign-in; the Meta app's settings point at both. The name and
+  contact address come from `config('liquify.legal')`. They state what the app stores and for how long, so when
+  that changes (a new source, a retention setting, a new outside service) change the pages and their `updated` date.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

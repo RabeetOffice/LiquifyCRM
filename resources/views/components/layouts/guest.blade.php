@@ -31,6 +31,11 @@
         </a>
 
         {{ $slot }}
+
+        <nav class="lq-guest-foot" aria-label="More pages">
+            <a href="{{ route('legal.privacy') }}">Privacy policy</a>
+            <a href="{{ route('legal.data-deletion') }}">Delete your data</a>
+        </nav>
     </main>
 
     <x-ui.toasts />

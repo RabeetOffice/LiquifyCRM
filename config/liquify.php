@@ -82,6 +82,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public pages (privacy policy, delete your data)
+    |--------------------------------------------------------------------------
+    | Who runs this installation and where privacy requests go. Both are shown
+    | on /privacy and /data-deletion, the two addresses the Meta app links to.
+    | Change "updated" whenever the wording of either page changes.
+    */
+    'legal' => [
+        'name' => env('LIQUIFY_LEGAL_NAME', 'LiquifyCRM'),
+        'email' => env('LIQUIFY_LEGAL_EMAIL', 'rabeet0846551@gmail.com'),
+        'facebook_app' => env('LIQUIFY_LEGAL_FACEBOOK_APP', 'LiquifyCRM Leads'),
+        'updated' => '2026-10-12',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Brand palette (Liquify Orange)
     |--------------------------------------------------------------------------
     | Exact values from the design section of the architecture document.

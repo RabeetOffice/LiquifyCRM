@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.8.0',
+        'date' => '2026-10-12',
+        'title' => 'Privacy policy and "Delete your data" pages',
+        'changes' => [
+            ['new', 'A public privacy policy at /privacy: what is collected from website forms, Facebook lead forms and Messenger, what it is used for, who sees it and how long it is kept.'],
+            ['new', 'A public "Delete your data" page at /data-deletion: how anyone can ask for their information to be removed, and how to disconnect Facebook.'],
+            ['new', 'Both pages are linked under the sign-in card, and are the addresses the Facebook app points to.'],
+        ],
+    ],
+    [
         'version' => '1.7.0',
         'date' => '2026-10-12',
         'title' => 'Forgot your password? Reset it with your authenticator app',

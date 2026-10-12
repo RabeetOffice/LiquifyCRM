@@ -47,6 +47,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/b')->name('home');
 
+// Public reading pages: anyone may open them, and the Meta app links to both.
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/data-deletion', 'legal.data-deletion')->name('legal.data-deletion');
+
 Route::middleware(['auth', 'two-factor'])->group(function (): void {
     Route::get('/profile', Profile::class)->name('profile');
     Route::get('/profile/security', ProfileSecurity::class)->name('profile.security');
