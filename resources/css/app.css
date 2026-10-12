@@ -4197,13 +4197,13 @@ a.lq-stat-hero:hover {
 
 /* A page arrives top to bottom: each block rises a little after the one above. */
 .lq-content > * {
-    animation: lq-rise 420ms var(--lq-ease) backwards;
+    animation: lq-rise 280ms var(--lq-ease) backwards;
 }
 
-.lq-content > *:nth-child(2) { animation-delay: 50ms; }
-.lq-content > *:nth-child(3) { animation-delay: 100ms; }
-.lq-content > *:nth-child(4) { animation-delay: 150ms; }
-.lq-content > *:nth-child(n + 5) { animation-delay: 200ms; }
+.lq-content > *:nth-child(2) { animation-delay: 30ms; }
+.lq-content > *:nth-child(3) { animation-delay: 60ms; }
+.lq-content > *:nth-child(4) { animation-delay: 90ms; }
+.lq-content > *:nth-child(n + 5) { animation-delay: 120ms; }
 
 /* Screens whose root is one flex column: stagger their blocks instead. */
 .lq-content > .flex.flex-col:only-child {
@@ -4211,16 +4211,16 @@ a.lq-stat-hero:hover {
 }
 
 .lq-content > .flex.flex-col:only-child > *:not(.lq-sheet-backdrop):not(.lq-modal-backdrop) {
-    animation: lq-rise 420ms var(--lq-ease) backwards;
+    animation: lq-rise 280ms var(--lq-ease) backwards;
 }
 
-.lq-content > .flex.flex-col:only-child > *:nth-child(2) { animation-delay: 50ms; }
-.lq-content > .flex.flex-col:only-child > *:nth-child(3) { animation-delay: 100ms; }
-.lq-content > .flex.flex-col:only-child > *:nth-child(4) { animation-delay: 150ms; }
-.lq-content > .flex.flex-col:only-child > *:nth-child(n + 5) { animation-delay: 200ms; }
+.lq-content > .flex.flex-col:only-child > *:nth-child(2) { animation-delay: 30ms; }
+.lq-content > .flex.flex-col:only-child > *:nth-child(3) { animation-delay: 60ms; }
+.lq-content > .flex.flex-col:only-child > *:nth-child(4) { animation-delay: 90ms; }
+.lq-content > .flex.flex-col:only-child > *:nth-child(n + 5) { animation-delay: 120ms; }
 
 .lq-grid-stats > * {
-    animation: lq-rise 460ms var(--lq-ease) backwards;
+    animation: lq-rise 300ms var(--lq-ease) backwards;
 }
 
 .lq-grid-stats > *:nth-child(2) { animation-delay: 60ms; }
@@ -6746,7 +6746,7 @@ a.lq-boardbar-item:hover {
 }
 
 .lq-minis > * {
-    animation: lq-rise 460ms var(--lq-ease) backwards;
+    animation: lq-rise 300ms var(--lq-ease) backwards;
 }
 
 .lq-minis > *:nth-child(2) { animation-delay: 50ms; }

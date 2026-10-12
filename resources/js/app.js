@@ -1,7 +1,9 @@
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
-import Chart from 'chart.js/auto';
 
-window.Chart = Chart;
+// The chart library is as large as the rest of the app together and only a few screens draw charts,
+// so it is fetched the first time a chart appears instead of on every page.
+let chartLibrary = null;
+const loadChart = () => (chartLibrary ??= import('chart.js/auto').then((module) => module.default));
 
 const tokens = () => {
     const style = getComputedStyle(document.documentElement);
@@ -110,7 +112,13 @@ Alpine.data('chart', (config) => {
     let retheme = null;
 
     return {
-    init() {
+    async init() {
+        const Chart = await loadChart();
+        const canvas = this.$refs.canvas;
+
+        // The screen may have moved on while the library was on its way.
+        if (! canvas?.isConnected) return;
+
         const palette = tokens();
         Chart.defaults.color = palette.muted;
         Chart.defaults.borderColor = palette.hairline;
@@ -119,7 +127,6 @@ Alpine.data('chart', (config) => {
         Chart.defaults.animation.duration = 700;
         Chart.defaults.animation.easing = 'easeOutCubic';
 
-        const canvas = this.$refs.canvas;
         const height = canvas.parentElement?.clientHeight || 260;
         const datasets = config.data?.datasets ?? [];
 
@@ -221,7 +228,7 @@ Alpine.data('copy', (value) => ({
 // After a page has settled, rows that arrive later (live updates) are highlighted.
 const markReady = () => {
     document.body.classList.remove('lq-ready');
-    setTimeout(() => document.body.classList.add('lq-ready'), 900);
+    setTimeout(() => document.body.classList.add('lq-ready'), 600);
 };
 
 // A row or two that join a live list are lit for a moment. A whole new set of rows

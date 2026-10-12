@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.10.1',
+        'date' => '2026-10-12',
+        'title' => 'Quicker from screen to screen',
+        'changes' => [
+            ['improved', 'A screen in the menu starts loading the moment the mouse is over its name, so it is there when you click.'],
+            ['improved', 'Screens settle in faster after they open.'],
+            ['improved', 'The app itself is a third smaller to load: the part that draws charts is only fetched on screens with a chart.'],
+        ],
+    ],
+    [
         'version' => '1.10.0',
         'date' => '2026-10-12',
         'title' => 'Work a chat without leaving it',

@@ -35,7 +35,7 @@
 
             <div class="lq-menu lq-menu-pop" style="inset-inline: 0.875rem; top: calc(100% - 0.375rem);" x-show="open" x-cloak role="menu">
                 @if ($isAdmin)
-                    <a href="{{ route('admin.dashboard') }}" class="lq-menu-item" role="menuitem" wire:navigate>
+                    <a href="{{ route('admin.dashboard') }}" class="lq-menu-item" role="menuitem" wire:navigate.hover>
                         <span class="lq-avatar lq-avatar-sm lq-avatar-brand lq-avatar-all"><x-heroicon-m-squares-2x2 /></span>
                         <span class="min-w-0 flex-1">
                             <span class="block truncate">All brands</span>
@@ -51,7 +51,7 @@
                 @endif
 
                 @foreach ($brands as $item)
-                    <a href="{{ $item->url() }}" class="lq-menu-item" role="menuitem" wire:navigate>
+                    <a href="{{ $item->url() }}" class="lq-menu-item" role="menuitem" wire:navigate.hover>
                         <x-ui.avatar :name="$item->name" :src="$item->avatarUrl()" :color="$item->primaryColor()" size="sm" brand />
                         <span class="flex-1 truncate">{{ $item->name }}</span>
                         @if ($brand !== null && $item->is($brand))
@@ -77,7 +77,7 @@
                 <ul class="lq-side-items">
                     @foreach ($group['items'] as $item)
                         <li @class(['lq-side-item', 'lq-active' => $item['active']])>
-                            <a href="{{ $item['url'] }}" class="lq-side-link" @if ($item['active']) aria-current="page" @endif title="{{ $item['label'] }}" x-on:click="$store.sidebar.closeMobile()" wire:navigate>
+                            <a href="{{ $item['url'] }}" class="lq-side-link" @if ($item['active']) aria-current="page" @endif title="{{ $item['label'] }}" x-on:click="$store.sidebar.closeMobile()" wire:navigate.hover>
                                 @svg($item['icon'], 'lq-side-icon')
                                 <span class="lq-side-label">{{ $item['label'] }}</span>
                                 @if ($item['badge'])

@@ -115,6 +115,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - The lead slide-over (`lead-sheet` partial) is always in the page and shown with `x-show="$wire.open !== null"`:
   a click sets `$wire.open` in the browser first, so it opens at once with a skeleton. Dialogs and slide-overs are
   solid (`--lq-panel`) and only the backdrop's dim fades: a blurred panel inside a blurred, fading backdrop flickers.
+- Speed (measured on the live site, 12 Oct 2026): the server answers in 25 to 160 ms, but one round trip from the
+  user's network costs about 270 ms, so what counts is fewer round trips and showing something before the answer
+  comes. Sidebar links are `wire:navigate.hover` (the page is fetched on hover; only for screens whose GET changes
+  nothing, never a chat link, which marks the chat read). Chart.js is a separate chunk, imported by the `chart`
+  Alpine component on first use. Keep the page-enter animation short (280 ms).
 - A lead's details (name, phone, email, company, address, service) are changed through `UpdateLeadDetails`; the
   dialog is the `EditsLeadDetails` trait plus the `lead-details` partial, on `LeadPanel` and in the Inbox. Someone
   who sees email and phone masked never gets them shown there. The Inbox assigns with `AssignLead` from its side
