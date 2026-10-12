@@ -40,6 +40,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Admin, only a Super Admin can make another one, and the last one cannot be removed. Admins and Super
   Admins add Admins, Managers and Agents on `/admin/people` (`PeopleIndex`, `PersonForm`); people carry a
   `designation`.
+- Forgotten password (user request, 12 Oct 2026): besides Fortify's emailed link, `/forgot-password/authenticator`
+  (`AuthenticatorResetController`, `ResetPasswordWithAuthenticator`) takes the email, the authenticator code and a new
+  password. The code is the only proof there, so keep its guards: wrong tries counted per email and per address, one
+  answer for every reason, an audit line and a notice to the person, and never sign anybody in from that screen.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

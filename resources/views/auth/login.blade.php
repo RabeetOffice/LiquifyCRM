@@ -6,7 +6,7 @@
         </div>
 
         @if (session('status'))
-            <div class="lq-alert lq-alert-warning" role="status">
+            <div @class(['lq-alert', session('status_type') === 'success' ? 'lq-alert-success' : 'lq-alert-warning']) role="status">
                 <x-heroicon-o-information-circle />
                 <span>{{ session('status') }}</span>
             </div>

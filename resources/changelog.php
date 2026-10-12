@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.7.0',
+        'date' => '2026-10-12',
+        'title' => 'Forgot your password? Reset it with your authenticator app',
+        'changes' => [
+            ['new', 'On "Forgot password" there is a second way: type the 6-digit code from your authenticator app and choose a new password, without waiting for an email. It works for everyone who has set up an authenticator app.'],
+            ['new', 'After such a reset you get a notification and an email, and the logs show it, so a reset that was not yours does not go unnoticed. Five wrong codes close this way for an hour.'],
+        ],
+    ],
+    [
         'version' => '1.6.1',
         'date' => '2026-10-12',
         'title' => 'Logs are for Admins only',

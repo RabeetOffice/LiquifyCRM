@@ -22,6 +22,10 @@
             <x-ui.button type="submit" variant="primary" block>Email me a reset link</x-ui.button>
         </form>
 
+        <p class="lq-hint text-center">
+            Have an authenticator app? <a href="{{ route('password.authenticator') }}" class="lq-link">Reset with its code instead</a>
+        </p>
+
         <p class="lq-hint text-center"><a href="{{ route('login') }}" class="lq-link">Back to sign in</a></p>
     </div>
 </x-layouts.guest>
