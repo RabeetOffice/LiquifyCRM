@@ -1,51 +1,86 @@
+@php use App\Modules\Sales\Support\Money; @endphp
 <div class="flex flex-col gap-6">
-    <x-ui.page-header title="Clients" subtitle="Everyone who has bought from this brand, by lifetime value. A repeat purchase joins the same client." />
+    <x-ui.page-header title="Clients" subtitle="Everyone who has bought from this brand. A repeat purchase joins the same client." />
 
-    <x-ui.card flush>
-        <div class="lq-toolbar">
-            <div class="relative w-full sm:w-72">
-                <x-heroicon-o-magnifying-glass class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 lq-muted" />
-                <input type="search" wire:model.live.debounce.300ms="search" class="lq-input lq-input-sm" style="padding-inline-start: 2.25rem" placeholder="Search by name, email or phone…">
-            </div>
+    @if ($summary['clients'] > 0)
+        <div class="lq-minis">
+            <x-ui.mini label="Clients" :value="number_format($summary['clients'])" icon="heroicon-o-user-group" />
+            <x-ui.mini label="Lifetime value" :value="Money::format($summary['value'], $brand->currency)" icon="heroicon-o-banknotes" />
+            <x-ui.mini label="Average per client" :value="Money::format(round($summary['average']), $brand->currency)" icon="heroicon-o-scale" />
+            <x-ui.mini label="Bought again" :value="$summary['returning'].' of '.$summary['clients']" icon="heroicon-o-arrow-path" hint="Clients with more than one sale" />
         </div>
+    @endif
 
-        @if ($clients->isEmpty())
+    <x-ui.card flush class="lq-list">
+        @if ($summary['clients'] === 0)
             <x-ui.empty title="No clients yet" description="A lead becomes a client when its first sale is recorded with Mark as Won." icon="heroicon-o-user-group">
                 <x-slot:actions>
                     <x-ui.button variant="secondary" :href="route('brand.leads.index', ['brand' => $brand->slug])">Open Leads</x-ui.button>
                 </x-slot:actions>
             </x-ui.empty>
         @else
-            <div class="lq-table-wrap">
-                <table class="lq-table">
-                    <thead>
-                        <tr>
-                            <x-ui.sort-th field="name" :sort="$sort" :direction="$direction" label="Client" />
-                            <th>Contact</th>
-                            <x-ui.sort-th field="sales_count" :sort="$sort" :direction="$direction" label="Sales" align="end" />
-                            <x-ui.sort-th field="lifetime_value" :sort="$sort" :direction="$direction" label="Lifetime value" align="end" />
-                            <x-ui.sort-th field="last_sale_at" :sort="$sort" :direction="$direction" label="Last sale" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($clients as $client)
-                            <tr wire:key="client-{{ $client->getKey() }}">
-                                <td>
-                                    <div class="flex items-center gap-3">
-                                        <x-ui.avatar :name="$client->name" size="sm" tone />
-                                        <a href="{{ route('brand.clients.show', ['brand' => $brand->slug, 'client' => $client]) }}" class="lq-cell-title" wire:navigate>{{ $client->name }}</a>
-                                    </div>
-                                </td>
-                                <td class="lq-muted">{{ $client->email ?? $client->phone ?? '—' }}</td>
-                                <td class="lq-table-end lq-num">{{ $client->sales_count }}</td>
-                                <td class="lq-table-end lq-num">{{ \App\Modules\Sales\Support\Money::format($client->lifetime_value, $brand->currency) }}</td>
-                                <td class="lq-muted">{{ $client->last_sale_at?->format('j M Y') ?? '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            {{-- The order of the list as views, search beside them. --}}
+            <div class="lq-viewbar">
+                <div class="lq-views" role="tablist" aria-label="Order of the list">
+                    @foreach ($orders as $key => [, , $label])
+                        <button type="button" @class(['lq-view', 'lq-view-active' => $order === $key]) wire:click="order('{{ $key }}')" role="tab" aria-selected="{{ $order === $key ? 'true' : 'false' }}">{{ $label }}</button>
+                    @endforeach
+                </div>
+                <div class="lq-viewbar-end">
+                    <label class="lq-search">
+                        <x-heroicon-o-magnifying-glass />
+                        <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, email or phone" aria-label="Search clients">
+                    </label>
+                </div>
             </div>
-            {{ $clients->links('pagination.lq') }}
+
+            @if ($clients->isEmpty())
+                <x-ui.empty title="No client matches" description="Try another name, email or phone." icon="heroicon-o-magnifying-glass">
+                    <x-slot:actions>
+                        <x-ui.button variant="secondary" wire:click="$set('search', '')">Clear search</x-ui.button>
+                    </x-slot:actions>
+                </x-ui.empty>
+            @else
+                <div class="lq-table-wrap">
+                    <table class="lq-table lq-table-rows">
+                        <thead>
+                            <tr>
+                                <x-ui.sort-th field="name" :sort="$sort" :direction="$direction" label="Client" />
+                                <x-ui.sort-th field="sales_count" :sort="$sort" :direction="$direction" label="Sales" align="end" />
+                                <x-ui.sort-th field="lifetime_value" :sort="$sort" :direction="$direction" label="Lifetime value" align="end" />
+                                <x-ui.sort-th field="first_sale_at" :sort="$sort" :direction="$direction" label="Client since" class="lq-col-wide" />
+                                <x-ui.sort-th field="last_sale_at" :sort="$sort" :direction="$direction" label="Last sale" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($clients as $client)
+                                {{-- The whole row opens the client; the name is the real link. --}}
+                                <tr wire:key="client-{{ $client->getKey() }}" class="lq-row-click" x-data x-on:click="$event.target.closest('a') || $el.querySelector('a.lq-cell-title').click()">
+                                    <td class="lq-td-person">
+                                        <span class="lq-person">
+                                            <x-ui.avatar :name="$client->name" tone />
+                                            <span class="min-w-0">
+                                                <a href="{{ route('brand.clients.show', ['brand' => $brand->slug, 'client' => $client]) }}" class="lq-cell-title" wire:navigate>{{ $client->name }}</a>
+                                                <span class="lq-cell-sub">{{ $client->email ?? $client->phone ?? 'No contact details' }}</span>
+                                            </span>
+                                        </span>
+                                    </td>
+                                    <td class="lq-table-end lq-num">{{ $client->sales_count }}</td>
+                                    <td class="lq-table-end">
+                                        <span class="lq-worth">
+                                            <span class="lq-worth-value lq-tabular">{{ Money::format($client->lifetime_value, $brand->currency) }}</span>
+                                            <span class="lq-worth-bar"><span style="width: {{ $summary['top'] > 0 ? max(4, (int) round((float) $client->lifetime_value / $summary['top'] * 100)) : 0 }}%"></span></span>
+                                        </span>
+                                    </td>
+                                    <td class="lq-muted whitespace-nowrap lq-col-wide">{{ $client->first_sale_at?->format('j M Y') ?? '—' }}</td>
+                                    <td class="whitespace-nowrap" title="{{ $client->last_sale_at?->format('j M Y') }}">{{ $client->last_sale_at?->diffForHumans() ?? '—' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                {{ $clients->links('pagination.lq') }}
+            @endif
         @endif
     </x-ui.card>
 </div>

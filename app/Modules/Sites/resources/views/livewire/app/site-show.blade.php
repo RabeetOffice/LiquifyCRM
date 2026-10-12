@@ -1,7 +1,39 @@
+@php
+    // What the mark of a check looks like, by its result.
+    $marks = [
+        'ok' => 'heroicon-m-check-circle',
+        'warn' => 'heroicon-m-exclamation-triangle',
+        'fail' => 'heroicon-m-x-circle',
+    ];
+
+    $state = $site->health_status->value;
+
+    [$connection, $connectionTone] = match ($site->connectionState()) {
+        'connected' => ['Connected', 'ok'],
+        'quiet' => ['Quiet for '.(int) config('liquify.sites.quiet_hours', 48).' hours', 'warn'],
+        'paused' => ['Paused', 'quiet'],
+        default => ['Waiting for the first lead', 'quiet'],
+    };
+@endphp
 <div class="flex flex-col gap-6">
-    <x-ui.page-header :title="$site->name" :subtitle="$site->domain" :breadcrumbs="['Websites' => route('brand.sites.index', ['brand' => $brand->slug]), $site->name => null]">
-        <x-slot:actions>
-            @if ($canManage)
+    <nav class="lq-crumbbar" aria-label="Breadcrumb">
+        <x-ui.button size="sm" variant="ghost" icon="heroicon-o-arrow-left" :href="route('brand.sites.index', ['brand' => $brand->slug])">Websites</x-ui.button>
+        <span class="lq-muted" aria-hidden="true">/</span>
+        <span class="truncate">{{ $site->name }}</span>
+    </nav>
+
+    <header class="lq-lead-hero lq-hero-wrap">
+        <x-sites::favicon :site="$site" class="lq-site-icon-xl" />
+        <div class="min-w-0 flex-1">
+            <h1 class="lq-lead-name lq-lead-name-page">{{ $site->name }}</h1>
+            <div class="lq-lead-meta">
+                <a href="{{ $site->url }}" target="_blank" rel="noopener noreferrer" class="lq-site-domain">{{ $site->domain }} <x-heroicon-m-arrow-top-right-on-square /></a>
+                <x-ui.badge :color="$site->platform->getColor()">{{ $site->platform->getLabel() }}</x-ui.badge>
+                <span>{{ $site->mode->getLabel() }}</span>
+            </div>
+        </div>
+        @if ($canManage)
+            <div class="lq-page-actions">
                 @if ($site->isPull())
                     <x-ui.button variant="ghost" icon="heroicon-o-arrow-down-on-square" wire:click="pullNow" wire:loading.attr="disabled" wire:target="pullNow">Read leads now</x-ui.button>
                 @else
@@ -11,67 +43,56 @@
                     <x-ui.button variant="ghost" icon="heroicon-o-arrow-down-on-square-stack" wire:click="openImport">Import old leads</x-ui.button>
                 @endif
                 <x-ui.button variant="primary" icon="heroicon-o-arrow-path" wire:click="checkNow" wire:loading.attr="disabled" wire:target="checkNow">Check now</x-ui.button>
-            @endif
-        </x-slot:actions>
-    </x-ui.page-header>
-
-    <x-ui.card>
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div class="flex items-center gap-3">
-                <x-sites::favicon :site="$site" />
-                <div>
-                    <a href="{{ $site->url }}" target="_blank" rel="noopener noreferrer" class="lq-cell-title lq-link">{{ $site->domain }}</a>
-                    <span class="lq-cell-sub">{{ $site->mode->getLabel() }}</span>
-                </div>
             </div>
-            <x-ui.badge :color="$site->platform->getColor()">{{ $site->platform->getLabel() }}</x-ui.badge>
-            <x-sites::connection :site="$site" />
-            <span class="text-sm lq-muted">{{ $site->last_lead_at ? 'Last lead '.$site->last_lead_at->diffForHumans() : 'No lead received yet' }}</span>
-            <span class="ml-auto flex items-center gap-2 text-sm">
-                <span @class(['lq-health-light', 'lq-health-'.$site->health_status->value])></span>
-                {{ $site->health_status->getLabel() }}
-            </span>
-        </div>
-        @if ($site->isPull() && $site->last_pull_note)
-            <p class="lq-help mt-3">Last read {{ $site->last_pulled_at?->diffForHumans() }}: {{ $site->last_pull_note }}</p>
         @endif
-    </x-ui.card>
+    </header>
 
-    <div class="lq-tabs" role="tablist">
-        <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'health']) wire:click="$set('tab', 'health')" role="tab"><x-heroicon-o-heart class="h-4 w-4" /> Health</button>
-        <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'leads']) wire:click="$set('tab', 'leads')" role="tab"><x-heroicon-o-inbox-arrow-down class="h-4 w-4" /> Received leads @if ($failedCount > 0)<span class="lq-count">{{ $failedCount }}</span>@endif</button>
+    <div class="lq-minis">
+        <x-ui.mini label="Health" :value="$site->health_status->getLabel()" icon="heroicon-o-heart" :tone="in_array($state, ['ok', 'warn', 'fail'], true) ? $state : 'quiet'" />
+        <x-ui.mini label="Connection" :value="$connection" icon="heroicon-o-link" :tone="$connectionTone" />
+        <x-ui.mini label="Last lead" :value="$site->last_lead_at ? $site->last_lead_at->diffForHumans() : 'None yet'" icon="heroicon-o-inbox-arrow-down" :hint="$site->last_lead_at?->format('j M Y, H:i')" />
+        <x-ui.mini label="Last check" :value="$site->last_checked_at ? $site->last_checked_at->diffForHumans() : 'Not checked yet'" icon="heroicon-o-clock" hint="Checks run by themselves every 30 minutes" />
+    </div>
+
+    @if ($site->isPull() && $site->last_pull_note)
+        <p class="lq-help">Last read {{ $site->last_pulled_at?->diffForHumans() }}: {{ $site->last_pull_note }}</p>
+    @endif
+
+    <div class="lq-views lq-views-line" role="tablist">
+        <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'health']) wire:click="$set('tab', 'health')" role="tab"><x-heroicon-o-heart /> Health</button>
+        <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'leads']) wire:click="$set('tab', 'leads')" role="tab"><x-heroicon-o-inbox-arrow-down /> Received leads @if ($failedCount > 0)<span class="lq-view-count lq-view-count-danger">{{ $failedCount }}</span>@endif</button>
         @if ($canManage)
-            <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === 'settings']) wire:click="$set('tab', 'settings')" role="tab"><x-heroicon-o-cog-6-tooth class="h-4 w-4" /> Settings</button>
+            <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'settings']) wire:click="$set('tab', 'settings')" role="tab"><x-heroicon-o-cog-6-tooth /> Settings</button>
         @endif
     </div>
 
     {{-- Health --}}
     @if ($tab === 'health')
-        <x-ui.card title="Health checks" :description="$site->last_checked_at ? 'Checked '.$site->last_checked_at->diffForHumans().'. Checks run by themselves every 30 minutes.' : 'Not checked yet. Checks run by themselves every 30 minutes.'" flush>
-            <ul class="flex flex-col">
-                @foreach ($types as $type)
-                    @php $check = $latest[$type->value] ?? null; @endphp
-                    <li class="flex items-start gap-3 px-6 py-4" style="border-top: 1px solid var(--lq-hairline)">
-                        <span @class(['lq-health-dot', 'lq-health-'.($check?->status->value ?? 'unknown')]) style="margin-top: 0.4rem"></span>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="lq-cell-title">{{ $type->getLabel() }}</span>
-                                <x-ui.badge :color="($check?->status ?? \App\Modules\Sites\Enums\CheckStatus::Unknown)->getColor()">{{ ($check?->status ?? \App\Modules\Sites\Enums\CheckStatus::Unknown)->getLabel() }}</x-ui.badge>
-                            </div>
-                            <p class="text-sm lq-muted">{{ $check?->message ?? 'Not checked yet.' }}</p>
-                        </div>
-                        @if ($check?->response_ms)
-                            <span class="lq-pill lq-tabular">{{ number_format($check->response_ms) }} ms</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </x-ui.card>
+        <div class="lq-probes">
+            @foreach ($types as $type)
+                @php
+                    $check = $latest[$type->value] ?? null;
+                    $status = $check?->status ?? \App\Modules\Sites\Enums\CheckStatus::Unknown;
+                @endphp
+                <article @class(['lq-probe', 'lq-probe-'.$status->value]) wire:key="check-tile-{{ $type->value }}">
+                    <header class="lq-probe-head">
+                        <span class="lq-probe-icon">@svg($type->getIcon())</span>
+                        <h2 class="lq-probe-title">{{ $type->getLabel() }}</h2>
+                        <span class="lq-probe-mark" title="{{ $status->getLabel() }}">@svg($marks[$status->value] ?? 'heroicon-m-minus-circle')</span>
+                    </header>
+                    <p class="lq-probe-status">{{ $status->getLabel() }}</p>
+                    <p class="lq-probe-text">{{ $check?->message ?? 'Not checked yet.' }}</p>
+                    @if ($check?->response_ms)
+                        <span class="lq-probe-time lq-tabular">{{ number_format($check->response_ms) }} ms</span>
+                    @endif
+                </article>
+            @endforeach
+        </div>
 
         @if ($history->isNotEmpty())
-            <x-ui.card title="Recent checks" flush>
+            <x-ui.card title="Recent checks" description="The last runs, newest first." flush>
                 <div class="lq-table-wrap">
-                    <table class="lq-table">
+                    <table class="lq-table lq-table-rows">
                         <thead>
                             <tr><th>When</th><th>Check</th><th>Result</th><th>Details</th><th class="lq-table-end">Time</th></tr>
                         </thead>
@@ -94,15 +115,20 @@
 
     {{-- Received leads --}}
     @if ($tab === 'leads')
-        <x-ui.card flush>
-            <div class="lq-toolbar">
-                <select wire:model.live="eventStatus" class="lq-input lq-input-sm" style="width: 11rem">
-                    <option value="">Everything received</option>
+        <x-ui.card flush class="lq-list">
+            <div class="lq-viewbar">
+                <div class="lq-views" role="tablist" aria-label="Which leads to show">
+                    <button type="button" @class(['lq-view', 'lq-view-active' => $eventStatus === '']) wire:click="$set('eventStatus', '')" role="tab">Everything</button>
                     @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}">{{ $status->getLabel() }}</option>
+                        <button type="button" @class(['lq-view', 'lq-view-active' => $eventStatus === $status->value]) wire:click="$set('eventStatus', '{{ $status->value }}')" role="tab">
+                            {{ $status->getLabel() }}
+                            @if ($status === \App\Modules\Sites\Enums\InboundStatus::Failed && $failedCount > 0)
+                                <span class="lq-view-count lq-view-count-danger">{{ $failedCount }}</span>
+                            @endif
+                        </button>
                     @endforeach
-                </select>
-                <div class="lq-toolbar-end">
+                </div>
+                <div class="lq-viewbar-end">
                     @if ($canManage && $failedCount > 0)
                         <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-path" wire:click="retryAllFailed">Retry all {{ $failedCount }} failed</x-ui.button>
                     @endif
@@ -113,7 +139,7 @@
                 <x-ui.empty title="Nothing received yet" description="Every lead this website sends is listed here, with a Retry button if one could not be processed." icon="heroicon-o-inbox" />
             @else
                 <div class="lq-table-wrap">
-                    <table class="lq-table">
+                    <table class="lq-table lq-table-rows">
                         <thead>
                             <tr><th>Received</th><th>From</th><th>Form</th><th>Result</th><th class="lq-table-end">Actions</th></tr>
                         </thead>
@@ -140,7 +166,7 @@
                                         @endif
                                     </td>
                                     <td class="lq-table-end">
-                                        <div class="flex justify-end gap-1">
+                                        <div class="lq-row-tools">
                                             @if ($event->lead && ! $event->lead->trashed())
                                                 <x-ui.button size="sm" variant="ghost" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $event->lead_id])">Open lead</x-ui.button>
                                             @endif

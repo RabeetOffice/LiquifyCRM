@@ -20,6 +20,21 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.5.0',
+        'date' => '2026-10-12',
+        'title' => 'Clients, targets, websites and logs, redesigned',
+        'changes' => [
+            ['improved', 'Clients: what they are worth together on top (clients, lifetime value, average, how many bought again), and the list in four orders: highest value, latest sale, most sales, A to Z.'],
+            ['improved', 'A client opens as its own page: lifetime value, every sale and who closed it, every enquiry, and phone and email with a copy button.'],
+            ['improved', 'Targets: one block per department with its people under it, fields that say what they hold (currency, sales), and a reminder at the bottom while typed targets are not saved yet.'],
+            ['new', 'Targets show the month at a glance: revenue so far, sales closed, how many people have a target, and the days left.'],
+            ['improved', 'Websites: each website says how it is doing in a word, with its five checks as marks; the totals sit on top.'],
+            ['improved', 'A website opens with health, connection, last lead and last check as four facts, and its five checks as tiles with what was found.'],
+            ['improved', 'Logs read as a feed grouped by day. The kind of event is one click on top, the other filters show as chips, and a click on a line opens its details.'],
+            ['improved', 'Logs: one Download button with the three periods instead of three buttons.'],
+        ],
+    ],
+    [
         'version' => '1.4.0',
         'date' => '2026-10-12',
         'title' => 'Leads, pipeline and inbox, redesigned',

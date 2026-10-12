@@ -5450,6 +5450,13 @@ a.lq-cell-title {
     overflow-wrap: anywhere;
 }
 
+/* A long email in a narrow rail is cut short on one line instead of breaking mid-word. */
+.lq-fact-clip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .lq-reveal {
     display: flex;
     flex-direction: column;
@@ -6558,6 +6565,903 @@ a.lq-boardbar-item:hover {
     width: 1rem;
     height: 1rem;
     margin-top: 0.125rem;
+}
+
+/* ==========================================================================
+   Clients, targets, websites and logs (12 October): the record screens.
+   Small facts above each list, a hero and a side rail on a record's own page,
+   targets as blocks per department, website checks as tiles, logs as a feed.
+   ========================================================================== */
+
+/* ------------------------------------------------------------ small facts */
+
+.lq-minis {
+    display: grid;
+    gap: 0.875rem;
+    grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+}
+
+.lq-minis > * {
+    animation: lq-rise 460ms var(--lq-ease) backwards;
+}
+
+.lq-minis > *:nth-child(2) { animation-delay: 50ms; }
+.lq-minis > *:nth-child(3) { animation-delay: 100ms; }
+.lq-minis > *:nth-child(4) { animation-delay: 150ms; }
+
+.lq-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+    padding: 0.9375rem 1.125rem;
+    border-radius: var(--lq-radius-card);
+    background: var(--lq-card);
+    box-shadow: 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
+    color: inherit;
+    text-decoration: none;
+}
+
+a.lq-mini {
+    transition: box-shadow 150ms var(--lq-ease), transform 150ms var(--lq-ease);
+}
+
+a.lq-mini:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px color-mix(in srgb, var(--lq-orange) 40%, var(--lq-card-border)), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-mini-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.375rem;
+    height: 2.375rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+.lq-mini-icon svg {
+    width: 1.1875rem;
+    height: 1.1875rem;
+}
+
+.lq-mini-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lq-muted);
+}
+
+.lq-mini-value {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* On a phone the facts sit two by two and a long value may take two lines. */
+@media (max-width: 640px) {
+    .lq-minis {
+        gap: 0.625rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .lq-mini {
+        gap: 0.625rem;
+        padding: 0.75rem;
+    }
+
+    .lq-mini-icon {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .lq-mini-value {
+        font-size: 1rem;
+        line-height: 1.25rem;
+        white-space: normal;
+    }
+}
+
+.lq-mini-ok .lq-mini-icon { background: var(--lq-success-tint); color: var(--lq-success); }
+.lq-mini-warn .lq-mini-icon { background: var(--lq-warning-tint); color: var(--lq-warning); }
+.lq-mini-fail .lq-mini-icon { background: var(--lq-danger-tint); color: var(--lq-danger); }
+.lq-mini-quiet .lq-mini-icon { background: var(--lq-raised); color: var(--lq-muted); }
+
+.lq-section-title {
+    margin: 0.5rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+}
+
+.lq-section-text {
+    margin: 0.1875rem 0 0;
+    font-size: 0.875rem;
+    color: var(--lq-muted);
+}
+
+/* A card that holds something that cannot be undone. */
+.lq-card-danger {
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px color-mix(in srgb, var(--lq-danger) 30%, var(--lq-card-border)), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+/* ---------------------------------------------------------------- clients */
+
+/* Lifetime value with a thin bar: how this client compares with the best one. */
+.lq-worth {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3125rem;
+    min-width: 6.5rem;
+}
+
+.lq-worth-value {
+    font-weight: 650;
+    color: var(--lq-ink);
+}
+
+.lq-worth-bar {
+    display: block;
+    width: 100%;
+    height: 0.25rem;
+    border-radius: 9999px;
+    background: var(--lq-raised);
+    overflow: hidden;
+}
+
+.lq-worth-bar span {
+    display: block;
+    height: 100%;
+    margin-inline-start: auto;
+    border-radius: inherit;
+    background: var(--lq-orange);
+    animation: lq-grow 900ms var(--lq-ease);
+}
+
+.lq-sale-amount {
+    font-weight: 650;
+    color: var(--lq-ink);
+    text-decoration: none;
+}
+
+a.lq-sale-amount:hover {
+    color: var(--lq-orange-deep);
+    text-decoration: underline;
+}
+
+/* A record's own page: the name large, the story on the left, the facts in a rail. */
+.lq-lead-name-page {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+    letter-spacing: -0.025em;
+}
+
+.lq-hero-wrap {
+    flex-wrap: wrap;
+}
+
+.lq-split {
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (min-width: 1100px) {
+    .lq-split {
+        grid-template-columns: minmax(0, 1fr) 22rem;
+    }
+}
+
+.lq-split-main,
+.lq-split-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.lq-split-side {
+    gap: 1.25rem;
+}
+
+/* Rows that lead somewhere: the whole line is the link. */
+.lq-linklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-linkrow {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+    padding: 0.875rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-linklist > li:first-child > .lq-linkrow,
+.lq-linklist > .lq-linkrow:first-child {
+    border-top: 0;
+}
+
+a.lq-linkrow:hover {
+    background: var(--lq-raised);
+}
+
+.lq-linkrow .lq-cell-title,
+.lq-linkrow .lq-cell-sub {
+    display: block;
+}
+
+.lq-linkrow-arrow {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--lq-muted);
+    transition: transform 150ms var(--lq-ease);
+}
+
+a.lq-linkrow:hover .lq-linkrow-arrow {
+    transform: translateX(2px);
+}
+
+/* ---------------------------------------------------------------- targets */
+
+.lq-month-pill {
+    padding: 0.1875rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-card);
+    box-shadow: 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-month-pill .lq-btn-icon {
+    width: 2rem;
+    min-height: 2rem;
+}
+
+/* One block per department: its own line first, then its people. */
+.lq-tgroup {
+    overflow: hidden;
+    border-radius: var(--lq-radius-card);
+    background: var(--lq-card);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-trow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 0.875rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+}
+
+.lq-trow:first-child {
+    border-top: 0;
+}
+
+.lq-trow-head {
+    background: var(--lq-raised);
+}
+
+@media (min-width: 900px) {
+    .lq-trow {
+        grid-template-columns: minmax(11rem, 1.2fr) auto minmax(13rem, 1.3fr);
+    }
+}
+
+.lq-trow-who {
+    display: flex;
+}
+
+.lq-trow-who .lq-cell-title,
+.lq-trow-who .lq-cell-sub {
+    max-width: 100%;
+}
+
+.lq-trow-who > .min-w-0 {
+    flex: 1;
+}
+
+.lq-trow-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-card);
+    box-shadow: 0 0 0 1px var(--lq-card-border);
+    color: var(--lq-ink-soft);
+}
+
+.lq-trow-mark svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-trow-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lq-trow-fixed {
+    min-width: 8rem;
+    font-size: 0.875rem;
+    color: var(--lq-ink-soft);
+}
+
+.lq-trow-progress {
+    min-width: 0;
+}
+
+.lq-tgroup-empty {
+    margin: 0;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+    font-size: 0.875rem;
+    color: var(--lq-muted);
+}
+
+/* A field that says what it holds: the currency in front, or the unit behind. */
+.lq-affix {
+    display: inline-flex;
+    align-items: center;
+    width: 9.5rem;
+    min-height: 2.25rem;
+    padding: 0 0.625rem;
+    gap: 0.375rem;
+    border: 1px solid var(--lq-field-border);
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-field);
+    cursor: text;
+    transition: border-color 150ms var(--lq-ease), box-shadow 150ms var(--lq-ease);
+}
+
+.lq-affix-short {
+    width: 7rem;
+}
+
+.lq-affix:focus-within {
+    border-color: var(--lq-orange);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lq-orange) 20%, transparent);
+}
+
+.lq-affix > span {
+    flex: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lq-muted);
+}
+
+.lq-affix input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.lq-affix input::-webkit-outer-spin-button,
+.lq-affix input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.lq-affix input::placeholder {
+    font-weight: 400;
+    color: var(--lq-muted);
+}
+
+/* Shown and hidden by Livewire (wire:dirty), which sets its own display: the bar inside keeps its layout. */
+.lq-floatbar-hold {
+    position: sticky;
+    bottom: 1.5rem;
+    z-index: 40;
+    align-self: center;
+    animation: lq-toast-in 240ms var(--lq-ease);
+}
+
+.lq-floatbar-hold > .lq-floatbar {
+    position: static;
+}
+
+.lq-floatbar-quiet {
+    padding-inline-start: 0.75rem;
+}
+
+.lq-floatbar-go,
+.lq-floatbar-go:hover {
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+}
+
+.lq-floatbar-go:hover {
+    background: var(--lq-orange-hover);
+}
+
+/* --------------------------------------------------------------- websites */
+
+.lq-sitegrid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+}
+
+.lq-site {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1.375rem 1.5rem 0;
+    border-radius: var(--lq-radius-card);
+    background: var(--lq-card);
+    box-shadow: var(--lq-shadow-card), 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
+    transition: box-shadow 180ms var(--lq-ease), transform 180ms var(--lq-ease);
+}
+
+.lq-site:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--lq-shadow-float), 0 0 0 1px color-mix(in srgb, var(--lq-orange) 30%, var(--lq-card-border)), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-site-head {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+}
+
+.lq-site-icon-lg {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--lq-radius-inner);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-site-icon-xl {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: var(--lq-radius-card);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-site-icon-xl img {
+    width: 2rem;
+    height: 2rem;
+}
+
+.lq-site-icon-xl svg {
+    width: 1.625rem;
+    height: 1.625rem;
+}
+
+.lq-site-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.012em;
+    color: var(--lq-ink);
+    text-decoration: none;
+}
+
+.lq-site-name:hover {
+    color: var(--lq-orange-deep);
+}
+
+.lq-site-domain {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    max-width: 100%;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+    text-decoration: none;
+}
+
+.lq-site-domain svg {
+    flex: none;
+    width: 0.8125rem;
+    height: 0.8125rem;
+    opacity: 0.7;
+}
+
+.lq-site-domain:hover {
+    color: var(--lq-orange-deep);
+}
+
+/* How a website (or anything checked) is doing, in a word. */
+.lq-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: none;
+    padding: 0.25rem 0.75rem 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background: var(--lq-raised);
+    color: var(--lq-ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lq-state .lq-health-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    box-shadow: none;
+}
+
+.lq-state-ok { background: var(--lq-success-tint); color: var(--lq-success); }
+.lq-state-warn { background: var(--lq-warning-tint); color: var(--lq-warning); }
+.lq-state-fail { background: var(--lq-danger-tint); color: var(--lq-danger); }
+
+.lq-site-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lq-site-note {
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-checkchips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.lq-checkchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.25rem 0.625rem 0.25rem 0.4375rem;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.lq-checkchip svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+}
+
+.lq-checkchip-ok { color: var(--lq-ink-soft); }
+.lq-checkchip-ok svg { color: var(--lq-success); }
+.lq-checkchip-warn { color: var(--lq-warning); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lq-warning) 40%, transparent); background: var(--lq-warning-tint); }
+.lq-checkchip-fail { color: var(--lq-danger); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lq-danger) 40%, transparent); background: var(--lq-danger-tint); }
+
+.lq-site-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 -1.5rem;
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+}
+
+.lq-views-line {
+    border-bottom: 1px solid var(--lq-card-border);
+}
+
+/* The five checks of a website as tiles: what is checked, how it went, what was found. */
+.lq-probes {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
+}
+
+/* Five checks: one row on a wide screen, three and two on a laptop. */
+@media (min-width: 900px) {
+    .lq-probes {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1400px) {
+    .lq-probes {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+.lq-probe {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 1rem 1rem 1.125rem;
+    border-radius: var(--lq-radius-card);
+    background: var(--lq-card);
+    box-shadow: 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
+    --check: var(--lq-muted);
+}
+
+.lq-probe-ok { --check: var(--lq-success); }
+.lq-probe-warn { --check: var(--lq-warning); }
+.lq-probe-fail { --check: var(--lq-danger); }
+
+.lq-probe-warn,
+.lq-probe-fail {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--check) 38%, var(--lq-card-border)), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-probe-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.625rem;
+}
+
+.lq-probe-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--lq-radius-control);
+    background: color-mix(in srgb, var(--check) 14%, transparent);
+    color: var(--check);
+}
+
+.lq-probe-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-probe-title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.lq-probe-mark {
+    flex: none;
+    color: var(--check);
+}
+
+.lq-probe-mark svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.lq-probe-status {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--check);
+}
+
+.lq-probe-text {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--lq-muted);
+}
+
+.lq-probe-time {
+    align-self: flex-start;
+    margin-top: 0.5rem;
+    padding: 0.0625rem 0.5rem;
+    border-radius: 9999px;
+    background: var(--lq-raised);
+    font-size: 0.75rem;
+    color: var(--lq-ink-soft);
+}
+
+/* ------------------------------------------------------------------- logs */
+
+/* The second line of a list's bar: search on the left, Filters on the right. */
+.lq-viewbar-tools {
+    align-items: center;
+    padding: 0.625rem 1rem 0.625rem 1.5rem;
+}
+
+.lq-viewbar-tools .lq-viewbar-end {
+    padding-block: 0;
+}
+
+/* One line per event, grouped by day. */
+.lq-feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lq-feed-day {
+    padding: 0.5rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+    background: var(--lq-raised);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--lq-muted);
+}
+
+.lq-feed-day:first-child {
+    border-top: 0;
+}
+
+.lq-feed-item {
+    border-top: 1px solid var(--lq-card-border);
+}
+
+.lq-feed-day + .lq-feed-item {
+    border-top: 0;
+}
+
+.lq-feed-row {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-feed-row:hover,
+.lq-feed-item-open > .lq-feed-row {
+    background: var(--lq-raised);
+}
+
+.lq-feed-row:focus-visible {
+    outline: 2px solid var(--lq-orange);
+    outline-offset: -2px;
+}
+
+.lq-feed-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: var(--lq-radius-control);
+    background: color-mix(in srgb, var(--area, var(--lq-muted)) 13%, transparent);
+    color: color-mix(in srgb, var(--area, var(--lq-muted)) 78%, var(--lq-ink));
+}
+
+.dark .lq-feed-icon {
+    background: color-mix(in srgb, var(--area, var(--lq-muted)) 22%, transparent);
+    color: color-mix(in srgb, var(--area, var(--lq-muted)) 55%, white);
+}
+
+.lq-feed-icon svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+}
+
+.lq-feed-icon-auth { --area: #7c3aed; }
+.lq-feed-icon-leads { --area: #ea580c; }
+.lq-feed-icon-sales { --area: #16a34a; }
+.lq-feed-icon-messages { --area: #0284c7; }
+.lq-feed-icon-members { --area: #c026d3; }
+.lq-feed-icon-departments { --area: #4f46e5; }
+.lq-feed-icon-brands { --area: #d97706; }
+.lq-feed-icon-sites { --area: #0d9488; }
+.lq-feed-icon-integrations { --area: #2563eb; }
+
+.lq-feed-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+}
+
+.lq-feed-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-feed-meta {
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-feed-side {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: none;
+}
+
+.lq-feed-time {
+    min-width: 2.5rem;
+    text-align: end;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-feed-chevron {
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+    transition: transform 180ms var(--lq-ease);
+}
+
+.lq-feed-item-open .lq-feed-chevron {
+    transform: rotate(180deg);
+}
+
+.lq-feed-detail {
+    padding: 0.25rem 1.5rem 1.125rem 4.5rem;
+    background: var(--lq-raised);
+    animation: lq-fade 180ms ease-out;
+}
+
+@media (max-width: 640px) {
+    .lq-feed-side .lq-badge {
+        display: none;
+    }
+
+    .lq-feed-title {
+        white-space: normal;
+    }
+
+    .lq-feed-row {
+        align-items: flex-start;
+        padding-inline: 1rem;
+    }
+
+    .lq-feed-side {
+        gap: 0.375rem;
+        padding-top: 0.125rem;
+    }
+
+    .lq-feed-detail {
+        padding-inline-start: 1.5rem;
+    }
 }
 
 } /* @layer components */

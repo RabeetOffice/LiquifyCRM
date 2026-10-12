@@ -12,13 +12,14 @@ use App\Modules\Sales\Actions\CorrectSale;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\Money;
+use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-/** One client: every sale (and who closed it) and every lead. */
+/** One client: what they are worth, every sale (and who closed it), every enquiry and how to reach them. */
 #[Layout('components.layouts.app')]
 final class ClientShow extends Component
 {
@@ -106,10 +107,14 @@ final class ClientShow extends Component
 
     public function render(): View
     {
+        $leads = Lead::query()->visibleTo(auth()->user())->where('client_id', $this->client->getKey())->with(['status', 'assignee'])->latest('id')->get();
+
+        LeadSites::attach($leads);
+
         return view('sales::livewire.app.client-show', [
             'sales' => $this->client->sales()->with(['closer', 'department'])->get(),
             'canCorrect' => (bool) auth()->user()?->isGlobalAdmin(),
-            'leads' => Lead::query()->visibleTo(auth()->user())->where('client_id', $this->client->getKey())->with(['status', 'assignee'])->latest('id')->get(),
+            'leads' => $leads,
         ])->title($this->client->name);
     }
 }

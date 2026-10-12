@@ -18,6 +18,7 @@ use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Leads\Models\Lead;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -28,9 +29,10 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * Logs: the audit trail with filters, downloads of the last 7, 15 or 30
- * days, the daily archives, retention settings and the storage card. Admins
- * see every brand; a Manager sees and downloads their own departments' logs.
+ * Logs: the audit trail as a feed by day, the kind of event as views, the
+ * other filters as chips, downloads of the last 7, 15 or 30 days, the daily
+ * archives, retention settings and storage. Admins see every brand; a
+ * Manager sees and downloads their own departments' logs.
  */
 #[Layout('components.layouts.app')]
 #[Title('Logs')]
@@ -53,6 +55,22 @@ final class LogsPage extends Component
         'integrations' => 'Integrations',
         'system' => 'System',
     ];
+
+    /** The mark of each area in the feed. */
+    public const AREA_ICONS = [
+        'auth' => 'heroicon-o-key',
+        'leads' => 'heroicon-o-inbox-arrow-down',
+        'sales' => 'heroicon-o-trophy',
+        'messages' => 'heroicon-o-chat-bubble-left-right',
+        'members' => 'heroicon-o-users',
+        'departments' => 'heroicon-o-rectangle-group',
+        'brands' => 'heroicon-o-building-storefront',
+        'sites' => 'heroicon-o-globe-alt',
+        'integrations' => 'heroicon-o-puzzle-piece',
+        'system' => 'heroicon-o-cog-6-tooth',
+    ];
+
+    private const FILTERS = ['brandFilter', 'person', 'from', 'until'];
 
     public ?Brand $brand = null;
 
@@ -82,6 +100,8 @@ final class LogsPage extends Component
 
     public ?int $openEntry = null;
 
+    public bool $showFilters = false;
+
     public function mount(LogSettings $settings, ?Brand $brand = null): void
     {
         $this->brand = $brand !== null && $brand->exists ? $brand : null;
@@ -109,6 +129,17 @@ final class LogsPage extends Component
     public function clearFilters(): void
     {
         $this->reset('brandFilter', 'person', 'area', 'from', 'until', 'search');
+        $this->resetPage();
+    }
+
+    /** The cross on one filter chip. */
+    public function removeFilter(string $filter): void
+    {
+        if (! in_array($filter, self::FILTERS, true)) {
+            return;
+        }
+
+        $this->reset($filter);
         $this->resetPage();
     }
 
@@ -190,12 +221,22 @@ final class LogsPage extends Component
         $admin = $user->isGlobalAdmin();
 
         $entries = $this->query()->with(['causer', 'brand', 'department'])->latest('id')->paginate(50);
+        $brands = $this->brand === null ? Brand::query()->orderBy('name')->pluck('name', 'id') : collect();
+        $people = $this->peopleOptions();
+        $day = fn (string $date): string => rescue(fn (): string => CarbonImmutable::parse($date)->format('j M Y'), $date, false);
 
         return view('activity::livewire.logs-page', [
             'entries' => $entries,
             'areas' => self::AREAS,
-            'brands' => $this->brand === null ? Brand::query()->orderBy('name')->pluck('name', 'id') : collect(),
-            'people' => $this->peopleOptions(),
+            'areaIcons' => self::AREA_ICONS,
+            'brands' => $brands,
+            'people' => $people,
+            'chips' => array_filter([
+                'brandFilter' => ctype_digit($this->brandFilter) ? 'Brand: '.($brands[(int) $this->brandFilter] ?? 'unknown') : null,
+                'person' => ctype_digit($this->person) ? 'By: '.($people[(int) $this->person] ?? 'unknown') : null,
+                'from' => $this->from !== '' ? 'From '.$day($this->from) : null,
+                'until' => $this->until !== '' ? 'Until '.$day($this->until) : null,
+            ]),
             'isAdmin' => $admin,
             'isSuperAdmin' => $user->isGlobalAdmin(),
             'canDownload' => $admin || $user->can(Permission::LogsDownload->value),

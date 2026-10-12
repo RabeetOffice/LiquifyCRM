@@ -81,6 +81,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Inbox are full width (`lq-wide` on the root). People outside the team get a coloured avatar (`<x-ui.avatar tone>`);
   due dates go through `<x-ui.due>`. In a table the name cell is `lq-td-person` (it takes the free width and cuts long
   text short) and nice-to-have columns are `lq-col-wide` (hidden below 1340 px): a table must fit its card at 1280 px.
+- Record screens (12 Oct 2026): a list or a record starts with a row of small facts (`<x-ui.mini>` in `lq-minis`).
+  A record's own page is a hero plus `lq-split` (the story on the left, a 22 rem rail of facts on the right).
+  Targets are blocks per department (`lq-tgroup`, `target-row` partial); the logs are a feed by day (`lq-feed`)
+  with the kind of event as views and the other filters as chips. A website's check tiles are `lq-probe`:
+  `lq-check` is the checkbox label, so never reuse that name. A bar that Livewire shows with `wire:dirty` goes
+  inside a wrapper (`lq-floatbar-hold`), because Livewire sets its own `display` on the element.
 - Live updates are Livewire polling (`wire:poll`), never websockets: the hosting has no daemons. The bell checks
   every 15 seconds and toasts what arrived; dashboards, the leads list and the inbox refresh by themselves.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.
