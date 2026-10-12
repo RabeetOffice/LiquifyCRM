@@ -132,7 +132,7 @@
                     <tbody class="lq-live">
                         @foreach ($leads as $lead)
                             @php $leadUrl = route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead->getKey()]); @endphp
-                            <tr wire:key="lead-{{ $lead->getKey() }}" wire:click="openLead({{ $lead->getKey() }})" @class(['lq-row-click', 'lq-selected' => in_array($lead->getKey(), $selected, true), 'lq-row-open' => $previewLead?->is($lead)])>
+                            <tr wire:key="lead-{{ $lead->getKey() }}" x-data x-on:click="$wire.open = {{ $lead->getKey() }}; $wire.openLead({{ $lead->getKey() }})" @class(['lq-row-click', 'lq-selected' => in_array($lead->getKey(), $selected, true), 'lq-row-open' => $previewLead?->is($lead)])>
                                 <td class="lq-td-tick" x-data x-on:click.stop>
                                     <input type="checkbox" class="lq-tick" aria-label="Select {{ $lead->name }}" value="{{ $lead->getKey() }}" wire:model.live="selected">
                                 </td>

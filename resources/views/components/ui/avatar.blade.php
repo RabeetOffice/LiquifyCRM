@@ -5,7 +5,8 @@
     $toned = $tone && ! $src && ! $brand;
     $toneClass = $toned ? 'lq-tone-'.((crc32(mb_strtolower(trim((string) $name))) % 8) + 1) : null;
 @endphp
-<span {{ $attributes->class(['lq-avatar', 'lq-avatar-sm' => $size === 'sm', 'lq-avatar-xs' => $size === 'xs', 'lq-avatar-lg' => $size === 'lg', 'lq-avatar-brand' => $brand, 'lq-avatar-tone' => $toned, $toneClass]) }} @if ($brand && $color) style="--brand-color: {{ $color }}" @endif aria-hidden="true">
+{{-- A brand with a logo is a light tile in the brand's colour (`lq-avatar-logo`): the logo sits whole, with air around it. --}}
+<span {{ $attributes->class(['lq-avatar', 'lq-avatar-sm' => $size === 'sm', 'lq-avatar-xs' => $size === 'xs', 'lq-avatar-lg' => $size === 'lg', 'lq-avatar-brand' => $brand, 'lq-avatar-logo' => $brand && $src, 'lq-avatar-tone' => $toned, $toneClass]) }} @if ($brand && $color) style="--brand-color: {{ $color }}" @endif aria-hidden="true">
     @if ($src)
         <img src="{{ $src }}" alt="">
     @else

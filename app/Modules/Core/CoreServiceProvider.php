@@ -9,15 +9,18 @@ use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Navigation\Menu;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Core\Support\DashboardCache;
+use App\Modules\Core\Support\Live;
 use App\Modules\Leads\Events\LeadAssigned;
 use App\Modules\Leads\Events\LeadCreated;
 use App\Modules\Leads\Events\LeadStatusChanged;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\View\View as ViewInstance;
@@ -51,6 +54,18 @@ final class CoreServiceProvider extends ModuleServiceProvider
         Event::listen([LeadCreated::class, LeadAssigned::class, LeadStatusChanged::class], function (LeadCreated|LeadAssigned|LeadStatusChanged $event): void {
             DashboardCache::flush((int) $event->lead->brand_id);
         });
+
+        // Live updates: a new bell entry moves its person's stamp, and stamps that changed
+        // more than once in a second are written when the request or the job ends.
+        DatabaseNotification::created(function (DatabaseNotification $notification): void {
+            if ($notification->getAttribute('notifiable_type') === (new User)->getMorphClass()) {
+                Live::touchUser((int) $notification->getAttribute('notifiable_id'));
+            }
+        });
+
+        $this->app->terminating(fn () => Live::flush());
+        Queue::after(fn () => Live::flush());
+        Queue::failing(fn () => Live::flush());
 
         // The shell (sidebar and top bar) knows who is signed in, which brand
         // is open and which menu that person gets.

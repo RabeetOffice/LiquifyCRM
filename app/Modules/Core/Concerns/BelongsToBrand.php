@@ -7,6 +7,7 @@ namespace App\Modules\Core\Concerns;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Scopes\BrandScope;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Core\Support\Live;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,16 @@ trait BelongsToBrand
                 $model->setAttribute('brand_id', app(CurrentBrand::class)->id());
             }
         });
+
+        // Open screens of the brand hear about every change (see Live).
+        $changed = function (Model $model): void {
+            $brandId = $model->getAttribute('brand_id');
+
+            Live::touch($brandId !== null ? (int) $brandId : null);
+        };
+
+        static::saved($changed);
+        static::deleted($changed);
     }
 
     /** @return BelongsTo<Brand, $this> */

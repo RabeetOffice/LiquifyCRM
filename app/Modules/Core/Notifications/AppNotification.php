@@ -39,6 +39,17 @@ final class AppNotification extends Notification implements ShouldQueue
         return $this->mail ? ['database', 'mail'] : ['database'];
     }
 
+    /**
+     * The bell entry is written at once, in the request that caused it, so it
+     * shows within seconds; only the email waits for the queue.
+     *
+     * @return array<string, string>
+     */
+    public function viaConnections(): array
+    {
+        return ['database' => 'sync'];
+    }
+
     /** @return array<string, mixed> */
     public function toArray(object $notifiable): array
     {

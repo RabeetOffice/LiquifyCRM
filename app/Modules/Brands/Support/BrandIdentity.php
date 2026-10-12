@@ -176,12 +176,15 @@ class BrandIdentity
         }
 
         try {
-            $colors = (new ColorExtractor(Palette::fromFilename($path, Color::fromHexToInt('#FFFFFF'))))->extract(2);
+            $colors = (new ColorExtractor(Palette::fromFilename($path, Color::fromHexToInt('#FFFFFF'))))->extract(5);
         } catch (Throwable) {
             return [];
         }
 
-        return array_map(fn (int $color): string => mb_strtoupper(Color::fromIntToHex($color)), $colors);
+        // A logo on a transparent or white background is mostly "white": that is not the brand's colour.
+        $hexes = array_map(fn (int $color): string => mb_strtoupper(Color::fromIntToHex($color)), $colors);
+
+        return array_slice(array_values(array_filter($hexes, Brand::colorSaysSomething(...))), 0, 2);
     }
 
     private function storeIcon(Brand $brand, string $url, string $html): ?string

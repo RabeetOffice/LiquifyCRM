@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Core\Support\Live;
 use App\Modules\Meta\Enums\MessageStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +43,18 @@ class Message extends Model
             'status' => MessageStatus::class,
             'raw' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // A message that arrives, is sent or fails shows in the open chat at once (see Live).
+        static::saved(function (self $message): void {
+            $brandId = $message->relationLoaded('conversation')
+                ? $message->conversation->brand_id
+                : Conversation::query()->withoutGlobalScopes()->whereKey($message->conversation_id)->value('brand_id');
+
+            Live::touch($brandId !== null ? (int) $brandId : null);
+        });
     }
 
     /** @return BelongsTo<Conversation, $this> */

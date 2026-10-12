@@ -182,9 +182,34 @@ class Brand extends Model
         return $this->hasMailSettings() && $this->mailSettings()['auto_reply'];
     }
 
+    /**
+     * The colour the brand is shown in: its main colour, or its second one
+     * when the main one is missing or says nothing (a logo on a transparent
+     * background is often read as "white").
+     */
     public function primaryColor(): ?string
     {
-        return $this->colors['primary'] ?? null;
+        foreach (['primary', 'secondary'] as $key) {
+            $color = $this->colors[$key] ?? null;
+
+            if (is_string($color) && self::colorSaysSomething($color)) {
+                return $color;
+            }
+        }
+
+        return null;
+    }
+
+    /** Nearly white and nearly black tell one brand from another no better than no colour at all. */
+    public static function colorSaysSomething(string $hex): bool
+    {
+        if (! preg_match('/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i', $hex, $parts)) {
+            return false;
+        }
+
+        $channels = array_map('hexdec', array_slice($parts, 1));
+
+        return min($channels) < 236 && max($channels) > 28;
     }
 
     public function logoUrl(): ?string

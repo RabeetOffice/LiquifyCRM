@@ -83,8 +83,8 @@
                                         <div class="flex flex-wrap items-center gap-1.5">
                                             @foreach ($memberships->take(3) as $membership)
                                                 @if ($membership->brand)
-                                                    <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
-                                                        <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" size="sm" brand style="width: 1rem; height: 1rem; font-size: 0.5rem; border-radius: 4px" />
+                                                    <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
+                                                        <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" size="xs" brand />
                                                         {{ $membership->brand->name }}
                                                     </a>
                                                 @endif
