@@ -30,6 +30,7 @@ use App\Modules\Meta\Http\Controllers\ConversationMessageController;
 use App\Modules\Meta\Http\Controllers\FacebookConnectController;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
 use App\Modules\Meta\Livewire\App\Inbox;
+use App\Modules\Sales\Http\Controllers\ClientFileController;
 use App\Modules\Sales\Http\Controllers\RecordSaleController;
 use App\Modules\Sales\Livewire\App\ClientShow;
 use App\Modules\Sales\Livewire\App\ClientsIndex;
@@ -105,6 +106,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/targets', TargetsPage::class)->name('targets');
         Route::get('/clients', ClientsIndex::class)->name('clients.index');
         Route::get('/clients/{client}', ClientShow::class)->name('clients.show');
+        Route::get('/clients/{client}/files/{file}', ClientFileController::class)->whereNumber('file')->name('clients.files.show');
         Route::get('/inbox', Inbox::class)->name('inbox');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
 

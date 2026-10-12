@@ -9,20 +9,23 @@ use App\Modules\Core\Concerns\BelongsToBrand;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Sales\Enums\SaleKind;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One recorded sale: a won lead with an amount in the brand's currency. It
- * counts towards the Agent's, the department's and the brand's targets.
+ * One recorded sale with an amount in the brand's currency: the front sale
+ * that won a lead, or an upsell to a client afterwards (no lead). It counts
+ * towards the seller's, the department's and the brand's targets.
  *
  * @property int $id
  * @property int $brand_id
  * @property int|null $department_id
  * @property int|null $lead_id
  * @property int $client_id
+ * @property string|null $kind
  * @property int|null $user_id
  * @property string $amount
  * @property string $currency
@@ -38,7 +41,7 @@ class Sale extends Model
     use BelongsToBrand;
 
     protected $fillable = [
-        'brand_id', 'department_id', 'lead_id', 'client_id', 'user_id', 'amount', 'currency',
+        'brand_id', 'department_id', 'lead_id', 'client_id', 'kind', 'user_id', 'amount', 'currency',
         'amount_reporting', 'service', 'closed_at', 'recorded_by',
     ];
 
@@ -75,6 +78,17 @@ class Sale extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /** Front sale or upsell. A sale from before the column existed is a front sale. */
+    public function kind(): SaleKind
+    {
+        return SaleKind::tryFrom((string) ($this->getAttributes()['kind'] ?? '')) ?? SaleKind::Front;
+    }
+
+    public function isUpsell(): bool
+    {
+        return $this->kind() === SaleKind::Upsell;
     }
 
     /**

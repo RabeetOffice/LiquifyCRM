@@ -20,6 +20,25 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.12.0',
+        'date' => '2026-10-12',
+        'title' => 'After the first sale: hand-over, upsells and a storage for each client',
+        'changes' => [
+            ['new', 'Where new leads go: on Distribute leads you choose, for each website and each Facebook Page, the department or the one person its leads go to the moment they arrive. Anything without a choice waits in the queue to be assigned by hand, as before.'],
+            ['new', 'A department is now Front sales or Upsell (set on the department itself). Front sales works leads until the first sale; an Upsell department looks after the clients that sale made.'],
+            ['new', 'Hand-over: when a lead is marked Won, the seller can attach the contract and hand the client to an Upsell team, or to one person in it, in the same step or later from the lead. An Upsell department on round robin gives each new client to the next person in turn.'],
+            ['new', 'Upsells: "Record an upsell" on a client adds another sale, as many times as the client buys. It goes under the name of whoever sold it and counts towards that person\'s target, their department\'s and the brand\'s.'],
+            ['new', 'The client page tells the story in order: the front sale, the hand-over, every upsell with who sold it and the total so far, and the day the client was closed.'],
+            ['new', 'A storage for each client. Files: contracts, invoices and anything else, up to 20 MB each. Saved text: what a client shares in words, such as a login; it is stored encrypted, and one marked hidden stays covered until someone clicks Show (the log says who looked).'],
+            ['new', 'More than one person can work on a client, for example a project manager beside the upseller. Each records upsells under their own name.'],
+            ['new', 'The Clients list has views for "Waiting for a person", "Not handed over" and "Closed", shows who looks after each client and how much came from upsells, and lets a Manager or an Admin tick several clients and give them to a person or a team.'],
+            ['new', 'Close a client when the work is over. Everything is kept, and the client can be reopened.'],
+            ['improved', 'After the hand-over front sales no longer sees the client. The seller keeps the lead and the sale they closed; later upsells do not show on their screens or in their Manager\'s numbers.'],
+            ['improved', 'People who work only on an Upsell team start on My clients, and the lead screens are out of their menu.'],
+            ['improved', 'The sales dashboard says how many of the month\'s sales were upsells and what they were worth.'],
+        ],
+    ],
+    [
         'version' => '1.11.0',
         'date' => '2026-10-12',
         'title' => 'A faster, fuller chat',

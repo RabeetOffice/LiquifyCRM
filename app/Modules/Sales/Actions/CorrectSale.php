@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\DB;
  * An Admin corrects or removes a recorded sale. Everything that was counted
  * from it is counted again: the client's lifetime value, the lead's value,
  * and (through the sale row itself) the targets. Both are written to the
- * lead's timeline with the old and new values.
+ * lead's timeline with the old and new values; an upsell has no lead, so
+ * its correction is written on the client.
  */
 final class CorrectSale
 {
@@ -40,7 +41,7 @@ final class CorrectSale
 
             Audit::log(
                 'sales.updated',
-                $this->lead($sale) ?? $sale,
+                $this->lead($sale) ?? $this->client($sale) ?? $sale,
                 ['sale_id' => $sale->getKey(), 'before' => $before, 'after' => ['amount' => $amount, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString()]],
                 'Sale corrected: '.Money::format($before['amount'], $sale->currency).' → '.Money::format($amount, $sale->currency),
                 brand: $sale->brand_id,
@@ -61,7 +62,7 @@ final class CorrectSale
 
             Audit::log(
                 'sales.deleted',
-                $lead ?? $sale,
+                $lead ?? $this->client($sale) ?? $sale,
                 ['sale_id' => $sale->getKey(), 'amount' => (float) $sale->amount, 'currency' => $sale->currency, 'service' => $sale->service, 'closed_at' => $sale->closed_at->toDateString(), 'closed_by' => $sale->user_id],
                 'Sale removed: '.Money::format($sale->amount, $sale->currency),
                 brand: $sale->brand_id,
@@ -84,7 +85,7 @@ final class CorrectSale
 
     private function recount(Sale $sale): void
     {
-        Client::query()->forBrand($sale->brand_id)->find($sale->client_id)?->recalculate();
+        $this->client($sale)?->recalculate();
 
         $lead = $this->lead($sale);
 
@@ -92,6 +93,11 @@ final class CorrectSale
             $total = Sale::query()->forBrand($sale->brand_id)->where('lead_id', $lead->getKey())->sum('amount');
             $lead->forceFill(['value' => (float) $total > 0 ? $total : null])->save();
         }
+    }
+
+    private function client(Sale $sale): ?Client
+    {
+        return Client::query()->forBrand($sale->brand_id)->find($sale->client_id);
     }
 
     private function lead(Sale $sale): ?Lead

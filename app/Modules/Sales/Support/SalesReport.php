@@ -9,6 +9,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Sales\Enums\SaleKind;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
@@ -100,16 +101,20 @@ final class SalesReport
     // ------------------------------------------------------------------ cards
 
     /**
-     * @return array{revenue: float, count: int, previous_revenue: float, previous_count: int, change: ?int}
+     * @return array{revenue: float, count: int, upsell_revenue: float, upsells: int, previous_revenue: float, previous_count: int, change: ?int}
      */
     public function totals(): array
     {
         $now = $this->sum($this->sales());
         $before = $this->sum($this->sales($this->start()->subMonth()->format('Y-m')));
+        // How much of the month came from clients buying again.
+        $upsells = ClientCare::ready() ? $this->sum($this->sales()->where('kind', SaleKind::Upsell->value)) : ['revenue' => 0.0, 'count' => 0];
 
         return [
             'revenue' => $now['revenue'],
             'count' => $now['count'],
+            'upsell_revenue' => $upsells['revenue'],
+            'upsells' => $upsells['count'],
             'previous_revenue' => $before['revenue'],
             'previous_count' => $before['count'],
             'change' => $before['revenue'] > 0 ? (int) round(($now['revenue'] - $before['revenue']) / $before['revenue'] * 100) : null,
@@ -265,14 +270,28 @@ final class SalesReport
     /**
      * Clients by lifetime value.
      *
-     * @return list<array{client: Client, brand: ?Brand, value: float}>
+     * @return list<array{client: Client, brand: ?Brand, value: float, sales: int}>
      */
     public function topClients(int $limit = 8): array
     {
         $query = Client::query()->acrossBrands()->whereIn('brand_id', $this->brands->keys())->where('sales_count', '>', 0);
 
+        // A department or a person sees what they sold to a client, never the
+        // rest: front sales does not learn from here what Upsell sold later.
         if ($this->departmentIds !== null || $this->userId !== null) {
-            $query->whereIn('id', $this->sales(null)->select('client_id'));
+            $sold = $this->grouped($this->sales(null), 'client_id');
+
+            return $query->whereKey(array_keys($sold))->get()
+                ->map(fn (Client $client): array => [
+                    'client' => $client,
+                    'brand' => $this->brands->get($client->brand_id),
+                    'value' => $sold[(int) $client->getKey()]['revenue'],
+                    'sales' => $sold[(int) $client->getKey()]['count'],
+                ])
+                ->sortByDesc('value')
+                ->take($limit)
+                ->values()
+                ->all();
         }
 
         return $query->get()
@@ -282,6 +301,7 @@ final class SalesReport
                 'value' => $this->reporting
                     ? (float) (ExchangeRate::convert($client->lifetime_value, (string) ($this->brands->get($client->brand_id)->currency ?? ''), $this->period) ?? 0)
                     : (float) $client->lifetime_value,
+                'sales' => $client->sales_count,
             ])
             ->sortByDesc('value')
             ->take($limit)

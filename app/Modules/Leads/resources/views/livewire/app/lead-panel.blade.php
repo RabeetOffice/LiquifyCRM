@@ -5,6 +5,9 @@
         'leads.assigned' => 'heroicon-o-user-plus',
         'leads.unassigned' => 'heroicon-o-user-minus',
         'leads.sent_to_department' => 'heroicon-o-arrow-right-circle',
+        'leads.routed' => 'heroicon-o-arrow-right-circle',
+        'leads.client_handed_over' => 'heroicon-o-arrows-right-left',
+        'sales.recorded' => 'heroicon-o-trophy',
         'leads.status_changed' => 'heroicon-o-arrow-path',
         'leads.note_added' => 'heroicon-o-pencil-square',
         'leads.contact_revealed' => 'heroicon-o-eye',
@@ -224,8 +227,46 @@
                         </li>
                     @endforeach
                 </ul>
-                @if (auth()->user()?->isGlobalAdmin() && $lead->client_id)
-                    <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => $lead->brand_id ? \App\Modules\Brands\Models\Brand::query()->whereKey($lead->brand_id)->value('slug') : '', 'client' => $lead->client_id]) }}" wire:navigate>Correct or remove a sale</a>
+                @if ($client)
+                    {{-- Front sales ends with the hand-over: the Upsell team takes the client from there. --}}
+                    <div class="lq-handover">
+                        @if ($client->isClosed())
+                            <span class="lq-handover-state"><x-heroicon-m-lock-closed /> This client is closed.</span>
+                        @elseif ($client->isHandedOver())
+                            <span class="lq-handover-state lq-handover-done"><x-heroicon-m-check-circle /> With {{ $client->department?->name ?? 'Upsell' }}{{ $client->owner ? ': '.$client->owner->name : ', waiting for a person' }}</span>
+                        @else
+                            <span class="lq-handover-state"><x-heroicon-m-arrow-right-circle /> Not handed to Upsell yet</span>
+                            @if ($can['handOver'])
+                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrows-right-left" wire:click="openHandOver">Hand over</x-ui.button>
+                            @endif
+                        @endif
+                    </div>
+
+                    @if ($clientFiles->isNotEmpty() || $can['addFile'])
+                        <ul class="lq-handover-files">
+                            @foreach ($clientFiles as $file)
+                                <li wire:key="client-file-{{ $file->getKey() }}">
+                                    <a href="{{ route('brand.clients.files.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $client->getKey(), 'file' => $file->getKey()]) }}{{ $file->opensInBrowser() ? '?open=1' : '' }}" @if ($file->opensInBrowser()) target="_blank" rel="noopener" @endif title="{{ $file->original_name }}">
+                                        @svg($file->icon())
+                                        <span class="truncate">{{ $file->original_name }}</span>
+                                    </a>
+                                    <span class="lq-muted">{{ $file->categoryLabel() }}</span>
+                                    @can('deleteFile', [$client, $file])
+                                        <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="confirmRemoveClientFile({{ $file->getKey() }})" title="Remove" aria-label="Remove {{ $file->original_name }}"><x-heroicon-o-x-mark /></button>
+                                    @endcan
+                                </li>
+                            @endforeach
+                            @if ($can['addFile'])
+                                <li><button type="button" class="lq-link text-sm" wire:click="openClientFile">{{ $clientFiles->isEmpty() ? 'Add the contract or an invoice' : 'Add another file' }}</button></li>
+                            @endif
+                        </ul>
+                    @endif
+
+                    @if ($can['openClient'])
+                        <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $client->getKey()]) }}" wire:navigate>Open the client</a>
+                    @endif
+                @elseif (auth()->user()?->isGlobalAdmin() && $lead->client_id)
+                    <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $lead->client_id]) }}" wire:navigate>Correct or remove a sale</a>
                 @endif
             </section>
         @endif
@@ -413,12 +454,84 @@
             <x-ui.field label="Close date" name="wonClosedAt" required>
                 <x-ui.input type="date" wire:model="wonClosedAt" name="wonClosedAt" max="{{ now()->toDateString() }}" />
             </x-ui.field>
+            @if ($careReady)
+                <x-ui.field label="Contract or invoice" name="wonContract" help="Optional. It goes into the client's files; up to {{ $maxMb }} MB.">
+                    <input type="file" class="lq-input lq-input-file" wire:model="wonContract" name="wonContract" id="wonContract">
+                    <span class="lq-help" wire:loading wire:target="wonContract">Uploading…</span>
+                </x-ui.field>
+                @if ($teams !== [] && ! $client?->isHandedOver())
+                    <x-ui.field label="Hand the client to" name="wonHandTo" help="The Upsell team takes the client from here. You can also do this later from the lead.">
+                        <x-ui.select wire:model="wonHandTo" name="wonHandTo" placeholder="Later">
+                            @foreach ($teams as $team)
+                                <optgroup label="{{ $team['department']->name }}">
+                                    <option value="{{ $team['department']->getKey() }}">{{ $team['department']->name }}: {{ $team['department']->assignment_mode === \App\Modules\Core\Enums\AssignmentMode::RoundRobin ? 'the next person in turn' : 'the team decides' }}</option>
+                                    @foreach ($team['people'] as $id => $name)
+                                        <option value="{{ $team['department']->getKey() }}:{{ $id }}">{{ $name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                @endif
+            @endif
         </form>
         <x-slot:footer>
             <x-ui.button variant="ghost" wire:click="$set('showWon', false)">Cancel</x-ui.button>
-            <x-ui.button type="submit" form="won-form" variant="primary" wire:loading.attr="disabled" wire:target="recordSale">Record sale</x-ui.button>
+            <x-ui.button type="submit" form="won-form" variant="primary" wire:loading.attr="disabled" wire:target="recordSale, wonContract">Record sale</x-ui.button>
         </x-slot:footer>
     </x-ui.modal>
+
+    @if ($can['handOver'])
+        <x-ui.modal model="showHandOver" title="Hand over to Upsell" description="Your part is done. The Upsell team takes the client from here: the project, and every sale after this one." size="sm">
+            @if ($teams === [])
+                <p class="lq-help">There is no Upsell department yet. An Admin or a Manager creates one under Departments and sets what it does to Upsell.</p>
+            @else
+                <form wire:submit="handOverClient" class="lq-form" id="lead-handover-form">
+                    <x-ui.field label="Give the client to" name="handTo" required>
+                        <x-ui.select wire:model="handTo" name="handTo" placeholder="Choose a team or a person…">
+                            @foreach ($teams as $team)
+                                <optgroup label="{{ $team['department']->name }}">
+                                    <option value="{{ $team['department']->getKey() }}">{{ $team['department']->name }}: {{ $team['department']->assignment_mode === \App\Modules\Core\Enums\AssignmentMode::RoundRobin ? 'the next person in turn' : 'the team decides' }}</option>
+                                    @foreach ($team['people'] as $id => $name)
+                                        <option value="{{ $team['department']->getKey() }}:{{ $id }}">{{ $name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                </form>
+            @endif
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showHandOver', false)">Cancel</x-ui.button>
+                @if ($teams !== [])
+                    <x-ui.button type="submit" form="lead-handover-form" variant="primary" wire:loading.attr="disabled" wire:target="handOverClient">Hand over</x-ui.button>
+                @endif
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if ($can['addFile'])
+        <x-ui.modal model="showClientFile" title="Add to the client's files" description="The contract, the invoice, anything the Upsell team needs. Up to 10 files, {{ $maxMb }} MB each." size="sm">
+            <form wire:submit="saveClientFiles" class="lq-form" id="lead-file-form">
+                <x-ui.field label="What are they" name="clientFileCategory">
+                    <x-ui.select wire:model="clientFileCategory" name="clientFileCategory">
+                        @foreach ($fileCategories as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </x-ui.select>
+                </x-ui.field>
+                <x-ui.field label="Files" name="clientUploads">
+                    <input type="file" class="lq-input lq-input-file" multiple wire:model="clientUploads" name="clientUploads" id="clientUploads">
+                    <span class="lq-help" wire:loading wire:target="clientUploads">Uploading…</span>
+                    <x-sales::picked-files :files="$clientUploads" name="clientUploads" />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showClientFile', false)">Cancel</x-ui.button>
+                <x-ui.button type="submit" form="lead-file-form" variant="primary" wire:loading.attr="disabled" wire:target="saveClientFiles, clientUploads">Add files</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
 
     <x-ui.modal model="showNote" title="Add a note">
         <form wire:submit="addNote" class="lq-form" id="note-form">

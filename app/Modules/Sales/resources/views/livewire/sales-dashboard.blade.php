@@ -48,7 +48,10 @@
         <x-ui.stat :label="$personal ? 'My revenue this month' : 'Revenue this month'" :value="Money::format($totals['revenue'], $currency)" icon="heroicon-o-banknotes" hero
             :description="'Last month '.Money::format($totals['previous_revenue'], $currency)"
             :delta="$totals['change'] !== null ? ($totals['change'] >= 0 ? '+' : '').$totals['change'].'%' : null" :up="$totals['change'] !== null ? $totals['change'] >= 0 : null" />
-        <x-ui.stat :label="$personal ? 'My sales' : 'Sales closed'" :value="$totals['count']" icon="heroicon-o-trophy" :description="'Last month '.$totals['previous_count']" />
+        <x-ui.stat :label="$personal ? 'My sales' : 'Sales closed'" :value="$totals['count']" icon="heroicon-o-trophy"
+            :description="$totals['upsells'] > 0
+                ? ($totals['count'] - $totals['upsells']).' front, '.$totals['upsells'].' '.str('upsell')->plural($totals['upsells']).' ('.Money::format($totals['upsell_revenue'], $currency).')'
+                : 'Last month '.$totals['previous_count']" />
         <x-ui.stat label="Average sale" :value="$average !== null ? Money::format(round($average), $currency) : null" icon="heroicon-o-calculator" description="Revenue divided by sales" />
         <div class="lq-stat">
             <div class="lq-stat-head">
@@ -158,18 +161,18 @@
 
             {{-- Top clients --}}
             @if ($topClients !== [])
-                <x-ui.card title="Top clients" description="By lifetime value." flush>
+                <x-ui.card title="Top clients" :description="auth()->user()?->isGlobalAdmin() && ! $focusDepartment ? 'By lifetime value.' : 'By what was sold to them here.'" flush>
                     <ul class="flex flex-col">
                         @foreach ($topClients as $row)
                             <li class="lq-rank" wire:key="client-{{ $row['client']->getKey() }}">
                                 <x-ui.avatar :name="$row['client']->name" size="sm" />
                                 <span class="min-w-0 flex-1">
-                                    @if ($canSeeClients && $row['brand'])
+                                    @if ($canSeeClients && $row['brand'] && auth()->user()?->can('view', $row['client']))
                                         <a class="lq-cell-title" href="{{ url('/b/'.$row['brand']->slug.'/clients/'.$row['client']->getKey()) }}" wire:navigate>{{ $row['client']->name }}</a>
                                     @else
                                         <span class="lq-cell-title">{{ $row['client']->name }}</span>
                                     @endif
-                                    <span class="lq-cell-sub">{{ $row['client']->sales_count }} {{ str('sale')->plural($row['client']->sales_count) }}</span>
+                                    <span class="lq-cell-sub">{{ $row['sales'] }} {{ str('sale')->plural($row['sales']) }}</span>
                                 </span>
                                 <span class="lq-num flex-none">{{ Money::format($row['value'], $currency) }}</span>
                             </li>
@@ -204,7 +207,7 @@
                             <tr wire:key="sale-{{ $sale->getKey() }}">
                                 <td class="lq-muted whitespace-nowrap">{{ $sale->closed_at->format('j M') }}</td>
                                 <td class="lq-cell-title">{{ $sale->client->name }}</td>
-                                <td class="lq-muted">{{ $sale->service ?? '—' }}</td>
+                                <td class="lq-muted">{{ $sale->service ?? '—' }} @if ($sale->isUpsell()) <x-ui.badge color="success">Upsell</x-ui.badge> @endif</td>
                                 <td class="lq-muted">{{ $sale->closer?->name ?? '—' }}{{ $sale->department ? ' · '.$sale->department->name : '' }}</td>
                                 <td class="lq-table-end lq-num">{{ Money::format($sale->amount, $sale->currency) }}</td>
                             </tr>

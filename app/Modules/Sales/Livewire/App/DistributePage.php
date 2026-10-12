@@ -15,9 +15,16 @@ use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\AutoAssignLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Models\LeadRoute;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Meta\Models\MetaSource;
 use App\Modules\Sales\Actions\DistributeLeads;
+use App\Modules\Sales\Enums\ClientStage;
+use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\LeadDistribution;
+use App\Modules\Sales\Support\CareTeams;
+use App\Modules\Sales\Support\ClientCare;
+use App\Modules\Sites\Models\Site;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -32,7 +39,9 @@ use Livewire\Component;
  * departments (equally, by percentage or by count); a Manager does the same
  * inside their department, to Agents (equally or by count). On top, each
  * department chooses how its new leads are shared from now on: by hand, or
- * round robin (the next Agent in turn gets each new lead by itself).
+ * round robin (the next Agent in turn gets each new lead by itself). And the
+ * Admin says, for each website and Facebook Page, where its leads go the
+ * moment they arrive: a department, or straight to one person.
  */
 #[Layout('components.layouts.app')]
 #[Title('Distribute leads')]
@@ -84,6 +93,45 @@ final class DistributePage extends Component
         $this->amounts = [];
     }
 
+    /**
+     * Where the leads of one website or Facebook Page go by themselves: a
+     * department ("12"), one person in it ("12:34"), or nowhere (they wait in
+     * the queue). Admins only.
+     */
+    public function setRoute(string $channel, int $sourceId, string $target): void
+    {
+        abort_unless($this->isAdmin() && ClientCare::ready(), 403);
+
+        $source = collect($this->sources())->first(fn (array $source): bool => $source['channel'] === $channel && $source['id'] === $sourceId);
+        abort_if($source === null, 404);
+
+        $key = ['brand_id' => $this->brand->getKey(), 'channel' => $channel, 'source_id' => $sourceId];
+
+        if ($target === '') {
+            LeadRoute::query()->where($key)->delete();
+            Audit::log('leads.route_changed', $this->brand, ['channel' => $channel, 'source_id' => $sourceId, 'to' => null], 'Leads from '.$source['name'].' wait in the queue again', brand: $this->brand, logName: 'leads');
+            $this->toastSuccess($source['name'].': leads wait in the queue', 'Someone assigns each one by hand.');
+
+            return;
+        }
+
+        if (! preg_match('/^(\d+)(?::(\d+))?$/', $target, $parts)) {
+            return;
+        }
+
+        $department = Department::query()->findOrFail((int) $parts[1]);
+        $person = isset($parts[2]) ? CareTeams::people($department)->firstWhere('id', (int) $parts[2]) : null;
+        abort_if(isset($parts[2]) && $person === null, 404);
+
+        LeadRoute::query()->updateOrCreate($key, ['department_id' => $department->getKey(), 'user_id' => $person?->getKey(), 'set_by' => $this->user()->getKey()]);
+
+        $to = $person !== null ? $person->name.' in '.$department->name : $department->name;
+
+        Audit::log('leads.route_changed', $this->brand, ['channel' => $channel, 'source_id' => $sourceId, 'department_id' => $department->getKey(), 'user_id' => $person?->getKey()], 'Leads from '.$source['name'].' now go to '.$to, brand: $this->brand, department: $department, logName: 'leads');
+
+        $this->toastSuccess($source['name'].': leads go to '.$to, $person !== null ? 'Each new lead is theirs the moment it arrives.' : 'The department shares them its own way.');
+    }
+
     /** A Manager (or an Admin) chooses how a department shares its new leads from now on. */
     public function setSharing(int $departmentId, string $mode): void
     {
@@ -102,9 +150,11 @@ final class DistributePage extends Component
 
         Audit::log('departments.sharing_changed', $department, ['mode' => $mode->value], $department->name.' now shares leads '.mb_strtolower($mode->getLabel()), department: $department, logName: 'departments');
 
+        $what = $department->isUpsell() ? 'client' : 'lead';
+
         $mode === AssignmentMode::RoundRobin
-            ? $this->toastSuccess($department->name.': round robin is on', 'Each new lead goes to the next Agent in turn.')
-            : $this->toastSuccess($department->name.': shared by hand', 'New leads wait in the queue until someone assigns them.');
+            ? $this->toastSuccess($department->name.': round robin is on', 'Each new '.$what.' goes to the next person in turn.')
+            : $this->toastSuccess($department->name.': shared by hand', 'New '.$what.'s wait until someone gives them out.');
     }
 
     /** Share the leads already waiting in a round-robin department, in the same turn order. */
@@ -210,12 +260,23 @@ final class DistributePage extends Component
             ->map(fn (Department $department): array => [
                 'department' => $department,
                 'agents' => (int) $department->getAttribute('agents_count'),
-                'waiting' => Lead::query()->open()->where('department_id', $department->getKey())->whereNull('assigned_to')->count(),
+                // An Upsell department receives clients, not leads.
+                'waiting' => $department->isUpsell()
+                    ? (ClientCare::ready() ? Client::query()->where('department_id', $department->getKey())->inStage(ClientStage::Waiting)->count() : 0)
+                    : Lead::query()->open()->where('department_id', $department->getKey())->whereNull('assigned_to')->count(),
             ])->all();
+
+        $sources = $this->isAdmin() && ClientCare::ready() ? $this->sources() : [];
+        $routes = $sources !== [] ? LeadRoute::query()->get()->keyBy(fn (LeadRoute $route): string => $route->channel.':'.$route->source_id) : collect();
 
         return view('sales::livewire.app.distribute-page', [
             'isAdmin' => $this->isAdmin(),
+            // A Manager of Upsell departments only has clients to share, no leads to split.
+            'clientsOnly' => CareTeams::worksClientsOnly($this->user(), $this->brand),
             'sharing' => $sharing,
+            'routeSources' => $sources,
+            'routes' => $routes,
+            'routeTargets' => $sources !== [] ? $this->routeTargets() : [],
             'modes' => AssignmentMode::cases(),
             'targets' => $targets,
             'matching' => $matching,
@@ -264,11 +325,44 @@ final class DistributePage extends Component
             ->when($this->onlyWaiting, fn (Builder $query): Builder => $query->whereNull('assigned_to'));
     }
 
+    /**
+     * Every source of this brand that can have a rule: its websites and its Facebook Pages.
+     *
+     * @return list<array{channel: string, id: int, name: string, detail: string, site: ?Site}>
+     */
+    private function sources(): array
+    {
+        $sites = Site::query()->orderBy('name')->get()->map(fn (Site $site): array => [
+            'channel' => LeadRoute::WEBSITE, 'id' => (int) $site->getKey(), 'name' => $site->name, 'detail' => 'Website · '.$site->domain, 'site' => $site,
+        ]);
+
+        $pages = MetaSource::query()->where('brand_id', $this->brand->getKey())->orderBy('name')->get()->map(fn (MetaSource $page): array => [
+            'channel' => LeadRoute::FACEBOOK, 'id' => (int) $page->getKey(), 'name' => $page->name, 'detail' => 'Facebook Page · lead forms and Messenger', 'site' => null,
+        ]);
+
+        return [...$sites->all(), ...$pages->all()];
+    }
+
+    /**
+     * Where a source may send its leads: each department that works leads, and each person in it.
+     *
+     * @return list<array{department: Department, people: array<int, string>}>
+     */
+    private function routeTargets(): array
+    {
+        return Department::query()->orderBy('name')->get()
+            ->reject(fn (Department $department): bool => $department->isUpsell())
+            ->map(fn (Department $department): array => ['department' => $department, 'people' => CareTeams::people($department)->pluck('name', 'id')->all()])
+            ->values()
+            ->all();
+    }
+
     /** @return array<int, string> target id => name: departments for the Admin, Agents for a Manager */
     private function targets(): array
     {
         if ($this->isAdmin()) {
-            return Department::query()->orderBy('name')->pluck('name', 'id')->all();
+            // Leads are shared among the departments that work leads; an Upsell department receives clients.
+            return Department::query()->orderBy('name')->get()->reject(fn (Department $department): bool => $department->isUpsell())->pluck('name', 'id')->all();
         }
 
         $department = ctype_digit($this->department) && $this->managedDepartments()->has((int) $this->department)

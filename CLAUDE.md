@@ -64,6 +64,33 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Round robin: a department's `assignment_mode` is `manual` or `round_robin` (set on the Distribute screen by its
   Manager or an Admin). `AutoAssignLead` gives a lead that lands in a round-robin department to the next active
   Agent in turn; it is called from `SendLeadToDepartment`, `CreateLead` and `DistributeLeads`.
+- After the first sale (user request, 12 Oct 2026). The user's flow: front sales works a lead until the first sale,
+  then the client goes to the Upsell department (project managers and upsellers), who sell more to the same client
+  until the client is closed. A department's `kind` is `sales` or `upsell`: read it with `Department::kind()` /
+  `isUpsell()`, never the attribute. `HandOverClient` moves a client to an Upsell team (from the Mark as Won dialog or
+  the won lead); `AssignClient` chooses who looks after it and who else works on it (`client_user`); `RecordUpsell`
+  adds a sale with no lead (`sales.kind = upsell`) under the name of whoever sold it; `CloseClient` ends it. A client's
+  stage (`ClientStage`) is worked out from its columns. `CareTeams` lists the Upsell teams and parses a choice
+  ("12" a team, "12:34" a person in it).
+- Front sales must not see what Upsell sells (the user's rule): every access check goes through `ClientPolicy` and
+  `Client::visibleTo()` / `inCareOf()`. The seller keeps the lead, its sale and the contract they added; a front
+  Manager sees a client only until it is handed over; scoped reports (`SalesReport::topClients`) count only what the
+  viewer's team sold. Do not show `lifetime_value` or a client's sales to anyone who is not on the client.
+- Client storage: `ClientFile` is a row of the `files` table the architecture document designs for Phase 2
+  (`fileable` is the client, or the lead front sales added it from; `ClientFile::ofClient()` is the whole storage).
+  Files live on the private disk under a random name and are served only by `ClientFileController`, which asks the
+  policy; only PDFs and pictures open in the browser. `ClientNote` is text a client shared (the body has an encrypted
+  cast and never goes into a log); a hidden one is shown by `reveal()`, which writes who looked. Choosing files again
+  in a Livewire upload adds to the list, so every picker shows the chosen files with a way to take one out
+  (`x-sales::picked-files`).
+- Where new leads go: `lead_routes` holds, per website and per Facebook Page (its lead forms and its Messenger chats
+  share one row), the department and optionally the person. `LeadRouting::resolve()` is applied in `CreateLead` unless
+  the caller already chose or the import is `silent`; a person who left falls back to the department. Set by Admins on
+  the Distribute screen.
+- New tables and columns of that update are behind `ClientCare::ready()` (one `Schema::hasTable`, remembered): code is
+  on the server before an Admin clicks "Update system", and it has to work as before until then. Keep new code that
+  touches them behind it. Someone who works only on an Upsell team (`CareTeams::worksClientsOnly`) lands on Clients and
+  has no lead screens in the menu.
 - Logs are for Admins and Super Admins only (user decision, 12 Oct 2026): the Logs screen (admin area and inside
   a brand), its downloads and the brand dashboard's "Recent activity". Managers and Agents see none of it, and no
   brand role carries a logs permission; do not add one. A lead's own timeline is part of the lead and stays.

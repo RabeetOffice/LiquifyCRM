@@ -6,12 +6,15 @@ namespace App\Modules\Core\Livewire;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Sales\Support\CareTeams;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
  * The short welcome tour for a new Manager or Agent on first sign-in: three
- * tips (the New queue, Reveal, follow-ups), skippable, shown once.
+ * tips (the New queue, Reveal, follow-ups), skippable, shown once. Someone
+ * on an Upsell team gets theirs about clients instead: where they arrive,
+ * recording an upsell, and the client's files and saved text.
  */
 final class WelcomeTour extends Component
 {
@@ -45,6 +48,18 @@ final class WelcomeTour extends Component
         $user = auth()->user();
         $brand = app(CurrentBrand::class)->get();
         $manager = $user instanceof User && $brand !== null && $user->isManagerIn($brand);
+
+        if ($user instanceof User && $brand !== null && CareTeams::onlyHome($user, $brand)) {
+            return view('core::livewire.welcome-tour', [
+                'tips' => [
+                    $manager
+                        ? ['icon' => 'heroicon-o-user-group', 'title' => 'New clients arrive from front sales', 'body' => 'A client handed to your department shows under Clients, in "Waiting for a person". Tick the ones you want and give them to someone, or turn on round robin under Distribute leads.']
+                        : ['icon' => 'heroicon-o-user-group', 'title' => 'Your clients are under My clients', 'body' => 'Front sales hands a client to you after the first sale, or your Manager gives you one. You get a notification; open the client to see what they bought and from whom.'],
+                    ['icon' => 'heroicon-o-arrow-trending-up', 'title' => 'Record every upsell on the client', 'body' => 'When a client buys again, click "Record an upsell". It goes under the name of whoever sold it, counts towards their target and joins the client\'s story.'],
+                    ['icon' => 'heroicon-o-folder-open', 'title' => 'Keep their files and logins with them', 'body' => 'Add the contract and the invoices under Files, and save a login or instructions as text. Text marked hidden stays covered until someone clicks Show.'],
+                ],
+            ]);
+        }
 
         return view('core::livewire.welcome-tour', [
             'tips' => [

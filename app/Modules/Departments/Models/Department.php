@@ -7,6 +7,7 @@ namespace App\Modules\Departments\Models;
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
 use App\Modules\Core\Enums\AssignmentMode;
+use App\Modules\Core\Enums\DepartmentKind;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Departments\Database\Factories\DepartmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string|null $description
  * @property string|null $color
+ * @property string|null $kind
  * @property AssignmentMode $assignment_mode
  * @property int|null $last_assigned_user_id
  * @property int|null $created_by
@@ -36,7 +38,7 @@ class Department extends Model
 
     use SoftDeletes;
 
-    protected $fillable = ['brand_id', 'name', 'description', 'color', 'assignment_mode', 'last_assigned_user_id', 'created_by'];
+    protected $fillable = ['brand_id', 'name', 'description', 'color', 'kind', 'assignment_mode', 'last_assigned_user_id', 'created_by'];
 
     protected $attributes = ['assignment_mode' => 'manual'];
 
@@ -75,6 +77,20 @@ class Department extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Front sales or Upsell. Read from the raw attributes: a department made
+     * before the column existed, or not loaded with it, is front sales.
+     */
+    public function kind(): DepartmentKind
+    {
+        return DepartmentKind::tryFrom((string) ($this->getAttributes()['kind'] ?? '')) ?? DepartmentKind::Sales;
+    }
+
+    public function isUpsell(): bool
+    {
+        return $this->kind() === DepartmentKind::Upsell;
     }
 
     public function hasManager(User|int $user): bool

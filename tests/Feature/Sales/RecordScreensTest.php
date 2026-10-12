@@ -90,7 +90,8 @@ it('shows a client with what they are worth, who closed each sale and their enqu
         ->assertSee('Correct');
 
     $this->flushSession();
-    $this->actingAs($this->manager)->get('/b/ukph/clients/'.$client->getKey())->assertOk()->assertSee('Lifetime value')->assertDontSee('Correct');
+    // A front Manager sees what their own team sold, not the client's whole value.
+    $this->actingAs($this->manager)->get('/b/ukph/clients/'.$client->getKey())->assertOk()->assertSee('Sold by your team')->assertDontSee('Lifetime value')->assertDontSee('Correct');
 });
 
 it('lays the targets out in a block per department with what is left of the month', function (): void {

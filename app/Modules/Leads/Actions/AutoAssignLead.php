@@ -87,7 +87,11 @@ final class AutoAssignLead
         });
     }
 
-    /** Active Agents of the department, in a fixed order. @return Collection<int, User> */
+    /**
+     * Active Agents of the department, in a fixed order.
+     *
+     * @return Collection<int, User>
+     */
     public function agents(Department $department): Collection
     {
         return $department->agents()

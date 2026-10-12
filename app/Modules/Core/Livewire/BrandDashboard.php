@@ -16,6 +16,7 @@ use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
+use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,6 +42,13 @@ final class BrandDashboard extends Component
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
+
+        // This dashboard is about leads. Someone who works from clients alone starts on their clients.
+        $user = auth()->user();
+
+        if ($user instanceof User && CareTeams::worksClientsOnly($user, $brand)) {
+            $this->redirectRoute('brand.clients.index', ['brand' => $brand->slug], navigate: true);
+        }
     }
 
     /** One-click assign from the queue. */

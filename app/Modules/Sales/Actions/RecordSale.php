@@ -12,9 +12,11 @@ use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Sales\Enums\SaleKind;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\ClientCare;
 use App\Modules\Sales\Support\Money;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,8 @@ final class RecordSale
                 'department_id' => $lead->department_id,
                 'lead_id' => $lead->getKey(),
                 'client_id' => $client->getKey(),
+                // A front sale: it won a lead. What the client buys later is an upsell (RecordUpsell).
+                ...(ClientCare::ready() ? ['kind' => SaleKind::Front->value] : []),
                 // The sale belongs to whoever owns the lead; an unowned lead to the person recording it.
                 'user_id' => $lead->assigned_to ?? $by->getKey(),
                 'amount' => $amount,

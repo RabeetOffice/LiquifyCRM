@@ -173,7 +173,7 @@ it('lets a Manager turn round robin on for their own department and share the wa
 
     Livewire::actingAs($this->manager)
         ->test(DistributePage::class, ['brand' => $this->brand])
-        ->assertSee('How new leads are shared')
+        ->assertSee('How each department shares')
         ->assertSee('Sales Team A')
         ->assertDontSee('Consultants')
         ->call('setSharing', $other->getKey(), 'round_robin')

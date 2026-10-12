@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (12 October): 187 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (12 October): 236 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -13,7 +13,7 @@ State of the code (12 October): 187 Pest tests passing, Pint and Larastan level 
 | Week 4 · Meta | **Done** | Built 8 October against the Graph API with faked responses; a live run needs your Meta app keys in `.env` |
 | Week 5 · Sales and targets | **Done** | Built 8 October |
 | Week 6 · Hardening and launch | **Built** | Staging deploy, off-server backups and the first client need details from you |
-| Phase 2 · Files, NDA, client portal | Pending | Tables designed in the document, not created (agreed) |
+| Phase 2 · Files, NDA, client portal | Started | The `files` table exists and holds each client's storage (12 October); files on leads and brands, NDA and the portal are pending |
 
 ## Done
 
@@ -168,6 +168,21 @@ Every screen was opened in a headless browser, light and dark, and judged agains
 Looked at and left as they are, because they already follow the design: Overview, Sales dashboards, People and the person form, Integrations, Updates, the brand wizard and brand form, Members and the member form, Distribute, the website wizard, Email settings, Profile, Password and 2FA, sign-in, forgot and reset password, global search, the notifications menu, the import dialog.
 Not looked at by eye: the two-factor challenge and confirm-password pages (they need a second factor), the invitation accept form (needs a live invitation), the welcome tour (shown once to a new Agent).
 
+### After the first sale: routing, hand-over, upsells, client storage (12 October, asked for by the user)
+The user's flow: a lead from the website or Facebook is worked by front sales until the first sale; the client then goes to the Upsell department (project managers and upsellers), who sell more to the same client until the client is closed. Front sales must not see what is sold afterwards.
+- [x] Where new leads go: on Distribute leads an Admin chooses, for each website and each Facebook Page (lead forms and Messenger together), the department or the one person its leads go to on arrival (`lead_routes`, `LeadRouting`, applied in `CreateLead`). No choice: the queue, assigned by hand as before. A person who left falls back to the department; a quiet import of old leads is not routed.
+- [x] A department is Front sales or Upsell (`departments.kind`, set on the department form).
+- [x] Hand-over (`HandOverClient`): in the Mark as Won dialog, or later from the won lead, the seller hands the client to an Upsell team or to one person in it and can attach the contract. A round-robin Upsell department gives each new client to the next person in turn. The lead's timeline says where its client went.
+- [x] Upsells (`RecordUpsell`): another sale on the client, any number of times, with no lead. It is under the name of whoever sold it (a Manager or an Admin may record it for someone on the team) and counts towards that person's, the department's and the brand's targets.
+- [x] Client page: the story in order (front sale, hand-over, each upsell with the total so far, closed), lifetime value split into front sale and upsells, who looks after the client and who else works on it (`client_user`), files and saved text in tabs.
+- [x] Client storage: files up to 20 MB on the private disk, served only through a route that checks who asks (`files` table, `ClientFileController`); saved text stored encrypted, a hidden one covered until someone clicks Show, each look written to the log (`client_notes`).
+- [x] Clients list: views All, Mine, Waiting for a person, Not handed over, Closed; who looks after each client; how much came from upsells; tick several and give them to a person or a team.
+- [x] Close and reopen a client (`CloseClient`).
+- [x] Who sees what (`ClientPolicy`): Admins everything; the Upsell side (the person who looks after the client, the people added to it, the Managers of its department) the whole client; front sales only its own lead and sale, the contract it added, and (a front Manager) a client until it is handed over. The Sales dashboard's "Top clients" counts only what the viewer's own team sold.
+- [x] People who work only on an Upsell team land on My clients, have no lead screens in their menu and get welcome tips about clients.
+- [x] Privacy policy and "Delete your data" updated for a client's files and shared text.
+- [x] Everything new asks `ClientCare::ready()` first, so the code works on the server before "Update system" has created the tables (checked once against a database without the three migrations).
+
 ### Agreed differences from the document
 - **Live updates and nothing waiting for the minute (12 October, user request).** The document has the queue drained once a minute and screens polling. Now a stamp per brand and person (`Live`) is asked for every 4 seconds by one small request and screens reload only when it moved; bell entries are written at once; incoming website and Meta events and Messenger replies run right after the response (`RunSoon`). The scheduler cron was missing on the live server until 12 October (18 jobs were waiting); it was added that day and still does the emails, website pulls, backups, token renewal and log archive.
 - **Privacy policy and "Delete your data" pages (12 October, user request).** Not in the document. `/privacy` and `/data-deletion` are public, written from what the code really stores, and are the two addresses in the Meta app's settings. Open point: the pages promise deletion on request, but the app can only soft-delete a lead and has no delete for a client or a Messenger chat, so a request is carried out by hand in the database until an "erase a person" tool exists.
@@ -176,14 +191,16 @@ Not looked at by eye: the two-factor challenge and confirm-password pages (they 
 - **"Update system" beside "Backup and run database update" (9 October).** The document keeps database updates on the System screen, behind the queue. The Updates screen does the same work inside the request so it works without the scheduler, asks for the password only when the database will change, and lets an Admin go on without a backup when the server cannot make one.
 - **Admin equals Super Admin, except protection (9 October, user decision).** The document reserves admin accounts, the System screen, log retention and log deletion for the Super Admin. Now every Admin has them too. What stays: nobody else can edit, suspend or remove a Super Admin, only a Super Admin can make another one, and the last one cannot be removed.
 - **Exchange rates removed (9 October, user decision).** The document converts all brands into one reporting currency with monthly rates. The screen, its menu entry and the cross-brand totals are gone; the admin sales dashboard shows one brand at a time in that brand's currency. The `exchange_rates` table and the `amount_reporting` column stay unused.
-- **Round robin** is an addition to the document (its "all Facebook leads go to Sales Team A" rule is still open).
+- **Round robin** is an addition to the document. Its "all Facebook leads go to Sales Team A" rule is now "Where new leads go": a choice per website and per Facebook Page, down to one person.
+- **After the first sale (12 October, user request).** The document's client only collects repeat sales. Added: Front sales and Upsell departments (`departments.kind`), the hand-over (`clients.department_id`, `owner_id`, `handed_over_at`, `handed_over_by`, `closed_at`, `closed_by`, `closed_note`), upsells (`sales.kind`), more people on a client (`client_user`), saved text (`client_notes`) and the rule per source (`lead_routes`). A Manager used to see every client their department sold to; now only until the client is handed to Upsell.
+- **The `files` table is the document's Phase 2 design, created early** for the client storage, with the same columns (polymorphic `fileable`: a client, or the lead a file was added from). Two differences: it is a small model of our own instead of `spatie/laravel-medialibrary` (the package the document lists for the Files module; not installed), and there is no `files.manage` permission, because access follows the client (`ClientPolicy`). `expires_at` and `visibility` are there but not used yet.
 - **Designation** on people is an addition to the document.
 - Live updates are polling, not websockets (no daemons on the hosting).
 - **Filament removed (8 October, user decision).** The document chose Filament for the dashboard; the user did not like the result and asked for a custom panel. Auth is now Laravel Fortify (which the document also lists), screens are Livewire 4 pages on LiquifyCRM's own layout and design system. Two packages were added with the user's approval: blade-ui-kit/blade-heroicons for the Heroicons the document specifies, and chart.js for dashboard charts.
 - `spatie/laravel-webhook-client` and the Facebook PHP SDK dropped; webhooks and Graph API calls will use plain controllers and the Laravel HTTP client.
 - Departments built in week 1 instead of week 5.
 - Per-brand settings stored in `brands.settings` (json); `spatie/laravel-settings` reserved for global settings (exchange rates, retention).
-- Phase 2 tables not created yet.
+- Phase 2 tables not created yet, except `files` (see above).
 - Meta App Review treated as optional (only your own Business Manager connects).
 - A repeat enquiry on a Won lead creates a new lead (linked to the client from week 5).
 - Ingest endpoint will answer 202 Accepted.
@@ -235,7 +252,7 @@ Not looked at by eye: the two-factor challenge and confirm-password pages (they 
 - [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today. Needs the original artwork of the app icon at 512 px or larger: enlarging the 180 px file would be blurry.
 
 ### Phase 2 and later
-- [ ] Files module, NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
+- [ ] Files module (the `files` table and the client storage exist; still open: files on any lead and on a brand, expiring links, S3-compatible storage), NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
 - The six weeks are built. What is left is in "Week 6 · needs you" above.

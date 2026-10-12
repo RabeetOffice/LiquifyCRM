@@ -8094,4 +8094,736 @@ a.lq-linkrow:hover .lq-linkrow-arrow {
     border-top: 1px solid var(--lq-card-border);
 }
 
+/* ------------------------------------------------- clients after the sale */
+
+/* The action tiles on a record's own page: a row that does not stretch across the screen. */
+.lq-actions-row {
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    max-width: 62rem;
+}
+
+.lq-choices-stack {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.lq-mono {
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+}
+
+.lq-link-danger {
+    color: var(--lq-danger);
+}
+
+.lq-order {
+    width: auto;
+    min-width: 9.5rem;
+}
+
+.lq-input-file {
+    height: auto;
+    padding: 0.4375rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.lq-input-file::file-selector-button {
+    margin-inline-end: 0.75rem;
+    padding: 0.3125rem 0.75rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* A quiet line under the hero: this client is closed. */
+.lq-note-strip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+    font-size: 0.875rem;
+    color: var(--lq-ink-soft);
+}
+
+.lq-note-strip svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.125rem;
+    color: var(--lq-muted);
+}
+
+/* The story: every sale in order on one line, front sale first, each upsell after it. */
+.lq-story {
+    list-style: none;
+    margin: 0;
+    padding: 1.5rem 1.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-story-item {
+    --story: var(--lq-muted);
+    --story-tint: var(--lq-raised);
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 1.25rem;
+    animation: lq-rise 320ms var(--lq-ease) both;
+}
+
+.lq-story-item:nth-child(2) { animation-delay: 40ms; }
+.lq-story-item:nth-child(3) { animation-delay: 80ms; }
+.lq-story-item:nth-child(4) { animation-delay: 120ms; }
+.lq-story-item:nth-child(n + 5) { animation-delay: 160ms; }
+
+.lq-story-front {
+    --story: var(--lq-info);
+    --story-tint: var(--lq-info-tint);
+}
+
+.lq-story-upsell {
+    --story: var(--lq-success);
+    --story-tint: var(--lq-success-tint);
+}
+
+/* The line that joins one step to the next. */
+.lq-story-item::before {
+    content: '';
+    position: absolute;
+    top: 2.5rem;
+    bottom: 0.25rem;
+    left: 1.125rem;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--lq-card-border);
+}
+
+.lq-story-item:last-child::before {
+    display: none;
+}
+
+.lq-story-node {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    background: var(--story-tint);
+    color: var(--story);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--story) 22%, transparent);
+}
+
+.lq-story-node svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+}
+
+.lq-story-body {
+    flex: 1;
+    min-width: 0;
+    padding: 0.8125rem 1rem 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-story-front .lq-story-body,
+.lq-story-upsell .lq-story-body {
+    box-shadow: inset 3px 0 0 var(--story), inset 0 0 0 1px var(--lq-card-border);
+}
+
+/* Hand-over and closing are steps, not sales: lighter, no box. */
+.lq-story-step .lq-story-body {
+    padding: 0.375rem 0 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.lq-story-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.625rem;
+    margin-bottom: 0.3125rem;
+}
+
+.lq-story-kind {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--story);
+}
+
+.lq-story-date {
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+}
+
+.lq-story-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lq-story-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.lq-story-step .lq-story-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.lq-story-who {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--lq-ink-soft);
+}
+
+.lq-story-money {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex: none;
+    text-align: end;
+}
+
+.lq-story-amount {
+    font-size: 1.125rem;
+    line-height: 1.375rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--lq-ink);
+    text-decoration: none;
+}
+
+a.lq-story-amount:hover {
+    color: var(--lq-orange-deep);
+    text-decoration: underline;
+}
+
+.lq-story-running {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--lq-muted);
+}
+
+/* Correct and Remove, for Admins: quiet until the sale is pointed at. */
+.lq-story-tools {
+    display: inline-flex;
+    gap: 0.75rem;
+    margin-inline-start: auto;
+    opacity: 0.55;
+    transition: opacity 150ms var(--lq-ease);
+}
+
+.lq-story-item:hover .lq-story-tools,
+.lq-story-tools:focus-within {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .lq-story-tools {
+        opacity: 1;
+    }
+}
+
+.lq-story-next .lq-story-node {
+    border: 1px dashed var(--lq-field-border);
+    background: transparent;
+    box-shadow: none;
+    color: var(--lq-muted);
+}
+
+.lq-story-next .lq-story-body {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.lq-story-add {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border: 1px dashed var(--lq-field-border);
+    border-radius: var(--lq-radius-inner);
+    background: transparent;
+    color: var(--lq-ink-soft);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+    transition: border-color 150ms var(--lq-ease), color 150ms var(--lq-ease), background-color 150ms var(--lq-ease);
+}
+
+.lq-story-add:hover {
+    border-color: var(--lq-orange);
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+@media (max-width: 560px) {
+    .lq-story {
+        padding-inline: 1rem;
+    }
+
+    .lq-story-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .lq-story-money {
+        align-items: flex-start;
+        text-align: start;
+    }
+}
+
+/* Lifetime value split in two: what the first sale brought and what came after. */
+.lq-mix {
+    display: flex;
+    gap: 3px;
+    height: 0.5rem;
+    margin-top: 0.875rem;
+}
+
+.lq-mix > span {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    animation: lq-grow 900ms var(--lq-ease);
+}
+
+.lq-mix-front {
+    background: rgb(28 25 23 / 0.78);
+}
+
+.lq-mix-upsell {
+    background: rgb(255 255 255 / 0.92);
+}
+
+.lq-mix-key {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0.625rem 0 0;
+    font-size: 0.8125rem;
+}
+
+.lq-mix-key > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.lq-mix-key dt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    color: rgb(28 25 23 / 0.78);
+}
+
+.lq-mix-key dd {
+    margin: 0;
+    font-weight: 650;
+}
+
+.lq-mix-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+}
+
+/* Who looks after the client, when it is nobody yet. */
+.lq-care-empty {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--lq-ink-soft);
+}
+
+.lq-care-empty svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.0625rem;
+    color: var(--lq-muted);
+}
+
+.lq-care-waiting {
+    background: var(--lq-warning-tint);
+}
+
+.lq-care-waiting svg {
+    color: var(--lq-warning);
+}
+
+.lq-care-team {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.lq-care-team li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.lq-inline-add {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.lq-inline-add .lq-input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* The client's storage. */
+.lq-files {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-file {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem 0.75rem 1.5rem;
+    border-top: 1px solid var(--lq-card-border);
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-file:first-child {
+    border-top: 0;
+}
+
+.lq-file:hover {
+    background: var(--lq-raised);
+}
+
+.lq-file-main {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    flex: 1;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.lq-file-icon {
+    --file: var(--lq-ink-soft);
+    --file-tint: var(--lq-raised);
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--file-tint);
+    color: var(--file);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--file) 16%, transparent);
+}
+
+.lq-file-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.lq-file-icon-contract { --file: var(--lq-info); --file-tint: var(--lq-info-tint); }
+.lq-file-icon-invoice { --file: var(--lq-success); --file-tint: var(--lq-success-tint); }
+.lq-file-icon-secret { --file: var(--lq-warning); --file-tint: var(--lq-warning-tint); }
+
+.lq-file-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+a.lq-file-main:hover .lq-file-name {
+    color: var(--lq-orange-deep);
+}
+
+.lq-file-meta {
+    display: block;
+    margin-top: 0.0625rem;
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Text the client shared. A hidden one stays covered until someone asks. */
+.lq-vault {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem 1rem;
+}
+
+.lq-vault-item {
+    border-radius: var(--lq-radius-inner);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+    overflow: hidden;
+}
+
+.lq-vault-head {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 0.75rem 0.75rem 0.875rem;
+}
+
+.lq-vault-body {
+    margin: 0;
+    padding: 0.875rem 1rem;
+    border-top: 1px solid var(--lq-card-border);
+    background: var(--lq-raised);
+    font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--lq-ink);
+}
+
+.lq-vault-covered {
+    letter-spacing: 0.2em;
+    color: var(--lq-muted);
+    user-select: none;
+}
+
+/* Where files are dropped. */
+.lq-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1.75rem 1rem;
+    border: 1.5px dashed var(--lq-field-border);
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 150ms var(--lq-ease), background-color 150ms var(--lq-ease);
+}
+
+.lq-dropzone:hover,
+.lq-dropzone:focus-within,
+.lq-dropzone-over {
+    border-color: var(--lq-orange);
+    background: var(--lq-orange-tint);
+}
+
+.lq-dropzone > svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-bottom: 0.25rem;
+    color: var(--lq-muted);
+}
+
+.lq-dropzone-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.lq-dropzone-sub {
+    max-width: 100%;
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+    overflow-wrap: anywhere;
+}
+
+/* The files chosen in a dialog, before they are saved. */
+.lq-picked {
+    list-style: none;
+    margin: 0.625rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.lq-picked li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-raised);
+}
+
+.lq-picked li > svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--lq-muted);
+}
+
+.lq-picked .lq-error {
+    display: block;
+    margin: 0;
+}
+
+.lq-picked-bad {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lq-danger) 45%, transparent);
+}
+
+.lq-picked .lq-btn-icon {
+    width: 1.875rem;
+    min-height: 1.875rem;
+}
+
+/* On a won lead: where its client went, and the files front sales added. */
+.lq-handover {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid color-mix(in srgb, var(--lq-success) 22%, transparent);
+}
+
+.lq-handover-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--lq-ink-soft);
+}
+
+.lq-handover-state svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+}
+
+.lq-handover-done svg {
+    color: var(--lq-success);
+}
+
+.lq-handover-files {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.lq-handover-files li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    font-size: 0.8125rem;
+}
+
+.lq-handover-files a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    flex: 1;
+    min-width: 0;
+    color: var(--lq-ink);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.lq-handover-files a:hover {
+    color: var(--lq-orange-deep);
+}
+
+.lq-handover-files a svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+}
+
+.lq-handover-files .lq-btn-icon {
+    width: 1.75rem;
+    min-height: 1.75rem;
+}
+
+/* Distribute: a source, an arrow, where its leads go. */
+.lq-route {
+    flex-wrap: wrap;
+}
+
+/* A website's favicon the size of the Facebook tile beside it. */
+.lq-route-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--lq-radius-control);
+}
+
+.lq-route-arrow {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--lq-muted);
+}
+
+.lq-route-select {
+    flex: none;
+    width: min(100%, 19rem);
+}
+
+@media (max-width: 720px) {
+    .lq-route-arrow {
+        display: none;
+    }
+
+    .lq-route-select {
+        width: 100%;
+    }
+}
+
 } /* @layer components */

@@ -13,6 +13,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Leads\Support\LeadNotifier;
+use App\Modules\Leads\Support\LeadRouting;
 use App\Modules\Leads\Support\PhoneNormalizer;
 use App\Modules\Sales\Models\Client;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,8 @@ use Illuminate\Support\Facades\DB;
  * Every channel ends here: normalise, de-duplicate inside the brand, put the
  * lead in New / Unassigned, write the timeline entry and notify. A repeat
  * enquiry from a known email or phone lands on the existing open lead's
- * timeline instead of creating a second lead.
+ * timeline instead of creating a second lead. A website or Facebook Page
+ * with a rule sends its leads straight to that department or person.
  */
 final class CreateLead
 {
@@ -52,6 +54,16 @@ final class CreateLead
                 $existing->touchActivity();
 
                 return new LeadCreation($existing, wasMerged: true);
+            }
+
+            // The source's own rule, unless the caller already chose or this is a quiet import of old leads.
+            $route = ($data['silent'] ?? false) || filled($data['department_id'] ?? null) || filled($data['assigned_to'] ?? null)
+                ? null
+                : LeadRouting::resolve($brand, $source, $data['source_id'] ?? null);
+
+            if ($route !== null) {
+                $data['department_id'] = $route['department']->getKey();
+                $data['assigned_to'] = $route['user']?->getKey();
             }
 
             $attributes = [
@@ -94,6 +106,19 @@ final class CreateLead
                 causer: $by,
                 logName: 'leads',
             );
+
+            if ($route !== null) {
+                Audit::log(
+                    'leads.routed',
+                    $lead,
+                    ['department_id' => $lead->department_id, 'assigned_to' => $lead->assigned_to],
+                    'Sent straight to '.($route['user'] !== null ? $route['user']->name.' in ' : '').$route['department']->name.', as set for this source',
+                    brand: $brand,
+                    department: $route['department'],
+                    causer: $by,
+                    logName: 'leads',
+                );
+            }
 
             LeadCreated::dispatch($lead);
 

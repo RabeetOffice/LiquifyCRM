@@ -8,6 +8,10 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Sales\Enums\ClientStage;
+use App\Modules\Sales\Models\Client;
+use App\Modules\Sales\Support\CareTeams;
+use App\Modules\Sales\Support\ClientCare;
 use App\Modules\System\Support\SystemUpdater;
 use Closure;
 
@@ -52,13 +56,27 @@ final class Menu
             return $count > 0 ? (string) $count : null;
         };
 
-        $main = [
-            self::item('Dashboard', 'heroicon-o-home', route('brand.dashboard', $params), $isActive('brand.dashboard')),
-            self::item($agent ? 'My leads' : 'Leads', 'heroicon-o-inbox-arrow-down', route('brand.leads.index', $params), $isActive('brand.leads.index', 'brand.leads.create', 'brand.leads.show'), $queueCount),
-            self::item('Pipeline', 'heroicon-o-view-columns', route('brand.leads.pipeline', $params), $isActive('brand.leads.pipeline')),
-            self::item('Inbox', 'heroicon-o-chat-bubble-left-right', route('brand.inbox', $params), $isActive('brand.inbox'), $unread),
-            self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
-        ];
+        // Someone who only works on an Upsell team has clients, not leads: the lead
+        // screens stay out of their way unless a lead was given to them all the same.
+        $clientsOnly = CareTeams::worksClientsOnly($user, $brand);
+        $clientRoutes = ['brand.clients.index', 'brand.clients.show', 'brand.dashboard'];
+
+        // The clients an Upsell team received that nobody looks after yet.
+        $waiting = function () use ($user): ?string {
+            $count = ClientCare::ready() ? Client::query()->visibleTo($user)->inStage(ClientStage::Waiting)->count() : 0;
+
+            return $count > 0 ? (string) $count : null;
+        };
+
+        $main = $clientsOnly
+            ? [self::item($agent ? 'My clients' : 'Clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive(...$clientRoutes), $agent ? null : $waiting)]
+            : [
+                self::item('Dashboard', 'heroicon-o-home', route('brand.dashboard', $params), $isActive('brand.dashboard')),
+                self::item($agent ? 'My leads' : 'Leads', 'heroicon-o-inbox-arrow-down', route('brand.leads.index', $params), $isActive('brand.leads.index', 'brand.leads.create', 'brand.leads.show'), $queueCount),
+                self::item('Pipeline', 'heroicon-o-view-columns', route('brand.leads.pipeline', $params), $isActive('brand.leads.pipeline')),
+                self::item('Inbox', 'heroicon-o-chat-bubble-left-right', route('brand.inbox', $params), $isActive('brand.inbox'), $unread),
+                self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
+            ];
 
         $groups = [['label' => 'Main menu', 'items' => $main]];
 
@@ -66,8 +84,15 @@ final class Menu
 
         if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
             $sales[] = self::item('Targets', 'heroicon-o-flag', route('brand.targets', $params), $isActive('brand.targets'));
-            $sales[] = self::item('Clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive('brand.clients.index', 'brand.clients.show'));
-            $sales[] = self::item('Distribute leads', 'heroicon-o-arrows-right-left', route('brand.leads.distribute', $params), $isActive('brand.leads.distribute'));
+
+            if (! $clientsOnly) {
+                $sales[] = self::item('Clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive('brand.clients.index', 'brand.clients.show'), $waiting);
+            }
+
+            $sales[] = self::item($clientsOnly ? 'How clients are shared' : 'Distribute leads', 'heroicon-o-arrows-right-left', route('brand.leads.distribute', $params), $isActive('brand.leads.distribute'));
+        } elseif (! $clientsOnly && (CareTeams::includes($user, $brand) || (ClientCare::ready() && Client::query()->inCareOf($user)->exists()))) {
+            // Someone on an Upsell team works from their clients, not from leads.
+            $sales[] = self::item('My clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive('brand.clients.index', 'brand.clients.show'));
         }
 
         $groups[] = ['label' => 'Sales', 'items' => $sales];

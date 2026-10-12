@@ -30,7 +30,8 @@
         <li><strong>From a website form:</strong> what you typed (usually your name, email address, phone number and message), the page you were on, and the campaign tags in the link you followed. The website may also send your IP address and browser type; those stay only in a temporary record that is deleted within 30 days, not with your enquiry.</li>
         <li><strong>From a Facebook or Instagram lead form:</strong> the answers you gave in the form, and the names of the Page, the form, the ad and the campaign it came from.</li>
         <li><strong>From Messenger:</strong> the messages you send to the business's Page and the replies you get, your name and profile picture if Facebook shares them, and the ID Facebook gives you for that Page. We do not download attachments; we keep only the reference Facebook sends with the message.</li>
-        <li><strong>What the team adds</strong> while working on your enquiry: notes, follow-up tasks, its status and, if you buy, the amount and date of the sale.</li>
+        <li><strong>What the team adds</strong> while working on your enquiry: notes, follow-up tasks, its status and, if you buy, the amount and date of each sale.</li>
+        <li><strong>If you become a client:</strong> the files of your order that the team keeps for you (such as a contract, an invoice or the material you send), and any text you share with them for the work, such as a login to a service of yours.</li>
     </ul>
 
     <h3>When you connect Facebook</h3>
@@ -73,7 +74,7 @@
 
     <h2>6. How long we keep it</h2>
     <ul>
-        <li><strong>Enquiries, their notes, Messenger chats and sales:</strong> for as long as the business uses {{ $name }}, or until you or the business ask for them to be deleted.</li>
+        <li><strong>Enquiries, their notes, Messenger chats and sales, and a client's files and shared text:</strong> for as long as the business uses {{ $name }}, or until you or the business ask for them to be deleted.</li>
         <li><strong>The raw copy of an incoming form or Facebook event:</strong> 14 days after it has been handled, and never longer than 30 days.</li>
         <li><strong>Activity records:</strong> between 7 and 90 days in the live system, then in archive files for up to one year. The history shown on an enquiry stays with that enquiry.</li>
         <li><strong>Facebook access tokens:</strong> until Facebook is disconnected in {{ $name }}; they are removed at that moment.</li>
@@ -84,6 +85,7 @@
     <ul>
         <li>The connection to {{ $name }} is encrypted (https).</li>
         <li>Passwords are stored as one-way hashes; Facebook tokens, authenticator keys and email passwords are stored encrypted.</li>
+        <li>Text a client shares for their work, such as a login, is stored encrypted, and a client's files are kept in private storage that only the team members working for that client can open.</li>
         <li>Administrators must sign in with a second step from an authenticator app.</li>
         <li>Each team member sees only what their role allows, and each business's data is kept apart from the others.</li>
         <li>Actions are recorded, so it can be checked who did what.</li>

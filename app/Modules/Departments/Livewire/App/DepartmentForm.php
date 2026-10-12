@@ -6,11 +6,13 @@ namespace App\Modules\Departments\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Enums\DepartmentKind;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Sales\Support\ClientCare;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -39,6 +41,9 @@ final class DepartmentForm extends Component
 
     public string $description = '';
 
+    /** Front sales (works new leads) or Upsell (looks after clients after the first sale). */
+    public string $kind = 'sales';
+
     public string $newMemberId = '';
 
     public string $newMemberRole = 'agent';
@@ -54,6 +59,7 @@ final class DepartmentForm extends Component
             $this->name = $department->name;
             $this->color = $department->color ?? '#FF6B2C';
             $this->description = (string) $department->description;
+            $this->kind = $department->kind()->value;
         } else {
             $this->authorize('create', Department::class);
         }
@@ -65,7 +71,11 @@ final class DepartmentForm extends Component
             'name' => ['required', 'string', 'max:120', Rule::unique('departments', 'name')->where('brand_id', $this->brand->getKey())->ignore($this->department?->getKey())],
             'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'description' => ['nullable', 'string', 'max:1000'],
-        ]);
+            'kind' => ['required', Rule::in(array_column(DepartmentKind::cases(), 'value'))],
+        ], attributes: ['kind' => 'what this team does']);
+
+        // The column arrives with "Update system"; until then every department is front sales.
+        $kind = ClientCare::ready() ? ['kind' => $data['kind']] : [];
 
         if ($this->department === null) {
             $department = Department::query()->create([
@@ -74,6 +84,7 @@ final class DepartmentForm extends Component
                 'color' => $data['color'] ?: null,
                 'description' => $data['description'] ?: null,
                 'created_by' => auth()->id(),
+                ...$kind,
             ]);
 
             Audit::log('departments.created', $department, ['name' => $department->name], 'Department created', logName: 'departments');
@@ -84,9 +95,9 @@ final class DepartmentForm extends Component
             return;
         }
 
-        $this->department->update(['name' => $data['name'], 'color' => $data['color'] ?: null, 'description' => $data['description'] ?: null]);
+        $this->department->update(['name' => $data['name'], 'color' => $data['color'] ?: null, 'description' => $data['description'] ?: null, ...$kind]);
 
-        Audit::log('departments.updated', $this->department, ['name' => $this->department->name], 'Department updated', logName: 'departments');
+        Audit::log('departments.updated', $this->department, ['name' => $this->department->name, 'kind' => $this->department->kind()->value], 'Department updated', logName: 'departments');
         $this->toastSuccess('Department saved');
     }
 
@@ -163,6 +174,7 @@ final class DepartmentForm extends Component
             'people' => $people,
             'candidates' => $candidates,
             'roles' => DepartmentRole::cases(),
+            'kinds' => ClientCare::ready() ? DepartmentKind::cases() : [],
             'canManageMembers' => $department !== null && auth()->user()?->can('manageMembers', $department),
         ])->title($department ? 'Edit department' : 'Create a department');
     }

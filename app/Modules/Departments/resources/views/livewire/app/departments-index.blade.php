@@ -43,6 +43,9 @@
                                         <span class="h-3 w-3 flex-none rounded-full" style="background: {{ $department->color ?? 'var(--lq-orange)' }}"></span>
                                         <div class="min-w-0">
                                             <a href="{{ route('brand.departments.edit', ['brand' => $brand->slug, 'department' => $department]) }}" class="lq-cell-title" wire:navigate>{{ $department->name }}</a>
+                                            @if ($department->isUpsell())
+                                                <x-ui.badge color="success">Upsell</x-ui.badge>
+                                            @endif
                                             @if ($department->description)
                                                 <span class="lq-cell-sub">{{ str($department->description)->limit(80) }}</span>
                                             @endif

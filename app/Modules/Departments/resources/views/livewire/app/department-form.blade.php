@@ -12,6 +12,7 @@
             <div class="lq-lead-meta">
                 @if ($department)
                     <span>{{ $people->count() }} {{ str('person')->plural($people->count()) }}</span>
+                    <span>· {{ $department->kind()->getLabel() }}</span>
                     <span>· Leads, sales and targets are counted per department</span>
                 @else
                     <span>A team inside {{ $brand->name }}. Add its people after creating it.</span>
@@ -87,6 +88,19 @@
                     <x-ui.field label="Name" name="name" required>
                         <x-ui.input wire:model="name" name="name" placeholder="Sales Team A" required :autofocus="$department === null" />
                     </x-ui.field>
+                    @if ($kinds !== [])
+                        <x-ui.field label="What it does" name="kind">
+                            <div class="lq-choices lq-choices-stack" role="radiogroup" aria-label="What this department does">
+                                @foreach ($kinds as $option)
+                                    <label @class(['lq-choice', 'lq-choice-active' => $kind === $option->value])>
+                                        <input type="radio" wire:model.live="kind" name="kind" value="{{ $option->value }}">
+                                        <span class="lq-choice-title">{{ $option->getLabel() }}</span>
+                                        <span class="lq-choice-desc">{{ $option->getDescription() }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </x-ui.field>
+                    @endif
                     <x-ui.field label="Colour" name="color" help="Used for the department chip and chart line.">
                         <div class="lq-swatch">
                             <input type="color" wire:model.live="color" aria-label="Pick a colour">

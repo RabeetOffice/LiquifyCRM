@@ -25,8 +25,14 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
+use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Models\Client;
+use App\Modules\Sales\Models\ClientFile;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\CareTeams;
+use App\Modules\Sales\Support\ClientCare;
 use App\Modules\Sales\Support\Money;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
@@ -34,14 +40,18 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * One lead: who it is, where it stands on the pipeline path, the actions
  * from the permission table, contact and details, then timeline, message,
  * notes and follow-ups in tabs. Shown as a slide-over from the list and the
- * pipeline, and as a full page (two columns) from notification links.
+ * pipeline, and as a full page (two columns) from notification links. Once
+ * the lead is won, front sales finishes here: the contract goes into the
+ * client's storage and the client is handed to an Upsell team.
  */
 final class LeadPanel extends Component
 {
@@ -49,6 +59,7 @@ final class LeadPanel extends Component
     use EditsLeadDetails;
     use HandlesLeadUndo;
     use WithConfirmation;
+    use WithFileUploads;
 
     #[Locked]
     public int $leadId;
@@ -88,6 +99,23 @@ final class LeadPanel extends Component
     public string $wonService = '';
 
     public string $wonClosedAt = '';
+
+    /** The signed contract or the invoice, added with the sale. */
+    public mixed $wonContract = null;
+
+    /** Where the new client goes: "12" an Upsell team, "12:34" a person in it, empty for later. */
+    public string $wonHandTo = '';
+
+    public bool $showHandOver = false;
+
+    public string $handTo = '';
+
+    public bool $showClientFile = false;
+
+    /** @var array<int, mixed> */
+    public array $clientUploads = [];
+
+    public string $clientFileCategory = 'contract';
 
     public function mount(int $leadId, bool $page = false): void
     {
@@ -201,6 +229,8 @@ final class LeadPanel extends Component
         $this->wonAmount = '';
         $this->wonService = (string) ($lead->fields['service'] ?? '');
         $this->wonClosedAt = now()->toDateString();
+        $this->wonContract = null;
+        $this->wonHandTo = '';
         $this->resetErrorBag();
         $this->showWon = true;
     }
@@ -214,13 +244,135 @@ final class LeadPanel extends Component
             'wonAmount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
             'wonService' => ['nullable', 'string', 'max:190'],
             'wonClosedAt' => ['required', 'date', 'before_or_equal:today'],
-        ], attributes: ['wonAmount' => 'amount', 'wonService' => 'service or package', 'wonClosedAt' => 'close date']);
+            'wonContract' => ['nullable', ...StoreClientFile::rules()],
+            'wonHandTo' => ['nullable', 'string'],
+        ], ['wonContract.max' => 'The file may be up to '.(ClientFile::MAX_KB / 1024).' MB.'], ['wonAmount' => 'amount', 'wonService' => 'service or package', 'wonClosedAt' => 'close date', 'wonContract' => 'contract']);
+
+        $team = filled($data['wonHandTo'] ?? null) ? CareTeams::parse($this->brand(), (string) $data['wonHandTo']) : null;
+
+        if (filled($data['wonHandTo'] ?? null) && $team === null) {
+            $this->addError('wonHandTo', 'Choose a team or a person from the list.');
+
+            return;
+        }
 
         $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user());
+        $client = ClientCare::ready() ? Client::query()->find($sale->client_id) : null;
+        $told = 'It counts towards this month\'s targets.';
 
+        if ($client !== null && $this->wonContract !== null) {
+            app(StoreClientFile::class)->handle($client, $this->wonContract, 'contract', $this->user(), $lead);
+        }
+
+        // Front sales ends here: the client goes to the Upsell team in the same step.
+        if ($client !== null && $team !== null && ! $client->isHandedOver() && $this->user()->can('handOver', $client)) {
+            app(HandOverClient::class)->handle($client, $team[0], $team[1], $this->user());
+            $told = 'The client is with '.($client->owner()->value('name') ?? $team[0]->name).' now.';
+        }
+
+        $this->wonContract = null;
         $this->showWon = false;
         $this->changed();
-        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), 'It counts towards this month\'s targets.');
+        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), $told);
+    }
+
+    /** After the sale: send the client to an Upsell team (or a person in it). */
+    public function openHandOver(): void
+    {
+        $client = $this->client();
+        abort_if($client === null, 404);
+        $this->authorize('handOver', $client);
+
+        $this->handTo = '';
+        $this->resetErrorBag();
+        $this->showHandOver = true;
+    }
+
+    public function handOverClient(): void
+    {
+        $client = $this->client();
+        abort_if($client === null, 404);
+        $this->authorize('handOver', $client);
+        $this->validate(['handTo' => ['required', 'string']], ['handTo.required' => 'Choose a team or a person.']);
+
+        $team = CareTeams::parse($this->brand(), $this->handTo);
+
+        if ($team === null) {
+            $this->addError('handTo', 'Choose a team or a person from the list.');
+
+            return;
+        }
+
+        try {
+            app(HandOverClient::class)->handle($client, $team[0], $team[1], $this->user());
+        } catch (InvalidArgumentException $exception) {
+            $this->addError('handTo', $exception->getMessage());
+
+            return;
+        }
+
+        $this->showHandOver = false;
+        $this->changed();
+        $this->toastSuccess('Client handed to '.$team[0]->name, ($client->owner()->value('name') ?? 'The team').' takes it from here.');
+    }
+
+    /** The contract, an invoice, anything front sales has for the client: it goes into the client's storage. */
+    public function openClientFile(): void
+    {
+        $client = $this->client();
+        abort_if($client === null, 404);
+        $this->authorize('addFile', $client);
+
+        $this->clientUploads = [];
+        $this->clientFileCategory = 'contract';
+        $this->resetErrorBag();
+        $this->showClientFile = true;
+    }
+
+    public function saveClientFiles(StoreClientFile $action): void
+    {
+        $client = $this->client();
+        abort_if($client === null, 404);
+        $this->authorize('addFile', $client);
+
+        $this->validate([
+            'clientUploads' => ['required', 'array', 'min:1', 'max:10'],
+            'clientUploads.*' => StoreClientFile::rules(),
+            'clientFileCategory' => ['required', 'in:'.implode(',', array_keys(ClientFile::CATEGORIES))],
+        ], [
+            'clientUploads.required' => 'Choose at least one file.',
+            'clientUploads.max' => 'Add up to 10 files at a time.',
+            'clientUploads.*.max' => 'A file may be up to '.(ClientFile::MAX_KB / 1024).' MB.',
+        ], ['clientUploads.*' => 'file']);
+
+        $lead = $this->lead();
+
+        foreach ($this->clientUploads as $upload) {
+            $action->handle($client, $upload, $this->clientFileCategory, $this->user(), $lead);
+        }
+
+        $count = count($this->clientUploads);
+        $this->clientUploads = [];
+        $this->showClientFile = false;
+        $this->toastSuccess($count === 1 ? 'File added to the client' : $count.' files added to the client');
+    }
+
+    public function confirmRemoveClientFile(int $fileId): void
+    {
+        $this->askConfirmation('removeClientFile', [$fileId], 'Remove this file?', 'It is deleted from the client\'s files and cannot be brought back.', 'Remove file', 'danger');
+    }
+
+    public function removeClientFile(int $fileId): void
+    {
+        $client = $this->client();
+        abort_if($client === null, 404);
+
+        $file = ClientFile::query()->ofLead($this->leadId)->findOrFail($fileId);
+        $this->authorize('deleteFile', [$client, $file]);
+
+        app(StoreClientFile::class)->delete($client, $file, $this->user());
+
+        $this->toastSuccess('File removed');
     }
 
     public function openNote(): void
@@ -327,6 +479,12 @@ final class LeadPanel extends Component
         LeadSites::attach([$lead]);
 
         $statuses = LeadStatus::query()->ordered()->get();
+        $sales = Sale::query()->where('lead_id', $lead->getKey())->with('closer')->latest('closed_at')->get();
+
+        // The client this lead became: where they are now, and the files front sales added for them.
+        $client = $sales->isNotEmpty() ? $this->client() : null;
+        $client?->loadMissing(['department', 'owner']);
+        $canRecordSale = $user->can('recordSale', $lead);
 
         $timeline = Activity::query()
             ->where('subject_type', $lead->getMorphClass())
@@ -341,7 +499,13 @@ final class LeadPanel extends Component
             'canSeeFull' => $canSeeFull,
             'timeline' => $timeline,
             'openTasks' => $lead->tasks->whereNull('done_at'),
-            'sales' => Sale::query()->where('lead_id', $lead->getKey())->with('closer')->latest('closed_at')->get(),
+            'sales' => $sales,
+            'client' => $client,
+            'clientFiles' => $client !== null ? ClientFile::query()->ofLead($lead)->latest('id')->get() : new Collection,
+            'teams' => $canRecordSale || $client !== null ? CareTeams::options($this->brand()) : [],
+            'fileCategories' => ClientFile::CATEGORIES,
+            'maxMb' => ClientFile::MAX_KB / 1024,
+            'careReady' => ClientCare::ready(),
             'brandCurrency' => $this->brand()->currency,
             'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
             'statuses' => $statuses,
@@ -352,7 +516,10 @@ final class LeadPanel extends Component
                 'assign' => $user->can('assign', $lead),
                 'distribute' => $user->can('distribute', $lead),
                 'update' => $user->can('update', $lead),
-                'recordSale' => $user->can('recordSale', $lead),
+                'recordSale' => $canRecordSale,
+                'handOver' => $client !== null && ! $client->isHandedOver() && ! $client->isClosed() && $user->can('handOver', $client),
+                'addFile' => $client !== null && $user->can('addFile', $client),
+                'openClient' => $client !== null && $user->can('view', $client),
                 'reveal' => ! $canSeeFull && $user->can('reveal', $lead),
                 'delete' => $user->can('delete', $lead),
             ],
@@ -384,6 +551,14 @@ final class LeadPanel extends Component
     private function lead(): Lead
     {
         return Lead::query()->findOrFail($this->leadId);
+    }
+
+    /** The client this lead belongs to, once the update that brought hand-over and storage is in. */
+    private function client(): ?Client
+    {
+        $clientId = ClientCare::ready() ? Lead::query()->whereKey($this->leadId)->value('client_id') : null;
+
+        return $clientId !== null ? Client::query()->find($clientId) : null;
     }
 
     protected function detailsLead(): Lead

@@ -1,15 +1,64 @@
 <div class="flex flex-col gap-6">
-    <x-ui.page-header title="Distribute leads" :subtitle="$isAdmin ? 'Choose how each department shares its new leads, or filter the leads you have and split them across departments now.' : 'Choose how your department shares its new leads, or share the leads you have among your Agents now.'"
-        :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), 'Distribute' => null]" />
+    @if ($clientsOnly)
+        <x-ui.page-header title="How clients are shared" subtitle="Choose how your department shares the clients front sales hands to it. To give out the ones already waiting, tick them on the Clients screen."
+            :breadcrumbs="['Clients' => route('brand.clients.index', ['brand' => $brand->slug]), 'Sharing' => null]" />
+    @else
+        <x-ui.page-header title="Distribute leads" :subtitle="$isAdmin ? 'Choose where the leads of each website and Facebook Page go, how each department shares what it receives, or split the leads you have across departments now.' : 'Choose how your department shares its new leads, or share the leads you have among your Agents now.'"
+            :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), 'Distribute' => null]" />
+    @endif
+
+    {{-- From the first second: where the leads of each website and Facebook Page go. --}}
+    @if ($routeSources !== [])
+        <x-ui.card title="Where new leads go" description="Choose for each website and Facebook Page. A lead goes to that department or straight to that person the moment it arrives; anything left on the queue waits for you to assign it by hand." flush>
+            <ul class="flex flex-col">
+                @foreach ($routeSources as $source)
+                    @php
+                        $route = $routes->get($source['channel'].':'.$source['id']);
+                        $current = $route && $route->department_id ? $route->department_id.($route->user_id ? ':'.$route->user_id : '') : '';
+                    @endphp
+                    <li class="lq-rank lq-route" wire:key="route-{{ $source['channel'] }}-{{ $source['id'] }}">
+                        @if ($source['site'])
+                            <x-sites::favicon :site="$source['site']" class="lq-route-icon" />
+                        @else
+                            <span class="lq-logo-tile lq-logo-sm lq-logo-facebook"><x-ui.brand-icon name="facebook" /></span>
+                        @endif
+                        <span class="min-w-0 flex-1">
+                            <span class="lq-cell-title">{{ $source['name'] }}</span>
+                            <span class="lq-cell-sub">{{ $source['detail'] }}</span>
+                        </span>
+                        <x-heroicon-m-arrow-long-right class="lq-route-arrow" />
+                        <select class="lq-input lq-input-sm lq-route-select" aria-label="Where leads from {{ $source['name'] }} go" wire:change="setRoute('{{ $source['channel'] }}', {{ $source['id'] }}, $event.target.value)">
+                            <option value="" @selected($current === '')>The queue: assign by hand</option>
+                            @foreach ($routeTargets as $target)
+                                <optgroup label="{{ $target['department']->name }}">
+                                    <option value="{{ $target['department']->getKey() }}" @selected($current === (string) $target['department']->getKey())>{{ $target['department']->name }}: {{ $target['department']->assignment_mode === \App\Modules\Core\Enums\AssignmentMode::RoundRobin ? 'next Agent in turn' : 'its Manager assigns' }}</option>
+                                    @foreach ($target['people'] as $id => $name)
+                                        <option value="{{ $target['department']->getKey() }}:{{ $id }}" @selected($current === $target['department']->getKey().':'.$id)>{{ $name }} · {{ $target['department']->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
+                    </li>
+                @endforeach
+            </ul>
+            @if ($routeTargets === [])
+                <x-slot:footer>
+                    <span class="mr-auto text-sm lq-muted">Create a department first, then choose it here.</span>
+                </x-slot:footer>
+            @endif
+        </x-ui.card>
+    @endif
 
     {{-- From now on: how each department shares the leads it receives. --}}
     @if ($sharing !== [])
-        <x-ui.card title="How new leads are shared" description="Choose once for each department. By hand, the leads wait in the queue for you; round robin gives each new lead to the next Agent in turn, so everyone gets the same number." flush>
+        <x-ui.card title="How each department shares" description="Choose once for each department. By hand, what arrives waits for you; round robin gives each new lead (or, in an Upsell department, each new client) to the next person in turn, so everyone gets the same number." flush>
             <ul class="flex flex-col">
                 @foreach ($sharing as $row)
                     @php
                         $item = $row['department'];
                         $on = $item->assignment_mode === \App\Modules\Core\Enums\AssignmentMode::RoundRobin;
+                        $upsell = $item->isUpsell();
+                        $what = $upsell ? 'client' : 'lead';
                     @endphp
                     <li class="lq-rank" wire:key="sharing-{{ $item->getKey() }}">
                         <span @class(['lq-logo-tile lq-logo-sm', 'lq-logo-web' => $on])>
@@ -20,21 +69,23 @@
                             @endif
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="lq-cell-title">{{ $item->name }}</span>
+                            <span class="lq-cell-title">{{ $item->name }} @if ($upsell) <x-ui.badge color="success">Upsell</x-ui.badge> @endif</span>
                             <span class="lq-cell-sub">
                                 @if ($on && $row['agents'] === 0)
-                                    Round robin is on, but this department has no Agent yet, so leads wait in the queue.
+                                    Round robin is on, but this department has no Agent yet, so {{ $what }}s wait.
                                 @elseif ($on)
-                                    Each new lead goes to the next of {{ $row['agents'] }} {{ str('Agent')->plural($row['agents']) }}.
+                                    Each new {{ $what }} goes to the next of {{ $row['agents'] }} {{ str('Agent')->plural($row['agents']) }}.
                                 @else
-                                    New leads wait in the queue until you assign them.
+                                    New {{ $what }}s wait until you give them out.
                                 @endif
                                 @if ($row['waiting'] > 0)
                                     · {{ $row['waiting'] }} waiting now
                                 @endif
                             </span>
                         </span>
-                        @if ($on && $row['waiting'] > 0 && $row['agents'] > 0)
+                        @if ($upsell && $row['waiting'] > 0)
+                            <x-ui.button size="sm" variant="ghost" :href="route('brand.clients.index', ['brand' => $brand->slug, 'view' => 'waiting'])">See the {{ $row['waiting'] }} waiting</x-ui.button>
+                        @elseif ($on && $row['waiting'] > 0 && $row['agents'] > 0)
                             <x-ui.button size="sm" variant="ghost" wire:click="shareWaiting({{ $item->getKey() }})" wire:loading.attr="disabled" wire:target="shareWaiting({{ $item->getKey() }})">Share the {{ $row['waiting'] }} waiting</x-ui.button>
                         @endif
                         <div class="lq-tabs flex-none" role="radiogroup" aria-label="How {{ $item->name }} shares leads">
@@ -48,6 +99,7 @@
         </x-ui.card>
     @endif
 
+    @unless ($clientsOnly)
     <div class="lq-grid-main">
         <div class="flex flex-col gap-6">
             <x-ui.card title="1. Which leads" description="Open leads only. Oldest leads are handed out first.">
@@ -166,8 +218,9 @@
             @endif
         </x-ui.card>
     </div>
+    @endunless
 
-    @unless ($isAdmin)
+    @unless ($isAdmin || $clientsOnly)
         <p class="lq-help">To hand out specific leads by hand, tick them in the Leads list and use Assign.</p>
     @endunless
 </div>
