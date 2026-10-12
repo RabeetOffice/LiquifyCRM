@@ -20,6 +20,23 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.4.0',
+        'date' => '2026-10-12',
+        'title' => 'Leads, pipeline and inbox, redesigned',
+        'changes' => [
+            ['improved', 'Leads list: views sit on top of the list, the filters you use show as chips you can remove one by one, and bulk actions float at the bottom while leads are ticked.'],
+            ['new', 'Every lead shows its pipeline as a path: one click on a step moves the lead there. Won still asks for the sale amount.'],
+            ['improved', 'A lead opens with its contact, details and actions in clear blocks, and copies phone or email in one click. On its own page it uses two columns.'],
+            ['improved', 'Pipeline: columns scroll on their own, cards show the service, owner, follow-up and how long the lead has been quiet, and a click opens the lead without leaving the board.'],
+            ['new', 'Pipeline: show one person\'s leads or only the unassigned ones, and see at a glance how many are unassigned, overdue or gone quiet.'],
+            ['improved', 'Inbox in three panes: the chats, the conversation and the lead behind it. Messages are grouped by day, and you can show only unread chats or chats you can still answer.'],
+            ['improved', 'Follow-ups read as a checklist with the lead, its owner and a clear overdue mark.'],
+            ['fixed', 'Lists no longer light up every row a moment after a page opens; only a row that really arrives is lit.'],
+            ['fixed', 'Charts follow the light or dark mode when you switch, without an error.'],
+            ['fixed', 'The People, Members and Leads tables fit their card on a laptop screen, and column headings line up with their numbers.'],
+        ],
+    ],
+    [
         'version' => '1.3.0',
         'date' => '2026-10-09',
         'title' => 'System updates and email providers',

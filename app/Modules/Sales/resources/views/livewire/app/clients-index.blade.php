@@ -32,7 +32,7 @@
                             <tr wire:key="client-{{ $client->getKey() }}">
                                 <td>
                                     <div class="flex items-center gap-3">
-                                        <x-ui.avatar :name="$client->name" size="sm" />
+                                        <x-ui.avatar :name="$client->name" size="sm" tone />
                                         <a href="{{ route('brand.clients.show', ['brand' => $brand->slug, 'client' => $client]) }}" class="lq-cell-title" wire:navigate>{{ $client->name }}</a>
                                     </div>
                                 </td>

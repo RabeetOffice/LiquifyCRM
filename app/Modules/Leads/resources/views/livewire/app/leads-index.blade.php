@@ -13,94 +13,91 @@
         </x-slot:actions>
     </x-ui.page-header>
 
-    <div class="lq-tabs" role="tablist">
-        @foreach ($tabs as $key => $item)
-            <button type="button" @class(['lq-tab', 'lq-tab-active' => $tab === $key]) wire:click="$set('tab', '{{ $key }}')" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}">
-                {{ $item['label'] }}
-                @if ($item['count'] !== null)
-                    <span @class(['lq-badge', 'lq-badge-'.$item['color']])>{{ $item['count'] }}</span>
-                @endif
-            </button>
-        @endforeach
-    </div>
-
-    <x-ui.card flush>
-        <div class="lq-toolbar">
-            <div class="relative w-full sm:w-80">
-                <x-heroicon-o-magnifying-glass class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 lq-muted" />
-                <input type="search" wire:model.live.debounce.300ms="search" class="lq-input lq-input-sm" style="padding-inline-start: 2.25rem" placeholder="Search by name, email or phone…">
+    <x-ui.card flush class="lq-list">
+        {{-- Saved views on the left, search and filters on the right. --}}
+        <div class="lq-viewbar">
+            <div class="lq-views" role="tablist" aria-label="Lead views">
+                @foreach ($tabs as $key => $item)
+                    <button type="button" @class(['lq-view', 'lq-view-active' => $tab === $key]) wire:click="$set('tab', '{{ $key }}')" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}">
+                        {{ $item['label'] }}
+                        @if ($item['count'] !== null)
+                            <span @class(['lq-view-count', 'lq-view-count-'.$item['color']])>{{ $item['count'] }}</span>
+                        @endif
+                    </button>
+                @endforeach
             </div>
-            <div class="lq-toolbar-end">
-                <x-ui.button size="sm" :variant="$hasFilters ? 'primary' : 'secondary'" wire:click="$toggle('showFilters')" icon="heroicon-o-funnel">Filters</x-ui.button>
-                @if ($hasFilters)
-                    <x-ui.button size="sm" variant="ghost" wire:click="clearFilters">Clear</x-ui.button>
-                @endif
+
+            <div class="lq-viewbar-end">
+                <label class="lq-search">
+                    <x-heroicon-o-magnifying-glass />
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, email or phone" aria-label="Search leads">
+                </label>
+                <button type="button" @class(['lq-btn lq-btn-secondary lq-btn-sm', 'lq-btn-on' => $showFilters || $hasFilters]) wire:click="$toggle('showFilters')" aria-expanded="{{ $showFilters ? 'true' : 'false' }}">
+                    <x-heroicon-o-adjustments-horizontal />
+                    Filters
+                    @if ($hasFilters)
+                        <span class="lq-count">{{ count($chips) }}</span>
+                    @endif
+                </button>
             </div>
         </div>
 
         @if ($showFilters)
-            <div class="lq-toolbar" style="padding-top: 0">
-                <div class="lq-form-grid lq-form-grid-3 w-full">
-                    <x-ui.field label="Status">
-                        <x-ui.select wire:model.live="status" placeholder="Any status" class="lq-input-sm">
-                            @foreach ($statuses as $status)
-                                <option value="{{ $status->getKey() }}">{{ $status->name }}</option>
+            <div class="lq-filters">
+                <x-ui.field label="Status">
+                    <x-ui.select wire:model.live="status" placeholder="Any status" class="lq-input-sm">
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->getKey() }}">{{ $status->name }}</option>
+                        @endforeach
+                    </x-ui.select>
+                </x-ui.field>
+                <x-ui.field label="Source">
+                    <x-ui.select wire:model.live="source" placeholder="Any source" class="lq-input-sm">
+                        @foreach ($sources as $source)
+                            <option value="{{ $source->value }}">{{ $source->getLabel() }}</option>
+                        @endforeach
+                    </x-ui.select>
+                </x-ui.field>
+                @unless ($agent)
+                    <x-ui.field label="Department">
+                        <x-ui.select wire:model.live="department" placeholder="Any department" class="lq-input-sm">
+                            @foreach ($departmentOptions as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach
                         </x-ui.select>
                     </x-ui.field>
-                    <x-ui.field label="Source">
-                        <x-ui.select wire:model.live="source" placeholder="Any source" class="lq-input-sm">
-                            @foreach ($sources as $source)
-                                <option value="{{ $source->value }}">{{ $source->getLabel() }}</option>
+                    <x-ui.field label="Owner">
+                        <x-ui.select wire:model.live="owner" placeholder="Anyone" class="lq-input-sm">
+                            @foreach ($agentOptions as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach
                         </x-ui.select>
                     </x-ui.field>
-                    @unless ($agent)
-                        <x-ui.field label="Department">
-                            <x-ui.select wire:model.live="department" placeholder="Any department" class="lq-input-sm">
-                                @foreach ($departmentOptions as $id => $name)
-                                    <option value="{{ $id }}">{{ $name }}</option>
-                                @endforeach
-                            </x-ui.select>
-                        </x-ui.field>
-                        <x-ui.field label="Owner">
-                            <x-ui.select wire:model.live="owner" placeholder="Anyone" class="lq-input-sm">
-                                @foreach ($agentOptions as $id => $name)
-                                    <option value="{{ $id }}">{{ $name }}</option>
-                                @endforeach
-                            </x-ui.select>
-                        </x-ui.field>
-                        <x-ui.field label="Assigned">
-                            <x-ui.select wire:model.live="assigned" placeholder="All" class="lq-input-sm">
-                                <option value="no">Unassigned only</option>
-                                <option value="yes">Assigned only</option>
-                            </x-ui.select>
-                        </x-ui.field>
-                    @endunless
-                    <x-ui.field label="Received from">
-                        <x-ui.input type="date" wire:model.live="from" class="lq-input-sm" />
+                    <x-ui.field label="Assigned">
+                        <x-ui.select wire:model.live="assigned" placeholder="All" class="lq-input-sm">
+                            <option value="no">Unassigned only</option>
+                            <option value="yes">Assigned only</option>
+                        </x-ui.select>
                     </x-ui.field>
-                    <x-ui.field label="Received until">
-                        <x-ui.input type="date" wire:model.live="until" class="lq-input-sm" />
-                    </x-ui.field>
-                </div>
+                @endunless
+                <x-ui.field label="Received from">
+                    <x-ui.input type="date" wire:model.live="from" class="lq-input-sm" />
+                </x-ui.field>
+                <x-ui.field label="Received until">
+                    <x-ui.input type="date" wire:model.live="until" class="lq-input-sm" />
+                </x-ui.field>
             </div>
         @endif
 
-        @if (count($selected) > 0)
-            <div class="lq-bulkbar">
-                <span class="font-semibold">{{ count($selected) }} selected</span>
-                @unless ($agent)
-                    <x-ui.button size="sm" wire:click="$set('showBulkAssign', true)" icon="heroicon-o-user-plus">Assign to</x-ui.button>
-                @endunless
-                @if ($can['distribute'])
-                    <x-ui.button size="sm" wire:click="$set('showBulkSend', true)" icon="heroicon-o-arrow-right-circle">Send to department</x-ui.button>
-                @endif
-                <x-ui.button size="sm" wire:click="$set('showBulkStatus', true)" icon="heroicon-o-arrow-path">Change status</x-ui.button>
-                @if ($can['deleteAny'])
-                    <x-ui.button size="sm" variant="danger" wire:click="confirmBulkDelete" icon="heroicon-o-trash">Delete</x-ui.button>
-                @endif
-                <x-ui.button size="sm" variant="ghost" wire:click="$set('selected', [])">Clear</x-ui.button>
+        @if ($hasFilters)
+            <div class="lq-chips">
+                @foreach ($chips as $key => $label)
+                    <button type="button" class="lq-chip" wire:click="removeFilter('{{ $key }}')" wire:key="chip-{{ $key }}" title="Remove this filter">
+                        {{ $label }}
+                        <x-heroicon-m-x-mark />
+                    </button>
+                @endforeach
+                <button type="button" class="lq-chip-clear" wire:click="clearFilters">Clear all</button>
             </div>
         @endif
 
@@ -116,45 +113,58 @@
             </x-ui.empty>
         @else
             <div class="lq-table-wrap">
-                <table class="lq-table">
+                <table class="lq-table lq-table-rows">
                     <thead>
                         <tr>
-                            <th style="width: 2.5rem">
-                                <input type="checkbox" class="h-4 w-4" style="accent-color: var(--lq-orange)" x-data x-on:change="$wire.set('selected', $event.target.checked ? @js($leads->pluck('id')->all()) : [])" @checked(count($selected) > 0 && count($selected) === $leads->count())>
+                            <th class="lq-th-tick">
+                                <input type="checkbox" class="lq-tick" aria-label="Select every lead on this page" x-data x-on:change="$wire.set('selected', $event.target.checked ? @js($leads->pluck('id')->all()) : [])" @checked(count($selected) > 0 && count($selected) === $leads->count())>
                             </th>
                             <x-ui.sort-th field="name" :sort="$sort" :direction="$direction" label="Lead" />
                             <x-ui.sort-th field="status_id" :sort="$sort" :direction="$direction" label="Status" />
                             <th>Source</th>
                             @unless ($agent)
-                                <th>Department</th>
                                 <th>Owner</th>
                             @endunless
                             <x-ui.sort-th field="next_follow_up_at" :sort="$sort" :direction="$direction" label="Follow up" />
-                            <x-ui.sort-th field="created_at" :sort="$sort" :direction="$direction" label="Received" />
+                            <x-ui.sort-th field="created_at" :sort="$sort" :direction="$direction" label="Received" class="lq-col-wide" />
                         </tr>
                     </thead>
                     <tbody class="lq-live">
                         @foreach ($leads as $lead)
-                            <tr wire:key="lead-{{ $lead->getKey() }}" @class(['lq-row-click', 'lq-selected' => in_array($lead->getKey(), $selected, true)])>
-                                <td x-on:click.stop><input type="checkbox" class="h-4 w-4" style="accent-color: var(--lq-orange)" value="{{ $lead->getKey() }}" wire:model.live="selected"></td>
-                                <td wire:click="openLead({{ $lead->getKey() }})">
-                                    <span class="lq-cell-title">{{ $lead->name }}</span>
-                                    <span class="lq-cell-sub">{{ ($fullContact[$lead->getKey()] ?? false) ? ($lead->email ?? $lead->phone) : ($lead->maskedEmail() ?? $lead->maskedPhone()) }}</span>
+                            @php $leadUrl = route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead->getKey()]); @endphp
+                            <tr wire:key="lead-{{ $lead->getKey() }}" wire:click="openLead({{ $lead->getKey() }})" @class(['lq-row-click', 'lq-selected' => in_array($lead->getKey(), $selected, true), 'lq-row-open' => $previewLead?->is($lead)])>
+                                <td class="lq-td-tick" x-data x-on:click.stop>
+                                    <input type="checkbox" class="lq-tick" aria-label="Select {{ $lead->name }}" value="{{ $lead->getKey() }}" wire:model.live="selected">
                                 </td>
-                                <td wire:click="openLead({{ $lead->getKey() }})"><x-ui.status-pill :status="$lead->status" /></td>
-                                <td wire:click="openLead({{ $lead->getKey() }})"><x-ui.lead-source :lead="$lead" /></td>
+                                <td class="lq-td-person">
+                                    <span class="lq-person">
+                                        <x-ui.avatar :name="$lead->name" tone />
+                                        <span class="min-w-0">
+                                            <a href="{{ $leadUrl }}" class="lq-cell-title" x-data x-on:click="($event.ctrlKey || $event.metaKey) ? $event.stopPropagation() : $event.preventDefault()">{{ $lead->name }}</a>
+                                            <span class="lq-cell-sub">{{ ($fullContact[$lead->getKey()] ?? false) ? ($lead->email ?? $lead->phone) : ($lead->maskedEmail() ?? $lead->maskedPhone()) }}</span>
+                                        </span>
+                                        <a href="{{ $leadUrl }}" class="lq-btn lq-btn-ghost lq-btn-icon lq-row-action" title="Open full page" aria-label="Open {{ $lead->name }} on its own page" x-data x-on:click.stop wire:navigate><x-heroicon-o-arrow-top-right-on-square /></a>
+                                    </span>
+                                </td>
+                                <td><x-ui.status-pill :status="$lead->status" /></td>
+                                <td><x-ui.lead-source :lead="$lead" /></td>
                                 @unless ($agent)
-                                    <td wire:click="openLead({{ $lead->getKey() }})">{{ $lead->department?->name ?? '—' }}</td>
-                                    <td wire:click="openLead({{ $lead->getKey() }})">
-                                        @if ($lead->assignee)
-                                            <span class="flex items-center gap-2"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" /> {{ $lead->assignee->name }}</span>
-                                        @else
-                                            <x-ui.badge color="primary">Unassigned</x-ui.badge>
-                                        @endif
+                                    <td>
+                                        <span class="lq-person">
+                                            @if ($lead->assignee)
+                                                <x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" />
+                                            @else
+                                                <span class="lq-avatar lq-avatar-sm lq-avatar-empty"><x-heroicon-m-user /></span>
+                                            @endif
+                                            <span class="min-w-0">
+                                                <span @class(['lq-cell-name', 'lq-unassigned' => ! $lead->assignee])>{{ $lead->assignee?->name ?? 'Unassigned' }}</span>
+                                                <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                            </span>
+                                        </span>
                                     </td>
                                 @endunless
-                                <td wire:click="openLead({{ $lead->getKey() }})" @class(['lq-num', 'text-[color:var(--lq-danger)]' => $lead->next_follow_up_at?->isPast()])>{{ $lead->next_follow_up_at?->format('j M, H:i') ?? '—' }}</td>
-                                <td wire:click="openLead({{ $lead->getKey() }})" class="lq-muted" title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans(short: true) }}</td>
+                                <td><x-ui.due :at="$lead->next_follow_up_at" /></td>
+                                <td class="lq-muted lq-num lq-col-wide" title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans(short: true) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -164,23 +174,27 @@
         @endif
     </x-ui.card>
 
-    {{-- Lead slide-over --}}
-    @if ($open)
-        <div class="lq-sheet-backdrop" x-data x-on:keydown.escape.window="$wire.closeLead()" x-on:click.self="$wire.closeLead()">
-            <div class="lq-sheet" role="dialog" aria-modal="true">
-                <header class="lq-modal-header">
-                    <div class="min-w-0">
-                        <h2 class="lq-modal-title">{{ \App\Modules\Leads\Models\Lead::query()->find($open)?->name ?? 'Lead' }}</h2>
-                        <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $open]) }}" class="lq-link text-xs" wire:navigate>Open full page</a>
-                    </div>
-                    <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="closeLead" title="Close"><x-heroicon-o-x-mark class="h-5 w-5" /></button>
-                </header>
-                <div class="lq-modal-body">
-                    @livewire(\App\Modules\Leads\Livewire\App\LeadPanel::class, ['leadId' => $open], key('lead-panel-'.$open))
-                </div>
-            </div>
+    {{-- Bulk actions float at the bottom while leads are ticked. --}}
+    @if (count($selected) > 0)
+        <div class="lq-floatbar" role="region" aria-label="Actions for the selected leads">
+            <span class="lq-floatbar-count"><span class="lq-count">{{ count($selected) }}</span> selected</span>
+            <span class="lq-floatbar-sep" aria-hidden="true"></span>
+            @unless ($agent)
+                <button type="button" class="lq-floatbar-btn" wire:click="$set('showBulkAssign', true)"><x-heroicon-o-user-plus /> Assign</button>
+            @endunless
+            @if ($can['distribute'])
+                <button type="button" class="lq-floatbar-btn" wire:click="$set('showBulkSend', true)"><x-heroicon-o-arrow-right-circle /> Send to team</button>
+            @endif
+            <button type="button" class="lq-floatbar-btn" wire:click="$set('showBulkStatus', true)"><x-heroicon-o-arrow-path /> Status</button>
+            @if ($can['deleteAny'])
+                <button type="button" class="lq-floatbar-btn lq-floatbar-danger" wire:click="confirmBulkDelete"><x-heroicon-o-trash /> Delete</button>
+            @endif
+            <span class="lq-floatbar-sep" aria-hidden="true"></span>
+            <button type="button" class="lq-floatbar-btn lq-floatbar-close" wire:click="$set('selected', [])" title="Clear the selection"><x-heroicon-m-x-mark /></button>
         </div>
     @endif
+
+    @include('leads::livewire.app.partials.lead-sheet')
 
     {{-- Bulk modals --}}
     <x-ui.modal model="showBulkAssign" :title="'Assign '.count($selected).' '.str('lead')->plural(count($selected))" size="sm">

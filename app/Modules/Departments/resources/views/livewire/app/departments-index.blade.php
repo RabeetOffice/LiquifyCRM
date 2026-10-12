@@ -59,12 +59,12 @@
                                 <td class="lq-table-end lq-num">{{ $department->agents_count }}</td>
                                 <td class="lq-muted">{{ $department->created_at?->diffForHumans() }}</td>
                                 <td class="lq-table-end">
-                                    <div class="flex justify-end gap-1">
+                                    <div class="lq-row-tools">
                                         @can('update', $department)
                                             <x-ui.button size="sm" variant="ghost" :href="route('brand.departments.edit', ['brand' => $brand->slug, 'department' => $department])" icon="heroicon-o-pencil-square">Edit</x-ui.button>
                                         @endcan
                                         @can('delete', $department)
-                                            <x-ui.button size="sm" variant="ghost" wire:click="confirmDelete({{ $department->getKey() }})" icon="heroicon-o-trash">Remove</x-ui.button>
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmDelete({{ $department->getKey() }})" title="Remove" aria-label="Remove {{ $department->name }}"><x-heroicon-o-trash /></button>
                                         @endcan
                                     </div>
                                 </td>

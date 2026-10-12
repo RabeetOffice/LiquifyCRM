@@ -104,9 +104,12 @@ Alpine.data('dropdown', () => ({
     close() { this.open = false; },
 }));
 
-Alpine.data('chart', (config) => ({
-    chart: null,
+Alpine.data('chart', (config) => {
+    // Kept out of Alpine's reactive data: a Chart wrapped in a proxy recurses without end on update().
+    let chart = null;
+    let retheme = null;
 
+    return {
     init() {
         const palette = tokens();
         Chart.defaults.color = palette.muted;
@@ -154,23 +157,28 @@ Alpine.data('chart', (config) => ({
             };
         }
 
-        this.chart = new Chart(canvas, config);
+        chart = new Chart(canvas, config);
 
-        window.addEventListener('theme-applied', () => {
+        retheme = () => {
             const next = tokens();
-            this.chart.options.color = next.muted;
-            this.chart.options.scales && Object.values(this.chart.options.scales).forEach((scale) => {
+            chart.options.color = next.muted;
+            chart.options.scales && Object.values(chart.options.scales).forEach((scale) => {
                 scale.grid = { ...(scale.grid ?? {}), color: next.hairline };
                 scale.ticks = { ...(scale.ticks ?? {}), color: next.muted };
             });
-            this.chart.update();
-        });
+            chart.update();
+        };
+
+        window.addEventListener('theme-applied', retheme);
     },
 
     destroy() {
-        this.chart?.destroy();
+        window.removeEventListener('theme-applied', retheme);
+        chart?.destroy();
+        chart = null;
     },
-}));
+    };
+});
 
 // Numbers count up once when a card appears ("12", "£1,500", "4 / 4" keeps its text).
 Alpine.directive('count', (el) => {
@@ -215,6 +223,28 @@ const markReady = () => {
     document.body.classList.remove('lq-ready');
     setTimeout(() => document.body.classList.add('lq-ready'), 900);
 };
+
+// A row or two that join a live list are lit for a moment. A whole new set of rows
+// (another page, view or sort) is not an arrival, and neither is the first load.
+new MutationObserver((records) => {
+    if (! document.body.classList.contains('lq-ready')) return;
+
+    const arrived = new Map();
+
+    for (const record of records) {
+        if (record.target instanceof Element && record.target.classList.contains('lq-live')) {
+            const rows = arrived.get(record.target) ?? [];
+            record.addedNodes.forEach((node) => node instanceof Element && rows.push(node));
+            arrived.set(record.target, rows);
+        }
+    }
+
+    arrived.forEach((rows, list) => {
+        if (rows.length > 0 && rows.length <= 3 && list.children.length > rows.length) {
+            rows.forEach((row) => row.classList.add('lq-arrived'));
+        }
+    });
+}).observe(document.documentElement, { childList: true, subtree: true });
 
 document.addEventListener('livewire:navigated', () => {
     Alpine.store('theme').apply();

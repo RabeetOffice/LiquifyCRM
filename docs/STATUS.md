@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (9 October): 171 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (12 October): 178 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -140,6 +140,15 @@ State of the code (9 October): 171 Pest tests passing, Pint and Larastan level 6
 - [x] Updates screen (`/admin/updates`, Admins and Super Admins): "What's new" for every version from `resources/changelog.php`, whether a version waits to be applied, the "Update system" button (database backup, pending database changes, caches, version recorded; runs at once, needs no cron) and the update history with details. If the backup cannot be made nothing is changed and "Update without a backup" is offered.
 - [x] A bar on every screen tells Admins when a version is ready; the Overview shows the version; Managers and Agents see none of it.
 - [x] Email settings: a picker of ready-made providers (Google, Microsoft 365 / Exchange, Hostinger, Titan, webmail, Zoho, Yahoo, GoDaddy, Namecheap, iCloud, SendGrid, Brevo, Mailgun, or another) fills in server, port and security and shows what each one asks for. Icons come from Google's favicon service (user's choice).
+
+### Working screens redesign (12 October, asked for by the user)
+- [x] Leads list: views as tabs on the list card, search and Filters beside them, filters in use as removable chips, a floating bar for bulk actions, coloured initials for leads, owner and department in one cell, follow-up in words ("Today, 14:00", "Overdue · 9 Oct"). Fits its card from 1280 px up (the Received column hides below 1340 px).
+- [x] Lead (slide-over and page): name and source, the pipeline as a clickable path (`moveTo`), action tiles with the next step in orange, contact with copy buttons and Reveal, details, sales, then Timeline / Message / Notes / Follow-ups / Messenger. The page lays the same panel out in two columns. Escape closes a dialog before the slide-over.
+- [x] Pipeline: full-width board, columns as tall as the window with their own scroll, cards with service, source, follow-up, owner and age, a "quiet" mark after 7 days without activity, counts above the board, an owner filter, the Won total in its column, and the lead slide-over on click. Refreshes every 30 seconds unless a card is being dragged.
+- [x] Inbox: one card in three panes (chats, thread, lead), All / Unread / Can reply, messages grouped by day with joined bubbles, a rounded reply box. Two panes below 1440 px, one on a phone with a back button.
+- [x] Follow-ups as a checklist. People, Members and Departments: Edit keeps its word, Suspend and Remove are icon buttons with a tooltip.
+- [x] Glitches fixed on the way: every row of a live list flashed about a second after each page load; charts threw an error when the mode changed; right-aligned column headings sat on the left; the People and Members tables were wider than their card.
+- Not redesigned in this pass (they share the tokens and the table fixes): Clients, Targets, Websites, Logs, System, Distribute, the lead form and the import dialog. The Agent's masked view of a lead was checked by tests, not by eye.
 
 ### Agreed differences from the document
 - **"Update system" beside "Backup and run database update" (9 October).** The document keeps database updates on the System screen, behind the queue. The Updates screen does the same work inside the request so it works without the scheduler, asks for the password only when the database will change, and lets an Admin go on without a backup when the server cannot make one.

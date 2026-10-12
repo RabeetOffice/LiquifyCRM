@@ -6,7 +6,6 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Support\Audit;
@@ -17,11 +16,14 @@ use App\Modules\Leads\Actions\SendLeadToDepartment;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Exports\LeadsExport;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
+use App\Modules\Leads\Livewire\Concerns\PreviewsLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Sales\Models\LeadDistribution;
 use App\Modules\Sites\Support\LeadSites;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -36,8 +38,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Leads list: saved views (All, New, Unassigned, Mine, Follow-ups today,
- * Won), filters, search, bulk assign / send / status / delete, CSV import
- * and export, and the lead slide-over.
+ * Won), filters shown as chips, search, bulk assign / send / status /
+ * delete, CSV import and export, and the lead slide-over.
  */
 #[Layout('components.layouts.app')]
 #[Title('Leads')]
@@ -45,8 +47,11 @@ final class LeadsIndex extends Component
 {
     use AuthorizesRequests;
     use HandlesLeadUndo;
+    use PreviewsLead;
     use WithConfirmation;
     use WithTableState;
+
+    private const FILTERS = ['status', 'source', 'department', 'owner', 'assigned', 'from', 'until'];
 
     public Brand $brand;
 
@@ -79,8 +84,6 @@ final class LeadsIndex extends Component
     /** @var list<int> */
     public array $selected = [];
 
-    public ?int $open = null;
-
     public bool $showBulkAssign = false;
 
     public string $bulkAssignTo = '';
@@ -100,14 +103,14 @@ final class LeadsIndex extends Component
         $this->brand = $brand;
         $this->authorize('viewAny', Lead::class);
 
-        if (request()->query('open')) {
+        if (is_numeric(request()->query('open'))) {
             $this->open = (int) request()->query('open');
         }
     }
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['tab', 'status', 'source', 'department', 'owner', 'assigned', 'from', 'until'], true)) {
+        if ($property === 'tab' || in_array($property, self::FILTERS, true)) {
             $this->resetPage();
             $this->selected = [];
         }
@@ -119,14 +122,16 @@ final class LeadsIndex extends Component
         $this->resetPage();
     }
 
-    public function openLead(int $leadId): void
+    /** The cross on one filter chip. */
+    public function removeFilter(string $filter): void
     {
-        $this->open = $leadId;
-    }
+        if (! in_array($filter, self::FILTERS, true)) {
+            return;
+        }
 
-    public function closeLead(): void
-    {
-        $this->open = null;
+        $this->reset($filter);
+        $this->resetPage();
+        $this->selected = [];
     }
 
     #[On('lead-updated')]
@@ -267,15 +272,21 @@ final class LeadsIndex extends Component
         LeadSites::attach($leads->getCollection());
 
         $visibility = app(ContactVisibility::class);
+        $statuses = LeadStatus::query()->ordered()->get();
+        $departmentOptions = $this->departmentOptions();
+        $agentOptions = app(AssignableAgents::class)->for($user, $this->brand);
+        $chips = $this->chips($statuses, $departmentOptions, $agentOptions);
 
         return view('leads::livewire.app.leads-index', [
             'leads' => $leads,
             'agent' => $agent,
             'tabs' => $this->tabs($visible, $agent),
-            'statuses' => LeadStatus::query()->ordered()->get(),
+            'statuses' => $statuses,
             'sources' => LeadSource::cases(),
-            'departmentOptions' => $this->departmentOptions(),
-            'agentOptions' => $this->agentOptions(),
+            'departmentOptions' => $departmentOptions,
+            'agentOptions' => $agentOptions,
+            'chips' => $chips,
+            'previewLead' => $this->previewLead($user),
             'fullContact' => $leads->mapWithKeys(fn (Lead $lead): array => [$lead->getKey() => $visibility->canSeeFull($user, $lead)])->all(),
             'can' => [
                 'create' => $user->can('create', Lead::class),
@@ -284,7 +295,34 @@ final class LeadsIndex extends Component
                 'distribute' => $user->can('distribute', Lead::class),
                 'deleteAny' => $user->can('deleteAny', Lead::class),
             ],
-            'hasFilters' => $this->status !== '' || $this->source !== '' || $this->department !== '' || $this->owner !== '' || $this->assigned !== '' || $this->from !== '' || $this->until !== '',
+            'hasFilters' => $chips !== [],
+        ]);
+    }
+
+    /**
+     * The filters in use, in words, one chip each.
+     *
+     * @param  Collection<int, LeadStatus>  $statuses
+     * @param  array<int, string>  $departments
+     * @param  array<int, string>  $agents
+     * @return array<string, string>
+     */
+    private function chips(Collection $statuses, array $departments, array $agents): array
+    {
+        $day = fn (string $date): string => rescue(fn (): string => CarbonImmutable::parse($date)->format('j M Y'), $date, false);
+
+        return array_filter([
+            'status' => $this->status !== '' ? 'Status: '.($statuses->firstWhere('id', (int) $this->status)->name ?? 'unknown') : null,
+            'source' => $this->source !== '' ? 'Source: '.(LeadSource::tryFrom($this->source)?->getLabel() ?? $this->source) : null,
+            'department' => $this->department !== '' ? 'Department: '.($departments[(int) $this->department] ?? 'unknown') : null,
+            'owner' => $this->owner !== '' ? 'Owner: '.($agents[(int) $this->owner] ?? 'unknown') : null,
+            'assigned' => match ($this->assigned) {
+                'yes' => 'Assigned only',
+                'no' => 'Unassigned only',
+                default => null,
+            },
+            'from' => $this->from !== '' ? 'From '.$day($this->from) : null,
+            'until' => $this->until !== '' ? 'Until '.$day($this->until) : null,
         ]);
     }
 
@@ -366,22 +404,6 @@ final class LeadsIndex extends Component
 
         if (! $user->isGlobalAdmin()) {
             $query->whereKey($user->managedDepartmentIds($this->brand));
-        }
-
-        return $query->pluck('name', 'id')->all();
-    }
-
-    /** @return array<int, string> */
-    private function agentOptions(): array
-    {
-        $user = $this->user();
-
-        $query = User::query()
-            ->whereHas('memberships', fn (Builder $query): Builder => $query->acrossBrands()->where('brand_id', $this->brand->getKey())->where('role', BrandRole::Agent->value)->where('status', 'active'))
-            ->orderBy('name');
-
-        if (! $user->isGlobalAdmin()) {
-            $query->whereHas('departments', fn (Builder $query): Builder => $query->acrossBrands()->whereIn('departments.id', $user->managedDepartmentIds($this->brand)));
         }
 
         return $query->pluck('name', 'id')->all();

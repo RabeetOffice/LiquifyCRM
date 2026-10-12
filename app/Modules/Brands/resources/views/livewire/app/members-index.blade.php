@@ -40,14 +40,13 @@
             </x-ui.empty>
         @else
             <div class="lq-table-wrap">
-                <table class="lq-table">
+                <table class="lq-table lq-table-rows">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <x-ui.sort-th field="role" :sort="$sort" :direction="$direction" label="Role" />
                             <th>Departments</th>
                             <x-ui.sort-th field="status" :sort="$sort" :direction="$direction" label="Status" />
-                            <th>Last sign-in</th>
                             <x-ui.sort-th field="joined_at" :sort="$sort" :direction="$direction" label="Joined" />
                             <th class="lq-table-end">Actions</th>
                         </tr>
@@ -55,14 +54,14 @@
                     <tbody>
                         @foreach ($members as $membership)
                             <tr wire:key="member-{{ $membership->getKey() }}">
-                                <td>
-                                    <div class="flex items-center gap-3">
+                                <td class="lq-td-person">
+                                    <span class="lq-person">
                                         <x-ui.avatar :name="$membership->user?->name ?? '?'" :src="$membership->user?->avatarUrl()" />
-                                        <div class="min-w-0">
+                                        <span class="min-w-0">
                                             <span class="lq-cell-title">{{ $membership->user?->name }}</span>
                                             <span class="lq-cell-sub">{{ $membership->user?->email }}</span>
-                                        </div>
-                                    </div>
+                                        </span>
+                                    </span>
                                 </td>
                                 <td><x-ui.badge :color="$membership->role->getColor()">{{ $membership->role->getLabel() }}</x-ui.badge></td>
                                 <td>
@@ -73,16 +72,19 @@
                                     @endforelse
                                 </td>
                                 <td><x-ui.badge :color="$membership->status->getColor()">{{ $membership->status->getLabel() }}</x-ui.badge></td>
-                                <td class="lq-muted">{{ $membership->user?->last_login_at?->diffForHumans() ?? 'never' }}</td>
-                                <td class="lq-muted">{{ $membership->joined_at?->diffForHumans() ?? '—' }}</td>
+                                <td class="whitespace-nowrap">
+                                    <span title="{{ $membership->joined_at?->format('j M Y') }}">{{ $membership->joined_at?->diffForHumans() ?? '—' }}</span>
+                                    <span class="lq-cell-sub">{{ $membership->user?->last_login_at ? 'Signed in '.$membership->user->last_login_at->diffForHumans() : 'Has not signed in yet' }}</span>
+                                </td>
                                 <td class="lq-table-end">
-                                    <div class="flex justify-end gap-1">
+                                    <div class="lq-row-tools">
                                         @can('update', $membership)
+                                            @php $toggle = $membership->isActive() ? 'Suspend' : 'Reactivate'; @endphp
                                             <x-ui.button size="sm" variant="ghost" wire:click="openEdit({{ $membership->getKey() }})" icon="heroicon-o-pencil-square">Edit</x-ui.button>
-                                            <x-ui.button size="sm" variant="ghost" wire:click="confirmToggle({{ $membership->getKey() }})" :icon="$membership->isActive() ? 'heroicon-o-no-symbol' : 'heroicon-o-check-circle'">{{ $membership->isActive() ? 'Suspend' : 'Reactivate' }}</x-ui.button>
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="confirmToggle({{ $membership->getKey() }})" title="{{ $toggle }}" aria-label="{{ $toggle }} {{ $membership->user?->name }}">@svg($membership->isActive() ? 'heroicon-o-no-symbol' : 'heroicon-o-check-circle')</button>
                                         @endcan
                                         @can('delete', $membership)
-                                            <x-ui.button size="sm" variant="ghost" wire:click="confirmRemove({{ $membership->getKey() }})" icon="heroicon-o-trash">Remove</x-ui.button>
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmRemove({{ $membership->getKey() }})" title="Remove" aria-label="Remove {{ $membership->user?->name }}"><x-heroicon-o-trash /></button>
                                         @endcan
                                     </div>
                                 </td>

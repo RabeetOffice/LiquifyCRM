@@ -1,7 +1,9 @@
-<div class="flex flex-col gap-6">
-    <x-ui.page-header :title="$lead->name" :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), $lead->name => null]" />
+<div class="flex flex-col gap-5">
+    <nav class="lq-crumbbar" aria-label="Breadcrumb">
+        <x-ui.button size="sm" variant="ghost" icon="heroicon-o-arrow-left" :href="route('brand.leads.index', ['brand' => $brand->slug])">Leads</x-ui.button>
+        <span class="lq-muted" aria-hidden="true">/</span>
+        <span class="truncate">{{ $lead->name }}</span>
+    </nav>
 
-    <x-ui.card>
-        @livewire(\App\Modules\Leads\Livewire\App\LeadPanel::class, ['leadId' => $lead->getKey()], key('lead-panel-page-'.$lead->getKey()))
-    </x-ui.card>
+    @livewire(\App\Modules\Leads\Livewire\App\LeadPanel::class, ['leadId' => $lead->getKey(), 'page' => true], key('lead-panel-page-'.$lead->getKey()))
 </div>

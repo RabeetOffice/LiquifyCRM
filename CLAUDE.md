@@ -74,9 +74,18 @@ in the document's weekly phases; never skip a phase or silently change the desig
   kept in localStorage and the `lq_theme` cookie, which the layout reads so the mode survives `wire:navigate`.
   One corner scale: 16 px cards (`--lq-radius-card`), 12 px inner panes and menus (`--lq-radius-inner`), 10 px
   controls. Cards use `--lq-card` (translucent in dark mode); only the sidebar, top bar, menus and dialogs blur.
+- Working screens (12 Oct 2026): list screens put their views (`lq-views`), search (`lq-search`) and filters on the
+  list card; filters in use are chips (`LeadsIndex::chips()`, `removeFilter()`). `LeadPanel` is the lead everywhere:
+  slide-over on the list and the pipeline (`PreviewsLead` trait plus the `lead-sheet` partial) and two columns on its
+  own page (`page: true`). Its pipeline path calls `moveTo()`; Won always goes through the sale sheet. Pipeline and
+  Inbox are full width (`lq-wide` on the root). People outside the team get a coloured avatar (`<x-ui.avatar tone>`);
+  due dates go through `<x-ui.due>`. In a table the name cell is `lq-td-person` (it takes the free width and cuts long
+  text short) and nice-to-have columns are `lq-col-wide` (hidden below 1340 px): a table must fit its card at 1280 px.
 - Live updates are Livewire polling (`wire:poll`), never websockets: the hosting has no daemons. The bell checks
   every 15 seconds and toasts what arrived; dashboards, the leads list and the inbox refresh by themselves.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.
+  The Chart instance lives in a closure, never on Alpine's reactive `this` (a proxied Chart recurses on update).
+  A row that joins a `lq-live` list is lit by `app.js` (`lq-arrived`), never by a CSS rule on every row.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,

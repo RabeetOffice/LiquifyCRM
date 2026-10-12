@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Livewire\App;
 
+use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Meta\Actions\ReplyOnMessenger;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
@@ -24,11 +25,16 @@ final class ConversationThread extends Component
     #[Locked]
     public int $conversationId;
 
+    /** True in the Inbox, where the head also links to the lead and, on a phone, back to the list. */
+    #[Locked]
+    public bool $inbox = false;
+
     public string $reply = '';
 
-    public function mount(int $conversationId): void
+    public function mount(int $conversationId, bool $inbox = false): void
     {
         $this->conversationId = $conversationId;
+        $this->inbox = $inbox;
 
         $conversation = $this->conversation();
         $this->authorize('view', $conversation);
@@ -66,11 +72,24 @@ final class ConversationThread extends Component
             // The newest 100, shown oldest first.
             'messages' => Message::query()->where('conversation_id', $conversation->getKey())->with('sender')->latest('id')->limit(100)->get()->reverse()->values(),
             'canReply' => (bool) auth()->user()?->can('reply', $conversation),
+            'leadUrl' => $this->leadUrl($conversation),
         ]);
+    }
+
+    /** The Inbox head links to the lead; on the lead page that would point at itself. */
+    private function leadUrl(Conversation $conversation): ?string
+    {
+        $brand = app(CurrentBrand::class)->get();
+
+        if (! $this->inbox || $conversation->lead_id === null || $brand === null) {
+            return null;
+        }
+
+        return route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $conversation->lead_id]);
     }
 
     private function conversation(): Conversation
     {
-        return Conversation::query()->with(['lead', 'source'])->findOrFail($this->conversationId);
+        return Conversation::query()->with(['lead.status', 'source'])->findOrFail($this->conversationId);
     }
 }

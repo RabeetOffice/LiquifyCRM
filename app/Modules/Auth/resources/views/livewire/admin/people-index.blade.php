@@ -38,14 +38,14 @@
             </x-ui.empty>
         @else
             <div class="lq-table-wrap">
-                <table class="lq-table">
+                <table class="lq-table lq-table-rows">
                     <thead>
                         <tr>
                             <x-ui.sort-th field="name" :sort="$sort" :direction="$direction" label="Person" />
                             <th>Role</th>
                             <th>Works in</th>
                             <th>Status</th>
-                            <x-ui.sort-th field="last_login_at" :sort="$sort" :direction="$direction" label="Last sign-in" />
+                            <x-ui.sort-th field="last_login_at" :sort="$sort" :direction="$direction" label="Last sign-in" class="lq-col-wide" />
                             <th class="lq-table-end">Actions</th>
                         </tr>
                     </thead>
@@ -56,14 +56,14 @@
                                 $firstRole = $memberships->first()?->role;
                             @endphp
                             <tr wire:key="person-{{ $person->getKey() }}">
-                                <td>
-                                    <div class="flex items-center gap-3">
+                                <td class="lq-td-person">
+                                    <span class="lq-person">
                                         <x-ui.avatar :name="$person->name" :src="$person->avatarUrl()" />
-                                        <div class="min-w-0">
+                                        <span class="min-w-0">
                                             <span class="lq-cell-title">{{ $person->name }}</span>
-                                            <span class="lq-cell-sub">{{ $person->designation ? $person->designation.' · ' : '' }}{{ $person->email }}</span>
-                                        </div>
-                                    </div>
+                                            <span class="lq-cell-sub" title="{{ $person->email }}">{{ $person->designation ? $person->designation.' · ' : '' }}{{ $person->email }}</span>
+                                        </span>
+                                    </span>
                                 </td>
                                 <td>
                                     @if ($person->role)
@@ -96,17 +96,18 @@
                                     @endif
                                 </td>
                                 <td><x-ui.badge :color="$person->status->getColor()">{{ $person->status->getLabel() }}</x-ui.badge></td>
-                                <td class="lq-muted whitespace-nowrap">{{ $person->last_login_at?->diffForHumans() ?? 'never' }}</td>
+                                <td class="lq-muted whitespace-nowrap lq-col-wide">{{ $person->last_login_at?->diffForHumans() ?? 'never' }}</td>
                                 <td class="lq-table-end">
-                                    <div class="flex justify-end gap-1">
+                                    <div class="lq-row-tools">
                                         @can('update', $person)
                                             <x-ui.button size="sm" variant="ghost" :href="route('admin.people.edit', ['userId' => $person->getKey()])" icon="heroicon-o-pencil-square">Edit</x-ui.button>
                                         @endcan
                                         @can('suspend', $person)
-                                            <x-ui.button size="sm" variant="ghost" wire:click="confirmToggle({{ $person->getKey() }})" :icon="$person->isSuspended() ? 'heroicon-o-check-circle' : 'heroicon-o-no-symbol'">{{ $person->isSuspended() ? 'Reactivate' : 'Suspend' }}</x-ui.button>
+                                            @php $toggle = $person->isSuspended() ? 'Reactivate' : 'Suspend'; @endphp
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="confirmToggle({{ $person->getKey() }})" title="{{ $toggle }}" aria-label="{{ $toggle }} {{ $person->name }}">@svg($person->isSuspended() ? 'heroicon-o-check-circle' : 'heroicon-o-no-symbol')</button>
                                         @endcan
                                         @can('delete', $person)
-                                            <x-ui.button size="sm" variant="ghost" wire:click="confirmDelete({{ $person->getKey() }})" icon="heroicon-o-trash">Remove</x-ui.button>
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmDelete({{ $person->getKey() }})" title="Remove" aria-label="Remove {{ $person->name }}"><x-heroicon-o-trash /></button>
                                         @endcan
                                     </div>
                                 </td>

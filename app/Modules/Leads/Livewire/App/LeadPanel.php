@@ -31,15 +31,16 @@ use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
- * One lead: the five essentials first (name, contact, status, owner, next
- * follow-up), then timeline, message and notes in tabs, with every action
- * from the permission table. Shown as a slide-over from the list and as a
- * full page from notification links.
+ * One lead: who it is, where it stands on the pipeline path, the actions
+ * from the permission table, contact and details, then timeline, message,
+ * notes and follow-ups in tabs. Shown as a slide-over from the list and the
+ * pipeline, and as a full page (two columns) from notification links.
  */
 final class LeadPanel extends Component
 {
@@ -49,6 +50,10 @@ final class LeadPanel extends Component
 
     #[Locked]
     public int $leadId;
+
+    /** True on the lead's own page, where there is room for two columns. */
+    #[Locked]
+    public bool $page = false;
 
     public string $tab = 'timeline';
 
@@ -82,9 +87,10 @@ final class LeadPanel extends Component
 
     public string $wonClosedAt = '';
 
-    public function mount(int $leadId): void
+    public function mount(int $leadId, bool $page = false): void
     {
         $this->leadId = $leadId;
+        $this->page = $page;
         $this->authorize('view', $this->lead());
     }
 
@@ -151,12 +157,29 @@ final class LeadPanel extends Component
         $this->authorize('update', $lead);
         $this->validate(['statusTo' => ['required', 'integer']]);
 
-        $status = LeadStatus::query()->findOrFail((int) $this->statusTo);
+        $this->applyStatus($lead, LeadStatus::query()->findOrFail((int) $this->statusTo));
+    }
+
+    /** A click on a step of the pipeline path. */
+    public function moveTo(int $statusId): void
+    {
+        $lead = $this->lead();
+        $this->authorize('update', $lead);
+
+        $this->applyStatus($lead, LeadStatus::query()->findOrFail($statusId));
+    }
+
+    private function applyStatus(Lead $lead, LeadStatus $status): void
+    {
         $previous = $lead->status_id;
+        $this->showStatus = false;
+
+        if ($previous === $status->getKey()) {
+            return;
+        }
 
         // Won always goes through the sale sheet, so every won lead has an amount.
-        if ($status->is_won && $previous !== $status->getKey()) {
-            $this->showStatus = false;
+        if ($status->is_won) {
             $this->openWon();
 
             return;
@@ -164,7 +187,6 @@ final class LeadPanel extends Component
 
         app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
 
-        $this->showStatus = false;
         $this->changed();
         $this->toast('Status: '.$status->name, null, 'success', $this->undoPayload($lead, 'status', $previous));
     }
@@ -302,6 +324,8 @@ final class LeadPanel extends Component
 
         LeadSites::attach([$lead]);
 
+        $statuses = LeadStatus::query()->ordered()->get();
+
         $timeline = Activity::query()
             ->where('subject_type', $lead->getMorphClass())
             ->where('subject_id', $lead->getKey())
@@ -318,7 +342,8 @@ final class LeadPanel extends Component
             'sales' => Sale::query()->where('lead_id', $lead->getKey())->with('closer')->latest('closed_at')->get(),
             'brandCurrency' => $this->brand()->currency,
             'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
-            'statuses' => LeadStatus::query()->ordered()->get(),
+            'statuses' => $statuses,
+            'path' => $this->path($statuses, $lead),
             'agentOptions' => $this->agentOptions($lead->department_id),
             'departmentOptions' => $this->departmentOptions(),
             'can' => [
@@ -330,6 +355,28 @@ final class LeadPanel extends Component
                 'delete' => $user->can('delete', $lead),
             ],
         ]);
+    }
+
+    /**
+     * The pipeline as steps: the ones behind the lead are done, its own is current.
+     * A lost lead has nothing behind it, so only Lost is lit.
+     *
+     * @param  Collection<int, LeadStatus>  $statuses
+     * @return list<array{status: LeadStatus, state: string}>
+     */
+    private function path(Collection $statuses, Lead $lead): array
+    {
+        $current = $statuses->search(fn (LeadStatus $status): bool => $status->getKey() === $lead->status_id);
+        $lost = $lead->status->is_lost;
+
+        return $statuses->values()->map(fn (LeadStatus $status, int $index): array => [
+            'status' => $status,
+            'state' => match (true) {
+                $index === $current => 'current',
+                ! $lost && ! $status->is_lost && $current !== false && $index < $current => 'done',
+                default => 'todo',
+            },
+        ])->all();
     }
 
     private function lead(): Lead
