@@ -84,9 +84,9 @@ final class Menu
                 self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
             ];
 
-            $settings[] = self::item('Logs', 'heroicon-o-clipboard-document-list', route('brand.logs', $params), $isActive('brand.logs'));
-
+            // Logs are for Admins only.
             if ($user->isGlobalAdmin()) {
+                $settings[] = self::item('Logs', 'heroicon-o-clipboard-document-list', route('brand.logs', $params), $isActive('brand.logs'));
                 $settings[] = self::item('Email settings', 'heroicon-o-envelope', route('brand.email-settings', $params), $isActive('brand.email-settings'));
             }
 

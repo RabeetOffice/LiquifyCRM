@@ -184,6 +184,8 @@
         </x-ui.card>
     </div>
 
+    {{-- The audit trail: Admins only. --}}
+    @if ($activity !== null)
     <x-ui.card title="Recent activity" description="Latest entries in this brand's audit trail" flush>
         @if ($activity->isEmpty())
             <p class="lq-help px-6 py-6">Nothing logged yet.</p>
@@ -201,6 +203,7 @@
             </ul>
         @endif
     </x-ui.card>
+    @endif
 
     <x-ui.confirm :confirm="$confirm ?? null" />
 </div>

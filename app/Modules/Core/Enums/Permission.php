@@ -30,8 +30,6 @@ enum Permission: string
     case BrandsManage = 'brands.manage';
     case SitesManage = 'sites.manage';
     case MetaManage = 'meta.manage';
-    case LogsView = 'logs.view';
-    case LogsDownload = 'logs.download';
     case LogsDelete = 'logs.delete';
     case SystemManage = 'system.manage';
 

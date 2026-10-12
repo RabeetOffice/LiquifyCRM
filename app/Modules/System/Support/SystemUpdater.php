@@ -9,6 +9,7 @@ use App\Modules\Core\Support\Audit;
 use App\Modules\System\Enums\DeploymentStatus;
 use App\Modules\System\Enums\DeploymentType;
 use App\Modules\System\Models\Deployment;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
@@ -128,6 +129,10 @@ final class SystemUpdater
                     return $deployment;
                 }
             }
+
+            // What each role may do is written in the code; the stored copy follows it on every update.
+            Artisan::call('db:seed', ['--class' => RolesAndPermissionsSeeder::class, '--force' => true]);
+            $deployment->appendLog('Roles and permissions brought in line with this version.');
 
             $deployment->appendLog('Step 3/3  Clearing the caches');
             Artisan::call('optimize:clear');

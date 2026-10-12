@@ -56,6 +56,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Round robin: a department's `assignment_mode` is `manual` or `round_robin` (set on the Distribute screen by its
   Manager or an Admin). `AutoAssignLead` gives a lead that lands in a round-robin department to the next active
   Agent in turn; it is called from `SendLeadToDepartment`, `CreateLead` and `DistributeLeads`.
+- Logs are for Admins and Super Admins only (user decision, 12 Oct 2026): the Logs screen (admin area and inside
+  a brand), its downloads and the brand dashboard's "Recent activity". Managers and Agents see none of it, and no
+  brand role carries a logs permission; do not add one. A lead's own timeline is part of the lead and stays.
+  "Update system" re-runs `RolesAndPermissionsSeeder`, so a change to `BrandRole::permissions()` reaches the server.
 - Logs (`app/Modules/Activity`): `LogArchiver` writes daily archive files and is the only code that deletes from
   `activity_log`; entries on a lead's timeline are never deleted. Retention lives in `LogSettings` (spatie settings).
 - Updates (`app/Modules/System`): the site deploys itself when `main` is pushed, so what is left for an Admin is to

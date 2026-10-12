@@ -125,7 +125,10 @@ final class BrandDashboard extends Component
 
         $agents = $agent ? collect() : $this->agentOptions();
 
-        $activity = Activity::query()->forBrand($this->brand)->with('causer')->latest('id')->limit(8)->get();
+        // The audit trail is for Admins only; Managers and Agents get no "Recent activity".
+        $activity = $user->isGlobalAdmin()
+            ? Activity::query()->forBrand($this->brand)->with('causer')->latest('id')->limit(8)->get()
+            : null;
 
         return view('core::livewire.brand-dashboard', [
             'user' => $user,

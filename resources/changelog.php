@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.6.1',
+        'date' => '2026-10-12',
+        'title' => 'Logs are for Admins only',
+        'changes' => [
+            ['fixed', 'Only Admins and Super Admins see logs. Managers no longer have the Logs screen or its downloads, and "Recent activity" on the dashboard is no longer shown to Managers and Agents.'],
+            ['improved', '"Update system" now also brings what each role may do in line with the new version.'],
+        ],
+    ],
+    [
         'version' => '1.6.0',
         'date' => '2026-10-12',
         'title' => 'Every screen in the same design',

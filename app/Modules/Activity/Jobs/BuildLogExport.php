@@ -36,6 +36,13 @@ final class BuildLogExport implements ShouldQueue
             return;
         }
 
+        // Logs are for Admins only: a request left behind by somebody who is no longer one is not built.
+        if (! $export->user?->isGlobalAdmin()) {
+            $export->update(['status' => 'failed', 'error' => 'Only Admins can download logs.']);
+
+            return;
+        }
+
         $disk = Storage::disk(LogArchiver::DISK);
         $name = 'liquifycrm-logs-last-'.$export->range_days.'-days-'.now()->format('Y-m-d-His');
         $csvPath = 'log-exports/'.$name.'-'.$export->getKey().'.csv';

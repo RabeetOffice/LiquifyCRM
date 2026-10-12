@@ -51,8 +51,6 @@ enum BrandRole: string implements HasColor, HasLabel
                 Permission::UsersManage,
                 Permission::DepartmentsManage,
                 Permission::BrandsView,
-                Permission::LogsView,
-                Permission::LogsDownload,
             ],
             self::Agent => [
                 Permission::LeadsView,

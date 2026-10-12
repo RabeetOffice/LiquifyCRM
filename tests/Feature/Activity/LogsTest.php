@@ -10,6 +10,7 @@ use App\Modules\Activity\Models\LogArchive;
 use App\Modules\Activity\Models\LogExport;
 use App\Modules\Activity\Settings\LogSettings;
 use App\Modules\Activity\Support\LogArchiver;
+use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Leads\Models\Lead;
@@ -78,23 +79,41 @@ it('shows Admins every brand, with filters and search by lead', function (): voi
         ->assertDontSee('ANZ site added');
 });
 
-it('holds a Manager to their own department and keeps Agents out', function (): void {
+it('shows logs to Admins only: Managers and Agents see none, not even their own department', function (): void {
     ($this->entry)('Note added in Team A', 1, ['department' => $this->teamA, 'area' => 'leads']);
     ($this->entry)('Note added in Consultants', 1, ['department' => $this->teamB, 'area' => 'leads']);
-    ($this->entry)('Brand settings changed', 1, ['area' => 'brands']);
+    ($this->entry)('ANZ site added', 1, ['brand' => $this->other, 'area' => 'sites', 'event' => 'sites.created']);
 
-    $this->actingAs($this->manager)->get('/b/ukph/logs')
+    // Inside a brand an Admin sees that brand, every department of it, without the storage tools.
+    $this->actingAs($this->admin)->get('/b/ukph/logs')
         ->assertOk()
         ->assertSee('Note added in Team A')
-        ->assertDontSee('Note added in Consultants')
-        ->assertDontSee('Brand settings changed')
+        ->assertSee('Note added in Consultants')
+        ->assertDontSee('ANZ site added')
         ->assertDontSee('Delete logs')
         ->assertDontSee('Archive size');
 
+    $this->flushSession();
+    $this->actingAs($this->manager)->get('/b/ukph/logs')->assertForbidden();
     $this->actingAs($this->manager)->get('/admin/logs')->assertForbidden();
+    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->assertForbidden();
+
+    // Nothing on a Manager's screens leads to the logs or shows the audit trail.
+    $this->actingAs($this->manager)->get('/b/ukph')
+        ->assertOk()
+        ->assertDontSee('/b/ukph/logs')
+        ->assertDontSee('Recent activity')
+        ->assertDontSee('Note added in Team A');
 
     $this->flushSession();
     $this->actingAs($this->agent)->get('/b/ukph/logs')->assertForbidden();
+    $this->actingAs($this->agent)->get('/b/ukph')->assertOk()->assertDontSee('Recent activity')->assertDontSee('/b/ukph/logs');
+
+    $this->flushSession();
+    $this->actingAs($this->admin)->get('/b/ukph')->assertOk()->assertSee('Recent activity')->assertSee('/b/ukph/logs');
+
+    // The Manager role no longer carries a logs permission of any kind.
+    expect(array_filter(array_map(fn ($permission): string => $permission->value, BrandRole::Manager->permissions()), fn (string $name): bool => str_starts_with($name, 'logs.')))->toBe([]);
 });
 
 it('builds a download in the queue, links it for 24 hours and logs the download', function (): void {
@@ -102,37 +121,45 @@ it('builds a download in the queue, links it for 24 hours and logs the download'
     ($this->entry)('Note added in Consultants', 3, ['department' => $this->teamB, 'area' => 'leads']);
     ($this->entry)('Too old for seven days', 20, ['department' => $this->teamA, 'area' => 'leads']);
 
-    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->call('export', 7)->assertSee('Your downloads');
+    $expected = Activity::query()->where('brand_id', $this->brand->getKey())->where('created_at', '>=', now()->subDays(7)->startOfDay())->count();
+
+    Livewire::actingAs($this->admin)->test(LogsPage::class, ['brand' => $this->brand])->call('export', 7)->assertSee('Your downloads');
 
     $export = LogExport::query()->sole();
 
     expect($export->status)->toBe('ready')
-        // Team A's note plus the two "added to the department" entries from the setup; nothing from Consultants.
-        ->and($export->rows)->toBe(3)
-        ->and($export->department_ids)->toBe([$this->teamA->getKey()])
+        // The whole brand in the last seven days: both departments' notes and the setup entries, not the old one.
+        ->and($export->rows)->toBe($expected)
+        ->and($export->rows)->toBeGreaterThanOrEqual(2)
+        ->and($export->department_ids)->toBeNull()
         ->and($export->expires_at->isAfter(now()->addHours(23)))->toBeTrue()
         ->and($export->path)->toEndWith('.zip');
 
     $path = (string) $export->path;
     Storage::disk('local')->assertExists($path);
-    Notification::assertSentTo($this->manager, fn (AppNotification $notification): bool => str_contains($notification->title, 'log download is ready'));
+    Notification::assertSentTo($this->admin, fn (AppNotification $notification): bool => str_contains($notification->title, 'log download is ready'));
 
-    $this->actingAs($this->manager)->get('/logs/exports/'.$export->getKey())->assertOk()->assertDownload();
+    $this->actingAs($this->admin)->get('/logs/exports/'.$export->getKey())->assertOk()->assertDownload();
     expect(Activity::query()->where('event', 'system.logs_downloaded')->count())->toBe(1);
 
-    // Somebody else's link does not exist; an expired one is gone.
+    // Another Admin's link does not exist, a Manager is refused outright, and an expired link is gone.
     $this->flushSession();
-    $this->actingAs($this->admin)->get('/logs/exports/'.$export->getKey())->assertNotFound();
+    $this->actingAs($this->super)->get('/logs/exports/'.$export->getKey())->assertNotFound();
+
+    $this->flushSession();
+    $this->actingAs($this->manager)->get('/logs/exports/'.$export->getKey())->assertForbidden();
 
     $this->flushSession();
     $export->update(['expires_at' => now()->subMinute()]);
-    $this->actingAs($this->manager)->get('/logs/exports/'.$export->getKey())->assertStatus(410);
+    $this->actingAs($this->admin)->get('/logs/exports/'.$export->getKey())->assertStatus(410);
 
     $this->artisan('logs:archive')->assertSuccessful();
     expect($export->refresh()->status)->toBe('expired');
     Storage::disk('local')->assertMissing($path);
 
+    // Neither a Manager nor an Agent can ask for a download.
     Queue::fake();
+    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->assertForbidden();
     Livewire::actingAs($this->agent)->test(LogsPage::class, ['brand' => $this->brand])->assertForbidden();
     Queue::assertNotPushed(BuildLogExport::class);
 });
@@ -176,7 +203,7 @@ it('lets Admins and Super Admins change retention and delete, never the last 7 d
 
     // Since 9 October an Admin has the same control as a Super Admin.
     Livewire::actingAs($this->admin)->test(LogsPage::class)->assertSee('Delete logs');
-    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->assertDontSee('Delete logs')->call('saveRetention')->assertForbidden();
+    Livewire::actingAs($this->manager)->test(LogsPage::class, ['brand' => $this->brand])->assertForbidden();
 
     Livewire::actingAs($this->super)
         ->test(LogsPage::class)

@@ -3,7 +3,7 @@
     $previousDay = null;
 @endphp
 <div class="flex flex-col gap-6">
-    <x-ui.page-header title="Logs" :subtitle="$isAdmin ? 'Everything that happened: who, which brand, what, when and from where.' : 'Everything that happened in your departments.'">
+    <x-ui.page-header title="Logs" subtitle="Everything that happened: who, which brand, what, when and from where. Only Admins see this screen.">
         <x-slot:actions>
             @if ($canDownload)
                 <div class="relative" x-data="dropdown" x-on:click.outside="close()" x-on:keydown.escape="close()">

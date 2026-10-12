@@ -13,7 +13,6 @@ use App\Modules\Activity\Settings\LogSettings;
 use App\Modules\Activity\Support\LogArchiver;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
@@ -31,8 +30,9 @@ use Livewire\WithPagination;
 /**
  * Logs: the audit trail as a feed by day, the kind of event as views, the
  * other filters as chips, downloads of the last 7, 15 or 30 days, the daily
- * archives, retention settings and storage. Admins see every brand; a
- * Manager sees and downloads their own departments' logs.
+ * archives, retention settings and storage. For Admins and Super Admins
+ * only (user decision, 12 October 2026): in the admin area they see every
+ * brand, inside a brand that brand. Managers and Agents see no logs.
  */
 #[Layout('components.layouts.app')]
 #[Title('Logs')]
@@ -107,7 +107,7 @@ final class LogsPage extends Component
         $this->brand = $brand !== null && $brand->exists ? $brand : null;
 
         $user = $this->user();
-        abort_unless($user->isGlobalAdmin() || ($this->brand !== null && $user->isManagerIn($this->brand) && $user->can(Permission::LogsView->value)), 403);
+        abort_unless($user->isGlobalAdmin(), 403);
 
         $this->databaseDays = $settings->database_days;
         $this->archiveDays = $settings->archive_days;
@@ -152,13 +152,12 @@ final class LogsPage extends Component
     public function export(int $days): void
     {
         $user = $this->user();
-        abort_unless($user->isGlobalAdmin() || $user->can(Permission::LogsDownload->value), 403);
+        abort_unless($user->isGlobalAdmin(), 403);
         abort_unless(in_array($days, LogExport::RANGES, true), 422);
 
         $export = LogExport::query()->create([
             'user_id' => $user->getKey(),
             'brand_id' => $this->scopeBrandId(),
-            'department_ids' => $this->scopeDepartmentIds(),
             'range_days' => $days,
         ]);
 
@@ -239,7 +238,7 @@ final class LogsPage extends Component
             ]),
             'isAdmin' => $admin,
             'isSuperAdmin' => $user->isGlobalAdmin(),
-            'canDownload' => $admin || $user->can(Permission::LogsDownload->value),
+            'canDownload' => $admin,
             'ranges' => LogExport::RANGES,
             'exports' => LogExport::query()->where('user_id', $user->getKey())->latest('id')->limit(5)->get(),
             'archives' => $admin && $this->brand === null
@@ -265,7 +264,6 @@ final class LogsPage extends Component
 
         return Activity::query()
             ->when($this->scopeBrandId() !== null, fn (Builder $query): Builder => $query->where('brand_id', $this->scopeBrandId()))
-            ->when($this->scopeDepartmentIds() !== null, fn (Builder $query): Builder => $query->whereIn('department_id', $this->scopeDepartmentIds() ?? []))
             ->when(ctype_digit($this->person), fn (Builder $query): Builder => $query->where('causer_type', (new User)->getMorphClass())->where('causer_id', (int) $this->person))
             ->when(array_key_exists($this->area, self::AREAS), fn (Builder $query): Builder => $query->where('log_name', $this->area))
             ->when($this->from !== '', fn (Builder $query): Builder => $query->whereDate('created_at', '>=', $this->from))
@@ -286,20 +284,6 @@ final class LogsPage extends Component
         }
 
         return ctype_digit($this->brandFilter) ? (int) $this->brandFilter : null;
-    }
-
-    /** @return list<int>|null a Manager is held to the departments they lead */
-    private function scopeDepartmentIds(): ?array
-    {
-        $user = $this->user();
-
-        if ($user->isGlobalAdmin() || $this->brand === null) {
-            return null;
-        }
-
-        $ids = array_map('intval', $user->managedDepartmentIds($this->brand));
-
-        return $ids === [] ? [0] : $ids;
     }
 
     /** @return array<int, string> */
