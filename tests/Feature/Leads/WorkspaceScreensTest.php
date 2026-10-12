@@ -62,10 +62,12 @@ it('opens a lead in the slide-over and quietly closes it when the lead is out of
     Livewire::actingAs($this->agent)
         ->test(LeadsIndex::class, ['brand' => $this->brand])
         ->call('openLead', $mine->getKey())
-        ->assertSee('lq-sheet-wide', false)
+        ->assertSee('sheet-lead-'.$mine->getKey(), false)
         ->call('openLead', $other->getKey())
         ->assertSet('open', null)
-        ->assertDontSee('lq-sheet-wide', false);
+        // The slide-over itself stays in the page (it opens at once on a click); only the lead inside goes.
+        ->assertSee('lq-sheet-wide', false)
+        ->assertDontSee('sheet-lead-', false);
 
     // A link to a lead that no longer exists opens the list, not an error page.
     $this->actingAs($this->agent)->get('/b/ukph/leads?open=999999')->assertOk()->assertSee('My leads');

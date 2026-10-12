@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.9.0',
+        'date' => '2026-10-12',
+        'title' => 'Live updates, a lead panel that opens at once, clearer brand logos',
+        'changes' => [
+            ['new', 'Screens update by themselves within a few seconds when something changes: a new lead, an assignment, a status, a note, a chat message. No more reloading the page.'],
+            ['new', 'The bell rings at once: a notification is written the moment it happens, instead of waiting for the next minute.'],
+            ['improved', 'A website lead, a Facebook lead or a Messenger message is on screen seconds after it arrives, and a Messenger reply is sent right away. They no longer wait for the scheduler.'],
+            ['improved', 'The lead panel opens the instant you click a lead, and no longer flickers while it slides in.'],
+            ['improved', 'A brand\'s logo is shown whole, with space around it, on a light tile in the brand\'s own colour. A brand whose main colour was read as white now uses its second colour.'],
+            ['fixed', 'In dark mode the opened list of a dropdown was white on white.'],
+            ['fixed', 'An Inbox with no chats yet did not notice the first chat until the page was reloaded.'],
+        ],
+    ],
+    [
         'version' => '1.8.0',
         'date' => '2026-10-12',
         'title' => 'Privacy policy and "Delete your data" pages',

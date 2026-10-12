@@ -103,8 +103,20 @@ in the document's weekly phases; never skip a phase or silently change the desig
   they must work without the database or a signed-in person. Menus are solid, not see-through: a menu inside the
   blurred top bar cannot blur what is behind it. A pivot role is an enum (`DepartmentRole`), never compare it with
   a string.
-- Live updates are Livewire polling (`wire:poll`), never websockets: the hosting has no daemons. The bell checks
-  every 15 seconds and toasts what arrived; dashboards, the leads list and the inbox refresh by themselves.
+- Live updates (12 Oct 2026), never websockets: the hosting has no daemons. `App\Modules\Core\Support\Live` keeps a
+  stamp per brand and per person that moves on every change (`BelongsToBrand` models, `Message`, a new bell entry).
+  `app.js` asks `GET /api/live` every 4 seconds with the signed token on `<main data-live>` (no session, one cache
+  read) and, when a stamp moved, reloads the roots marked `data-live-refresh`, fires `lq-changed` (the board) and
+  `lq-notified` (the bell). A new screen that shows shared data gets `data-live-refresh` on its root, never a short
+  `wire:poll`; a form that people type into (Targets, lead form) does not. `wire:poll.60s` stays as a fallback.
+- Nothing a person waits for depends on the scheduler's minute: `AppNotification` writes the bell entry at once
+  (`viaConnections`, only the email is queued), and `RunSoon::dispatch()` runs a job right after the response
+  (incoming website and Meta events, Messenger replies). Only for jobs that keep their own failure on the record.
+- The lead slide-over (`lead-sheet` partial) is always in the page and shown with `x-show="$wire.open !== null"`:
+  a click sets `$wire.open` in the browser first, so it opens at once with a skeleton. Dialogs and slide-overs are
+  solid (`--lq-panel`) and only the backdrop's dim fades: a blurred panel inside a blurred, fading backdrop flickers.
+- A brand with a logo is a light tile ringed in its colour (`lq-avatar-logo`), the logo `contain`ed with padding.
+  `Brand::primaryColor()` skips a colour that says nothing (near white or black) and falls back to the second one.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.
   The Chart instance lives in a closure, never on Alpine's reactive `this` (a proxied Chart recurses on update).
   A row that joins a `lq-live` list is lit by `app.js` (`lq-arrived`), never by a CSS rule on every row.
