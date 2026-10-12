@@ -124,8 +124,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   dialog is the `EditsLeadDetails` trait plus the `lead-details` partial, on `LeadPanel` and in the Inbox. Someone
   who sees email and phone masked never gets them shown there. The Inbox assigns with `AssignLead` from its side
   pane (a select) or, below 1440 px where that pane is hidden, from the two buttons in the thread's head.
-- A Messenger contact's name and picture come from `MetaGraph::contactProfile()` (asked again once a day, the
-  picture's address expires). Meta shares them only for people the app may see, and never a profile link.
+- A Messenger contact's name and picture come from `SyncContactProfile` (`MetaGraph::contactProfile()` asks the
+  profile, then the Page's own chats for the name, then the picture alone; again once a day, the picture's address
+  expires). Meta shares them only for people the app may see, and never a profile link.
+- Chat (12 Oct 2026): a reply is sent inside the request (`SendMessengerReply::dispatchSync`) and its bubble is
+  drawn by Alpine before the answer (`sending` on the thread root, inside `wire:ignore`). A reply written on
+  Facebook itself arrives as an echo (`message_echoes` is in `MetaSource::FIELDS` and must be ticked in the Meta
+  app's webhook) and is stored as an outgoing message with no sender; the echo of our own app is skipped by
+  `app_id`. Attachments are shown from Facebook's address out of `messages.raw` (`Message::attachments()`), never
+  copied: the privacy policy says so.
 - A brand with a logo is a light tile ringed in its colour (`lq-avatar-logo`), the logo `contain`ed with padding.
   `Brand::primaryColor()` skips a colour that says nothing (near white or black) and falls back to the second one.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.

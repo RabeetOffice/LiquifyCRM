@@ -126,22 +126,57 @@ final class MetaGraph
      * before that only people with a role on the app), so both may be null.
      * It never shares a link to the person's profile.
      *
-     * @return array{name: ?string, picture: ?string}
+     * Three places are asked, because Meta guards them differently: the
+     * person's profile, the Page's own list of chats (which names who it
+     * talks to), and the picture on its own. `reason` is what Meta answered
+     * when it gave no name, in its own words.
+     *
+     * @return array{name: ?string, picture: ?string, reason: ?string}
      */
     public function contactProfile(MetaSource $page, string $psid): array
     {
+        $token = $this->pageToken($page);
+        $name = null;
+        $picture = null;
+        $reason = null;
+
         try {
-            $profile = $this->get('/'.$psid, $this->pageToken($page), ['fields' => 'first_name,last_name,profile_pic']);
-        } catch (MetaException) {
-            return ['name' => null, 'picture' => null];
+            $profile = $this->get('/'.$psid, $token, ['fields' => 'first_name,last_name,profile_pic']);
+            $name = trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')) ?: null;
+            $picture = $this->pictureUrl((string) ($profile['profile_pic'] ?? ''));
+        } catch (MetaException $exception) {
+            $reason = $exception->getMessage();
         }
 
-        $picture = (string) ($profile['profile_pic'] ?? '');
+        if ($name === null) {
+            try {
+                $chats = $this->get('/'.$page->external_id.'/conversations', $token, ['platform' => 'messenger', 'user_id' => $psid, 'fields' => 'participants']);
 
-        return [
-            'name' => trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')) ?: null,
-            'picture' => str_starts_with($picture, 'https://') ? $picture : null,
-        ];
+                foreach ((array) ($chats['data'][0]['participants']['data'] ?? []) as $participant) {
+                    if ((string) ($participant['id'] ?? '') !== $page->external_id && filled($participant['name'] ?? null)) {
+                        $name = trim((string) $participant['name']);
+                    }
+                }
+            } catch (MetaException $exception) {
+                $reason ??= $exception->getMessage();
+            }
+        }
+
+        if ($picture === null) {
+            try {
+                $image = (array) ($this->get('/'.$psid.'/picture', $token, ['redirect' => 'false', 'type' => 'large'])['data'] ?? []);
+                $picture = empty($image['is_silhouette']) ? $this->pictureUrl((string) ($image['url'] ?? '')) : null;
+            } catch (MetaException) {
+                // No picture is not worth a word.
+            }
+        }
+
+        return ['name' => $name, 'picture' => $picture, 'reason' => $name === null ? $reason : null];
+    }
+
+    private function pictureUrl(string $url): ?string
+    {
+        return str_starts_with($url, 'https://') ? $url : null;
     }
 
     /** Send a Messenger reply inside the 24-hour window. Returns Meta's message id. */

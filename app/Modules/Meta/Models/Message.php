@@ -73,4 +73,47 @@ class Message extends Model
     {
         return $this->direction === self::OUT;
     }
+
+    /** A reply the team wrote on Facebook itself, not in LiquifyCRM: it arrived as an echo, so nobody here sent it. */
+    public function isFromFacebook(): bool
+    {
+        return $this->isOutbound() && $this->sent_by === null && ! empty($this->raw['message']['is_echo']);
+    }
+
+    /**
+     * Pictures, videos, voice notes, files and shared links of the message,
+     * as Facebook sent them. They are shown from Facebook's own address and
+     * never copied here, so one may stop loading after a long time.
+     *
+     * @return list<array{type: string, url: string, name: string}>
+     */
+    public function attachments(): array
+    {
+        $found = [];
+
+        foreach ((array) ($this->raw['message']['attachments'] ?? []) as $item) {
+            $type = (string) ($item['type'] ?? 'file');
+            $url = (string) ($item['payload']['url'] ?? $item['url'] ?? '');
+
+            if (! str_starts_with($url, 'https://')) {
+                continue;
+            }
+
+            $path = (string) parse_url($url, PHP_URL_PATH);
+
+            $found[] = [
+                'type' => in_array($type, ['image', 'video', 'audio'], true) ? $type : ($type === 'fallback' ? 'link' : 'file'),
+                'url' => $url,
+                'name' => (string) (($item['title'] ?? null) ?: (basename($path) !== '' ? urldecode(basename($path)) : 'Attachment')),
+            ];
+        }
+
+        return $found;
+    }
+
+    /** True when the text is only the "[2 attachments]" stand-in and the attachments themselves can be shown. */
+    public function isOnlyAttachments(): bool
+    {
+        return $this->attachments() !== [] && preg_match('/^\[\d+ attachments?\]$/', (string) $this->body) === 1;
+    }
 }

@@ -1,4 +1,5 @@
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh>
+{{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one. --}}
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh x-data="{ sending: [] }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
@@ -56,13 +57,33 @@
             @endif
 
             <div @class(['lq-msg', 'lq-msg-out' => $message->isOutbound(), 'lq-msg-last' => $last, 'lq-msg-failed' => $failed]) wire:key="message-{{ $message->getKey() }}">
-                <div class="lq-bubble" title="{{ $message->created_at?->format('j M Y, H:i') }}">
-                    <p class="whitespace-pre-wrap">{{ $message->body }}</p>
-                </div>
+                {{-- Pictures, videos, voice notes and files, shown from Facebook's own address. --}}
+                @foreach ($message->attachments() as $file)
+                    @if ($file['type'] === 'image')
+                        <a href="{{ $file['url'] }}" class="lq-attach lq-attach-image" target="_blank" rel="noopener noreferrer" title="Open the picture">
+                            <img src="{{ $file['url'] }}" alt="Picture" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('lq-attach-gone'); this.replaceWith(document.createTextNode('This picture is no longer kept by Facebook.'))">
+                        </a>
+                    @elseif ($file['type'] === 'video')
+                        <video class="lq-attach lq-attach-video" controls preload="metadata" src="{{ $file['url'] }}"></video>
+                    @elseif ($file['type'] === 'audio')
+                        <audio class="lq-attach lq-attach-audio" controls preload="none" src="{{ $file['url'] }}"></audio>
+                    @else
+                        <a href="{{ $file['url'] }}" class="lq-attach lq-attach-file" target="_blank" rel="noopener noreferrer">
+                            @if ($file['type'] === 'link') <x-heroicon-o-link /> @else <x-heroicon-o-paper-clip /> @endif
+                            <span class="truncate">{{ $file['name'] }}</span>
+                        </a>
+                    @endif
+                @endforeach
+
+                @unless ($message->isOnlyAttachments())
+                    <div class="lq-bubble" title="{{ $message->created_at?->format('j M Y, H:i') }}">
+                        <p class="whitespace-pre-wrap">{{ $message->body }}</p>
+                    </div>
+                @endunless
                 @if ($last || $failed)
                     <span class="lq-bubble-meta">
                         @if ($message->isOutbound())
-                            {{ $message->sender?->name ?? 'Team' }} · {{ $message->created_at?->format('H:i') }} · {{ $message->status->getLabel() }}
+                            {{ $message->isFromFacebook() ? 'Sent on Facebook' : ($message->sender?->name ?? 'Team') }} · {{ $message->created_at?->format('H:i') }} · {{ $message->status->getLabel() }}
                         @else
                             {{ $message->created_at?->format('H:i') }}
                         @endif
@@ -75,10 +96,38 @@
         @empty
             <p class="lq-thread-empty">No messages yet.</p>
         @endforelse
+
+        {{-- What was just typed, until the answer brings the real bubble. Livewire leaves this block alone. --}}
+        <div class="lq-thread-pending" wire:ignore>
+            <template x-for="(text, index) in sending" :key="index">
+                <div class="lq-msg lq-msg-out lq-msg-last lq-msg-sending">
+                    <div class="lq-bubble"><p class="whitespace-pre-wrap" x-text="text"></p></div>
+                    <span class="lq-bubble-meta">Sending…</span>
+                </div>
+            </template>
+        </div>
     </div>
 
     @if ($canReply)
-        <form wire:submit="send" class="lq-thread-foot">
+        <form
+            class="lq-thread-foot"
+            x-on:submit.prevent="
+                const text = ($wire.reply ?? '').trim();
+                const box = $el.querySelector('textarea');
+                if (text === '' || sending.length > 0) return;
+                sending.push(text);
+                $nextTick(() => {
+                    if (box) { box.value = ''; box.style.height = 'auto'; }
+                    const thread = $root.querySelector('.lq-thread-body');
+                    if (thread) thread.scrollTop = thread.scrollHeight;
+                });
+                $wire.send().finally(() => {
+                    sending = [];
+                    // Not sent (the window closed, Facebook refused): the words go back into the box.
+                    if (box && ($wire.reply ?? '') !== '') box.value = $wire.reply;
+                });
+            "
+        >
             @if ($open)
                 <div class="lq-composer">
                     <textarea
@@ -91,10 +140,10 @@
                         x-data
                         x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'"
                         x-on:conversation-updated.window="$el.style.height = 'auto'"
-                        x-on:keydown.ctrl.enter="$wire.send()"
-                        x-on:keydown.meta.enter="$wire.send()"
+                        x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()"
+                        x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"
                     ></textarea>
-                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" wire:loading.attr="disabled" wire:target="send">
+                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" x-bind:disabled="sending.length > 0">
                         <x-heroicon-m-paper-airplane />
                     </button>
                 </div>

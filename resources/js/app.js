@@ -263,7 +263,7 @@ document.addEventListener('livewire:navigated', () => {
 // whether anything of this brand or for this person has changed (GET /api/live, see Live.php).
 // Only when a stamp has moved do the screens reload their data: the roots marked `data-live-refresh`,
 // and whoever listens for `lq-changed` (the board) or `lq-notified` (the bell).
-const live = { token: null, brand: null, user: null, timer: null, asked: 0, refreshed: 0, owed: false, own: 0, input: Date.now() };
+const live = { token: null, brand: null, user: null, timer: null, busy: false, own: false, refreshed: 0, owed: false, input: Date.now() };
 
 const LIVE_EVERY = 4000;
 const LIVE_IDLE_EVERY = 12000;
@@ -274,10 +274,13 @@ const refreshLive = () => {
     live.refreshed = Date.now();
     live.owed = false;
     window.dispatchEvent(new CustomEvent('lq-changed'));
-    document.querySelectorAll('[wire\\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
+    document.querySelectorAll('[wire\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
 };
 
 const askLive = async () => {
+    if (live.busy) return;
+
+    live.busy = true;
     clearTimeout(live.timer);
 
     const token = document.querySelector('[data-live]')?.dataset.live ?? null;
@@ -288,8 +291,9 @@ const askLive = async () => {
             Object.assign(live, { token, brand: null, user: null, owed: false });
         }
 
-        const askedBefore = live.asked;
-        live.asked = Date.now();
+        // What this person just did is on their screen already: that change only moves the starting point.
+        const own = live.own;
+        live.own = false;
 
         try {
             const response = await fetch('/api/live?t=' + encodeURIComponent(token), { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'omit' });
@@ -303,9 +307,7 @@ const askLive = async () => {
                 live.user = stamps.u;
 
                 if (userMoved) window.dispatchEvent(new CustomEvent('lq-notified'));
-
-                // What this person just did themselves is on their screen already.
-                if (brandMoved && live.own < askedBefore) live.owed = true;
+                if (brandMoved && ! own) live.owed = true;
             }
         } catch (error) {
             // Offline for a moment: the next round asks again.
@@ -314,15 +316,25 @@ const askLive = async () => {
         if (live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
     }
 
+    live.busy = false;
     live.timer = setTimeout(askLive, Date.now() - live.input > LIVE_IDLE_AFTER ? LIVE_IDLE_EVERY : LIVE_EVERY);
+
+    // Something was done while this round was on its way: ask again, so its change is not taken for somebody else's.
+    if (live.own) askLive();
 };
 
-// A request this person caused (anything but a plain reload of data) marks the next change as their own.
+// After a request this person caused (anything but a plain reload of data), the stamps are read again at once.
+// What happens later because of it (a lead worked on after the answer) then counts as news and reloads the screen.
 Livewire.hook('commit', ({ commit, succeed }) => {
     const acted = (commit.calls ?? []).some((call) => ! ['$refresh', 'tick', 'openLead', 'closeLead'].includes(call.method));
 
     succeed(() => {
-        if (acted) live.own = Date.now();
+        if (! acted) return;
+
+        setTimeout(() => {
+            live.own = true;
+            askLive();
+        }, 150);
     });
 });
 

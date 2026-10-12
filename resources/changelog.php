@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.11.0',
+        'date' => '2026-10-12',
+        'title' => 'A faster, fuller chat',
+        'changes' => [
+            ['improved', 'A reply shows in the chat the moment you send it and is marked Sent as soon as Facebook has it. It no longer sits on "Sending".'],
+            ['new', 'Replies written on Facebook itself (the Page inbox, the phone app) now appear in the chat too, marked "Sent on Facebook".'],
+            ['new', 'Pictures, videos, voice notes, files and links a person sends are shown in the chat.'],
+            ['new', 'The name is also looked up in the Page\'s own list of chats, and "Name and picture from Facebook" beside a chat asks again and says in plain words what Facebook answered.'],
+            ['fixed', 'After your own action a later change (for example a message on its way) was taken for your own and did not show until the next minute.'],
+        ],
+    ],
+    [
         'version' => '1.10.1',
         'date' => '2026-10-12',
         'title' => 'Quicker from screen to screen',

@@ -12,6 +12,7 @@ use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Meta\Actions\SyncContactProfile;
 use App\Modules\Meta\Models\Conversation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -115,6 +116,29 @@ final class Inbox extends Component
         }
 
         $this->openDetails();
+    }
+
+    /** Ask Facebook again for this person's name and picture, and say plainly what came back. */
+    public function refreshProfile(SyncContactProfile $sync): void
+    {
+        $conversation = $this->chat === '' ? null : Conversation::query()->visibleTo($this->user())->with(['lead', 'source'])->find((int) $this->chat);
+
+        if ($conversation === null) {
+            return;
+        }
+
+        $result = $sync->handle($conversation, force: true);
+
+        if ($result['name'] || $result['picture']) {
+            $this->toastSuccess('Updated from Facebook', $result['name'] ? 'The name'.($result['picture'] ? ' and the picture are' : ' is').' in.' : 'The picture is in.');
+
+            return;
+        }
+
+        $this->toastWarning(
+            'Facebook did not share this person\'s profile',
+            ($result['reason'] !== null ? 'Facebook says: '.$result['reason'].' ' : '').'It shares names and pictures once your app has passed its review, and before that only for people with a role on the app. You can type the name in with Edit details.',
+        );
     }
 
     /** Hand the lead of the open chat to an Agent (or back to the queue with ""), without leaving the chat. */

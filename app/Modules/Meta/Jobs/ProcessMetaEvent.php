@@ -10,10 +10,12 @@ use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Meta\Actions\SyncContactProfile;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 use App\Modules\Meta\Models\MetaSource;
+use App\Modules\Meta\Support\MetaApp;
 use App\Modules\Meta\Support\MetaGraph;
 use App\Modules\Sites\Enums\InboundStatus;
 use App\Modules\Sites\Exceptions\LeadRejected;
@@ -22,7 +24,6 @@ use App\Modules\Sites\Support\SiteLeadNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -146,19 +147,17 @@ final class ProcessMetaEvent implements ShouldQueue
         $message = (array) ($payload['message'] ?? $payload['postback'] ?? []);
         $mid = (string) ($message['mid'] ?? $event->external_id ?? '');
 
-        // Echoes are the Page's own messages coming back; nothing to store.
-        if ($psid === '' || $psid === $page->external_id || ! empty($message['is_echo'])) {
+        $text = $this->text($message);
+        $sentAt = isset($payload['timestamp']) ? CarbonImmutable::createFromTimestampMs((int) $payload['timestamp']) : now();
+
+        // The Page's own messages come back as "echoes": a reply written on Facebook itself joins the chat.
+        if (! empty($message['is_echo'])) {
+            return $this->echo($page, $payload, $message, $mid, $text, $sentAt);
+        }
+
+        if ($psid === '' || $psid === $page->external_id) {
             return null;
         }
-
-        $text = trim((string) ($message['text'] ?? $message['title'] ?? ''));
-
-        if ($text === '') {
-            $attachments = count((array) ($message['attachments'] ?? []));
-            $text = $attachments > 0 ? '['.$attachments.' '.str('attachment')->plural($attachments).']' : '[Message without text]';
-        }
-
-        $sentAt = isset($payload['timestamp']) ? CarbonImmutable::createFromTimestampMs((int) $payload['timestamp']) : now();
 
         $conversation = Conversation::query()
             ->with('lead.status')
@@ -176,7 +175,8 @@ final class ProcessMetaEvent implements ShouldQueue
             $conversation->setRelation('lead', null);
         }
 
-        $this->syncProfile($conversation, $page, $psid, $graph);
+        $conversation->setRelation('source', $page);
+        app(SyncContactProfile::class)->handle($conversation);
 
         $lead = $conversation->lead;
         $newLead = false;
@@ -233,40 +233,69 @@ final class ProcessMetaEvent implements ShouldQueue
     }
 
     /**
-     * The person's name and picture from Facebook, asked for on the first
-     * message and again once a day (the picture's address expires). A name
-     * the team typed in by hand is never replaced; a lead still called
-     * "Messenger contact" takes the real name when Facebook shares it.
+     * A reply the team wrote on Facebook itself (the Page's inbox, the phone
+     * app) joins the chat as an outgoing message. What LiquifyCRM sent is
+     * already there, so the echo of our own app is left out.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $message
      */
-    private function syncProfile(Conversation $conversation, MetaSource $page, string $psid, MetaGraph $graph): void
+    private function echo(MetaSource $page, array $payload, array $message, string $mid, string $text, CarbonImmutable $sentAt): ?Lead
     {
-        // Until "Update system" has added the two columns, only the name is kept, as before.
-        static $ready = null;
-        $ready ??= Schema::hasColumn('conversations', 'contact_picture');
+        $psid = (string) ($payload['recipient']['id'] ?? '');
 
-        $synced = $ready ? $conversation->getAttribute('contact_synced_at') : null;
-
-        if ($synced !== null && CarbonImmutable::parse($synced)->gt(now()->subDay())) {
-            return;
+        if ($psid === '' || $psid === $page->external_id || (MetaApp::id() !== '' && (string) ($message['app_id'] ?? '') === MetaApp::id())) {
+            return null;
         }
 
-        if (! $ready && $conversation->contact_name !== null) {
-            return;
+        $conversation = Conversation::query()
+            ->with('lead')
+            ->where('meta_source_id', $page->getKey())
+            ->where('contact_external_id', $psid)
+            ->first();
+
+        if ($conversation === null) {
+            return null;
         }
 
-        $profile = $graph->contactProfile($page, $psid);
-        $named = $conversation->contact_name === null && $profile['name'] !== null;
+        if ($mid === '' || ! Message::query()->where('external_id', $mid)->exists()) {
+            Message::query()->create([
+                'conversation_id' => $conversation->getKey(),
+                'direction' => Message::OUT,
+                'body' => $text,
+                'external_id' => $mid !== '' ? $mid : null,
+                'status' => 'sent',
+                'raw' => $payload,
+                'created_at' => $sentAt,
+            ]);
 
-        $conversation->forceFill(array_filter([
-            'contact_name' => $named ? $profile['name'] : $conversation->contact_name,
-            'contact_picture' => $ready ? $profile['picture'] : null,
-            'contact_synced_at' => $ready ? now() : null,
-        ], fn (mixed $value): bool => $value !== null))->save();
+            $conversation->forceFill([
+                'last_message_at' => $sentAt,
+                'last_message_preview' => mb_substr('You: '.$text, 0, 190),
+                'unread_count' => 0,
+            ])->save();
 
-        $lead = $conversation->lead;
-
-        if ($named && $lead !== null && $lead->name === 'Messenger contact') {
-            $lead->forceFill(['name' => $profile['name']])->save();
+            $conversation->lead?->touchActivity();
         }
+
+        return $conversation->lead;
+    }
+
+    /**
+     * What a message says. One with only pictures or files says how many, and the thread shows them.
+     *
+     * @param  array<string, mixed>  $message
+     */
+    private function text(array $message): string
+    {
+        $text = trim((string) ($message['text'] ?? $message['title'] ?? ''));
+
+        if ($text !== '') {
+            return $text;
+        }
+
+        $attachments = count((array) ($message['attachments'] ?? []));
+
+        return $attachments > 0 ? '['.$attachments.' '.str('attachment')->plural($attachments).']' : '[Message without text]';
     }
 }

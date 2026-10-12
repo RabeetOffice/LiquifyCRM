@@ -31,8 +31,8 @@ class MetaSource extends Model
 {
     public const TYPE_PAGE = 'facebook_page';
 
-    /** What every Page is subscribed to: Lead Ads and Messenger. */
-    public const FIELDS = ['leadgen', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'];
+    /** What every Page is subscribed to: Lead Ads and Messenger, with the Page's own replies written on Facebook (echoes). */
+    public const FIELDS = ['leadgen', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_echoes'];
 
     protected $fillable = [
         'meta_connection_id', 'brand_id', 'type', 'external_id', 'name', 'access_token',

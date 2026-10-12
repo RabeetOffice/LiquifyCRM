@@ -79,6 +79,11 @@
                         <x-ui.avatar :name="$lead->name" :src="$selected->pictureUrl()" size="lg" tone />
                         <h2 class="lq-inbox-side-name">{{ $lead->name }}</h2>
                         <x-ui.status-pill :status="$lead->status" />
+                        @if ($canUpdate)
+                            <button type="button" class="lq-inbox-refresh" wire:click="refreshProfile" wire:loading.attr="disabled" wire:target="refreshProfile" title="Ask Facebook again for this person's name and picture">
+                                <x-heroicon-m-arrow-path wire:loading.class="animate-spin" wire:target="refreshProfile" /> Name and picture from Facebook
+                            </button>
+                        @endif
                     </div>
 
                     {{-- Hand the chat to someone without leaving it. --}}
