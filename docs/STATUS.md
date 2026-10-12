@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (12 October): 183 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (12 October): 187 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -156,7 +156,17 @@ State of the code (12 October): 183 Pest tests passing, Pint and Larastan level 
 - [x] Targets: four facts for the month, one block per department with its people, fields with the currency in front and "sales" behind, a floating reminder while targets are typed but not saved (`wire:dirty`).
 - [x] Websites: totals on top; each website card says its state in a word and shows the five checks as marks. Website page: hero, four facts (health, connection, last lead, last check), underline tabs, the five checks as tiles, received leads with the result as views.
 - [x] Logs: a feed grouped by day with an icon per kind, the kind as views, brand / person / dates behind Filters and shown as chips, one Download menu, storage as four facts, Delete logs marked as a danger card.
-- Still not redesigned screen by screen: System, Distribute, the lead form and the import dialog, Departments and Members forms, Email settings, the admin Overview, Brands and Integrations (the last three were done in the 9 October pass).
+
+### Audit of every screen (12 October, asked for by the user)
+Every screen was opened in a headless browser, light and dark, and judged against the new design. Redesigned or repaired in this pass:
+- [x] Brands: cards with four numbers each, totals on top, All / Active / Inactive as views (the table was wider than its card and broke brand names over three lines).
+- [x] System: four facts, health checks as tiles, scheduler card with the cron line and Copy, environment in two columns, backups and history tidied.
+- [x] Department form: people first (wide), details in the rail; one card when creating. Bug fixed: the role select compared an enum with a string, so every person showed as Manager.
+- [x] Add a lead: form on the left, "Who gets it" and "What happens next" in the rail.
+- [x] Error pages 403, 404, 419, 429, 500 and 503 in the sign-in look (`resources/views/errors`); the invitation "can't be used" card; the sign-in card centred.
+- [x] File fields styled; menus solid (a menu inside the blurred top bar cannot blur the page, so it must not be see-through); leads in the dashboard queue carry their avatar.
+Looked at and left as they are, because they already follow the design: Overview, Sales dashboards, People and the person form, Integrations, Updates, the brand wizard and brand form, Members and the member form, Distribute, the website wizard, Email settings, Profile, Password and 2FA, sign-in, forgot and reset password, global search, the notifications menu, the import dialog.
+Not looked at by eye: the two-factor challenge and confirm-password pages (they need a second factor), the invitation accept form (needs a live invitation), the welcome tour (shown once to a new Agent).
 
 ### Agreed differences from the document
 - **"Update system" beside "Backup and run database update" (9 October).** The document keeps database updates on the System screen, behind the queue. The Updates screen does the same work inside the request so it works without the scheduler, asks for the password only when the database will change, and lets an Admin go on without a backup when the server cannot make one.

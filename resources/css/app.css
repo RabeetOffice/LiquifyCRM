@@ -7464,4 +7464,218 @@ a.lq-linkrow:hover .lq-linkrow-arrow {
     }
 }
 
+/* ==========================================================================
+   Audit pass (12 October): what was still plain after the redesigns.
+   Brands as cards, System with tiles, the department form, error pages,
+   file fields, and menus that no longer let the page show through.
+   ========================================================================== */
+
+/* A menu opened from the top bar cannot blur what is behind it (the bar already does),
+   so it is all but solid: nothing under it shows through. */
+.lq-menu {
+    background: color-mix(in srgb, var(--lq-surface) 98%, transparent);
+}
+
+.dark .lq-menu {
+    background: rgb(30 27 26 / 0.98);
+}
+
+/* A views-and-search bar that stands on its own, above a grid of cards. */
+.lq-viewbar-card {
+    border-bottom: 0;
+    border-radius: var(--lq-radius-card);
+    background: var(--lq-card);
+    box-shadow: 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
+}
+
+.lq-site-head .lq-avatar-lg {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--lq-radius-inner);
+    font-size: 0.9375rem;
+}
+
+/* Four numbers of a brand, side by side. */
+.lq-brandfacts {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+}
+
+.lq-brandfacts > div {
+    min-width: 0;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-raised);
+}
+
+.lq-brandfacts dt {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.6875rem;
+    color: var(--lq-muted);
+}
+
+.lq-brandfacts dd {
+    margin: 0.125rem 0 0;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+    .lq-brandfacts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Check tiles when their number is not known in advance (System). */
+.lq-probes-auto {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr));
+}
+
+/* Label and value rows in two columns when there is room. */
+@media (min-width: 640px) {
+    .lq-kv-two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 2rem;
+    }
+
+    .lq-kv-two > div:nth-child(2) {
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .lq-kv-two > div:nth-last-child(2):nth-child(odd) {
+        padding-bottom: 0;
+    }
+}
+
+/* A form that stands alone keeps a comfortable reading width. */
+.lq-narrow {
+    width: 100%;
+    max-width: 40rem;
+}
+
+/* The line that adds something to the list above it. */
+.lq-addrow {
+    display: grid;
+    align-items: end;
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1.125rem 1.5rem 1.25rem;
+    border-top: 1px solid var(--lq-card-border);
+    background: var(--lq-raised);
+}
+
+@media (min-width: 640px) {
+    .lq-addrow {
+        grid-template-columns: minmax(0, 1fr) 9rem auto;
+    }
+}
+
+.lq-addrow-help {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+/* On a phone a row with a person and controls puts the controls on a second line, so the name stays whole. */
+@media (max-width: 640px) {
+    .lq-linkrow {
+        flex-wrap: wrap;
+    }
+
+    .lq-linkrow > .lq-person {
+        flex-basis: 100%;
+    }
+}
+
+/* A short list of things that are true, each with a tick. */
+.lq-ticks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--lq-ink-soft);
+}
+
+.lq-ticks li {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.lq-ticks svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    color: var(--lq-success);
+}
+
+/* File fields: the browser's own button becomes one of ours. */
+.lq-input[type='file'] {
+    height: auto;
+    padding: 0.3125rem;
+    color: var(--lq-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.lq-input[type='file']::file-selector-button {
+    margin-inline-end: 0.75rem;
+    padding: 0.4375rem 0.875rem;
+    border: 0;
+    border-radius: 7px;
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms var(--lq-ease), color 150ms var(--lq-ease);
+}
+
+.lq-input[type='file']:hover::file-selector-button {
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+/* Sign-in, invitation and error pages: the card sits in the middle of its column. */
+.lq-guest-main {
+    min-height: 100dvh;
+    justify-content: center;
+}
+
+.lq-errorcard {
+    align-items: flex-start;
+}
+
+.lq-errorcode {
+    margin: 0;
+    font-size: 4rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    background: var(--lq-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.lq-errorcard-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
 } /* @layer components */

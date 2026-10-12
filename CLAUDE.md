@@ -87,6 +87,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   with the kind of event as views and the other filters as chips. A website's check tiles are `lq-probe`:
   `lq-check` is the checkbox label, so never reuse that name. A bar that Livewire shows with `wire:dirty` goes
   inside a wrapper (`lq-floatbar-hold`), because Livewire sets its own `display` on the element.
+- Error pages live in `resources/views/errors` (one `page.blade.php`, a line per code) and use the sign-in look;
+  they must work without the database or a signed-in person. Menus are solid, not see-through: a menu inside the
+  blurred top bar cannot blur what is behind it. A pivot role is an enum (`DepartmentRole`), never compare it with
+  a string.
 - Live updates are Livewire polling (`wire:poll`), never websockets: the hosting has no daemons. The bell checks
   every 15 seconds and toasts what arrived; dashboards, the leads list and the inbox refresh by themselves.
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.

@@ -1,10 +1,6 @@
 <x-core::guest-layout title="Invitation unavailable">
-    <div class="lq-card lq-center">
-        <div class="lq-icon-circle">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="lq-icon">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
-        </div>
+    <div class="lq-glass lq-errorcard">
+        <span class="lq-icon-circle"><x-heroicon-o-envelope-open class="lq-icon" /></span>
         <h1 class="lq-title">This invitation can't be used</h1>
         <p class="lq-muted">
             @if ($invitation?->isAccepted())
@@ -15,6 +11,8 @@
                 The link is not valid. Ask the person who invited you to send a new one.
             @endif
         </p>
-        <a href="{{ url('/b/login') }}" class="lq-btn lq-btn-primary lq-btn-block">Go to sign in</a>
+        <div class="lq-errorcard-actions">
+            <a href="{{ route('login') }}" class="lq-btn lq-btn-primary lq-btn-block">Go to sign in</a>
+        </div>
     </div>
 </x-core::guest-layout>

@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.6.0',
+        'date' => '2026-10-12',
+        'title' => 'Every screen in the same design',
+        'changes' => [
+            ['improved', 'Brands: each brand is a card with its leads this month, departments, people and currency; the totals sit on top and one click shows only active or inactive brands.'],
+            ['improved', 'System: version, scheduler, jobs and last backup as four facts, health checks as tiles, and the cron line with a Copy button.'],
+            ['improved', 'A department opens with its people first, each with their role, and the name and colour beside them.'],
+            ['improved', 'Add a lead: who gets it and what happens next sit beside the form.'],
+            ['new', 'A wrong address, a closed screen or an expired page now answers in plain words with a way back, instead of a blank white page.'],
+            ['fixed', 'In a department every person was shown as Manager, even Agents. Each person now shows the role they really hold.'],
+            ['fixed', 'The notifications menu no longer lets the page show through, file fields look like the rest of the form, the sign-in card sits in the middle, and the invitation message has its spacing back.'],
+        ],
+    ],
+    [
         'version' => '1.5.0',
         'date' => '2026-10-12',
         'title' => 'Clients, targets, websites and logs, redesigned',

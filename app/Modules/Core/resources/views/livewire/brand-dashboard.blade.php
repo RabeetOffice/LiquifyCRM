@@ -112,8 +112,13 @@
                                 @foreach ($queue as $lead)
                                     <tr wire:key="queue-{{ $lead->getKey() }}">
                                         <td>
-                                            <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}" class="lq-cell-title" wire:navigate>{{ $lead->name }}</a>
-                                            <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                            <span class="lq-person">
+                                                <x-ui.avatar :name="$lead->name" size="sm" tone />
+                                                <span class="min-w-0">
+                                                    <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}" class="lq-cell-title" wire:navigate>{{ $lead->name }}</a>
+                                                    <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                                </span>
+                                            </span>
                                         </td>
                                         <td><x-ui.lead-source :lead="$lead" /></td>
                                         <td class="lq-num">{{ $lead->created_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</td>

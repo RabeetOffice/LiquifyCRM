@@ -1,63 +1,65 @@
-<div class="flex flex-col gap-6">
-    <x-ui.page-header :title="$title" :breadcrumbs="['Departments' => route('brand.departments.index', ['brand' => $brand->slug]), $title => null]" />
+<div class="flex flex-col gap-5">
+    <nav class="lq-crumbbar" aria-label="Breadcrumb">
+        <x-ui.button size="sm" variant="ghost" icon="heroicon-o-arrow-left" :href="route('brand.departments.index', ['brand' => $brand->slug])">Departments</x-ui.button>
+        <span class="lq-muted" aria-hidden="true">/</span>
+        <span class="truncate">{{ $title }}</span>
+    </nav>
 
-    <div class="lq-grid-main">
-        <form wire:submit="save">
-            <x-ui.card title="Department" description="A team inside this brand. Leads, sales and targets are counted per department.">
-                <div class="lq-form-grid lq-form-grid-2">
-                    <x-ui.field label="Name" name="name" required>
-                        <x-ui.input wire:model="name" name="name" placeholder="Sales Team A" required autofocus />
-                    </x-ui.field>
-                    <x-ui.field label="Colour" name="color" help="Used for the department chip and chart line.">
-                        <div class="flex items-center gap-2">
-                            <input type="color" wire:model.live="color" class="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent p-0">
-                            <x-ui.input wire:model="color" name="color" class="lq-tabular" />
-                        </div>
-                    </x-ui.field>
-                    <x-ui.field label="What this team does" name="description" class="lq-col-full">
-                        <x-ui.textarea wire:model="description" name="description" rows="3" />
-                    </x-ui.field>
-                </div>
-
-                <x-slot:footer>
-                    <x-ui.button variant="ghost" :href="route('brand.departments.index', ['brand' => $brand->slug])">Back</x-ui.button>
-                    <x-ui.button type="submit" variant="primary" wire:loading.attr="disabled">{{ $department ? 'Save changes' : 'Create department' }}</x-ui.button>
-                </x-slot:footer>
-            </x-ui.card>
-        </form>
-
-        @if ($department)
-            <x-ui.card title="People" description="Who leads and who works in this department." flush>
-                @if ($people->isEmpty())
-                    <x-ui.empty title="Nobody in this department yet" description="Add a Manager to lead it, then the Agents who work the leads." icon="heroicon-o-user-group" />
+    <header class="lq-lead-hero">
+        <span class="lq-site-icon lq-site-icon-xl" @if ($color) style="background: color-mix(in srgb, {{ $color }} 16%, transparent); color: {{ $color }}" @endif><x-heroicon-o-rectangle-group /></span>
+        <div class="min-w-0 flex-1">
+            <h1 class="lq-lead-name lq-lead-name-page">{{ $title }}</h1>
+            <div class="lq-lead-meta">
+                @if ($department)
+                    <span>{{ $people->count() }} {{ str('person')->plural($people->count()) }}</span>
+                    <span>· Leads, sales and targets are counted per department</span>
                 @else
-                    <ul class="flex flex-col">
-                        @foreach ($people as $person)
-                            <li class="flex items-center gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-hairline)" wire:key="person-{{ $person->getKey() }}">
-                                <x-ui.avatar :name="$person->name" :src="$person->avatarUrl()" size="sm" />
-                                <div class="min-w-0 flex-1">
-                                    <span class="lq-cell-title">{{ $person->name }}</span>
-                                    <span class="lq-cell-sub">{{ $person->email }}</span>
-                                </div>
-                                @if ($canManageMembers)
-                                    <select class="lq-input lq-input-sm" style="width: 8rem" wire:change="changeRole({{ $person->getKey() }}, $event.target.value)">
-                                        @foreach ($roles as $role)
-                                            <option value="{{ $role->value }}" @selected($person->pivot->role === $role->value)>{{ $role->getLabel() }}</option>
-                                        @endforeach
-                                    </select>
-                                    <x-ui.button size="sm" variant="ghost" wire:click="confirmRemoveMember({{ $person->getKey() }})" icon="heroicon-o-x-mark" title="Remove from department" />
-                                @else
-                                    <x-ui.badge :color="\App\Modules\Core\Enums\DepartmentRole::from($person->pivot->role)->getColor()">{{ \App\Modules\Core\Enums\DepartmentRole::from($person->pivot->role)->getLabel() }}</x-ui.badge>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
+                    <span>A team inside {{ $brand->name }}. Add its people after creating it.</span>
                 @endif
+            </div>
+        </div>
+    </header>
 
-                @if ($canManageMembers)
-                    <div class="px-6 py-4" style="border-top: 1px solid var(--lq-hairline)">
-                        <form wire:submit="addMember" class="flex flex-col gap-3 sm:flex-row sm:items-end">
-                            <x-ui.field label="Add person" name="newMemberId" class="flex-1" help="Only members of this brand are listed. Invite new people under Members.">
+    <div @class(['lq-split' => $department !== null, 'lq-narrow' => $department === null])>
+        {{-- Who is in it: the wide side, because this is where the work is. --}}
+        @if ($department)
+            <div class="lq-split-main">
+                <x-ui.card title="People" description="Who leads and who works in this department." flush>
+                    @if ($people->isEmpty())
+                        <x-ui.empty title="Nobody in this department yet" description="Add a Manager to lead it, then the Agents who work the leads." icon="heroicon-o-user-group" />
+                    @else
+                        <ul class="lq-linklist">
+                            @foreach ($people as $person)
+                                @php
+                                    // The pivot gives the role as an enum; older rows may still carry the plain word.
+                                    $held = $person->pivot->role instanceof \App\Modules\Core\Enums\DepartmentRole ? $person->pivot->role : \App\Modules\Core\Enums\DepartmentRole::from((string) $person->pivot->role);
+                                @endphp
+                                <li class="lq-linkrow" wire:key="person-{{ $person->getKey() }}">
+                                    <span class="lq-person min-w-0 flex-1">
+                                        <x-ui.avatar :name="$person->name" :src="$person->avatarUrl()" />
+                                        <span class="min-w-0">
+                                            <span class="lq-cell-title">{{ $person->name }}</span>
+                                            <span class="lq-cell-sub">{{ $person->email }}</span>
+                                        </span>
+                                    </span>
+                                    @if ($canManageMembers)
+                                        <select class="lq-input lq-input-sm" style="width: 8.5rem" aria-label="Role of {{ $person->name }}" wire:change="changeRole({{ $person->getKey() }}, $event.target.value)">
+                                            @foreach ($roles as $role)
+                                                <option value="{{ $role->value }}" @selected($held === $role)>{{ $role->getLabel() }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmRemoveMember({{ $person->getKey() }})" title="Remove from department" aria-label="Remove {{ $person->name }} from the department"><x-heroicon-o-x-mark /></button>
+                                    @else
+                                        <x-ui.badge :color="$held->getColor()">{{ $held->getLabel() }}</x-ui.badge>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    @if ($canManageMembers)
+                        <form wire:submit="addMember" class="lq-addrow">
+                            <x-ui.field label="Add person" name="newMemberId" class="lq-addrow-main">
                                 <x-ui.select wire:model="newMemberId" name="newMemberId" placeholder="Choose a person…">
                                     @foreach ($candidates as $candidate)
                                         <option value="{{ $candidate->getKey() }}">{{ $candidate->name }} ({{ $candidate->email }})</option>
@@ -72,11 +74,38 @@
                                 </x-ui.select>
                             </x-ui.field>
                             <x-ui.button type="submit" variant="secondary" icon="heroicon-o-user-plus">Add</x-ui.button>
+                            <p class="lq-help lq-addrow-help">Only members of this brand are listed. New people are added under <a class="lq-link" href="{{ route('brand.members.index', ['brand' => $brand->slug]) }}" wire:navigate>Members</a>.</p>
                         </form>
-                    </div>
-                @endif
-            </x-ui.card>
+                    @endif
+                </x-ui.card>
+            </div>
         @endif
+
+        <form wire:submit="save" @class(['lq-split-side' => $department !== null])>
+            <x-ui.card title="Details" description="The name and colour people see in lists and charts.">
+                <div class="lq-form">
+                    <x-ui.field label="Name" name="name" required>
+                        <x-ui.input wire:model="name" name="name" placeholder="Sales Team A" required :autofocus="$department === null" />
+                    </x-ui.field>
+                    <x-ui.field label="Colour" name="color" help="Used for the department chip and chart line.">
+                        <div class="lq-swatch">
+                            <input type="color" wire:model.live="color" aria-label="Pick a colour">
+                            <input type="text" class="lq-swatch-text" wire:model.blur="color" name="color" maxlength="7" placeholder="#FF6B2C">
+                        </div>
+                    </x-ui.field>
+                    <x-ui.field label="What this team does" name="description">
+                        <x-ui.textarea wire:model="description" name="description" rows="3" />
+                    </x-ui.field>
+                </div>
+
+                <x-slot:footer>
+                    @unless ($department)
+                        <x-ui.button variant="ghost" :href="route('brand.departments.index', ['brand' => $brand->slug])">Cancel</x-ui.button>
+                    @endunless
+                    <x-ui.button type="submit" variant="primary" wire:loading.attr="disabled">{{ $department ? 'Save changes' : 'Create department' }}</x-ui.button>
+                </x-slot:footer>
+            </x-ui.card>
+        </form>
     </div>
 
     <x-ui.confirm :confirm="$confirm" />

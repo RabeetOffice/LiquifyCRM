@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => 419, 'title' => 'The page sat open too long', 'text' => 'For safety a form stops working after a while. Open the page again and repeat what you were doing.', 'retry' => true])
