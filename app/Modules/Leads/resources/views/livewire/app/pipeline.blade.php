@@ -1,13 +1,16 @@
-{{-- The board refreshes by itself every 30 seconds, except while a card is being dragged. --}}
+{{-- The board reloads when something in the brand changes (lq-changed, see app.js) and once a minute anyway,
+     but never while a card is being dragged. --}}
 <div
     class="lq-wide flex flex-col gap-5"
     x-data="{
         dragging: null,
         over: null,
         timer: null,
-        init() { this.timer = setInterval(() => { if (this.dragging === null && ! document.hidden) this.$wire.$refresh() }, 30000) },
+        reload() { if (this.dragging === null && ! document.hidden) this.$wire.$refresh() },
+        init() { this.timer = setInterval(() => this.reload(), 60000) },
         destroy() { clearInterval(this.timer) },
     }"
+    x-on:lq-changed.window="reload()"
 >
     <x-ui.page-header title="Pipeline" subtitle="Drag a card to move a lead along. Click one to open it.">
         <x-slot:actions>

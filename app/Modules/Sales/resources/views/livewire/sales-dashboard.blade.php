@@ -7,7 +7,7 @@
     $personal = $report->isPersonal();
     $hasTrend = array_sum($trend['count']) > 0;
 @endphp
-<div class="flex flex-col gap-6" wire:poll.45s.visible>
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
     <x-ui.page-header :title="$title" :subtitle="$personal ? 'Your sales against your target, month by month.' : ($isAdminArea ? 'One brand at a time, in its own currency. Choose a brand, then a department to look inside.' : 'Revenue and sales against target. Click a department to look inside.')">
         <x-slot:actions>
             <div class="lq-month">

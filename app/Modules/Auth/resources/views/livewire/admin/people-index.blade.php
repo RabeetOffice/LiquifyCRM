@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="People" subtitle="Everyone who can sign in. Admins see every brand; Managers and Agents work inside the brand and department you give them.">
         <x-slot:actions>
             @can('create', \App\Modules\Auth\Models\User::class)

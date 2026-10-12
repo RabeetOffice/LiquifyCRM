@@ -250,6 +250,80 @@ document.addEventListener('livewire:navigated', () => {
     Alpine.store('theme').apply();
     markReady();
 });
+
+// ------------------------------------------------------------ live updates
+// The hosting runs no daemons, so no websockets. Instead one small request asks every few seconds
+// whether anything of this brand or for this person has changed (GET /api/live, see Live.php).
+// Only when a stamp has moved do the screens reload their data: the roots marked `data-live-refresh`,
+// and whoever listens for `lq-changed` (the board) or `lq-notified` (the bell).
+const live = { token: null, brand: null, user: null, timer: null, asked: 0, refreshed: 0, owed: false, own: 0, input: Date.now() };
+
+const LIVE_EVERY = 4000;
+const LIVE_IDLE_EVERY = 12000;
+const LIVE_IDLE_AFTER = 180000;
+const LIVE_REFRESH_GAP = 6000;
+
+const refreshLive = () => {
+    live.refreshed = Date.now();
+    live.owed = false;
+    window.dispatchEvent(new CustomEvent('lq-changed'));
+    document.querySelectorAll('[wire\\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
+};
+
+const askLive = async () => {
+    clearTimeout(live.timer);
+
+    const token = document.querySelector('[data-live]')?.dataset.live ?? null;
+
+    if (token !== null && ! document.hidden) {
+        // Another page (another brand, another person): start counting from what it shows now.
+        if (token !== live.token) {
+            Object.assign(live, { token, brand: null, user: null, owed: false });
+        }
+
+        const askedBefore = live.asked;
+        live.asked = Date.now();
+
+        try {
+            const response = await fetch('/api/live?t=' + encodeURIComponent(token), { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'omit' });
+
+            if (response.ok && token === live.token) {
+                const stamps = await response.json();
+                const brandMoved = live.brand !== null && stamps.b !== live.brand;
+                const userMoved = live.user !== null && stamps.u !== live.user;
+
+                live.brand = stamps.b;
+                live.user = stamps.u;
+
+                if (userMoved) window.dispatchEvent(new CustomEvent('lq-notified'));
+
+                // What this person just did themselves is on their screen already.
+                if (brandMoved && live.own < askedBefore) live.owed = true;
+            }
+        } catch (error) {
+            // Offline for a moment: the next round asks again.
+        }
+
+        if (live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
+    }
+
+    live.timer = setTimeout(askLive, Date.now() - live.input > LIVE_IDLE_AFTER ? LIVE_IDLE_EVERY : LIVE_EVERY);
+};
+
+// A request this person caused (anything but a plain reload of data) marks the next change as their own.
+Livewire.hook('commit', ({ commit, succeed }) => {
+    const acted = (commit.calls ?? []).some((call) => ! ['$refresh', 'tick', 'openLead', 'closeLead'].includes(call.method));
+
+    succeed(() => {
+        if (acted) live.own = Date.now();
+    });
+});
+
+['pointerdown', 'keydown', 'wheel'].forEach((name) => window.addEventListener(name, () => { live.input = Date.now(); }, { passive: true, capture: true }));
+
+// Back on this tab: look at once instead of waiting for the next round.
+document.addEventListener('visibilitychange', () => { if (! document.hidden) askLive(); });
+document.addEventListener('livewire:navigated', askLive);
 // Keyboard shortcut for search (Ctrl K / ⌘K).
 window.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {

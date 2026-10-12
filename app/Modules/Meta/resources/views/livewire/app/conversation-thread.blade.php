@@ -1,4 +1,4 @@
-<div class="lq-thread" wire:poll.10s.visible>
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh>
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();

@@ -1,4 +1,4 @@
-<div class="lq-wide flex flex-col gap-5">
+<div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh>
     <x-ui.page-header title="Inbox" subtitle="Messenger chats of your leads. Reply here or from the lead page." />
 
     @if ($total === 0)
@@ -6,7 +6,7 @@
             <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
         </x-ui.card>
     @else
-        <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null]) wire:poll.15s.visible>
+        <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null])>
             {{-- The chats --}}
             <aside class="lq-inbox-list" aria-label="Chats">
                 <div class="lq-inbox-tools">

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Http\Controllers;
 
+use App\Modules\Core\Support\RunSoon;
 use App\Modules\Meta\Jobs\ProcessMetaEvent;
 use App\Modules\Meta\Jobs\UpdateMessageReceipts;
 use App\Modules\Meta\Support\MetaApp;
@@ -93,6 +94,7 @@ final class MetaWebhookController
             return;
         }
 
-        ProcessMetaEvent::dispatch((int) $event->getKey());
+        // Meta has its answer first; the lead or the chat message is then made straight away, not at the scheduler's next minute.
+        RunSoon::dispatch(new ProcessMetaEvent((int) $event->getKey()));
     }
 }

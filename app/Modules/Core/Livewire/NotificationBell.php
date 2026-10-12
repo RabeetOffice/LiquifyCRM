@@ -13,8 +13,9 @@ use Livewire\Component;
 
 /**
  * The in-app bell: latest database notifications with mark-as-read. It
- * checks for news every 15 seconds; when something new has arrived since
- * the last look, it also shows as a toast so nobody has to reload the page.
+ * looks again the moment the page hears that something arrived for this
+ * person (lq-notified, see Live and app.js), and once a minute anyway; what
+ * is new since the last look also shows as a toast, so nobody reloads.
  */
 final class NotificationBell extends Component
 {

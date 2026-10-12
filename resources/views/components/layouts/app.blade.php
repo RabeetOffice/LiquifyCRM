@@ -37,7 +37,12 @@
         @include('partials.topbar')
         @include('partials.update-bar')
 
-        <main class="lq-content" id="main-content">
+        {{-- data-live: what this page shows to GET /api/live, which app.js asks every few seconds. --}}
+        @php
+            $liveUser = auth()->user();
+            $liveBrand = app(\App\Modules\Core\Support\CurrentBrand::class)->id();
+        @endphp
+        <main class="lq-content" id="main-content" @if ($liveUser instanceof \App\Modules\Auth\Models\User) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveBrand === null && $liveUser->isGlobalAdmin()) }}" @endif>
             {{ $slot }}
         </main>
     </div>

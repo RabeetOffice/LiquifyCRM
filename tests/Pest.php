@@ -8,6 +8,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Core\Support\Live;
 use App\Modules\Departments\Models\Department;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +19,7 @@ pest()->extend(TestCase::class)
     ->beforeEach(function (): void {
         $this->seed(RolesAndPermissionsSeeder::class);
         app(CurrentBrand::class)->clear();
+        Live::forget();
     })
     ->in('Feature');
 

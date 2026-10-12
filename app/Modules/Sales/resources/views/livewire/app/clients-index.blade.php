@@ -1,5 +1,5 @@
 @php use App\Modules\Sales\Support\Money; @endphp
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="Clients" subtitle="Everyone who has bought from this brand. A repeat purchase joins the same client." />
 
     @if ($summary['clients'] > 0)

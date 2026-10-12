@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="Follow-ups" subtitle="Everything you promised to do, by date. Set them from a lead with Follow up." />
 
     <x-ui.card flush class="lq-list">

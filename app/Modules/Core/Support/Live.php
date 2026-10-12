@@ -54,6 +54,40 @@ final class Live
         ];
     }
 
+    /**
+     * What an open page shows to GET /api/live: who it is and which brand it
+     * looks at, signed, so that request needs no session and no sign-in query.
+     * A stamp is only a number, and the token stops working after 12 hours.
+     */
+    public static function token(int $userId, ?int $brandId, bool $everyBrand = false): string
+    {
+        $scope = $brandId !== null ? (string) $brandId : ($everyBrand ? 'all' : 'none');
+        $payload = $userId.'.'.$scope.'.'.(now()->getTimestamp() + 43200);
+
+        return $payload.'.'.hash_hmac('sha256', $payload, (string) config('app.key'));
+    }
+
+    /**
+     * @return array{b: int, u: int}|null null for a token that is forged, damaged or too old
+     */
+    public static function read(string $token): ?array
+    {
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 4) {
+            return null;
+        }
+
+        [$userId, $scope, $expires, $signature] = $parts;
+        $payload = $userId.'.'.$scope.'.'.$expires;
+
+        if (! hash_equals(hash_hmac('sha256', $payload, (string) config('app.key')), $signature) || (int) $expires < now()->getTimestamp() || ! ctype_digit($userId)) {
+            return null;
+        }
+
+        return self::stamps(ctype_digit($scope) ? (int) $scope : null, (int) $userId, $scope === 'all');
+    }
+
     /** Called when a request or a queued job ends: write the stamps that changed inside the quiet time. */
     public static function flush(): void
     {

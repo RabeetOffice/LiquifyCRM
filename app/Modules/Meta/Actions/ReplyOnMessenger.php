@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Actions;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Core\Support\RunSoon;
 use App\Modules\Meta\Enums\MessageStatus;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Jobs\SendMessengerReply;
@@ -45,7 +46,8 @@ final class ReplyOnMessenger
             'unread_count' => 0,
         ])->save();
 
-        SendMessengerReply::dispatch((int) $message->getKey());
+        // Sent right after this request has answered, so a chat does not wait for the scheduler's next minute.
+        RunSoon::dispatch(new SendMessengerReply((int) $message->getKey()));
 
         return $message;
     }

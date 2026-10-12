@@ -25,6 +25,7 @@
 <div
     @class(['lq-lead', 'lq-lead-page' => $page])
     x-data
+    data-live-refresh
     x-on:keydown.window="
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes($event.target.tagName) || $event.metaKey || $event.ctrlKey || $event.altKey) return;
         if ($event.key === 'a' && @js($can['assign'])) $wire.openAssign();

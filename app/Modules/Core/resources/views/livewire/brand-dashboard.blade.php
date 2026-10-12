@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6" wire:poll.30s.visible>
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
     <x-ui.page-header title="Dashboard" :subtitle="'Here is the summary for '.$brand->name.'.'">
         <x-slot:actions>
             @can('create', \App\Modules\Leads\Models\Lead::class)

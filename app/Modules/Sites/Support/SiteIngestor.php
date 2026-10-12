@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Sites\Support;
 
+use App\Modules\Core\Support\RunSoon;
 use App\Modules\Sites\Jobs\IngestLead;
 use App\Modules\Sites\Models\InboundEvent;
 use App\Modules\Sites\Models\Site;
@@ -41,7 +42,8 @@ final class SiteIngestor
             return $this->find($site, (string) $externalId) ?? throw new \RuntimeException('The lead could not be stored.');
         }
 
-        $sync ? IngestLead::dispatchSync($event->getKey()) : IngestLead::dispatch($event->getKey());
+        // Not left for the scheduler's next minute: the lead is on screen seconds after the website sent it.
+        $sync ? IngestLead::dispatchSync($event->getKey()) : RunSoon::dispatch(new IngestLead((int) $event->getKey()));
 
         return $event;
     }

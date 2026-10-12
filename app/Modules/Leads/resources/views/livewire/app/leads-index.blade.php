@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6" wire:poll.20s.visible>
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
     <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.'">
         <x-slot:actions>
             @if ($can['export'])

@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="Members" subtitle="Who has access to this brand and with which role.">
         <x-slot:actions>
             @if ($canInvite)

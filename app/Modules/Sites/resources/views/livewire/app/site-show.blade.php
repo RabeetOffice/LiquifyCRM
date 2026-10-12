@@ -15,7 +15,7 @@
         default => ['Waiting for the first lead', 'quiet'],
     };
 @endphp
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <nav class="lq-crumbbar" aria-label="Breadcrumb">
         <x-ui.button size="sm" variant="ghost" icon="heroicon-o-arrow-left" :href="route('brand.sites.index', ['brand' => $brand->slug])">Websites</x-ui.button>
         <span class="lq-muted" aria-hidden="true">/</span>

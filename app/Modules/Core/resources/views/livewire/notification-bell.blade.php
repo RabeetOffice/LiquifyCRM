@@ -1,4 +1,4 @@
-<div class="relative" x-data x-on:click.outside="$wire.open && $wire.set('open', false)" wire:poll.15s="tick">
+<div class="relative" x-data x-on:click.outside="$wire.open && $wire.set('open', false)" x-on:lq-notified.window="$wire.tick()" wire:poll.60s="tick">
     <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon relative" wire:click="$toggle('open')" title="Notifications" aria-haspopup="menu" aria-expanded="{{ $open ? 'true' : 'false' }}">
         <x-heroicon-o-bell class="h-5 w-5" />
         @if ($unread > 0)

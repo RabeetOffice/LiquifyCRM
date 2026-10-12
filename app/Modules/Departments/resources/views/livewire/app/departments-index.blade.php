@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="Departments" subtitle="Teams inside this brand. Leads, sales and targets are counted per department.">
         <x-slot:actions>
             @can('create', \App\Modules\Departments\Models\Department::class)

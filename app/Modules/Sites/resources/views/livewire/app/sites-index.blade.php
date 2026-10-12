@@ -10,7 +10,7 @@
     $attention = $sites->filter(fn ($site): bool => in_array($site->health_status->value, ['warn', 'fail'], true))->count();
     $lastLead = $sites->max('last_lead_at');
 @endphp
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6" data-live-refresh>
     <x-ui.page-header title="Websites" subtitle="Every website of this brand: when its last lead arrived and whether its form, email, database, SSL and uptime are healthy.">
         <x-slot:actions>
             @if ($canManage && $sites->isNotEmpty())
