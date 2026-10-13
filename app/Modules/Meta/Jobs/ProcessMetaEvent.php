@@ -6,10 +6,13 @@ namespace App\Modules\Meta\Jobs;
 
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Notifications\AppNotification;
+use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Leads\Actions\CreateLead;
+use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Meta\Actions\SyncContactProfile;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
@@ -116,28 +119,66 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         $formId = (string) ($data['form_id'] ?? $event->payload['form_id'] ?? '');
+        $formName = $formId !== '' ? ($graph->formName($page, $formId) ?? 'Form '.$formId) : null;
 
-        $result = $createLead->handle($brand, array_filter([
-            'source_type' => LeadSource::Facebook,
-            'source_id' => $page->getKey(),
-            'external_id' => $leadgenId,
+        $details = array_filter([
             'name' => $normalised['name'],
             'email' => $normalised['email'],
             'phone' => $normalised['phone'],
             'message' => $normalised['message'],
             'fields' => array_filter([
                 'facebook_page' => $page->name,
-                'form' => $formId !== '' ? ($graph->formName($page, $formId) ?? 'Form '.$formId) : null,
+                'form' => $formName,
                 'campaign' => $data['campaign_name'] ?? null,
                 'ad' => $data['ad_name'] ?? null,
                 'platform' => $data['platform'] ?? null,
                 ...$normalised['fields'],
             ]),
             'utm' => $normalised['utm'] !== [] ? $normalised['utm'] : null,
-            'created_at' => $normalised['created_at'],
-        ], fn (mixed $value): bool => $value !== null));
+        ], fn (mixed $value): bool => $value !== null);
 
-        return $result->lead;
+        // The form names the person's Messenger chat. Somebody who already writes to the Page is one
+        // person, not two leads: the form's answers join the lead of that chat.
+        $psid = LeadMatcher::messengerId($details['fields']);
+        $chat = $psid !== null
+            ? Conversation::query()->with('lead.status')->where('meta_source_id', $page->getKey())->where('contact_external_id', $psid)->first()
+            : null;
+
+        if ($chat?->lead !== null && $chat->lead->isOpen()) {
+            $lead = app(MergeLeads::class)->join(
+                $chat->lead,
+                [...$details, 'fields' => [...$details['fields'], 'leadgen_id' => $leadgenId]],
+                'leads.form_joined',
+                'Filled in '.($formName !== null ? 'the lead form "'.$formName.'"' : 'a lead form').' on Facebook: the same person as this chat',
+            );
+
+            $lead->loadMissing('assignee');
+            $lead->assignee?->notify(new AppNotification(
+                $lead->name.' filled in your lead form',
+                'The same person as the Messenger chat. Their answers are on the lead now.',
+                'info',
+                $brand->url('leads/'.$lead->getKey()),
+                icon: 'heroicon-o-clipboard-document-list',
+                actionLabel: 'Open lead',
+            ));
+
+            return $lead;
+        }
+
+        $lead = $createLead->handle($brand, [
+            ...$details,
+            'source_type' => LeadSource::Facebook,
+            'source_id' => $page->getKey(),
+            'external_id' => $leadgenId,
+            ...($normalised['created_at'] !== null ? ['created_at' => $normalised['created_at']] : []),
+        ])->lead;
+
+        // A chat that was there but had no open lead belongs to this one from now on.
+        if ($chat !== null && $lead->isOpen()) {
+            $chat->forceFill(['lead_id' => $lead->getKey()])->save();
+        }
+
+        return $lead;
     }
 
     private function message(InboundEvent $event, MetaSource $page, Brand $brand, MetaGraph $graph, CreateLead $createLead): ?Lead
@@ -180,6 +221,18 @@ final class ProcessMetaEvent implements ShouldQueue
 
         $lead = $conversation->lead;
         $newLead = false;
+
+        // Somebody who filled in a lead form and now writes to the Page is one person: the form
+        // named this chat, so the chat joins that lead instead of starting a second one.
+        if ($lead === null || ! $lead->isOpen()) {
+            $known = LeadMatcher::byMessenger($brand, $psid);
+
+            if ($known !== null) {
+                $lead = $known;
+
+                Audit::log('leads.chat_joined', $lead, ['message' => $text], 'Wrote on Messenger: the same person as this lead form', brand: $brand, logName: 'leads');
+            }
+        }
 
         // A new chat, or one whose lead was closed or removed, starts a lead in the New queue.
         if ($lead === null || ! $lead->isOpen()) {

@@ -202,3 +202,71 @@ it('ignores echoes of the Page own messages', function (): void {
     expect(Conversation::query()->acrossBrands()->count())->toBe(0)
         ->and(InboundEvent::query()->sole()->status)->toBe(InboundStatus::Done);
 });
+
+/** A lead form whose answers name the person's Messenger chat, the way Facebook sends it. */
+function fakeFormWithChat(string $leadgenId, string $psid): void
+{
+    Http::fake([
+        'graph.facebook.com/*/'.$leadgenId.'*' => Http::response(['id' => $leadgenId, 'form_id' => '555', 'campaign_name' => 'Autumn', 'field_data' => [
+            ['name' => 'full_name', 'values' => ['Amy Wong']],
+            ['name' => 'email', 'values' => ['amy@example.com']],
+            ['name' => 'phone_number', 'values' => ['+447700900555']],
+            ['name' => 'what_stage_is_your_book_at_right_now?', 'values' => ['fully_written_and_ready_to_publish']],
+            ['name' => 'inbox_url', 'values' => ['https://business.facebook.com/latest/'.$psid.'?nav_ref=thread_view_by_psid']],
+        ]]),
+    ]);
+}
+
+it('adds the lead form of somebody who already chats with the Page to their lead', function (): void {
+    fakeGraph();
+    fakeFormWithChat('9002', '7771000200030004');
+    $agent = agentOf(department($this->brand));
+
+    metaWebhook(messagePayload('Hi, how much is publishing?', 'mid.1', psid: '7771000200030004'))->assertOk();
+
+    inBrand($this->brand);
+    $chatLead = Lead::query()->sole();
+    app(AssignLead::class)->handle($chatLead, $agent, admin());
+
+    metaWebhook(leadgenPayload('9002'))->assertOk();
+
+    // Still one lead: the chat's, now with the form's contact details and answers.
+    $lead = Lead::query()->sole();
+
+    expect($lead->getKey())->toBe($chatLead->getKey())
+        ->and($lead->source_type)->toBe(LeadSource::Messenger)
+        ->and($lead->email)->toBe('amy@example.com')
+        ->and($lead->phone)->toBe('+447700900555')
+        ->and($lead->message)->toBe('Hi, how much is publishing?')
+        ->and($lead->assigned_to)->toBe($agent->getKey())
+        ->and($lead->fields)->toMatchArray(['form' => 'Free consultation', 'campaign' => 'Autumn', 'what_stage_is_your_book_at_right_now' => 'fully_written_and_ready_to_publish', 'leadgen_id' => '9002'])
+        ->and($lead->activities()->where('event', 'leads.form_joined')->count())->toBe(1)
+        ->and(InboundEvent::query()->where('source', ProcessMetaEvent::LEADGEN)->sole()->status)->toBe(InboundStatus::Done);
+
+    Notification::assertSentTo($agent, fn (AppNotification $notification): bool => str_contains($notification->title, 'filled in your lead form'));
+});
+
+it('adds the chat of somebody who filled in a lead form to that lead', function (): void {
+    fakeGraph();
+    fakeFormWithChat('9003', '7772000300040005');
+
+    metaWebhook(leadgenPayload('9003'))->assertOk();
+
+    inBrand($this->brand);
+    $formLead = Lead::query()->sole();
+
+    metaWebhook(messagePayload('Is anyone there?', 'mid.9', psid: '7772000300040005'))->assertOk();
+
+    // The message starts no second lead: the chat belongs to the lead of the form.
+    expect(Lead::query()->count())->toBe(1)
+        ->and(Conversation::query()->sole()->lead_id)->toBe($formLead->getKey())
+        ->and($formLead->refresh()->source_type)->toBe(LeadSource::Facebook)
+        ->and($formLead->activities()->where('event', 'leads.chat_joined')->count())->toBe(1)
+        ->and(Message::query()->sole()->body)->toBe('Is anyone there?');
+
+    // Somebody else on Messenger is somebody else.
+    metaWebhook(messagePayload('Hello', 'mid.10', psid: '7779'))->assertOk();
+
+    expect(Lead::query()->count())->toBe(2)
+        ->and(Conversation::query()->count())->toBe(2);
+});

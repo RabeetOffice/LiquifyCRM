@@ -1,4 +1,5 @@
-<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh
+    x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team) })">
     <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.'">
         <x-slot:actions>
             @if ($can['export'])
@@ -140,27 +141,42 @@
                                     <span class="lq-person">
                                         <x-ui.avatar :name="$lead->name" tone />
                                         <span class="min-w-0">
-                                            <a href="{{ $leadUrl }}" class="lq-cell-title" x-data x-on:click="($event.ctrlKey || $event.metaKey) ? $event.stopPropagation() : $event.preventDefault()">{{ $lead->name }}</a>
+                                            <a href="{{ $leadUrl }}" class="lq-cell-title" onclick="if (! (event.ctrlKey || event.metaKey || event.shiftKey)) event.preventDefault()" x-data x-on:click="($event.ctrlKey || $event.metaKey || $event.shiftKey) && $event.stopPropagation()">{{ $lead->name }}</a>
                                             <span class="lq-cell-sub">{{ ($fullContact[$lead->getKey()] ?? false) ? ($lead->email ?? $lead->phone) : ($lead->maskedEmail() ?? $lead->maskedPhone()) }}</span>
                                         </span>
-                                        <a href="{{ $leadUrl }}" class="lq-btn lq-btn-ghost lq-btn-icon lq-row-action" title="Open full page" aria-label="Open {{ $lead->name }} on its own page" x-data x-on:click.stop wire:navigate><x-heroicon-o-arrow-top-right-on-square /></a>
                                     </span>
                                 </td>
                                 <td><x-ui.status-pill :status="$lead->status" /></td>
                                 <td><x-ui.lead-source :lead="$lead" /></td>
                                 @unless ($agent)
                                     <td>
-                                        <span class="lq-person">
-                                            @if ($lead->assignee)
-                                                <x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" />
-                                            @else
-                                                <span class="lq-avatar lq-avatar-sm lq-avatar-empty"><x-heroicon-m-user /></span>
-                                            @endif
-                                            <span class="min-w-0">
-                                                <span @class(['lq-cell-name', 'lq-unassigned' => ! $lead->assignee])>{{ $lead->assignee?->name ?? 'Unassigned' }}</span>
-                                                <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                        @if ($canAssign[$lead->getKey()] ?? false)
+                                            {{-- One click opens the people, a second gives them the lead. The name shows at once, before the answer. --}}
+                                            <button type="button" class="lq-owner" x-on:click.stop="openFor($el, { lead: {{ $lead->getKey() }}, dept: {{ $lead->department_id ?? 'null' }}, owner: {{ $lead->assigned_to ?? 'null' }} })" title="{{ $lead->assignee ? 'Give to someone else' : 'Assign this lead' }}" aria-haspopup="dialog">
+                                                @if ($lead->assignee)
+                                                    <x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" />
+                                                @else
+                                                    <span class="lq-avatar lq-avatar-sm lq-avatar-empty"><x-heroicon-m-user-plus /></span>
+                                                @endif
+                                                <span class="min-w-0">
+                                                    <span @class(['lq-cell-name', 'lq-unassigned' => ! $lead->assignee]) x-text="pending[{{ $lead->getKey() }}] ?? @js($lead->assignee?->name ?? 'Unassigned')" x-bind:class="pending[{{ $lead->getKey() }}] && 'lq-owner-pending'">{{ $lead->assignee?->name ?? 'Unassigned' }}</span>
+                                                    <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                                </span>
+                                                <x-heroicon-m-chevron-down class="lq-owner-caret" />
+                                            </button>
+                                        @else
+                                            <span class="lq-person">
+                                                @if ($lead->assignee)
+                                                    <x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="sm" />
+                                                @else
+                                                    <span class="lq-avatar lq-avatar-sm lq-avatar-empty"><x-heroicon-m-user /></span>
+                                                @endif
+                                                <span class="min-w-0">
+                                                    <span @class(['lq-cell-name', 'lq-unassigned' => ! $lead->assignee])>{{ $lead->assignee?->name ?? 'Unassigned' }}</span>
+                                                    <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                                </span>
                                             </span>
-                                        </span>
+                                        @endif
                                     </td>
                                 @endunless
                                 <td><x-ui.due :at="$lead->next_follow_up_at" /></td>
@@ -193,6 +209,10 @@
             <button type="button" class="lq-floatbar-btn lq-floatbar-close" wire:click="$set('selected', [])" title="Clear the selection"><x-heroicon-m-x-mark /></button>
         </div>
     @endif
+
+    @unless ($agent)
+        <x-leads::assign-menu />
+    @endunless
 
     @include('leads::livewire.app.partials.lead-sheet')
 

@@ -2,6 +2,9 @@
     $icons = [
         'leads.created' => 'heroicon-o-inbox-arrow-down',
         'leads.repeat_enquiry' => 'heroicon-o-arrow-path-rounded-square',
+        'leads.form_joined' => 'heroicon-o-clipboard-document-list',
+        'leads.chat_joined' => 'heroicon-o-chat-bubble-left-right',
+        'leads.merged' => 'heroicon-o-arrows-pointing-in',
         'leads.assigned' => 'heroicon-o-user-plus',
         'leads.unassigned' => 'heroicon-o-user-minus',
         'leads.sent_to_department' => 'heroicon-o-arrow-right-circle',
@@ -24,14 +27,20 @@
         $can['recordSale'] && ! $lead->status->is_won => 'won',
         default => null,
     };
+
+    $brandSlug = app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '';
+    $shown = in_array($tab, ['notes', 'tasks', 'timeline'], true) || ($tab === 'chat' && $conversationId) ? $tab : 'notes';
 @endphp
+{{-- The order on one column (the slide-over, a narrow page) is set in the stylesheet: who, where it stands, what
+     you can do, how to reach them, what they asked for, then the facts and the history. On a wide page the two
+     columns stand side by side. --}}
 <div
     @class(['lq-lead', 'lq-lead-page' => $page])
-    x-data
+    x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(person), send: (lead, team) => $wire.quickSend(team) })"
     data-live-refresh
     x-on:keydown.window="
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes($event.target.tagName) || $event.metaKey || $event.ctrlKey || $event.altKey) return;
-        if ($event.key === 'a' && @js($can['assign'])) $wire.openAssign();
+        if ($event.key === 'a') $refs.assign?.click();
         if ($event.key === 's' && @js($can['update'])) $wire.openStatus();
         if ($event.key === 'n' && @js($can['update'])) $wire.openNote();
         if ($event.key === 'f' && @js($can['update'])) $wire.openFollowUp();
@@ -52,75 +61,215 @@
         </div>
     </header>
 
-    {{-- Where it stands: one click on a step moves the lead there. --}}
-    <nav class="lq-path" aria-label="Pipeline step" x-data x-init="$nextTick(() => { const step = $el.querySelector('[aria-current]'); if (step) $el.scrollLeft = step.offsetLeft - ($el.clientWidth - step.offsetWidth) / 2 })">
-        @foreach ($path as $step)
-            <button
-                type="button"
-                @class(['lq-path-step', 'lq-path-'.$step['state']])
-                style="--pill-color: {{ $step['status']->color }}"
-                @if ($step['state'] === 'current') aria-current="step" @endif
-                @if ($can['update'] && $step['state'] !== 'current')
-                    wire:click="moveTo({{ $step['status']->getKey() }})"
-                    title="Move to {{ $step['status']->name }}"
+    <div class="lq-lead-col lq-lead-col-main">
+        {{-- Where it stands: one click on a step moves the lead there. --}}
+        <nav class="lq-path" aria-label="Pipeline step" x-data x-init="$nextTick(() => { const step = $el.querySelector('[aria-current]'); if (step) $el.scrollLeft = step.offsetLeft - ($el.clientWidth - step.offsetWidth) / 2 })">
+            @foreach ($path as $step)
+                <button
+                    type="button"
+                    @class(['lq-path-step', 'lq-path-'.$step['state']])
+                    style="--pill-color: {{ $step['status']->color }}"
+                    @if ($step['state'] === 'current') aria-current="step" @endif
+                    @if ($can['update'] && $step['state'] !== 'current')
+                        wire:click="moveTo({{ $step['status']->getKey() }})"
+                        title="Move to {{ $step['status']->name }}"
+                    @else
+                        disabled
+                    @endif
+                >
+                    @if ($step['state'] === 'done')
+                        <x-heroicon-m-check />
+                    @endif
+                    <span>{{ $step['status']->name }}</span>
+                </button>
+            @endforeach
+        </nav>
+
+        {{-- What you can do --}}
+        @if ($can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['delete'])
+            <div class="lq-actions">
+                @if ($can['assign'])
+                    {{-- Opens the people right here: one more click and the lead is theirs. --}}
+                    <button type="button" x-ref="assign" @class(['lq-action', 'lq-action-primary' => $next === 'assign']) x-on:click="openFor($el, { lead: {{ $lead->getKey() }}, dept: {{ $lead->department_id ?? 'null' }}, owner: {{ $lead->assigned_to ?? 'null' }} })" aria-haspopup="dialog" x-bind:aria-expanded="open.toString()">
+                        <span class="lq-action-icon"><x-heroicon-o-user-plus /></span>
+                        <span class="lq-action-label" x-text="pending[{{ $lead->getKey() }}] ? 'Assigning…' : @js($lead->assigned_to ? 'Reassign' : 'Assign')">{{ $lead->assigned_to ? 'Reassign' : 'Assign' }}</span>
+                        <kbd class="lq-kbd">A</kbd>
+                    </button>
+                @endif
+                @if ($can['update'])
+                    <button type="button" class="lq-action" wire:click="openNote">
+                        <span class="lq-action-icon"><x-heroicon-o-pencil-square /></span>
+                        <span class="lq-action-label">Add note</span>
+                        <kbd class="lq-kbd">N</kbd>
+                    </button>
+                    <button type="button" class="lq-action" wire:click="openFollowUp">
+                        <span class="lq-action-icon"><x-heroicon-o-calendar-days /></span>
+                        <span class="lq-action-label">Follow up</span>
+                        <kbd class="lq-kbd">F</kbd>
+                    </button>
+                @endif
+                @if ($can['distribute'])
+                    <button type="button" class="lq-action" wire:click="openSend">
+                        <span class="lq-action-icon"><x-heroicon-o-arrow-right-circle /></span>
+                        <span class="lq-action-label">Send to team</span>
+                    </button>
+                @endif
+                @if ($can['recordSale'])
+                    <button type="button" @class(['lq-action', 'lq-action-primary' => $next === 'won']) wire:click="openWon">
+                        <span class="lq-action-icon"><x-heroicon-o-trophy /></span>
+                        <span class="lq-action-label">{{ $lead->status->is_won ? 'Add another sale' : 'Mark as Won' }}</span>
+                    </button>
+                @endif
+                @if ($can['delete'])
+                    <button type="button" class="lq-action lq-action-danger" wire:click="confirmDelete">
+                        <span class="lq-action-icon"><x-heroicon-o-trash /></span>
+                        <span class="lq-action-label">Delete</span>
+                    </button>
+                @endif
+            </div>
+        @endif
+
+        {{-- One person, two leads: say so, and offer to make them one. --}}
+        @if ($twins !== [])
+            <div class="lq-twins">
+                @foreach ($twins as $twin)
+                    <div class="lq-twin" wire:key="twin-{{ $twin['lead']->getKey() }}">
+                        <span class="lq-twin-icon"><x-heroicon-o-users /></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="lq-twin-title">{{ $twin['sure'] ? 'This person has another lead' : 'This may be the same person' }}</p>
+                            <p class="lq-twin-text">
+                                <a class="lq-link" href="{{ route('brand.leads.show', ['brand' => $brandSlug, 'lead' => $twin['lead']->getKey()]) }}" target="_blank" rel="noopener">{{ $twin['lead']->name }}</a>
+                                · {{ $twin['lead']->source_type->getLabel() }} · {{ $twin['lead']->status->name }} · received {{ $twin['lead']->created_at?->diffForHumans() }} · {{ $twin['why'] }}
+                            </p>
+                        </div>
+                        <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrows-pointing-in" wire:click="confirmMerge({{ $twin['lead']->getKey() }})">Merge</x-ui.button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- What they asked for: the message and every answer of the form, in view without a click. --}}
+        <section class="lq-lead-section lq-enquiry">
+            <h3 class="lq-lead-heading"><x-heroicon-o-chat-bubble-bottom-center-text /> What they asked for</h3>
+            @if ($lead->message)
+                <blockquote class="lq-quote">{{ $lead->message }}</blockquote>
+            @endif
+            @if ($answers !== [])
+                <dl class="lq-answers">
+                    @foreach ($answers as $answer)
+                        <div>
+                            <dt>{{ $answer['label'] }}</dt>
+                            <dd>{{ $answer['value'] }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            @endif
+            @if (! $lead->message && $answers === [])
+                <p class="lq-help">{{ $conversationId ? 'This lead began as a chat. The conversation is under Messenger below.' : 'This lead came with no message and no answers.' }}</p>
+            @endif
+        </section>
+
+        {{-- Notes, follow-ups, the chat and the history --}}
+        <div class="lq-lead-main">
+            <div class="lq-views" role="tablist">
+                <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'notes']) wire:click="$set('tab', 'notes')" role="tab"><x-heroicon-o-pencil-square /> Notes @if ($lead->notes->isNotEmpty())<span class="lq-view-count">{{ $lead->notes->count() }}</span>@endif</button>
+                <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'tasks']) wire:click="$set('tab', 'tasks')" role="tab"><x-heroicon-o-calendar-days /> Follow-ups @if ($openTasks->isNotEmpty())<span class="lq-view-count lq-view-count-primary">{{ $openTasks->count() }}</span>@endif</button>
+                @if ($conversationId)
+                    <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right /> Messenger</button>
+                @endif
+                <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'timeline']) wire:click="$set('tab', 'timeline')" role="tab"><x-heroicon-o-clock /> Timeline</button>
+            </div>
+
+            <div class="lq-lead-tab">
+                @if ($shown === 'chat')
+                    <div class="lq-thread-embed">
+                        @livewire(\App\Modules\Meta\Livewire\App\ConversationThread::class, ['conversationId' => $conversationId], key('lead-thread-'.$conversationId))
+                    </div>
+                @elseif ($shown === 'notes')
+                    <div class="flex flex-col gap-3">
+                        @if ($can['update'])
+                            {{-- A note is written here, where the notes are, not in a dialog. --}}
+                            <form wire:submit="addNote" class="lq-notebox">
+                                <textarea class="lq-input" rows="2" wire:model="note" name="note" id="lead-note" aria-label="Write a note" placeholder="Write a note: what happened, what is next…"
+                                    x-data x-on:focus-note.window="setTimeout(() => $el.focus(), 80)" x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()" x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"></textarea>
+                                @error('note')
+                                    <p class="lq-error">{{ $message }}</p>
+                                @enderror
+                                <div class="lq-notebox-foot">
+                                    <span class="lq-help">Only your team sees notes. Ctrl + Enter saves.</span>
+                                    <x-ui.button type="submit" size="sm" variant="secondary" icon="heroicon-o-plus" wire:loading.attr="disabled" wire:target="addNote">Add note</x-ui.button>
+                                </div>
+                            </form>
+                        @endif
+
+                        @forelse ($lead->notes as $noteItem)
+                            <article class="lq-note" wire:key="note-{{ $noteItem->getKey() }}">
+                                <header class="lq-note-head">
+                                    <x-ui.avatar :name="$noteItem->author?->name ?? '?'" :src="$noteItem->author?->avatarUrl()" size="xs" />
+                                    <span class="lq-note-author">{{ $noteItem->author?->name ?? 'Unknown' }}</span>
+                                    <span title="{{ $noteItem->created_at?->format('j M Y, H:i') }}">{{ $noteItem->created_at?->diffForHumans() }}</span>
+                                </header>
+                                <p class="lq-note-body">{{ $noteItem->body }}</p>
+                            </article>
+                        @empty
+                            <p class="lq-help">{{ $can['update'] ? 'No notes yet. The first one you write shows here and on the timeline.' : 'No notes yet.' }}</p>
+                        @endforelse
+                    </div>
+                @elseif ($shown === 'tasks')
+                    @if ($lead->tasks->isEmpty())
+                        <x-ui.empty title="No follow-ups yet" description="Plan the next step so this lead does not go quiet." icon="heroicon-o-calendar-days">
+                            @if ($can['update'])
+                                <x-slot:actions><x-ui.button size="sm" wire:click="openFollowUp" icon="heroicon-o-plus">Set a follow-up</x-ui.button></x-slot:actions>
+                            @endif
+                        </x-ui.empty>
+                    @else
+                        <ul class="lq-tasks">
+                            @foreach ($lead->tasks->sortByDesc(fn ($task) => [$task->done_at === null, $task->due_at]) as $task)
+                                <li @class(['lq-task', 'lq-task-done' => $task->isDone()]) wire:key="task-{{ $task->getKey() }}">
+                                    @if ($task->isDone())
+                                        <span class="lq-task-check lq-task-check-done"><x-heroicon-m-check /></span>
+                                    @elseif ($can['update'])
+                                        <button type="button" class="lq-task-check" wire:click="completeTask({{ $task->getKey() }})" title="Mark done"><x-heroicon-m-check /></button>
+                                    @else
+                                        <span class="lq-task-check"></span>
+                                    @endif
+                                    <span class="lq-task-title">{{ $task->title }}</span>
+                                    <x-ui.due :at="$task->due_at" :done="$task->isDone()" />
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 @else
-                    disabled
+                    @if ($timeline->isEmpty())
+                        <p class="lq-help">Nothing on the timeline yet.</p>
+                    @else
+                        <ol class="lq-timeline">
+                            @foreach ($timeline as $entry)
+                                <li class="lq-timeline-item" wire:key="activity-{{ $entry->getKey() }}">
+                                    <span @class(['lq-timeline-dot', 'lq-timeline-dot-primary' => in_array($entry->event, ['leads.created', 'leads.assigned', 'leads.status_changed'], true)])>
+                                        @svg($icons[$entry->event] ?? 'heroicon-o-clock')
+                                    </span>
+                                    <div class="lq-timeline-body">
+                                        <div class="lq-timeline-title">{{ $entry->description }}</div>
+                                        @if (($entry->event === 'leads.note_added') && ! empty($entry->properties['excerpt']))
+                                            <div class="lq-timeline-quote">{{ $entry->properties['excerpt'] }}</div>
+                                        @elseif (in_array($entry->event, ['leads.repeat_enquiry', 'leads.form_joined', 'leads.chat_joined', 'leads.merged'], true) && ! empty($entry->properties['message']))
+                                            <div class="lq-timeline-quote">{{ str($entry->properties['message'])->limit(200) }}</div>
+                                        @endif
+                                        <div class="lq-timeline-meta">{{ $entry->causer?->name ?? 'System' }} · <span title="{{ $entry->created_at?->format('j M Y, H:i') }}">{{ $entry->created_at?->diffForHumans() }}</span></div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ol>
+                    @endif
                 @endif
-            >
-                @if ($step['state'] === 'done')
-                    <x-heroicon-m-check />
-                @endif
-                <span>{{ $step['status']->name }}</span>
-            </button>
-        @endforeach
-    </nav>
-
-    {{-- What you can do --}}
-    @if ($can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['delete'])
-        <div class="lq-actions">
-            @if ($can['assign'])
-                <button type="button" @class(['lq-action', 'lq-action-primary' => $next === 'assign']) wire:click="openAssign">
-                    <span class="lq-action-icon"><x-heroicon-o-user-plus /></span>
-                    <span class="lq-action-label">{{ $lead->assigned_to ? 'Reassign' : 'Assign' }}</span>
-                    <kbd class="lq-kbd">A</kbd>
-                </button>
-            @endif
-            @if ($can['update'])
-                <button type="button" class="lq-action" wire:click="openNote">
-                    <span class="lq-action-icon"><x-heroicon-o-pencil-square /></span>
-                    <span class="lq-action-label">Add note</span>
-                    <kbd class="lq-kbd">N</kbd>
-                </button>
-                <button type="button" class="lq-action" wire:click="openFollowUp">
-                    <span class="lq-action-icon"><x-heroicon-o-calendar-days /></span>
-                    <span class="lq-action-label">Follow up</span>
-                    <kbd class="lq-kbd">F</kbd>
-                </button>
-            @endif
-            @if ($can['distribute'])
-                <button type="button" class="lq-action" wire:click="openSend">
-                    <span class="lq-action-icon"><x-heroicon-o-arrow-right-circle /></span>
-                    <span class="lq-action-label">Send to team</span>
-                </button>
-            @endif
-            @if ($can['recordSale'])
-                <button type="button" @class(['lq-action', 'lq-action-primary' => $next === 'won']) wire:click="openWon">
-                    <span class="lq-action-icon"><x-heroicon-o-trophy /></span>
-                    <span class="lq-action-label">{{ $lead->status->is_won ? 'Add another sale' : 'Mark as Won' }}</span>
-                </button>
-            @endif
-            @if ($can['delete'])
-                <button type="button" class="lq-action lq-action-danger" wire:click="confirmDelete">
-                    <span class="lq-action-icon"><x-heroicon-o-trash /></span>
-                    <span class="lq-action-label">Delete</span>
-                </button>
-            @endif
+            </div>
         </div>
-    @endif
+    </div>
 
-    {{-- Contact, details and sales --}}
-    <aside class="lq-lead-side">
-        <section class="lq-lead-section">
+    {{-- How to reach them, the facts, where it came from, and the sales --}}
+    <aside class="lq-lead-col lq-lead-col-side">
+        <section class="lq-lead-section lq-lead-contact">
             <h3 class="lq-lead-heading">Contact</h3>
             <ul class="lq-facts">
                 <li class="lq-fact">
@@ -171,7 +320,7 @@
             @endif
         </section>
 
-        <section class="lq-lead-section">
+        <section class="lq-lead-section lq-lead-details">
             <h3 class="lq-lead-heading lq-lead-heading-row">
                 Details
                 @if ($can['update'])
@@ -182,7 +331,17 @@
                 <div>
                     <dt>Owner</dt>
                     <dd>
-                        @if ($lead->assignee)
+                        @if ($can['assign'])
+                            {{-- The same menu as the Assign tile, from the fact itself. --}}
+                            <button type="button" class="lq-owner lq-owner-inline" x-on:click="openFor($el, { lead: {{ $lead->getKey() }}, dept: {{ $lead->department_id ?? 'null' }}, owner: {{ $lead->assigned_to ?? 'null' }} })" title="{{ $lead->assigned_to ? 'Give to someone else' : 'Assign' }}">
+                                @if ($lead->assignee)
+                                    <span class="lq-person"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="xs" /> <span x-text="pending[{{ $lead->getKey() }}] ?? @js($lead->assignee->name)">{{ $lead->assignee->name }}</span></span>
+                                @else
+                                    <span class="lq-unassigned" x-text="pending[{{ $lead->getKey() }}] ?? 'Unassigned'">Unassigned</span>
+                                @endif
+                                <x-heroicon-m-chevron-down class="lq-owner-caret" />
+                            </button>
+                        @elseif ($lead->assignee)
                             <span class="lq-person"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="xs" /> {{ $lead->assignee->name }}</span>
                         @else
                             <span class="lq-unassigned">Unassigned</span>
@@ -196,10 +355,6 @@
                 <div>
                     <dt>Next follow-up</dt>
                     <dd><x-ui.due :at="$lead->next_follow_up_at" empty="None set" /></dd>
-                </div>
-                <div>
-                    <dt>Service</dt>
-                    <dd>{{ $lead->fields['service'] ?? '—' }}</dd>
                 </div>
                 @if (filled($lead->fields['company'] ?? null))
                     <div>
@@ -215,6 +370,31 @@
                 @endif
             </dl>
         </section>
+
+        @if ($sourceFacts !== [] || $inboxUrl)
+            <section class="lq-lead-section lq-lead-source">
+                <h3 class="lq-lead-heading">Where it came from</h3>
+                @if ($sourceFacts !== [])
+                    <dl class="lq-kv">
+                        @foreach ($sourceFacts as $fact)
+                            <div>
+                                <dt>{{ $fact['label'] }}</dt>
+                                <dd title="{{ $fact['value'] }}">
+                                    @if ($fact['link'])
+                                        <a class="lq-link" href="{{ $fact['link'] }}" target="_blank" rel="noopener noreferrer">{{ str($fact['value'])->after('://')->limit(48) }}</a>
+                                    @else
+                                        {{ str($fact['value'])->limit(80) }}
+                                    @endif
+                                </dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                @endif
+                @if ($inboxUrl)
+                    <a class="lq-btn lq-btn-secondary lq-btn-sm lq-btn-block mt-3" href="{{ $inboxUrl }}" target="_blank" rel="noopener noreferrer"><x-heroicon-o-arrow-top-right-on-square /> Open their chat on Facebook</a>
+                @endif
+            </section>
+        @endif
 
         @if ($sales->isNotEmpty())
             <section class="lq-lead-section lq-lead-sales">
@@ -246,7 +426,7 @@
                         <ul class="lq-handover-files">
                             @foreach ($clientFiles as $file)
                                 <li wire:key="client-file-{{ $file->getKey() }}">
-                                    <a href="{{ route('brand.clients.files.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $client->getKey(), 'file' => $file->getKey()]) }}{{ $file->opensInBrowser() ? '?open=1' : '' }}" @if ($file->opensInBrowser()) target="_blank" rel="noopener" @endif title="{{ $file->original_name }}">
+                                    <a href="{{ route('brand.clients.files.show', ['brand' => $brandSlug, 'client' => $client->getKey(), 'file' => $file->getKey()]) }}{{ $file->opensInBrowser() ? '?open=1' : '' }}" @if ($file->opensInBrowser()) target="_blank" rel="noopener" @endif title="{{ $file->original_name }}">
                                         @svg($file->icon())
                                         <span class="truncate">{{ $file->original_name }}</span>
                                     </a>
@@ -263,150 +443,21 @@
                     @endif
 
                     @if ($can['openClient'])
-                        <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $client->getKey()]) }}" wire:navigate>Open the client</a>
+                        <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => $brandSlug, 'client' => $client->getKey()]) }}" wire:navigate>Open the client</a>
                     @endif
                 @elseif (auth()->user()?->isGlobalAdmin() && $lead->client_id)
-                    <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug ?? '', 'client' => $lead->client_id]) }}" wire:navigate>Correct or remove a sale</a>
+                    <a class="lq-link text-sm" href="{{ route('brand.clients.show', ['brand' => $brandSlug, 'client' => $lead->client_id]) }}" wire:navigate>Correct or remove a sale</a>
                 @endif
             </section>
         @endif
     </aside>
 
-    {{-- History and conversation --}}
-    <div class="lq-lead-main">
-        <div class="lq-views" role="tablist">
-            <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'timeline']) wire:click="$set('tab', 'timeline')" role="tab"><x-heroicon-o-clock /> Timeline</button>
-            <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'message']) wire:click="$set('tab', 'message')" role="tab"><x-heroicon-o-chat-bubble-bottom-center-text /> Message</button>
-            <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'notes']) wire:click="$set('tab', 'notes')" role="tab"><x-heroicon-o-pencil-square /> Notes @if ($lead->notes->isNotEmpty())<span class="lq-view-count">{{ $lead->notes->count() }}</span>@endif</button>
-            <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'tasks']) wire:click="$set('tab', 'tasks')" role="tab"><x-heroicon-o-calendar-days /> Follow-ups @if ($openTasks->isNotEmpty())<span class="lq-view-count lq-view-count-primary">{{ $openTasks->count() }}</span>@endif</button>
-            @if ($conversationId)
-                <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right /> Messenger</button>
-            @endif
-        </div>
-
-        <div class="lq-lead-tab">
-            @if ($tab === 'chat' && $conversationId)
-                <div class="lq-thread-embed">
-                    @livewire(\App\Modules\Meta\Livewire\App\ConversationThread::class, ['conversationId' => $conversationId], key('lead-thread-'.$conversationId))
-                </div>
-            @elseif ($tab === 'timeline')
-                @if ($timeline->isEmpty())
-                    <p class="lq-help">Nothing on the timeline yet.</p>
-                @else
-                    <ol class="lq-timeline">
-                        @foreach ($timeline as $entry)
-                            <li class="lq-timeline-item" wire:key="activity-{{ $entry->getKey() }}">
-                                <span @class(['lq-timeline-dot', 'lq-timeline-dot-primary' => in_array($entry->event, ['leads.created', 'leads.assigned', 'leads.status_changed'], true)])>
-                                    @svg($icons[$entry->event] ?? 'heroicon-o-clock')
-                                </span>
-                                <div class="lq-timeline-body">
-                                    <div class="lq-timeline-title">{{ $entry->description }}</div>
-                                    @if (($entry->event === 'leads.note_added') && ! empty($entry->properties['excerpt']))
-                                        <div class="lq-timeline-quote">{{ $entry->properties['excerpt'] }}</div>
-                                    @elseif ($entry->event === 'leads.repeat_enquiry' && ! empty($entry->properties['message']))
-                                        <div class="lq-timeline-quote">{{ str($entry->properties['message'])->limit(200) }}</div>
-                                    @endif
-                                    <div class="lq-timeline-meta">{{ $entry->causer?->name ?? 'System' }} · <span title="{{ $entry->created_at?->format('j M Y, H:i') }}">{{ $entry->created_at?->diffForHumans() }}</span></div>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ol>
-                @endif
-            @elseif ($tab === 'message')
-                <div class="flex flex-col gap-5">
-                    @if ($lead->message)
-                        <blockquote class="lq-quote">{{ $lead->message }}</blockquote>
-                    @else
-                        <p class="lq-help">This lead came without a message.</p>
-                    @endif
-                    @if (filled($lead->fields))
-                        <div>
-                            <p class="lq-lead-heading">Extra fields</p>
-                            <dl class="lq-dl">
-                                @foreach ($lead->fields as $key => $value)
-                                    <div><dt>{{ str($key)->headline() }}</dt><dd>{{ is_array($value) ? json_encode($value) : $value }}</dd></div>
-                                @endforeach
-                            </dl>
-                        </div>
-                    @endif
-                    @if (filled($lead->utm))
-                        <div>
-                            <p class="lq-lead-heading">Campaign</p>
-                            <dl class="lq-dl">
-                                @foreach ($lead->utm as $key => $value)
-                                    <div><dt>{{ $key }}</dt><dd>{{ is_array($value) ? json_encode($value) : $value }}</dd></div>
-                                @endforeach
-                            </dl>
-                        </div>
-                    @endif
-                </div>
-            @elseif ($tab === 'notes')
-                @if ($lead->notes->isEmpty())
-                    <x-ui.empty title="No notes yet" description="Notes are private to your team and appear on the timeline." icon="heroicon-o-pencil-square">
-                        @if ($can['update'])
-                            <x-slot:actions><x-ui.button size="sm" wire:click="openNote" icon="heroicon-o-plus">Add a note</x-ui.button></x-slot:actions>
-                        @endif
-                    </x-ui.empty>
-                @else
-                    <div class="flex flex-col gap-3">
-                        @foreach ($lead->notes as $noteItem)
-                            <article class="lq-note" wire:key="note-{{ $noteItem->getKey() }}">
-                                <header class="lq-note-head">
-                                    <x-ui.avatar :name="$noteItem->author?->name ?? '?'" :src="$noteItem->author?->avatarUrl()" size="xs" />
-                                    <span class="lq-note-author">{{ $noteItem->author?->name ?? 'Unknown' }}</span>
-                                    <span title="{{ $noteItem->created_at?->format('j M Y, H:i') }}">{{ $noteItem->created_at?->diffForHumans() }}</span>
-                                </header>
-                                <p class="lq-note-body">{{ $noteItem->body }}</p>
-                            </article>
-                        @endforeach
-                    </div>
-                @endif
-            @elseif ($tab === 'tasks')
-                @if ($lead->tasks->isEmpty())
-                    <x-ui.empty title="No follow-ups yet" description="Plan the next step so this lead does not go quiet." icon="heroicon-o-calendar-days">
-                        @if ($can['update'])
-                            <x-slot:actions><x-ui.button size="sm" wire:click="openFollowUp" icon="heroicon-o-plus">Set a follow-up</x-ui.button></x-slot:actions>
-                        @endif
-                    </x-ui.empty>
-                @else
-                    <ul class="lq-tasks">
-                        @foreach ($lead->tasks->sortByDesc(fn ($task) => [$task->done_at === null, $task->due_at]) as $task)
-                            <li @class(['lq-task', 'lq-task-done' => $task->isDone()]) wire:key="task-{{ $task->getKey() }}">
-                                @if ($task->isDone())
-                                    <span class="lq-task-check lq-task-check-done"><x-heroicon-m-check /></span>
-                                @elseif ($can['update'])
-                                    <button type="button" class="lq-task-check" wire:click="completeTask({{ $task->getKey() }})" title="Mark done"><x-heroicon-m-check /></button>
-                                @else
-                                    <span class="lq-task-check"></span>
-                                @endif
-                                <span class="lq-task-title">{{ $task->title }}</span>
-                                <x-ui.due :at="$task->due_at" :done="$task->isDone()" />
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            @endif
-        </div>
-    </div>
+    @if ($can['assign'])
+        <x-leads::assign-menu />
+    @endif
 
     {{-- Modals --}}
     @include('leads::livewire.app.partials.lead-details')
-
-    <x-ui.modal model="showAssign" :title="$lead->assigned_to ? 'Reassign lead' : 'Assign lead'" size="sm">
-        <form wire:submit="assign" class="lq-form" id="assign-form">
-            <x-ui.field label="Agent" name="assignTo" required>
-                <x-ui.select wire:model="assignTo" name="assignTo" placeholder="Choose an Agent…" autofocus>
-                    @foreach ($agentOptions as $id => $name)
-                        <option value="{{ $id }}">{{ $name }}</option>
-                    @endforeach
-                </x-ui.select>
-            </x-ui.field>
-        </form>
-        <x-slot:footer>
-            <x-ui.button variant="ghost" wire:click="$set('showAssign', false)">Cancel</x-ui.button>
-            <x-ui.button type="submit" form="assign-form" variant="primary">Assign</x-ui.button>
-        </x-slot:footer>
-    </x-ui.modal>
 
     <x-ui.modal model="showSend" title="Send to department" size="sm">
         <form wire:submit="sendToDepartment" class="lq-form" id="send-form">
@@ -532,18 +583,6 @@
             </x-slot:footer>
         </x-ui.modal>
     @endif
-
-    <x-ui.modal model="showNote" title="Add a note">
-        <form wire:submit="addNote" class="lq-form" id="note-form">
-            <x-ui.field name="note">
-                <x-ui.textarea wire:model="note" name="note" rows="5" placeholder="What happened, what is next…" autofocus />
-            </x-ui.field>
-        </form>
-        <x-slot:footer>
-            <x-ui.button variant="ghost" wire:click="$set('showNote', false)">Cancel</x-ui.button>
-            <x-ui.button type="submit" form="note-form" variant="primary">Add note</x-ui.button>
-        </x-slot:footer>
-    </x-ui.modal>
 
     <x-ui.modal model="showFollowUp" title="Follow up on" size="sm">
         <form wire:submit="scheduleFollowUp" class="lq-form" id="followup-form">

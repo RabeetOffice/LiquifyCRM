@@ -171,6 +171,88 @@ Alpine.data('picker', ({ model, options, pinned }) => ({
     },
 }));
 
+// Give a lead to somebody from where you are (<x-leads::assign-menu>): the Owner cell of the list, the Assign
+// tile of a lead. The menu is drawn at the end of <body> and placed beside whatever asked for it, so a table's
+// scroll box or a slide-over cannot cut it. The chosen name shows at once (`pending`), before the answer.
+Alpine.data('assignMenu', ({ people, teams = [], assign, send = null }) => ({
+    open: false,
+    query: '',
+    place: '',
+    lead: null,
+    dept: null,
+    owner: null,
+    pending: {},
+    people,
+    teams,
+
+    // A lead that is already in a department is offered that department's people.
+    get inReach() {
+        return this.dept === null ? this.people : this.people.filter((person) => person.departments.includes(this.dept));
+    },
+
+    get shown() {
+        const query = this.query.trim().toLowerCase();
+
+        return query === '' ? this.inReach : this.inReach.filter((person) => (person.name + ' ' + person.team).toLowerCase().includes(query));
+    },
+
+    // The menu stands still while the page under it scrolls, so scrolling anything but the menu closes it.
+    init() {
+        this.onScroll = (event) => {
+            if (this.open && ! this.$refs.menu?.contains(event.target)) this.close();
+        };
+
+        window.addEventListener('scroll', this.onScroll, true);
+    },
+
+    destroy() {
+        window.removeEventListener('scroll', this.onScroll, true);
+    },
+
+    initials(name) {
+        return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('');
+    },
+
+    openFor(trigger, { lead, dept = null, owner = null }) {
+        if (this.open && this.lead === lead) return this.close();
+
+        Object.assign(this, { lead, dept, owner, query: '', open: true });
+
+        this.$nextTick(() => {
+            const box = trigger.getBoundingClientRect();
+            const menu = this.$refs.menu;
+            const left = Math.max(12, Math.min(box.left, window.innerWidth - menu.offsetWidth - 12));
+            const below = box.bottom + 6;
+            // No room underneath: open upwards.
+            const top = below + menu.offsetHeight > window.innerHeight - 12 ? Math.max(12, box.top - menu.offsetHeight - 6) : below;
+
+            this.place = `left: ${left}px; top: ${top}px`;
+
+            if (this.inReach.length > 6) this.$refs.search.focus();
+        });
+    },
+
+    close() {
+        this.open = false;
+    },
+
+    pick(person) {
+        const lead = this.lead;
+
+        this.pending[lead] = person.name;
+        this.close();
+
+        Promise.resolve(assign(lead, person.id)).finally(() => { delete this.pending[lead]; });
+    },
+
+    sendTo(team) {
+        const lead = this.lead;
+
+        this.close();
+        if (send) send(lead, team.id);
+    },
+}));
+
 Alpine.data('chart', (config) => {
     // Kept out of Alpine's reactive data: a Chart wrapped in a proxy recurses without end on update().
     let chart = null;

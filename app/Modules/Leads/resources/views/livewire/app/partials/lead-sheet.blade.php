@@ -10,16 +10,20 @@
     x-transition:leave="transition ease-in duration-150"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    x-on:keydown.escape.window="$wire.open !== null && ! [...document.querySelectorAll('.lq-modal-backdrop')].some((dialog) => getComputedStyle(dialog).display !== 'none') && ($wire.open = null, $wire.closeLead())"
+    x-on:keydown.escape.window="$wire.open !== null && ! [...document.querySelectorAll('.lq-modal-backdrop, .lq-assign')].some((dialog) => getComputedStyle(dialog).display !== 'none') && ($wire.open = null, $wire.closeLead())"
     x-on:click.self="$wire.open = null; $wire.closeLead()"
 >
     <div class="lq-sheet lq-sheet-wide" role="dialog" aria-modal="true" aria-label="{{ $previewLead?->name ?? 'Lead' }}">
         <header class="lq-sheet-bar">
             <span class="lq-sheet-bar-label"><x-heroicon-o-identification /> Lead</span>
             <span class="ml-auto"></span>
-            @if ($previewLead)
-                <x-ui.button size="sm" variant="ghost" icon="heroicon-o-arrow-top-right-on-square" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $sheetLeadId])" wire:key="sheet-open-{{ $sheetLeadId }}" x-show="$wire.open === {{ $sheetLeadId }}">Open full page</x-ui.button>
-            @endif
+            {{-- Always in its place, and its address follows the lead that was clicked: it does not appear a moment
+                 after the lead does, and never leads to the lead that was open before. --}}
+            <a class="lq-btn lq-btn-ghost lq-btn-sm" title="Open this lead on its own page"
+                x-bind:href="$wire.open === null ? '#' : @js(route('brand.leads.index', ['brand' => $brand->slug])) + '/' + $wire.open"
+                x-on:click="if (! ($event.ctrlKey || $event.metaKey || $event.shiftKey)) { $event.preventDefault(); if ($wire.open !== null) window.Livewire.navigate($el.href) }">
+                <x-heroicon-o-arrow-top-right-on-square /> Open full page
+            </a>
             <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" x-on:click="$wire.open = null; $wire.closeLead()" title="Close (Esc)"><x-heroicon-o-x-mark class="h-5 w-5" /></button>
         </header>
         <div class="lq-modal-body">

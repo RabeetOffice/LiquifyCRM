@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (13 October): 243 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (13 October): 249 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -192,6 +192,13 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 - [x] Time zone is a search picker (`<x-ui.picker>`, `Timezones`): city, country and today's distance from GMT; the usual zones first.
 - [x] The teams (`StarterTeams`, `CreateStarterTeams`): Front Sales (works leads), Upsell and Project Management (both work clients), ticked and created in one click in step 3, and on the Departments screen while a brand has none. A name already in use is left alone; a removed one comes back.
 - [x] The check also reports the logo, the company details and the departments, and leads on to "Add its people".
+
+### A lead at a glance, assigning with one click, one person as one lead (13 October, asked for by the user)
+- [x] What a lead asked for is in view when it opens (`LeadEnquiry`): the message and every answer of the Facebook or website form, written as sentences; where it came from (Page, form, campaign, ad, website, page, campaign tags) is a block of its own with "Open their chat on Facebook". The Message tab is gone; the tabs are Notes (with the note box), Follow-ups, Messenger, Timeline.
+- [x] Assign from where you are (`assign-menu`, `quickAssign`, `quickSend`): the Owner cell of the Leads list and the Assign tile and Owner line of a lead open the people; one click assigns, the name shows before the answer, and the toast has Undo. Admins can send the lead to a team from the same menu. A lead in a department is offered that department's people; people who only work clients are not offered.
+- [x] One person, one lead: a Facebook lead form and a Messenger chat of the same person join the same lead, whichever comes first, by the chat id in the form's `inbox_url` (`LeadMatcher`, `MergeLeads::join`, `ProcessMetaEvent`).
+- [x] Existing pairs: "This person has another lead" (same Messenger chat, email or phone) or "This may be the same person" (same name, and one of the two has nothing but a name) on the lead, with Merge for whoever may assign both (`MergeLeads::handle`): the chat, notes, follow-ups, website events and timeline move, missing details are filled, the owner and the further status carry over, the other lead goes to the bin. Won and lost leads are not merged.
+- [x] A click on a lead in the list or pipeline always opens the slide-over (the hover icon to the full page is removed; Ctrl + click still opens a new tab), and "Open full page" follows the lead that is open.
 
 ### Agreed differences from the document
 - **Company details live in `brands.settings` (13 October).** The document's `brands` table has no phone, email or address. They are kept under `settings.company` rather than as new columns, so the screens work the moment the code is on the server, with no "Update system" in between. Brands is the only module that writes them.

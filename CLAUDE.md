@@ -182,6 +182,23 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `upsell`) in one click, in the wizard and on the Departments screen while a brand has none. A long list is a
   `<x-ui.picker model options pinned>` (search in the browser; time zones come from `Timezones::options()`), not a
   `<select>` of four hundred.
+- A lead's screen (user request, 13 Oct 2026): what the person asked for is always in view. `LeadEnquiry` splits
+  `leads.fields` into the answers (shown under "What they asked for", written as sentences) and the source facts
+  (their own block); there is no Message tab. `LeadPanel`'s blocks are in two groups (`lq-lead-col-main` /
+  `lq-lead-col-side`): `display: contents` plus `order` on one column (the slide-over), two columns on a wide page.
+  Tabs are Notes (default, with the note box), Follow-ups, Messenger, Timeline. `lq-composer` is the chat's box,
+  the note box is `lq-notebox`.
+- Assigning from where you are: `<x-leads::assign-menu>` inside an `x-data="assignMenu({...})"` (the list's root,
+  the panel's root), opened with `openFor($el, {lead, dept, owner})`; `quickAssign` / `quickSend` on `LeadsIndex` and
+  `LeadPanel`. `AssignableAgents::people()` leaves out people who only work clients, and `find()` is the server's
+  check. The menu is teleported and `position: fixed` (a table's scroll box or the slide-over would cut it).
+- One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that
+  Page (`LeadMatcher::messengerId()`). `ProcessMetaEvent` joins a form to the chat's open lead (`MergeLeads::join`)
+  and a chat to the form's open lead (`LeadMatcher::byMessenger`). `LeadMatcher::twins()` finds existing pairs for
+  the panel's hint; `MergeLeads::handle()` merges two open leads (whoever may `assign` both). Never merge on a name
+  alone: a name is only a hint. A lead's timeline moves with it (`activity_log.subject_id`), nothing is deleted.
+- A click on a lead in the list or the pipeline opens the slide-over, always; the row carries no link to the full
+  page (it stole clicks). "Open full page" in the slide-over builds its address from `$wire.open` in the browser.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,

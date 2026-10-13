@@ -75,7 +75,8 @@
                             draggable="true"
                             x-on:dragstart="dragging = {{ $lead->getKey() }}; $event.dataTransfer.effectAllowed = 'move'"
                             x-on:dragend="dragging = null; over = null"
-                            x-on:click="if (! $event.ctrlKey && ! $event.metaKey) { $event.preventDefault(); $wire.open = {{ $lead->getKey() }}; $wire.openLead({{ $lead->getKey() }}) }"
+                            onclick="if (! (event.ctrlKey || event.metaKey || event.shiftKey)) event.preventDefault()"
+                            x-on:click="if (! $event.ctrlKey && ! $event.metaKey && ! $event.shiftKey) { $wire.open = {{ $lead->getKey() }}; $wire.openLead({{ $lead->getKey() }}) }"
                             wire:key="card-{{ $lead->getKey() }}"
                         >
                             <div class="lq-kcard-top">

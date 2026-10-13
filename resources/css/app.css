@@ -5094,45 +5094,6 @@ a.lq-cell-title {
     color: var(--lq-danger);
 }
 
-/* The way to the full page lies over the end of the name and shows on the row you point at. */
-.lq-td-person .lq-person {
-    position: relative;
-}
-
-.lq-row-action,
-.lq-row-action:hover {
-    position: absolute;
-    inset-inline-end: 0;
-    top: 50%;
-    width: 2rem;
-    min-height: 2rem;
-    background: var(--lq-surface);
-    box-shadow: 0 0 0 1px var(--lq-card-border), -10px 0 12px -4px var(--lq-surface);
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: opacity 120ms var(--lq-ease), color 120ms var(--lq-ease);
-}
-
-.lq-row-action:hover {
-    color: var(--lq-orange-deep);
-}
-
-.lq-row-action svg {
-    width: 1.0625rem;
-    height: 1.0625rem;
-}
-
-.lq-row-click:hover .lq-row-action,
-.lq-row-action:focus-visible {
-    opacity: 1;
-}
-
-@media (hover: none) {
-    .lq-row-action {
-        opacity: 1;
-    }
-}
-
 .lq-table tr.lq-row-open,
 .lq-table tr.lq-row-open:hover {
     background: var(--lq-raised);
@@ -5486,13 +5447,6 @@ a.lq-cell-title {
 }
 
 /* Contact, details and sales. */
-.lq-lead-side {
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    min-width: 0;
-}
-
 .lq-lead-section {
     padding: 1rem 1.125rem 1.125rem;
     border-radius: var(--lq-radius-inner);
@@ -5887,7 +5841,7 @@ button.lq-task-check-done:hover {
 }
 
 .lq-lead-page .lq-lead-section,
-.lq-lead-page > .lq-lead-main {
+.lq-lead-page .lq-lead-main {
     border-radius: var(--lq-radius-card);
     background: var(--lq-card);
     box-shadow: var(--lq-shadow-card), 0 0 0 1px var(--lq-card-border), inset 0 1px 0 var(--lq-card-highlight);
@@ -5902,13 +5856,27 @@ button.lq-task-check-done:hover {
     box-shadow: var(--lq-shadow-card), 0 0 0 1px color-mix(in srgb, var(--lq-success) 26%, transparent);
 }
 
-.lq-lead-page > .lq-lead-main {
+.lq-lead-page .lq-lead-main {
     padding: 0.5rem 1.5rem 1.5rem;
 }
 
-.lq-lead-page > .lq-lead-side {
-    gap: 1.25rem;
+/* A lead's blocks stand in two groups: the work (where it stands, what you can do, what they asked for,
+   notes and history) and the facts (contact, details, where it came from, sales). On one column, in the
+   slide-over or on a narrow page, the groups dissolve and every block takes its turn in reading order. */
+.lq-lead-col {
+    display: contents;
 }
+
+.lq-lead > .lq-lead-hero { order: 1; }
+.lq-lead .lq-path { order: 2; }
+.lq-lead .lq-actions { order: 3; }
+.lq-lead .lq-twins { order: 4; }
+.lq-lead .lq-lead-contact { order: 5; }
+.lq-lead .lq-enquiry { order: 6; }
+.lq-lead .lq-lead-details { order: 7; }
+.lq-lead .lq-lead-source { order: 8; }
+.lq-lead .lq-lead-sales { order: 9; }
+.lq-lead .lq-lead-main { order: 10; }
 
 @media (min-width: 1100px) {
     .lq-lead-page {
@@ -5916,19 +5884,21 @@ button.lq-task-check-done:hover {
         grid-template-columns: minmax(0, 1fr) 22rem;
         grid-template-areas:
             'hero hero'
-            'path side'
-            'actions side'
             'main side';
-        grid-template-rows: auto auto auto 1fr;
         gap: 1.25rem 1.5rem;
         align-items: start;
     }
 
     .lq-lead-page > .lq-lead-hero { grid-area: hero; }
-    .lq-lead-page > .lq-path { grid-area: path; }
-    .lq-lead-page > .lq-actions { grid-area: actions; }
-    .lq-lead-page > .lq-lead-side { grid-area: side; }
-    .lq-lead-page > .lq-lead-main { grid-area: main; }
+    .lq-lead-page > .lq-lead-col-main { grid-area: main; }
+    .lq-lead-page > .lq-lead-col-side { grid-area: side; }
+
+    .lq-lead-page > .lq-lead-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        min-width: 0;
+    }
 }
 
 /* ---------------------------------------------------------------- pipeline */
@@ -9142,6 +9112,240 @@ a.lq-file-main:hover .lq-file-name {
 
 .lq-choice-active .lq-team-kind {
     color: var(--lq-ink-soft);
+}
+
+/* ==========================================================================
+   A lead (13 Oct 2026): what they asked for in view, one person one lead,
+   and giving a lead to somebody from where you are.
+   ========================================================================== */
+
+/* The form's answers: the question small, the answer in full. */
+.lq-enquiry .lq-lead-heading svg {
+    color: var(--lq-orange);
+}
+
+.lq-enquiry .lq-quote {
+    background: color-mix(in srgb, var(--lq-ink) 5%, transparent);
+}
+
+.lq-answers {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.875rem 1.5rem;
+    margin: 0;
+}
+
+.lq-quote + .lq-answers {
+    margin-top: 1rem;
+}
+
+.lq-answers > div {
+    min-width: 0;
+    padding-inline-start: 0.75rem;
+    border-inline-start: 2px solid var(--lq-card-border);
+}
+
+.lq-answers > div:first-child {
+    border-inline-start-color: var(--lq-orange);
+}
+
+.lq-answers dt {
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--lq-muted);
+}
+
+.lq-answers dd {
+    margin: 0.125rem 0 0;
+    font-size: 0.9375rem;
+    font-weight: 550;
+    line-height: 1.4;
+    color: var(--lq-ink);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 1100px) {
+    .lq-lead-page .lq-answers {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* One person, two leads. */
+.lq-twins {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lq-twin {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-warning-tint);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lq-warning) 28%, transparent);
+}
+
+.lq-twin-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--lq-warning) 18%, transparent);
+    color: var(--lq-warning);
+}
+
+.lq-twin-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-twin-title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-twin-text {
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--lq-ink-soft);
+    overflow-wrap: anywhere;
+}
+
+/* Who has the lead, as a button: it opens the assign menu. */
+.lq-owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    max-width: 100%;
+    margin: -0.3125rem -0.5rem;
+    padding: 0.3125rem 0.5rem;
+    border: 0;
+    border-radius: var(--lq-radius-control);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 120ms var(--lq-ease), box-shadow 120ms var(--lq-ease);
+}
+
+.lq-owner:hover,
+.lq-owner:focus-visible {
+    outline: none;
+    background: var(--lq-raised);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-owner .lq-cell-name,
+.lq-owner .lq-cell-sub {
+    display: block;
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-owner:hover .lq-avatar-empty,
+.lq-owner:focus-visible .lq-avatar-empty {
+    border-color: var(--lq-orange);
+    color: var(--lq-orange-deep);
+}
+
+.lq-owner-caret {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+    opacity: 0;
+    transition: opacity 120ms var(--lq-ease);
+}
+
+.lq-owner:hover .lq-owner-caret,
+.lq-owner:focus-visible .lq-owner-caret,
+.lq-owner-inline .lq-owner-caret {
+    opacity: 1;
+}
+
+.lq-owner-pending {
+    opacity: 0.6;
+}
+
+.lq-owner-inline {
+    gap: 0.375rem;
+    margin: -0.25rem -0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 500;
+}
+
+/* The assign menu is drawn at the end of <body> and placed by the script, above a slide-over too. */
+.lq-assign {
+    position: fixed;
+    z-index: 70;
+    width: 17.5rem;
+    max-width: calc(100vw - 1.5rem);
+    transform-origin: top left;
+}
+
+.lq-assign-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 15rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.lq-assign-person .lq-cell-name,
+.lq-assign-person .lq-cell-sub {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-assign .lq-menu-item:disabled {
+    cursor: default;
+}
+
+.lq-assign .lq-menu-item .lq-assign-tick {
+    color: var(--lq-orange);
+}
+
+/* A note is written where the notes are. */
+.lq-notebox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lq-notebox textarea {
+    min-height: 4.25rem;
+    resize: vertical;
+}
+
+.lq-notebox-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.lq-notebox-foot .lq-help {
+    margin: 0;
+}
+
+/* The owner as a fact of the lead: one line, with the arrow that says it opens. */
+.lq-owner-inline {
+    white-space: nowrap;
 }
 
 /* The starter departments where the list would be, while a brand has none. */

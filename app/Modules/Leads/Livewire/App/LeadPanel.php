@@ -7,7 +7,6 @@ namespace App\Modules\Leads\Livewire\App;
 use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\CurrentBrand;
@@ -15,6 +14,7 @@ use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\AddLeadNote;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
+use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Actions\RevealLeadContact;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
@@ -23,7 +23,10 @@ use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Leads\Support\LeadEnquiry;
+use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
@@ -37,7 +40,6 @@ use App\Modules\Sales\Support\Money;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use InvalidArgumentException;
@@ -68,11 +70,8 @@ final class LeadPanel extends Component
     #[Locked]
     public bool $page = false;
 
-    public string $tab = 'timeline';
-
-    public bool $showAssign = false;
-
-    public string $assignTo = '';
+    /** Notes, follow-ups, the chat and the history: the enquiry itself is always in view above them. */
+    public string $tab = 'notes';
 
     public bool $showSend = false;
 
@@ -81,8 +80,6 @@ final class LeadPanel extends Component
     public bool $showStatus = false;
 
     public string $statusTo = '';
-
-    public bool $showNote = false;
 
     public string $note = '';
 
@@ -126,28 +123,68 @@ final class LeadPanel extends Component
 
     // --------------------------------------------------------------- actions
 
-    public function openAssign(): void
+    /** A person chosen in the assign menu (the Assign tile opens it): one click gives them the lead. */
+    public function quickAssign(int $userId): void
     {
         $lead = $this->lead();
         $this->authorize('assign', $lead);
-        $this->assignTo = (string) ($lead->assigned_to ?? '');
-        $this->showAssign = true;
-    }
 
-    public function assign(): void
-    {
-        $lead = $this->lead();
-        $this->authorize('assign', $lead);
-        $this->validate(['assignTo' => ['required', 'integer']]);
+        $agent = app(AssignableAgents::class)->find($this->user(), $this->brand(), $userId, $lead->department_id);
 
-        $agent = User::query()->findOrFail((int) $this->assignTo);
+        if ($agent === null) {
+            $this->toastWarning('Not assigned', 'Choose a person from the list.');
+
+            return;
+        }
+
         $previous = $lead->assigned_to;
 
         app(AssignLead::class)->handle($lead, $agent, $this->user());
 
-        $this->showAssign = false;
         $this->changed();
         $this->toast('Assigned to '.$agent->name, null, 'success', $this->undoPayload($lead, 'assign', $previous));
+    }
+
+    /** A team chosen in the same menu, by whoever may send leads to departments. */
+    public function quickSend(int $departmentId): void
+    {
+        $this->sendTo = (string) $departmentId;
+        $this->sendToDepartment();
+    }
+
+    /** "Same person as …": ask before two leads become one. */
+    public function confirmMerge(int $otherId): void
+    {
+        $other = $this->twin($otherId);
+
+        $this->askConfirmation('merge', [$otherId], 'Merge the two leads of '.$other->name.'?', 'The '.$other->source_type->getLabel().' lead goes into this one: its chat, notes, follow-ups and history move here, and this lead takes whatever it was missing. The other lead is removed. This cannot be undone.', 'Merge into one lead');
+    }
+
+    public function merge(int $otherId): void
+    {
+        $other = $this->twin($otherId);
+
+        try {
+            app(MergeLeads::class)->handle($this->lead(), $other, $this->user());
+        } catch (InvalidArgumentException $exception) {
+            $this->toastWarning('Not merged', $exception->getMessage());
+
+            return;
+        }
+
+        $this->changed();
+        $this->toastSuccess('Merged into one lead', 'Everything of the other lead is here now.');
+    }
+
+    /** A lead this one may be merged with: by somebody who runs both. */
+    private function twin(int $otherId): Lead
+    {
+        $lead = $this->lead();
+        $other = Lead::query()->visibleTo($this->user())->findOrFail($otherId);
+
+        abort_unless($this->user()->can('assign', $lead) && $this->user()->can('assign', $other), 403);
+
+        return $other;
     }
 
     public function openSend(): void
@@ -375,22 +412,22 @@ final class LeadPanel extends Component
         $this->toastSuccess('File removed');
     }
 
+    /** "Add note" and the N key: the note is written on the Notes tab itself, not in a dialog. */
     public function openNote(): void
     {
         $this->authorize('update', $this->lead());
-        $this->note = '';
-        $this->showNote = true;
+        $this->tab = 'notes';
+        $this->dispatch('focus-note');
     }
 
     public function addNote(): void
     {
         $lead = $this->lead();
         $this->authorize('update', $lead);
-        $this->validate(['note' => ['required', 'string', 'max:5000']]);
+        $this->validate(['note' => ['required', 'string', 'max:5000']], ['note.required' => 'Write the note first.']);
 
         app(AddLeadNote::class)->handle($lead, $this->note, $this->user());
 
-        $this->showNote = false;
         $this->note = '';
         $this->tab = 'notes';
         $this->changed();
@@ -485,6 +522,8 @@ final class LeadPanel extends Component
         $client = $sales->isNotEmpty() ? $this->client() : null;
         $client?->loadMissing(['department', 'owner']);
         $canRecordSale = $user->can('recordSale', $lead);
+        $canAssign = $user->can('assign', $lead);
+        $canDistribute = $user->can('distribute', $lead);
 
         $timeline = Activity::query()
             ->where('subject_type', $lead->getMorphClass())
@@ -510,11 +549,17 @@ final class LeadPanel extends Component
             'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
             'statuses' => $statuses,
             'path' => $this->path($statuses, $lead),
-            'agentOptions' => $this->agentOptions($lead->department_id),
+            'answers' => LeadEnquiry::answers($lead),
+            'sourceFacts' => LeadEnquiry::source($lead),
+            'inboxUrl' => LeadEnquiry::inboxUrl($lead),
+            // Other leads of the same person, offered for merging to whoever runs both.
+            'twins' => $canAssign ? array_values(array_filter(LeadMatcher::twins($lead, $user), fn (array $twin): bool => $user->can('assign', $twin['lead']))) : [],
+            'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],
+            'teamChoices' => $canDistribute ? $this->teamChoices() : [],
             'departmentOptions' => $this->departmentOptions(),
             'can' => [
-                'assign' => $user->can('assign', $lead),
-                'distribute' => $user->can('distribute', $lead),
+                'assign' => $canAssign,
+                'distribute' => $canDistribute,
                 'update' => $user->can('update', $lead),
                 'recordSale' => $canRecordSale,
                 'handOver' => $client !== null && ! $client->isHandedOver() && ! $client->isClosed() && $user->can('handOver', $client),
@@ -571,25 +616,20 @@ final class LeadPanel extends Component
         $this->dispatch('lead-updated', id: $this->leadId);
     }
 
-    /** @return array<int, string> */
-    private function agentOptions(?int $departmentId): array
+    /**
+     * The departments a lead can be sent to from the assign menu: the ones that work leads.
+     *
+     * @return list<array{id: int, name: string, color: string}>
+     */
+    private function teamChoices(): array
     {
-        $user = $this->user();
-        $brand = $this->brand();
-
-        $query = User::query()
-            ->whereHas('memberships', fn (Builder $query): Builder => $query->acrossBrands()->where('brand_id', $brand->getKey())->where('role', BrandRole::Agent->value)->where('status', 'active'))
-            ->orderBy('name');
-
-        $departmentIds = $departmentId !== null
-            ? [$departmentId]
-            : ($user->isGlobalAdmin() ? null : $user->managedDepartmentIds($brand));
-
-        if ($departmentIds !== null) {
-            $query->whereHas('departments', fn (Builder $query): Builder => $query->acrossBrands()->whereIn('departments.id', $departmentIds));
-        }
-
-        return $query->pluck('name', 'id')->all();
+        return Department::query()
+            ->orderBy('name')
+            ->get()
+            ->reject(fn (Department $department): bool => $department->isUpsell())
+            ->map(fn (Department $department): array => ['id' => (int) $department->getKey(), 'name' => $department->name, 'color' => $department->color ?? '#FF6B2C'])
+            ->values()
+            ->all();
     }
 
     /** @return array<int, string> */

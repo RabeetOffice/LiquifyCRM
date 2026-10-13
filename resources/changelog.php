@@ -20,6 +20,22 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.14.0',
+        'date' => '2026-10-13',
+        'title' => 'A lead at a glance, one click to assign, one person as one lead',
+        'changes' => [
+            ['improved', 'What a lead asked for is in view the moment you open it: the message and every answer of the Facebook or website form, under "What they asked for". It no longer sits behind the Message tab. Answers read as sentences ("Fully written and ready to publish", not "fully_written_and_ready_to_publish").'],
+            ['improved', 'Where the lead came from (Facebook Page, form, campaign, ad, website, page) has its own block, apart from the answers, with a button that opens the person\'s chat in the Page\'s inbox on Facebook.'],
+            ['improved', 'Under the lead the tabs are Notes, Follow-ups, Messenger and Timeline, and a note is written right on the Notes tab instead of in a dialog.'],
+            ['new', 'Assign with one click. On the Leads list, click the Owner of a lead ("Unassigned" or a name) and choose a person; the name changes at once. On a lead, the Assign tile and the Owner line open the same list. Admins can also send the lead to a team from there. A lead that is in a department is offered that department\'s people.'],
+            ['new', 'One person, one lead. Somebody who fills in a Facebook lead form and also writes to the Page on Messenger is no longer two leads: the form and the chat join the same lead, whichever comes first. This works for forms that carry Facebook\'s link to the person\'s chat.'],
+            ['new', 'For the pairs that are already there, a lead says "This person has another lead" (the same Messenger chat, email or phone) or "This may be the same person" (only the name agrees), with a Merge button for Admins and Managers. The chat, notes, follow-ups and history of the other lead move to the one you are on.'],
+            ['fixed', 'A click on a lead in the list always opens it at the side. The small icon that appeared beside the name on hover took a click to the full page instead; it is gone. Ctrl + click on the name still opens the lead in a new tab.'],
+            ['fixed', '"Open full page" on the side panel is in its place from the start and always leads to the lead you are looking at. It used to appear a moment late.'],
+            ['improved', 'People who only work on an Upsell or Project Management team are not offered when a lead is assigned.'],
+        ],
+    ],
+    [
         'version' => '1.13.0',
         'date' => '2026-10-13',
         'title' => 'Add a brand from its website alone',

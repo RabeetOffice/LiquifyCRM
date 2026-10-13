@@ -153,6 +153,42 @@ final class LeadsIndex extends Component
         $this->showImport = false;
     }
 
+    // ---------------------------------------------------- assign from the list
+
+    /** A person chosen in the menu that opens on a lead's Owner cell. */
+    public function quickAssign(int $leadId, int $userId): void
+    {
+        $lead = Lead::query()->visibleTo($this->user())->findOrFail($leadId);
+        $this->authorize('assign', $lead);
+
+        $agent = app(AssignableAgents::class)->find($this->user(), $this->brand, $userId, $lead->department_id);
+
+        if ($agent === null) {
+            $this->toastWarning('Not assigned', 'Choose a person from the list.');
+
+            return;
+        }
+
+        $previous = $lead->assigned_to;
+
+        app(AssignLead::class)->handle($lead, $agent, $this->user());
+
+        $this->toast($lead->name.' assigned to '.$agent->name, null, 'success', $this->undoPayload($lead, 'assign', $previous));
+    }
+
+    /** A team chosen in the same menu, by whoever may send leads to departments. */
+    public function quickSend(int $leadId, int $departmentId): void
+    {
+        $lead = Lead::query()->visibleTo($this->user())->findOrFail($leadId);
+        $this->authorize('distribute', $lead);
+
+        $department = Department::query()->findOrFail($departmentId);
+
+        app(SendLeadToDepartment::class)->handle($lead, $department, $this->user());
+
+        $this->toastSuccess($lead->name.' sent to '.$department->name, 'Its Managers have been told.');
+    }
+
     // ------------------------------------------------------------------ bulk
 
     public function bulkAssign(): void
@@ -288,6 +324,12 @@ final class LeadsIndex extends Component
             'chips' => $chips,
             'previewLead' => $this->previewLead($user),
             'fullContact' => $leads->mapWithKeys(fn (Lead $lead): array => [$lead->getKey() => $visibility->canSeeFull($user, $lead)])->all(),
+            // The Owner cell opens the assign menu for whoever may assign that lead.
+            'canAssign' => $agent ? [] : $this->assignable($leads->getCollection(), $user),
+            'people' => $agent ? [] : app(AssignableAgents::class)->people($user, $this->brand),
+            'teamChoices' => $user->can('distribute', Lead::class)
+                ? Department::query()->orderBy('name')->get()->reject(fn (Department $department): bool => $department->isUpsell())->map(fn (Department $department): array => ['id' => (int) $department->getKey(), 'name' => $department->name, 'color' => $department->color ?? '#FF6B2C'])->values()->all()
+                : [],
             'can' => [
                 'create' => $user->can('create', Lead::class),
                 'import' => $user->can('import', Lead::class),
@@ -394,6 +436,26 @@ final class LeadsIndex extends Component
     private function selectedLeads(): Collection
     {
         return Lead::query()->visibleTo($this->user())->whereKey($this->selected)->get();
+    }
+
+    /**
+     * Which of these leads the person may assign. The answer depends on the
+     * lead's department alone, so the policy is asked once per department,
+     * not once per row.
+     *
+     * @param  iterable<int, Lead>  $leads
+     * @return array<int, bool>
+     */
+    private function assignable(iterable $leads, User $user): array
+    {
+        $byDepartment = [];
+        $may = [];
+
+        foreach ($leads as $lead) {
+            $may[(int) $lead->getKey()] = $byDepartment[$lead->department_id ?? 0] ??= $user->can('assign', $lead);
+        }
+
+        return $may;
     }
 
     /** @return array<int, string> */
