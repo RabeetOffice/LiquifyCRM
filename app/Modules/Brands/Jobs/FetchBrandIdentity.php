@@ -10,8 +10,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Fetch a brand's favicon (and, the first time, its colours) from its
- * website. Queued when a brand is added, and weekly for the favicon.
+ * Fetch a brand's favicon (and, the first time, its logo and colours) from
+ * its website. Queued when a brand is added, and weekly for the favicon.
  */
 final class FetchBrandIdentity implements ShouldQueue
 {
@@ -21,14 +21,14 @@ final class FetchBrandIdentity implements ShouldQueue
 
     public int $timeout = 60;
 
-    public function __construct(public readonly int $brandId, public readonly bool $withColors = true) {}
+    public function __construct(public readonly int $brandId, public readonly bool $withColors = true, public readonly bool $withLogo = true) {}
 
     public function handle(BrandIdentity $identity): void
     {
         $brand = Brand::query()->find($this->brandId);
 
         if ($brand !== null && filled($brand->website)) {
-            $identity->fetch($brand, $this->withColors);
+            $identity->fetch($brand, $this->withColors, $this->withLogo, fresh: true);
         }
     }
 }

@@ -15,7 +15,32 @@
             </div>
         </div>
 
-        @if ($departments->isEmpty())
+        @if ($starters !== [])
+            {{-- No department yet: the ones most brands start with, in one click. --}}
+            <form wire:submit="createStarter" class="lq-starter">
+                <div>
+                    <h2 class="lq-card-title">Start with the usual departments</h2>
+                    <p class="lq-card-desc">Untick what {{ $brand->name }} does not need. Names, people and more departments can be changed later.</p>
+                </div>
+                <div class="lq-choices">
+                    @foreach ($starters as $key => $team)
+                        <label class="lq-choice lq-team" :class="$wire.starter.includes('{{ $key }}') && 'lq-choice-active'" wire:key="starter-{{ $key }}">
+                            <input type="checkbox" wire:model="starter" value="{{ $key }}">
+                            <span class="lq-team-head">
+                                <span class="lq-team-dot" style="background: {{ $team['color'] }}"></span>
+                                <span class="lq-choice-title">{{ $team['name'] }}</span>
+                                <x-heroicon-m-check-circle class="lq-team-tick" />
+                            </span>
+                            <span class="lq-choice-desc">{{ $team['description'] }}</span>
+                            <span class="lq-team-kind">{{ $team['kind'] === \App\Modules\Core\Enums\DepartmentKind::Sales ? 'Works leads' : 'Works clients' }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <div class="flex items-center justify-end gap-2">
+                    <x-ui.button type="submit" variant="secondary" icon="heroicon-o-rectangle-group" wire:loading.attr="disabled" wire:target="createStarter" x-bind:disabled="$wire.starter.length === 0">Create these departments</x-ui.button>
+                </div>
+            </form>
+        @elseif ($departments->isEmpty())
             <x-ui.empty title="No departments yet" description="Create a team such as Sales Team A, then add its Manager and Agents." icon="heroicon-o-rectangle-group">
                 <x-slot:actions>
                     @can('create', \App\Modules\Departments\Models\Department::class)

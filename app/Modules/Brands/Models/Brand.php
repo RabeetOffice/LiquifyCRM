@@ -43,6 +43,12 @@ class Brand extends Model
 
     use SoftDeletes;
 
+    /**
+     * Who the brand is on paper: what its invoices and contracts will carry.
+     * Kept under `settings.company`, so no screen waits for a database update.
+     */
+    public const COMPANY_FIELDS = ['legal_name', 'phone', 'email', 'address', 'registration_number', 'tax_number'];
+
     protected $fillable = [
         'name', 'slug', 'website', 'logo_path', 'favicon_path', 'colors',
         'currency', 'timezone', 'settings', 'mail_settings', 'is_active', 'identity_fetched_at', 'created_by',
@@ -147,6 +153,31 @@ class Brand extends Model
     }
 
     /**
+     * The company behind the brand, every field present ('' when not entered).
+     *
+     * @return array{legal_name: string, phone: string, email: string, address: string, registration_number: string, tax_number: string}
+     */
+    public function company(): array
+    {
+        $company = (array) $this->setting('company', []);
+
+        return [
+            'legal_name' => (string) ($company['legal_name'] ?? ''),
+            'phone' => (string) ($company['phone'] ?? ''),
+            'email' => (string) ($company['email'] ?? ''),
+            'address' => (string) ($company['address'] ?? ''),
+            'registration_number' => (string) ($company['registration_number'] ?? ''),
+            'tax_number' => (string) ($company['tax_number'] ?? ''),
+        ];
+    }
+
+    /** The name to put on a document: the company's registered name, or the brand's. */
+    public function legalName(): string
+    {
+        return $this->company()['legal_name'] ?: $this->name;
+    }
+
+    /**
      * The brand's own SMTP account and auto-reply text, with defaults filled in.
      *
      * @return array{host: string, port: int, encryption: string, username: string, password: string, from_address: string, from_name: string, auto_reply: bool, auto_reply_subject: string, auto_reply_body: string}
@@ -200,6 +231,19 @@ class Brand extends Model
         return null;
     }
 
+    /**
+     * The tile behind the brand's mark, when the main colour was chosen for
+     * that: white for most logos, a dark colour for a white logo. A main
+     * colour that is the brand's own colour gives no tile; the mark then
+     * sits on a light tint of it.
+     */
+    public function tileColor(): ?string
+    {
+        $color = $this->colors['primary'] ?? null;
+
+        return is_string($color) && preg_match('/^#[0-9a-f]{6}$/i', $color) && ! self::colorSaysSomething($color) ? $color : null;
+    }
+
     /** Nearly white and nearly black tell one brand from another no better than no colour at all. */
     public static function colorSaysSomething(string $hex): bool
     {
@@ -214,12 +258,20 @@ class Brand extends Model
 
     public function logoUrl(): ?string
     {
-        return $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null;
+        return $this->logo_path ? $this->pictureUrl($this->logo_path) : null;
     }
 
     public function faviconUrl(): ?string
     {
-        return $this->favicon_path ? Storage::disk('public')->url($this->favicon_path) : null;
+        return $this->favicon_path ? $this->pictureUrl($this->favicon_path) : null;
+    }
+
+    /** A fetched picture keeps its file name when it is fetched again, so its address carries when that was. */
+    private function pictureUrl(string $path): string
+    {
+        $url = Storage::disk('public')->url($path);
+
+        return str_contains($path, '/fetched-') && $this->identity_fetched_at !== null ? $url.'?v='.$this->identity_fetched_at->getTimestamp() : $url;
     }
 
     /** Small image for the brand chip: favicon, else logo, else nothing (the chip shows the initial). */

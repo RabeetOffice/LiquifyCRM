@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Brands\Support;
 
 use App\Modules\Brands\Models\Brand;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use League\ColorExtractor\Color;
 use League\ColorExtractor\ColorExtractor;
@@ -14,131 +12,71 @@ use League\ColorExtractor\Palette;
 use Throwable;
 
 /**
- * Reads a brand's homepage once: the favicon (largest icon wins, saved
- * locally) and the brand colours from the theme-color tag and web manifest,
- * or, when the site has none, the main colours of its icon. Not final so
- * tests can replace it.
+ * Brings a brand's look in from its website: the favicon (largest icon
+ * wins), the main logo, and the brand's colour from the theme-color tag and
+ * web manifest or, when the site has none, from the logo or icon itself.
+ * Pictures are saved locally. Not final so tests can replace it.
  */
 class BrandIdentity
 {
     private const EXTENSIONS = [
         'image/png' => 'png', 'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico', 'image/svg+xml' => 'svg',
-        'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/gif' => 'gif',
+        'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/gif' => 'gif', 'image/avif' => 'avif',
     ];
 
+    /** A picture the website gave, as against one somebody uploaded: only these are replaced. */
+    private const FETCHED_LOGO = 'brands/logos/fetched-';
+
+    private const FETCHED_ICON = 'brands/favicons/fetched-';
+
+    public function __construct(private readonly BrandWebsite $website) {}
+
     /**
-     * @return array{favicon: bool, colors: array<string, string>, error: ?string}
+     * `$withLogo` is off for the weekly refresh, which only keeps the favicon
+     * current. `$fresh` reads the website again instead of the page kept from
+     * a moment ago.
+     *
+     * @return array{favicon: bool, logo: bool, colors: array<string, string>, error: ?string}
      */
-    public function fetch(Brand $brand, bool $withColors = true): array
+    public function fetch(Brand $brand, bool $withColors = true, bool $withLogo = true, bool $fresh = false): array
     {
         $url = rtrim((string) $brand->website, '/');
 
         if ($url === '') {
-            return ['favicon' => false, 'colors' => [], 'error' => 'Enter the brand website first.'];
+            return ['favicon' => false, 'logo' => false, 'colors' => [], 'error' => 'Enter the brand website first.'];
         }
 
-        try {
-            $response = $this->http()->get($url.'/');
-        } catch (Throwable $exception) {
-            return ['favicon' => false, 'colors' => [], 'error' => 'The website could not be reached.'];
+        $page = $this->website->page($url, $fresh);
+
+        if ($page['html'] === null) {
+            return ['favicon' => false, 'logo' => false, 'colors' => [], 'error' => $page['error']];
         }
 
-        if (! $response->successful()) {
-            return ['favicon' => false, 'colors' => [], 'error' => 'The website answered with error '.$response->status().'.'];
-        }
-
-        $html = $response->body();
+        $html = $page['html'];
         $icon = $this->storeIcon($brand, $url, $html);
-        $colors = $withColors ? $this->colors($url, $html, $icon) : [];
+        $logo = $withLogo ? $this->storeLogo($brand, $url, $html) : null;
+        $colors = $withColors ? $this->colors($url, $html, array_values(array_filter([$logo ?? $brand->logo_path, $icon ?? $brand->favicon_path]))) : [];
 
         $brand->forceFill(array_filter([
             'favicon_path' => $icon,
+            'logo_path' => $logo,
             'colors' => $colors !== [] ? [...($brand->colors ?? []), ...$colors] : null,
             'identity_fetched_at' => now(),
         ], fn (mixed $value): bool => $value !== null))->save();
 
-        return ['favicon' => $icon !== null, 'colors' => $colors, 'error' => null];
+        return ['favicon' => $icon !== null, 'logo' => $logo !== null, 'colors' => $colors, 'error' => null];
     }
 
     /**
-     * The name a website gives itself, for filling in the brand name from its
-     * link: og:site_name, then application-name, then the page title without
-     * its tagline ("UK Publishing House | Book publishing" becomes
-     * "UK Publishing House"). Null when the site cannot be read.
-     */
-    public function nameFor(string $url): ?string
-    {
-        try {
-            $response = Http::timeout(8)->connectTimeout(4)->withUserAgent('LiquifyCRM')->get(rtrim($url, '/').'/');
-        } catch (Throwable) {
-            return null;
-        }
-
-        if (! $response->successful()) {
-            return null;
-        }
-
-        $html = mb_substr($response->body(), 0, 200000);
-        $name = null;
-
-        foreach ([
-            '~<meta\b[^>]*property=["\']og:site_name["\'][^>]*content=["\']([^"\']+)~i',
-            '~<meta\b[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:site_name["\']~i',
-            '~<meta\b[^>]*name=["\']application-name["\'][^>]*content=["\']([^"\']+)~i',
-            '~<title[^>]*>([^<]+)</title>~i',
-        ] as $index => $pattern) {
-            if (preg_match($pattern, $html, $match)) {
-                $name = trim(html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5));
-
-                // A page title usually carries a tagline after the name.
-                if ($index === 3) {
-                    $name = trim((string) preg_split('~\s+[|\-–—:·»]\s+~u', $name)[0]);
-                }
-
-                break;
-            }
-        }
-
-        if ($name === null || $name === '' || in_array(mb_strtolower($name), ['home', 'homepage', 'welcome'], true)) {
-            return null;
-        }
-
-        return mb_substr($name, 0, 80);
-    }
-
-    /**
-     * Icon addresses in the page, largest first, then /favicon.ico.
+     * The brand's own colour: theme-color and the manifest first, the main
+     * colour of its logo or icon as the fallback. It is kept as the second
+     * colour, and the main colour is white: a logo is drawn for a white
+     * page, and on a tile of its own colour it disappears.
      *
-     * @return list<string>
-     */
-    public function iconCandidates(string $url, string $html): array
-    {
-        $icons = [];
-
-        if (preg_match_all('~<link\b[^>]*>~i', $html, $tags)) {
-            foreach ($tags[0] as $tag) {
-                if (! preg_match('~rel=["\']?([^"\'>]*icon[^"\'>]*)~i', $tag, $rel) || ! preg_match('~href=["\']?([^"\'\s>]+)~i', $tag, $href)) {
-                    continue;
-                }
-
-                $size = preg_match('~sizes=["\']?(\d+)x\d+~i', $tag, $sizes) ? (int) $sizes[1] : 0;
-                $apple = str_contains(mb_strtolower($rel[1]), 'apple') ? 180 : 0;
-
-                $icons[] = ['url' => $this->absolute($url, html_entity_decode($href[1])), 'size' => max($size, $apple, 16)];
-            }
-        }
-
-        usort($icons, fn (array $a, array $b): int => $b['size'] <=> $a['size']);
-
-        return array_values(array_unique([...array_column($icons, 'url'), $url.'/favicon.ico']));
-    }
-
-    /**
-     * theme-color and manifest first; the icon's own colours as the fallback.
-     *
+     * @param  list<string>  $pictures  saved logo and icon, the better source first
      * @return array<string, string> primary and maybe secondary, as #RRGGBB
      */
-    private function colors(string $url, string $html, ?string $iconPath): array
+    private function colors(string $url, string $html, array $pictures): array
     {
         $found = [];
 
@@ -150,7 +88,7 @@ class BrandIdentity
         if (preg_match('~<link\b[^>]*rel=["\']manifest["\'][^>]*href=["\']([^"\']+)~i', $html, $match)
             || preg_match('~<link\b[^>]*href=["\']([^"\']+)["\'][^>]*rel=["\']manifest["\']~i', $html, $match)) {
             try {
-                $manifest = (array) $this->http()->get($this->absolute($url, html_entity_decode($match[1])))->json();
+                $manifest = (array) $this->website->http()->get($this->website->absolute($url, html_entity_decode($match[1])))->json();
                 $found[] = $this->hex((string) ($manifest['theme_color'] ?? ''));
                 $found[] = $this->hex((string) ($manifest['background_color'] ?? ''));
             } catch (Throwable) {
@@ -158,14 +96,18 @@ class BrandIdentity
             }
         }
 
-        // Pure white or black says nothing about a brand.
-        $found = array_values(array_unique(array_filter($found, fn (?string $hex): bool => $hex !== null && ! in_array($hex, ['#FFFFFF', '#000000'], true))));
+        // White, black and their neighbours say nothing about a brand.
+        $found = array_values(array_unique(array_filter($found, fn (?string $hex): bool => $hex !== null && Brand::colorSaysSomething($hex))));
 
-        if ($found === [] && $iconPath !== null) {
-            $found = $this->fromImage(Storage::disk('public')->path($iconPath));
+        foreach ($pictures as $picture) {
+            if ($found !== []) {
+                break;
+            }
+
+            $found = $this->fromImage(Storage::disk('public')->path($picture));
         }
 
-        return array_filter(['primary' => $found[0] ?? null, 'secondary' => $found[1] ?? null]);
+        return $found === [] ? [] : ['primary' => '#FFFFFF', 'secondary' => $found[0]];
     }
 
     /** @return list<string> the 2 main colours of an image */
@@ -189,28 +131,170 @@ class BrandIdentity
 
     private function storeIcon(Brand $brand, string $url, string $html): ?string
     {
-        foreach (array_slice($this->iconCandidates($url, $html), 0, 3) as $candidate) {
-            try {
-                $response = $this->http()->get($candidate);
-            } catch (Throwable) {
+        $current = (string) $brand->favicon_path;
+
+        if ($current !== '' && ! str_starts_with($current, self::FETCHED_ICON)) {
+            return null;
+        }
+
+        foreach (array_slice($this->website->iconCandidates($url, $html), 0, 3) as $candidate) {
+            $picture = $this->download($candidate, 1024 * 1024);
+
+            if ($picture === null) {
                 continue;
             }
 
-            $type = mb_strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
-            $extension = self::EXTENSIONS[$type] ?? null;
-            $body = $response->body();
-
-            if (! $response->successful() || $extension === null || $body === '' || strlen($body) > 1024 * 1024) {
-                continue;
-            }
-
-            $path = 'brands/favicons/fetched-'.$brand->getKey().'.'.$extension;
-            Storage::disk('public')->put($path, $body);
+            $path = self::FETCHED_ICON.$brand->getKey().'.'.$picture['extension'];
+            Storage::disk('public')->put($path, $picture['body']);
 
             return $path;
         }
 
         return null;
+    }
+
+    /**
+     * The main logo, for the brand's own screens and, later, its invoices and
+     * contracts. Like the favicon, one somebody uploaded is never replaced.
+     */
+    private function storeLogo(Brand $brand, string $url, string $html): ?string
+    {
+        $current = (string) $brand->logo_path;
+
+        if ($current !== '' && ! str_starts_with($current, self::FETCHED_LOGO)) {
+            return null;
+        }
+
+        foreach (array_slice($this->website->logoCandidates($url, $html), 0, 3) as $candidate) {
+            $picture = $this->download($candidate, 2 * 1024 * 1024);
+
+            if ($picture === null || $picture['extension'] === 'ico' || $this->madeForDark($picture['body'], $picture['extension'])) {
+                continue;
+            }
+
+            // A document (PDF) cannot show WebP or AVIF, so those are kept as PNG.
+            if (in_array($picture['extension'], ['webp', 'avif'], true) && ($png = $this->asPng($picture['body'])) !== null) {
+                $picture = ['body' => $png, 'extension' => 'png'];
+            }
+
+            $path = self::FETCHED_LOGO.$brand->getKey().'.'.$picture['extension'];
+
+            if ($current !== '' && $current !== $path) {
+                Storage::disk('public')->delete($current);
+            }
+
+            Storage::disk('public')->put($path, $picture['body']);
+
+            return $path;
+        }
+
+        return null;
+    }
+
+    /**
+     * A picture from the website, or null when the address gives something
+     * else, too much, or an SVG that carries a script.
+     *
+     * @return array{body: string, extension: string}|null
+     */
+    private function download(string $address, int $limit): ?array
+    {
+        try {
+            $response = $this->website->http()->get($address);
+        } catch (Throwable) {
+            return null;
+        }
+
+        $type = mb_strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
+        $extension = self::EXTENSIONS[$type] ?? null;
+        $body = $response->body();
+
+        if (! $response->successful() || $extension === null || $body === '' || strlen($body) > $limit) {
+            return null;
+        }
+
+        // The file is served from our own address, so an SVG must be a drawing and nothing more.
+        if ($extension === 'svg' && preg_match('~<script|\son\w+\s*=|javascript:|<foreignObject|<iframe|<embed|<object~i', $body)) {
+            return null;
+        }
+
+        return ['body' => $body, 'extension' => $extension];
+    }
+
+    /**
+     * A white logo on a see-through background is made for a dark page: on
+     * the white of an invoice it cannot be seen, so it is not taken.
+     */
+    private function madeForDark(string $body, string $extension): bool
+    {
+        if ($extension === 'svg' || ! function_exists('imagecreatefromstring')) {
+            return false;
+        }
+
+        try {
+            $image = imagecreatefromstring($body);
+
+            if ($image === false) {
+                return false;
+            }
+
+            imagepalettetotruecolor($image);
+
+            $width = imagesx($image);
+            $height = imagesy($image);
+            $clear = imagecolortransparent($image);
+            $seen = $solid = $light = 0;
+
+            // About fifty points each way say enough.
+            for ($y = 0; $y < $height; $y += max(1, intdiv($height, 48))) {
+                for ($x = 0; $x < $width; $x += max(1, intdiv($width, 48))) {
+                    $pixel = (int) imagecolorat($image, $x, $y);
+                    $seen++;
+
+                    if ((($pixel >> 24) & 0x7F) > 100 || ($clear >= 0 && ($pixel & 0xFFFFFF) === $clear)) {
+                        continue;
+                    }
+
+                    $solid++;
+                    $light += min(($pixel >> 16) & 0xFF, ($pixel >> 8) & 0xFF, $pixel & 0xFF) > 225 ? 1 : 0;
+                }
+            }
+        } catch (Throwable) {
+            return false;
+        }
+
+        return $solid > 0 && $solid < $seen * 0.9 && $light > $solid * 0.9;
+    }
+
+    private function asPng(string $body): ?string
+    {
+        if (! function_exists('imagecreatefromstring')) {
+            return null;
+        }
+
+        try {
+            $image = imagecreatefromstring($body);
+
+            if ($image === false) {
+                return null;
+            }
+
+            imagepalettetotruecolor($image);
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+
+            ob_start();
+
+            try {
+                imagepng($image);
+            } finally {
+                $png = (string) ob_get_clean();
+            }
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $png !== '' ? $png : null;
     }
 
     private function hex(string $value): ?string
@@ -222,19 +306,5 @@ class BrandIdentity
         }
 
         return preg_match('/^#[0-9a-f]{6}$/i', $value) ? mb_strtoupper($value) : null;
-    }
-
-    private function absolute(string $url, string $href): string
-    {
-        return match (true) {
-            (bool) preg_match('~^https?://~i', $href) => $href,
-            str_starts_with($href, '//') => 'https:'.$href,
-            default => $url.'/'.ltrim($href, '/'),
-        };
-    }
-
-    private function http(): PendingRequest
-    {
-        return Http::timeout(12)->connectTimeout(6)->withUserAgent('LiquifyCRM');
     }
 }

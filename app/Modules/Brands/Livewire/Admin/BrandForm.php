@@ -7,9 +7,10 @@ namespace App\Modules\Brands\Livewire\Admin;
 use App\Modules\Brands\Jobs\FetchBrandIdentity;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Support\BrandIdentity;
+use App\Modules\Brands\Support\BrandWebsite;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
-use DateTimeZone;
+use App\Modules\Core\Support\Timezones;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Str;
@@ -20,9 +21,10 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
 /**
- * Add or edit a brand: basics, look (logo, favicon, colours) and rules
- * (reveal limit, notification emails). The website identity fetch joins
- * the Look section in week 5.
+ * Add or edit a brand: basics, company details (what its invoices and
+ * contracts will carry), look (logo, favicon, colours) and rules (reveal
+ * limit, notification emails). The website can fill in the details and the
+ * look.
  */
 #[Layout('components.layouts.app')]
 final class BrandForm extends Component
@@ -30,6 +32,16 @@ final class BrandForm extends Component
     use AuthorizesRequests;
     use WithFileUploads;
     use WithToasts;
+
+    /** A company field of this form => its key in the brand and the word for it in a message. */
+    private const COMPANY = [
+        'legalName' => ['legal_name', 'company name'],
+        'phone' => ['phone', 'phone'],
+        'email' => ['email', 'email'],
+        'address' => ['address', 'address'],
+        'registrationNumber' => ['registration_number', 'company number'],
+        'taxNumber' => ['tax_number', 'tax number'],
+    ];
 
     public ?Brand $brand = null;
 
@@ -45,7 +57,19 @@ final class BrandForm extends Component
 
     public bool $is_active = true;
 
-    public string $primaryColor = '#FF6B2C';
+    public string $legalName = '';
+
+    public string $phone = '';
+
+    public string $email = '';
+
+    public string $address = '';
+
+    public string $registrationNumber = '';
+
+    public string $taxNumber = '';
+
+    public string $primaryColor = '#FFFFFF';
 
     public string $secondaryColor = '';
 
@@ -69,10 +93,16 @@ final class BrandForm extends Component
             $this->currency = $this->brand->currency;
             $this->timezone = $this->brand->timezone;
             $this->is_active = $this->brand->is_active;
-            $this->primaryColor = $this->brand->colors['primary'] ?? '#FF6B2C';
+            $this->primaryColor = $this->brand->colors['primary'] ?? '#FFFFFF';
             $this->secondaryColor = $this->brand->colors['secondary'] ?? '';
             $this->revealLimit = $this->brand->revealLimitPerHour();
             $this->notificationEmails = implode("\n", $this->brand->notificationEmails());
+
+            $company = $this->brand->company();
+
+            foreach (self::COMPANY as $field => [$key]) {
+                $this->{$field} = $company[$key];
+            }
         } else {
             $this->authorize('create', Brand::class);
             $this->currency = (string) config('liquify.default_currency');
@@ -88,7 +118,7 @@ final class BrandForm extends Component
         }
     }
 
-    /** Read the favicon and colours from the website; the Admin can still adjust them before saving. */
+    /** Read the logo, favicon and colour from the website; the Admin can still adjust them before saving. */
     public function fetchIdentity(BrandIdentity $identity): void
     {
         abort_if($this->brand === null, 404);
@@ -97,7 +127,7 @@ final class BrandForm extends Component
         $this->validate(['website' => ['required', 'url', 'max:255']]);
         $this->brand->update(['website' => $this->website]);
 
-        $result = $identity->fetch($this->brand);
+        $result = $identity->fetch($this->brand, fresh: true);
 
         if ($result['error'] !== null) {
             $this->toast('Nothing fetched', $result['error'], 'warning');
@@ -108,11 +138,40 @@ final class BrandForm extends Component
         $this->primaryColor = $result['colors']['primary'] ?? $this->primaryColor;
         $this->secondaryColor = $result['colors']['secondary'] ?? $this->secondaryColor;
 
-        Audit::log('brands.identity_fetched', $this->brand, ['favicon' => $result['favicon'], 'colors' => $result['colors']], 'Favicon and colours fetched from the website', brand: $this->brand, logName: 'brands');
+        Audit::log('brands.identity_fetched', $this->brand, ['logo' => $result['logo'], 'favicon' => $result['favicon'], 'colors' => $result['colors']], 'Logo, favicon and colours fetched from the website', brand: $this->brand, logName: 'brands');
 
-        $found = array_filter([$result['favicon'] ? 'the favicon' : null, $result['colors'] !== [] ? count($result['colors']).' '.str('colour')->plural(count($result['colors'])) : null]);
+        $found = array_filter([$result['logo'] ? 'the logo' : null, $result['favicon'] ? 'the favicon' : null, $result['colors'] !== [] ? 'the colour' : null]);
 
-        $this->toast($found === [] ? 'Nothing found on the website' : 'Fetched '.implode(' and ', $found), $found === [] ? 'Upload a favicon and pick the colours by hand.' : 'Adjust the colours if you like, then save.', $found === [] ? 'warning' : 'success');
+        $this->toast($found === [] ? 'Nothing found on the website' : 'Fetched '.implode(', ', $found), $found === [] ? 'Upload a logo and pick the colours by hand.' : 'A logo or favicon you uploaded yourself is never replaced. Adjust the colours if you like, then save.', $found === [] ? 'warning' : 'success');
+    }
+
+    /** Fill the company details the website states. A field that already has something is left alone. */
+    public function fillCompany(BrandWebsite $reader): void
+    {
+        $this->validate(['website' => ['required', 'url', 'max:255']]);
+
+        $found = $reader->details($this->website, fresh: true);
+
+        if (! $found['reachable']) {
+            $this->toast('Nothing filled in', 'The website could not be read.', 'warning');
+
+            return;
+        }
+
+        $filled = [];
+
+        foreach (self::COMPANY as $field => [$key, $word]) {
+            if ($this->{$field} === '' && filled($found[$key])) {
+                $this->{$field} = (string) $found[$key];
+                $filled[] = $word;
+            }
+        }
+
+        $this->toast(
+            $filled === [] ? 'Nothing new on the website' : 'Filled in: '.implode(', ', $filled),
+            $filled === [] ? 'It states nothing that is not here already. Fields that have something are never replaced.' : 'Check them, then save.',
+            $filled === [] ? 'warning' : 'success',
+        );
     }
 
     public function save(): void
@@ -126,13 +185,19 @@ final class BrandForm extends Component
             'currency' => ['required', Rule::in($currencies)],
             'timezone' => ['required', 'timezone:all'],
             'is_active' => ['boolean'],
+            'legalName' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'registrationNumber' => ['nullable', 'string', 'max:60'],
+            'taxNumber' => ['nullable', 'string', 'max:60'],
             'primaryColor' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'secondaryColor' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'favicon' => ['nullable', 'image', 'max:1024'],
             'revealLimit' => ['required', 'integer', 'min:1', 'max:500'],
             'notificationEmails' => ['nullable', 'string'],
-        ]);
+        ], attributes: ['slug' => 'link', 'timezone' => 'time zone', 'legalName' => 'company name', 'registrationNumber' => 'company number', 'taxNumber' => 'tax number', 'primaryColor' => 'main colour', 'secondaryColor' => 'second colour']);
 
         $emails = collect(preg_split('/[\s,;]+/', $data['notificationEmails'] ?? '') ?: [])
             ->map(fn (string $email): string => mb_strtolower(trim($email)))
@@ -140,6 +205,12 @@ final class BrandForm extends Component
             ->unique()
             ->values()
             ->all();
+
+        $company = [];
+
+        foreach (self::COMPANY as $field => [$key]) {
+            $company[$key] = $key === 'email' ? mb_strtolower(trim((string) $data[$field])) : trim((string) $data[$field]);
+        }
 
         $attributes = [
             'name' => $data['name'],
@@ -153,6 +224,7 @@ final class BrandForm extends Component
                 ...($this->brand->settings ?? []),
                 'reveal_limit_per_hour' => (int) $data['revealLimit'],
                 'notification_emails' => $emails,
+                'company' => array_filter($company),
             ],
         ];
 
@@ -167,17 +239,17 @@ final class BrandForm extends Component
         if ($this->brand === null) {
             $brand = Brand::query()->create([...$attributes, 'created_by' => auth()->id()]);
 
-            // A new brand with a website gets its favicon and colours by itself.
+            // A new brand with a website gets its logo, favicon and colour by itself, unless they were chosen here.
             if (filled($brand->website) && $this->favicon === null) {
-                FetchBrandIdentity::dispatch((int) $brand->getKey(), blank($data['primaryColor']) || $data['primaryColor'] === '#FF6B2C');
+                FetchBrandIdentity::dispatch((int) $brand->getKey(), blank($data['secondaryColor']) && in_array(mb_strtoupper((string) $data['primaryColor']), ['', '#FFFFFF', '#FF6B2C'], true), $this->logo === null);
             }
 
             Audit::log('brands.created', $brand, ['name' => $brand->name], 'Brand created', brand: $brand, logName: 'brands');
             $this->toastSuccess($brand->name.' created', 'Now create its departments and invite a Manager.');
         } else {
-            $before = $this->brand->only(['name', 'slug', 'website', 'currency', 'timezone', 'is_active']);
+            $before = [...$this->brand->only(['name', 'slug', 'website', 'currency', 'timezone', 'is_active']), 'company' => array_filter($this->brand->company())];
             $this->brand->update($attributes);
-            Audit::log('brands.updated', $this->brand, ['before' => $before, 'after' => $this->brand->only(array_keys($before))], 'Brand updated', brand: $this->brand, logName: 'brands');
+            Audit::log('brands.updated', $this->brand, ['before' => $before, 'after' => [...$this->brand->only(['name', 'slug', 'website', 'currency', 'timezone', 'is_active']), 'company' => array_filter($this->brand->company())]], 'Brand updated', brand: $this->brand, logName: 'brands');
             $this->toastSuccess('Brand saved');
         }
 
@@ -186,9 +258,14 @@ final class BrandForm extends Component
 
     public function render(): View
     {
+        // The colours as they are on screen now, read the way every other screen reads a brand's.
+        $look = new Brand(['colors' => array_filter(['primary' => $this->primaryColor, 'secondary' => $this->secondaryColor])]);
+
         return view('brands::livewire.admin.brand-form', [
             'currencies' => (array) config('liquify.currencies'),
-            'timezones' => DateTimeZone::listIdentifiers(),
+            'timezones' => Timezones::options(),
+            'accent' => $look->primaryColor(),
+            'tile' => $look->tileColor(),
             'title' => $this->brand ? 'Edit '.$this->brand->name : 'Add brand',
         ])->title($this->brand ? 'Edit brand' : 'Add brand');
     }

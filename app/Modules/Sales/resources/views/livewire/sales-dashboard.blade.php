@@ -25,7 +25,7 @@
                 @php $selected = $card['brand']->is($focusBrand); @endphp
                 <button type="button" role="tab" aria-selected="{{ $selected ? 'true' : 'false' }}" wire:key="pick-{{ $card['brand']->getKey() }}" wire:click="drill('{{ $card['brand']->getKey() }}')" @class(['lq-brandpick-item', 'lq-brandpick-active' => $selected])>
                     <span class="flex items-center gap-2.5">
-                        <x-ui.avatar :name="$card['brand']->name" :src="$card['brand']->avatarUrl()" :color="$card['brand']->primaryColor()" size="sm" brand />
+                        <x-ui.avatar :name="$card['brand']->name" :src="$card['brand']->avatarUrl()" :color="$card['brand']->primaryColor()" :tile="$card['brand']->tileColor()" size="sm" brand />
                         <span class="lq-cell-title truncate">{{ $card['brand']->name }}</span>
                     </span>
                     <span class="lq-brandpick-value lq-tabular">{{ Money::format($card['progress']->revenue, $card['progress']->currency) }}</span>

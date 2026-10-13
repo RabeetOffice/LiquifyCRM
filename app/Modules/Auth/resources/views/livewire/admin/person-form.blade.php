@@ -104,7 +104,7 @@
                         @foreach ($memberships as $membership)
                             @if ($membership->brand)
                                 <li class="lq-copyrow">
-                                    <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" size="sm" brand />
+                                    <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="sm" brand />
                                     <span class="min-w-0 flex-1 truncate text-sm font-semibold">{{ $membership->brand->name }}</span>
                                     <x-ui.badge :color="$membership->role->getColor()">{{ $membership->role->getLabel() }}</x-ui.badge>
                                     <x-ui.button size="sm" variant="ghost" :href="route('brand.members.index', ['brand' => $membership->brand->slug])">Open Members</x-ui.button>

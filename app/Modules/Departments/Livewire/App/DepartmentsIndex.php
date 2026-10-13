@@ -9,7 +9,9 @@ use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Departments\Actions\CreateStarterTeams;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Departments\Support\StarterTeams;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -29,6 +31,9 @@ final class DepartmentsIndex extends Component
 
     public Brand $brand;
 
+    /** @var list<string> the starter departments ticked while the brand has none (keys of StarterTeams) */
+    public array $starter = [];
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
@@ -36,6 +41,24 @@ final class DepartmentsIndex extends Component
 
         $user = auth()->user();
         abort_unless($user?->isGlobalAdmin() || $user?->isManagerIn($brand), 403);
+
+        $this->starter = StarterTeams::keys();
+    }
+
+    /** A brand with no department yet: the usual ones in one click. */
+    public function createStarter(CreateStarterTeams $create): void
+    {
+        $this->authorize('create', Department::class);
+
+        $made = $create->handle($this->brand, array_values(array_intersect(StarterTeams::keys(), $this->starter)), auth()->user());
+
+        if ($made === []) {
+            $this->toast('Nothing created', 'Tick at least one department.', 'warning');
+
+            return;
+        }
+
+        $this->toastSuccess(count($made).' '.str('department')->plural(count($made)).' created', 'Open each to add its Manager and people.');
     }
 
     public function confirmDelete(int $departmentId): void
@@ -69,6 +92,10 @@ final class DepartmentsIndex extends Component
             ->orderBy($this->sortColumn(['name', 'created_at', 'agents_count'], 'name'), $this->sortDirection())
             ->paginate($this->perPage);
 
-        return view('departments::livewire.app.departments-index', ['departments' => $departments]);
+        return view('departments::livewire.app.departments-index', [
+            'departments' => $departments,
+            // Offered only while the brand has no department at all, to whoever may create one.
+            'starters' => $departments->isEmpty() && $this->search === '' && auth()->user()?->can('create', Department::class) ? StarterTeams::all() : [],
+        ]);
     }
 }

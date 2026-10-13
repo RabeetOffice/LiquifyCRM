@@ -22,7 +22,7 @@
         <div class="lq-side-brand" x-data="dropdown" x-on:click.outside="close()" x-on:keydown.escape="close()">
             <button type="button" class="lq-side-brand-btn" x-on:click="toggle()" aria-haspopup="menu" x-bind:aria-expanded="open" title="{{ $brand?->name ?? 'All brands' }}">
                 @if ($brand !== null)
-                    <x-ui.avatar :name="$brand->name" :src="$brand->avatarUrl()" :color="$brand->primaryColor()" size="sm" brand />
+                    <x-ui.avatar :name="$brand->name" :src="$brand->avatarUrl()" :color="$brand->primaryColor()" :tile="$brand->tileColor()" size="sm" brand />
                 @else
                     <span class="lq-avatar lq-avatar-sm lq-avatar-brand lq-avatar-all"><x-heroicon-m-squares-2x2 /></span>
                 @endif
@@ -52,7 +52,7 @@
 
                 @foreach ($brands as $item)
                     <a href="{{ $item->url() }}" class="lq-menu-item" role="menuitem" wire:navigate.hover>
-                        <x-ui.avatar :name="$item->name" :src="$item->avatarUrl()" :color="$item->primaryColor()" size="sm" brand />
+                        <x-ui.avatar :name="$item->name" :src="$item->avatarUrl()" :color="$item->primaryColor()" :tile="$item->tileColor()" size="sm" brand />
                         <span class="flex-1 truncate">{{ $item->name }}</span>
                         @if ($brand !== null && $item->is($brand))
                             <x-heroicon-m-check class="h-4 w-4" />

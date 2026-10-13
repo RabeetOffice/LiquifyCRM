@@ -20,6 +20,21 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.13.0',
+        'date' => '2026-10-13',
+        'title' => 'Add a brand from its website alone',
+        'changes' => [
+            ['improved', 'Add brand now starts with one field: the website. LiquifyCRM reads it and fills in the name, the link, the currency and time zone of the country the brand works in, and its phone, email and address. You check it, change what is not right and create the brand. What you typed yourself is never replaced.'],
+            ['new', 'Company details on every brand: phone, email, address, registered company name, company number and VAT or tax number. They are read from the website where it states them (also from its contact page) and can be changed under Edit brand, where "Fill from website" fills the empty ones. The brand\'s invoices and contracts will carry them.'],
+            ['new', 'The brand\'s main logo is fetched from the website as well as its favicon, and can be replaced by an upload in the same step. A white logo, made for a dark page, is left out because it could not be seen on a white document. A logo or favicon you uploaded yourself is never replaced by a later fetch.'],
+            ['improved', 'The look: the colour read from the website is now the brand\'s second colour (the ring around its mark, its chips and its line in charts) and the main colour is white, the tile behind the mark. A logo no longer disappears on a tile of its own colour. For a white logo, choose a dark main colour.'],
+            ['new', 'Time zone is a search box: type a city or a country ("London", "Sydney", "Pakistan", "UK"). The usual ones are offered first instead of a list of four hundred.'],
+            ['new', 'The teams: after the look, Add brand offers the departments most brands start with (Front Sales, Upsell, Project Management), ticked and created in one click. The same offer stands on the Departments screen while a brand has none.'],
+            ['improved', 'The check at the end of Add brand also says whether the logo, the company details and the departments are in place, and leads on to adding the people.'],
+            ['fixed', 'The link field of a brand left almost no room to type when the address of LiquifyCRM itself was long.'],
+        ],
+    ],
+    [
         'version' => '1.12.0',
         'date' => '2026-10-12',
         'title' => 'After the first sale: hand-over, upsells and a storage for each client',

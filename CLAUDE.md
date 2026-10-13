@@ -165,6 +165,23 @@ in the document's weekly phases; never skip a phase or silently change the desig
   A chart inside `wire:ignore` carries a `wire:key` built from its data so it redraws when the numbers change.
   The Chart instance lives in a closure, never on Alpine's reactive `this` (a proxied Chart recurses on update).
   A row that joins a `lq-live` list is lit by `app.js` (`lq-arrived`), never by a CSS rule on every row.
+- Add brand (user request, 13 Oct 2026): `BrandWizard` is four steps (basics, look, teams, check) and its first
+  screen asks for the website alone. `BrandWebsite::details()` reads the site (schema.org data first, then links and
+  tags, then its contact page; a page is kept five minutes) and fills the name, link, currency and time zone
+  (`Countries`, from the country) and the company details. What somebody typed (`$typed`) is never replaced.
+- Company details (phone, email, address, registered name, company number, tax number) live in
+  `brands.settings.company`, on purpose not in columns: no screen waits for "Update system". Read them with
+  `Brand::company()` / `legalName()`; the brand's invoices and contracts will. Every writer of `settings` merges.
+- A brand's colours (the user's rule, 13 Oct 2026): the website's colour is `colors.secondary`, and `colors.primary`
+  is white, the tile behind the mark (`Brand::tileColor()`, passed as `:tile` to `<x-ui.avatar>`, `--brand-tile`). A
+  logo on a tile of its own colour disappears. `primaryColor()` is still the brand's own colour for chips and charts,
+  so older brands (colour in `primary`) look as before. `BrandIdentity::fetch()` also stores the main logo
+  (`brands/logos/fetched-{id}`; WebP and AVIF as PNG for documents). It leaves out a white logo on a see-through
+  background, refuses an SVG with a script, and never replaces a picture somebody uploaded (only `fetched-` files).
+- `StarterTeams` / `CreateStarterTeams`: Front Sales (kind `sales`), Upsell and Project Management (both kind
+  `upsell`) in one click, in the wizard and on the Departments screen while a brand has none. A long list is a
+  `<x-ui.picker model options pinned>` (search in the browser; time zones come from `Timezones::options()`), not a
+  `<select>` of four hundred.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,

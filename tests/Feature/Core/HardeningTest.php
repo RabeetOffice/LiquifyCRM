@@ -6,6 +6,7 @@ use App\Modules\Brands\Livewire\Admin\BrandWizard;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\WelcomeTour;
 use App\Modules\Core\Support\DashboardCache;
+use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
@@ -60,13 +61,14 @@ it('caches dashboard numbers for a minute and refreshes them when a lead arrives
     $this->actingAs($this->admin)->get('/b/ukph')->assertOk();
 });
 
-it('adds a brand in three steps with a check at the end', function (): void {
+it('adds a brand in four steps with a check at the end', function (): void {
     Http::fake([
         'newbrand.test/icon.png' => Http::response('png', 200, ['Content-Type' => 'image/png']),
         'newbrand.test/*' => Http::response('<html><head><meta name="theme-color" content="#0F766E"><link rel="icon" href="/icon.png"></head></html>'),
     ]);
 
-    $this->actingAs($this->admin)->get('/admin/brands/create')->assertOk()->assertSee('The basics');
+    // The first screen asks for the website alone.
+    $this->actingAs($this->admin)->get('/admin/brands/create')->assertOk()->assertSee('Start with the website')->assertDontSee('Company details');
 
     Livewire::actingAs($this->admin)
         ->test(BrandWizard::class)
@@ -79,23 +81,44 @@ it('adds a brand in three steps with a check at the end', function (): void {
 
     $brand = Brand::query()->where('slug', 'new-brand')->sole();
 
+    // The website's colour is the brand's own (second) colour; the main one is the white behind its mark.
     expect($brand->website)->toBe('https://newbrand.test')
-        ->and($brand->colors['primary'])->toBe('#0F766E')
+        ->and($brand->colors)->toMatchArray(['primary' => '#FFFFFF', 'secondary' => '#0F766E'])
+        ->and($brand->primaryColor())->toBe('#0F766E')
+        ->and($brand->tileColor())->toBe('#FFFFFF')
         ->and($brand->favicon_path)->not->toBeNull()
         ->and(LeadStatus::query()->forBrand($brand)->count())->toBe(6);
 
     Livewire::actingAs($this->admin)
         ->test(BrandWizard::class, ['brandId' => $brand->getKey()])
         ->assertSet('step', 2)
-        ->assertSet('primaryColor', '#0F766E')
-        ->set('secondaryColor', '#111827')
+        ->assertSet('primaryColor', '#FFFFFF')
+        ->assertSet('secondaryColor', '#0F766E')
+        ->set('secondaryColor', '#1E3A8A')
         ->call('saveLook')
         ->assertSet('step', 3)
+        // The usual departments are ticked and made in one click.
+        ->assertSee('Front Sales')
+        ->assertSee('Project Management')
+        ->set('teams', ['front-sales', 'upsell'])
+        ->call('createTeams')
+        ->assertSet('step', 4)
         ->assertSee('6 statuses ready')
         ->assertSee('The website answers')
-        ->assertSee('Create its first department');
+        ->assertSee('Front Sales, Upsell')
+        ->assertSee('Add its people');
 
-    expect($brand->refresh()->colors)->toMatchArray(['primary' => '#0F766E', 'secondary' => '#111827']);
+    expect($brand->refresh()->colors)->toMatchArray(['primary' => '#FFFFFF', 'secondary' => '#1E3A8A'])
+        ->and(Department::query()->forBrand($brand)->orderBy('name')->get()->map(fn (Department $department): string => $department->name.':'.$department->kind()->value)->all())
+        ->toBe(['Front Sales:sales', 'Upsell:upsell']);
+
+    // Skipping the teams still ends on the check, which then offers the first department.
+    Livewire::actingAs($this->admin)
+        ->test(BrandWizard::class, ['brandId' => brand(['name' => 'No Teams Yet', 'website' => null])->getKey()])
+        ->call('saveLook')
+        ->call('skipTeams')
+        ->assertSet('step', 4)
+        ->assertSee('Create its first department');
 
     $this->actingAs($this->manager)->get('/admin/brands/create')->assertForbidden();
 });

@@ -106,6 +106,71 @@ Alpine.data('dropdown', () => ({
     close() { this.open = false; },
 }));
 
+// A choice from a long list with a search box (<x-ui.picker>). The list stays out of Alpine's
+// reactive data: four hundred time zones need no watching, only filtering.
+Alpine.data('picker', ({ model, options, pinned }) => ({
+    open: false,
+    query: '',
+    active: 0,
+
+    get value() {
+        return this.$wire[model];
+    },
+
+    get current() {
+        return options.find((option) => option.value === this.value) ?? null;
+    },
+
+    get shown() {
+        const words = this.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+        // Nothing typed: the usual choices and the current one, not the whole list.
+        if (words.length === 0) {
+            return options.filter((option) => pinned.includes(option.value) || option.value === this.value);
+        }
+
+        const starts = (option) => Number(option.label.toLowerCase().startsWith(words[0]));
+
+        return options
+            .filter((option) => words.every((word) => option.search.includes(word)))
+            .sort((a, b) => starts(b) - starts(a))
+            .slice(0, 40);
+    },
+
+    toggle() {
+        this.open ? this.close() : this.show();
+    },
+
+    show() {
+        this.query = '';
+        this.open = true;
+        this.active = Math.max(0, this.shown.findIndex((option) => option.value === this.value));
+        this.$nextTick(() => this.$refs.search.focus());
+    },
+
+    close(refocus = false) {
+        if (! this.open) return;
+
+        this.open = false;
+        if (refocus) this.$refs.button.focus();
+    },
+
+    move(step) {
+        const count = this.shown.length;
+        if (count === 0) return;
+
+        this.active = (this.active + step + count) % count;
+        this.$nextTick(() => this.$refs.list.querySelector('.lq-picker-active')?.scrollIntoView({ block: 'nearest' }));
+    },
+
+    choose(option) {
+        if (! option) return;
+
+        this.$wire[model] = option.value;
+        this.close(true);
+    },
+}));
+
 Alpine.data('chart', (config) => {
     // Kept out of Alpine's reactive data: a Chart wrapped in a proxy recurses without end on update().
     let chart = null;

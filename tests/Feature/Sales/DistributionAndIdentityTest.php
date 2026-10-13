@@ -156,25 +156,28 @@ it('fetches the favicon and colours from the brand website', function (): void {
         'ukph.test/*' => Http::response('<html><head><meta name="theme-color" content="#1E3A8A"><link rel="icon" sizes="192x192" href="/icon-192.png"><link rel="manifest" href="/site.webmanifest"></head></html>'),
     ]);
 
+    // The site's own colour becomes the second colour; the main one is the white behind the mark.
     Livewire::actingAs($this->admin)
         ->test(BrandForm::class, ['brandId' => $this->brand->getKey()])
         ->call('fetchIdentity')
-        ->assertSet('primaryColor', '#1E3A8A')
-        ->assertSet('secondaryColor', '#00AA55');
+        ->assertSet('primaryColor', '#FFFFFF')
+        ->assertSet('secondaryColor', '#1E3A8A');
 
     $brand = $this->brand->refresh();
 
     expect($brand->favicon_path)->toBe('brands/favicons/fetched-'.$brand->getKey().'.png')
-        ->and($brand->colors)->toMatchArray(['primary' => '#1E3A8A', 'secondary' => '#00AA55'])
+        ->and($brand->colors)->toMatchArray(['primary' => '#FFFFFF', 'secondary' => '#1E3A8A'])
+        ->and($brand->primaryColor())->toBe('#1E3A8A')
         ->and($brand->identity_fetched_at)->not->toBeNull();
 
     Storage::disk('public')->assertExists($brand->favicon_path);
 
     $this->actingAs($this->manager)->postJson('/admin/brands/'.$brand->getKey().'/fetch-identity')->assertForbidden();
 
+    // The weekly refresh keeps the favicon current and leaves the colours and the logo alone.
     Queue::fake();
     $this->artisan('brands:refresh-identity')->assertSuccessful();
-    Queue::assertPushed(FetchBrandIdentity::class, fn (FetchBrandIdentity $job): bool => $job->brandId === $brand->getKey() && $job->withColors === false);
+    Queue::assertPushed(FetchBrandIdentity::class, fn (FetchBrandIdentity $job): bool => $job->brandId === $brand->getKey() && $job->withColors === false && $job->withLogo === false);
 });
 
 it('sets a monthly target while adding a person', function (): void {

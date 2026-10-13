@@ -84,7 +84,7 @@
                                             @foreach ($memberships->take(3) as $membership)
                                                 @if ($membership->brand)
                                                     <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
-                                                        <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" size="xs" brand />
+                                                        <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
                                                         {{ $membership->brand->name }}
                                                     </a>
                                                 @endif

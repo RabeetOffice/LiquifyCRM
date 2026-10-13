@@ -50,7 +50,7 @@
                 @foreach ($brands as $brand)
                     <article class="lq-site" wire:key="brand-{{ $brand->getKey() }}">
                         <header class="lq-site-head">
-                            <x-ui.avatar :name="$brand->name" :src="$brand->avatarUrl()" :color="$brand->primaryColor()" size="lg" brand />
+                            <x-ui.avatar :name="$brand->name" :src="$brand->avatarUrl()" :color="$brand->primaryColor()" :tile="$brand->tileColor()" size="lg" brand />
                             <div class="min-w-0 flex-1">
                                 <a href="{{ $brand->url() }}" class="lq-site-name" wire:navigate>{{ $brand->name }}</a>
                                 @if ($brand->website)

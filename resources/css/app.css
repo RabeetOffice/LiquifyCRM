@@ -1959,7 +1959,8 @@ a.lq-stat:hover .lq-stat-link svg {
    with air around it, and stays readable in dark mode because the tile stays light. */
 .lq-avatar-logo {
     padding: 0.3125rem;
-    background: color-mix(in srgb, var(--brand-color, #a8a29e) 12%, #fff);
+    /* `--brand-tile` is the brand's own choice for behind its mark (white, or dark for a white logo). */
+    background: var(--brand-tile, color-mix(in srgb, var(--brand-color, #a8a29e) 12%, #fff));
     box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--brand-color, #a8a29e) 60%, transparent);
 }
 
@@ -8824,6 +8825,331 @@ a.lq-file-main:hover .lq-file-name {
     .lq-route-select {
         width: 100%;
     }
+}
+
+/* ==========================================================================
+   Add brand (13 Oct 2026): the website fills the form in, a search picker
+   for long lists, the logo on paper white, and the starter departments.
+   ========================================================================== */
+
+/* A select with a search box (<x-ui.picker>): the button looks like any other field. */
+.lq-picker {
+    position: relative;
+}
+
+.lq-picker-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-align: start;
+    cursor: pointer;
+}
+
+.lq-picker-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.lq-picker-hint {
+    flex: none;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--lq-muted);
+    white-space: nowrap;
+}
+
+.lq-picker-caret {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--lq-muted);
+}
+
+.lq-picker-menu {
+    inset-inline: 0;
+    top: calc(100% + 0.375rem);
+    min-width: 17rem;
+}
+
+.lq-picker-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+    padding: 0.3125rem 0.625rem 0.625rem;
+    border-bottom: 1px solid var(--lq-hairline);
+}
+
+.lq-picker-search svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+}
+
+.lq-picker-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.9375rem;
+}
+
+.lq-picker-search input::placeholder {
+    color: var(--lq-muted);
+}
+
+.lq-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 15.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.lq-picker-option {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.lq-picker-option .lq-picker-hint {
+    margin-inline-start: auto;
+}
+
+.lq-picker-active {
+    background: var(--lq-raised);
+}
+
+.lq-picker-chosen {
+    font-weight: 600;
+}
+
+.lq-picker-tick {
+    flex: none;
+    align-self: center;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-orange);
+}
+
+.lq-picker-note {
+    margin: 0;
+    padding: 0.5rem 0.625rem 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+/* What the website filled in, said under its link. */
+.lq-fillnote {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-success-tint);
+    color: var(--lq-success);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.lq-fillnote svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+}
+
+.lq-fillnote-warn {
+    background: var(--lq-warning-tint);
+    color: var(--lq-warning);
+}
+
+/* A heading that starts a second group of fields inside one form card. */
+.lq-formhead {
+    padding-top: 1.375rem;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-formhead h3 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.lq-formhead p {
+    margin: 0.1875rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--lq-muted);
+}
+
+/* A short list of promises, each with a tick. */
+.lq-ticks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--lq-ink-soft);
+}
+
+.lq-ticks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+}
+
+.lq-ticks svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.0625rem;
+    color: var(--lq-success);
+}
+
+.lq-ticks strong {
+    color: var(--lq-ink);
+    font-weight: 600;
+}
+
+/* A logo is drawn for paper, so it is shown on white in both modes. */
+.lq-logo-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.lq-logo-row .lq-input-file {
+    flex: 1;
+    min-width: 14rem;
+}
+
+.lq-logo-strip {
+    display: grid;
+    place-items: center;
+    flex: none;
+    min-width: 11rem;
+    min-height: 4.5rem;
+    padding: 0.875rem 1.25rem;
+    border-radius: var(--lq-radius-inner);
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgb(28 25 23 / 0.1);
+    color: #78716c;
+    font-size: 0.8125rem;
+}
+
+.lq-logo-strip img {
+    display: block;
+    min-width: 0;
+    max-width: min(13rem, 100%);
+    max-height: 3.25rem;
+    object-fit: contain;
+}
+
+.lq-brand-preview .lq-logo-strip {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+}
+
+/* The brand's colour at work in the preview. The bar is the colour as charts draw it; the chip's
+   words are lifted on a dark page, where a dark colour could not be read. */
+.lq-brand-sample .lq-progress {
+    background: color-mix(in srgb, var(--brand-color) 18%, var(--lq-raised));
+}
+
+.lq-brand-sample .lq-progress-bar {
+    background: var(--brand-color);
+}
+
+.lq-brand-sample .lq-badge {
+    background: color-mix(in srgb, var(--brand-color) 16%, transparent);
+    color: var(--brand-color);
+}
+
+.dark .lq-brand-sample .lq-badge {
+    background: color-mix(in srgb, var(--brand-color) 34%, transparent);
+    color: color-mix(in srgb, var(--brand-color) 42%, #fff);
+}
+
+/* The mark in the brand preview: the same tile every screen shows, a size up. */
+.lq-brand-preview-row .lq-avatar-lg {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: var(--lq-radius-inner);
+    font-size: 1.25rem;
+}
+
+/* A starter department: a card to tick. */
+.lq-team {
+    gap: 0.5rem;
+}
+
+.lq-team-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.lq-team-dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+}
+
+.lq-team-tick {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-inline-start: auto;
+    color: var(--lq-orange);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 150ms var(--lq-ease), transform 150ms var(--lq-ease);
+}
+
+.lq-choice-active .lq-team-tick {
+    opacity: 1;
+    transform: none;
+}
+
+.lq-team-kind {
+    margin-top: auto;
+    padding-top: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lq-muted);
+}
+
+.lq-choice-active .lq-team-kind {
+    color: var(--lq-ink-soft);
+}
+
+/* The starter departments where the list would be, while a brand has none. */
+.lq-starter {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
 }
 
 } /* @layer components */

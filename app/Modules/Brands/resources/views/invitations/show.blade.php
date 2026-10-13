@@ -2,7 +2,10 @@
     <div class="lq-glass">
         <div class="lq-card-header-stack">
             @if ($invitation->brand->logoUrl())
-                <img src="{{ $invitation->brand->logoUrl() }}" alt="{{ $invitation->brand->name }}" class="lq-brand-logo">
+                {{-- A logo is drawn for a white page, so it keeps one here: the card is dark in dark mode. --}}
+                <div class="lq-logo-strip">
+                    <img src="{{ $invitation->brand->logoUrl() }}" alt="{{ $invitation->brand->name }}">
+                </div>
             @else
                 <div class="lq-brand-chip" style="--brand-color: {{ $invitation->brand->primaryColor() ?? '#FF6B2C' }}">
                     {{ mb_substr($invitation->brand->name, 0, 1) }}

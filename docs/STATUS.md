@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (12 October): 236 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (13 October): 243 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -113,7 +113,7 @@ State of the code (12 October): 236 Pest tests passing, Pint and Larastan level 
 - [x] Speed check `php artisan liquify:speed-check`: 100,000 leads in one brand, lead list 19 ms, Unassigned view 20 ms, search 10 ms, dashboard numbers 244 ms uncached, queue 2 ms on the local XAMPP database. Four indexes were added to `leads` for this.
 - [x] Backups: the daily backup now carries the database and the log archive folder; the destination disks come from `BACKUP_DISKS`.
 - [x] PWA manifest for add-to-home-screen on iPhone and Android.
-- [x] Onboarding: 3-step Add brand wizard (basics, look fetched from the website, check at the end), 3-tip welcome tour for new Managers and Agents (skippable, shown once), inline "?" help next to settings.
+- [x] Onboarding: Add brand wizard (basics, look fetched from the website, check at the end; four steps since 13 October, see "Add a brand from its website"), 3-tip welcome tour for new Managers and Agents (skippable, shown once), inline "?" help next to settings.
 - [x] `POST /b/{brand}/leads/{lead}/reveal`.
 - [x] `deploy.php` no longer calls the two Filament commands (they would have failed the first deploy).
 
@@ -183,7 +183,18 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 - [x] Privacy policy and "Delete your data" updated for a client's files and shared text.
 - [x] Everything new asks `ClientCare::ready()` first, so the code works on the server before "Update system" has created the tables (checked once against a database without the three migrations).
 
+### Add a brand from its website (13 October, asked for by the user)
+- [x] Add brand is four steps (`BrandWizard`): the basics, the look, the teams, the check. The first screen asks for the website alone ("Read website"); "No website yet" opens the empty form.
+- [x] `BrandWebsite` reads the website once (kept five minutes): the name, and the company's phone, email, postal address, registered name, company number and VAT number from its schema.org data, then from `tel:` / `mailto:` links, an `<address>` tag and the footer's wording, then from its contact page for whatever is still missing. The country (address, then the site's own ending such as `.co.uk`, then the phone's dialling code, then the page's language) gives the currency and the time zone (`Countries`; "Perth WA" is not on Sydney time). A field somebody typed is never replaced.
+- [x] Company details on a brand (`Brand::company()`, `legalName()`): phone, email, address, registered company name, company number, VAT or tax number. On Add brand and on Edit brand ("Fill from website" fills the empty ones). The brand's invoices and contracts will read them.
+- [x] The main logo is fetched with the favicon (`BrandIdentity`): the logo the site names for search engines, else the picture marked as the logo in its header; other companies' logos on the page are skipped. WebP and AVIF are kept as PNG so a PDF can show them. A white logo on a see-through background is left out, an SVG carrying a script is refused, and a logo or favicon somebody uploaded is never replaced. The weekly refresh still only touches the favicon.
+- [x] Colours: the website's colour is the brand's second colour and the main colour is white, the tile behind its mark (`Brand::tileColor()`, `--brand-tile`); `Brand::primaryColor()` still gives the brand's own colour to chips and charts, so brands made before this look as they did. The preview in Add brand is the same tile every screen shows.
+- [x] Time zone is a search picker (`<x-ui.picker>`, `Timezones`): city, country and today's distance from GMT; the usual zones first.
+- [x] The teams (`StarterTeams`, `CreateStarterTeams`): Front Sales (works leads), Upsell and Project Management (both work clients), ticked and created in one click in step 3, and on the Departments screen while a brand has none. A name already in use is left alone; a removed one comes back.
+- [x] The check also reports the logo, the company details and the departments, and leads on to "Add its people".
+
 ### Agreed differences from the document
+- **Company details live in `brands.settings` (13 October).** The document's `brands` table has no phone, email or address. They are kept under `settings.company` rather than as new columns, so the screens work the moment the code is on the server, with no "Update system" in between. Brands is the only module that writes them.
 - **Live updates and nothing waiting for the minute (12 October, user request).** The document has the queue drained once a minute and screens polling. Now a stamp per brand and person (`Live`) is asked for every 4 seconds by one small request and screens reload only when it moved; bell entries are written at once; incoming website and Meta events and Messenger replies run right after the response (`RunSoon`). The scheduler cron was missing on the live server until 12 October (18 jobs were waiting); it was added that day and still does the emails, website pulls, backups, token renewal and log archive.
 - **Privacy policy and "Delete your data" pages (12 October, user request).** Not in the document. `/privacy` and `/data-deletion` are public, written from what the code really stores, and are the two addresses in the Meta app's settings. Open point: the pages promise deletion on request, but the app can only soft-delete a lead and has no delete for a client or a Messenger chat, so a request is carried out by hand in the database until an "erase a person" tool exists.
 - **Password reset with the authenticator app (12 October, user request).** The document only has the emailed reset link. "Forgot password" now also offers `/forgot-password/authenticator`: email, the 6-digit code and a new password (`ResetPasswordWithAuthenticator`). The code alone is the proof there, so it is guarded: five wrong tries per email and twenty per address in an hour, one answer whatever was wrong, a code works once, every try is in the logs, the person gets a bell and email notice, and nobody is signed in from that screen (sign-in still asks for the new password and a fresh code). Recovery codes are not accepted there.

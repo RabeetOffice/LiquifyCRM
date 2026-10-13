@@ -102,7 +102,7 @@
                             <div wire:key="target-{{ $row['brand']->getKey() }}">
                                 <div class="mb-1.5 flex items-center justify-between gap-3">
                                     <span class="flex min-w-0 items-center gap-2">
-                                        <x-ui.avatar :name="$row['brand']->name" :src="$row['brand']->avatarUrl()" :color="$row['brand']->primaryColor()" size="sm" brand />
+                                        <x-ui.avatar :name="$row['brand']->name" :src="$row['brand']->avatarUrl()" :color="$row['brand']->primaryColor()" :tile="$row['brand']->tileColor()" size="sm" brand />
                                         <span class="lq-cell-title truncate">{{ $row['brand']->name }}</span>
                                     </span>
                                     <a class="lq-link text-sm" href="{{ route('brand.sales', ['brand' => $row['brand']->slug]) }}" wire:navigate>See sales</a>

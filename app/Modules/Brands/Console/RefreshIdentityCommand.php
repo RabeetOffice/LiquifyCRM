@@ -8,7 +8,7 @@ use App\Modules\Brands\Jobs\FetchBrandIdentity;
 use App\Modules\Brands\Models\Brand;
 use Illuminate\Console\Command;
 
-/** Weekly: refresh each brand's favicon in case the website changed it. Colours the Admin chose are left alone. */
+/** Weekly: refresh each brand's favicon in case the website changed it. The logo and the colours the Admin chose are left alone. */
 final class RefreshIdentityCommand extends Command
 {
     protected $signature = 'brands:refresh-identity';
@@ -20,7 +20,7 @@ final class RefreshIdentityCommand extends Command
         $ids = Brand::query()->where('is_active', true)->whereNotNull('website')->whereNotNull('identity_fetched_at')->pluck('id');
 
         foreach ($ids as $id) {
-            FetchBrandIdentity::dispatch((int) $id, false);
+            FetchBrandIdentity::dispatch((int) $id, false, false);
         }
 
         $this->info($ids->count().' brand(s) queued.');

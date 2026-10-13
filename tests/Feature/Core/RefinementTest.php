@@ -194,7 +194,7 @@ it('lets a Manager turn round robin on for their own department and share the wa
 
 // ------------------------------------------------------------ brand wizard
 
-it('fills the brand name and address from the website link', function (): void {
+it('fills the brand name and link from the website', function (): void {
     inBrand(null);
 
     Http::fake([
@@ -204,15 +204,29 @@ it('fills the brand name and address from the website link', function (): void {
 
     Livewire::actingAs($this->admin)
         ->test(BrandWizard::class)
+        // One field to begin with; the rest of the form opens once the website was read.
+        ->assertSet('ready', false)
         ->set('website', 'riverbooks.test')
+        ->call('readWebsite')
+        ->assertSet('ready', true)
         ->assertSet('website', 'https://riverbooks.test')
         ->assertSet('name', 'River Books')
         ->assertSet('slug', 'river-books')
-        ->assertSee('filled in from the website')
+        ->assertSee('Filled in from the website: name')
         // A name typed by hand is never replaced by a later link.
         ->set('name', 'My Own Name')
         ->set('website', 'unreachable.test')
-        ->assertSet('name', 'My Own Name');
+        ->assertSet('name', 'My Own Name')
+        ->assertSee('could not be read');
+
+    // Without a website the form opens empty.
+    Livewire::actingAs($this->admin)
+        ->test(BrandWizard::class)
+        ->call('readWebsite')
+        ->assertHasErrors('website')
+        ->call('byHand')
+        ->assertSet('ready', true)
+        ->assertHasNoErrors();
 
     // When the website cannot be read, its address gives a starting name; a taken address gets a number.
     Livewire::actingAs($this->admin)

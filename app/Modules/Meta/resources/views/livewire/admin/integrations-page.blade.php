@@ -18,7 +18,7 @@
                             <div class="lq-menu-header">Which brand is this website for?</div>
                             @foreach ($brands as $item)
                                 <a href="{{ route('brand.sites.connect', ['brand' => $item->slug]) }}" class="lq-menu-item" role="menuitem" wire:navigate>
-                                    <x-ui.avatar :name="$item->name" :src="$item->avatarUrl()" :color="$item->primaryColor()" size="sm" brand />
+                                    <x-ui.avatar :name="$item->name" :src="$item->avatarUrl()" :color="$item->primaryColor()" :tile="$item->tileColor()" size="sm" brand />
                                     <span class="flex-1 truncate">{{ $item->name }}</span>
                                 </a>
                             @endforeach
@@ -278,7 +278,7 @@
                                     <td>
                                         @if ($siteBrand)
                                             <span class="flex items-center gap-2">
-                                                <x-ui.avatar :name="$siteBrand->name" :src="$siteBrand->avatarUrl()" :color="$siteBrand->primaryColor()" size="sm" brand />
+                                                <x-ui.avatar :name="$siteBrand->name" :src="$siteBrand->avatarUrl()" :color="$siteBrand->primaryColor()" :tile="$siteBrand->tileColor()" size="sm" brand />
                                                 <span class="truncate">{{ $siteBrand->name }}</span>
                                             </span>
                                         @else
