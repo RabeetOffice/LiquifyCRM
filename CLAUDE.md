@@ -40,6 +40,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Admin, only a Super Admin can make another one, and the last one cannot be removed. Admins and Super
   Admins add Admins, Managers and Agents on `/admin/people` (`PeopleIndex`, `PersonForm`); people carry a
   `designation`.
+- One person in several brands (user decision, 14 Oct 2026): only Admins share brands, on People › Edit (`PersonForm`
+  `addBrand` / `changeBrandRole` / `changeBrandDepartment` / `removeBrand`, policy `UserPolicy::shareBrands`). Each brand
+  has its own `brand_user` row, role and spatie team, so a person can be Manager in one brand and Agent in another;
+  `ChangeBrandAccess` keeps their department seats in that brand in step with the role. Managers still add people to
+  their own brand, but `BrandSharing::refusal()` stops them adding (or inviting) somebody who works in another brand or
+  is already in theirs. Never let a Manager's action reach a person's other brands.
 - Forgotten password (user request, 12 Oct 2026): besides Fortify's emailed link, `/forgot-password/authenticator`
   (`AuthenticatorResetController`, `ResetPasswordWithAuthenticator`) takes the email, the authenticator code and a new
   password. The code is the only proof there, so keep its guards: wrong tries counted per email and per address, one

@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.16.0',
+        'date' => '2026-10-14',
+        'title' => 'One person in several brands',
+        'changes' => [
+            ['new', 'An Admin can let a Manager or Agent work in more than one brand. Open People, click Edit on the person, and under Brands choose "Give access to another brand": the brand, their role there and their department. Add as many brands as needed.'],
+            ['new', 'The role is chosen for each brand on its own: somebody can be a Manager in one brand and an Agent in another. Their role or department in one brand is changed on the same screen, and a brand can be taken away with the cross; their other brands stay as they are.'],
+            ['improved', 'Somebody in several brands moves between them with the brand switcher at the top of the sidebar, and sees in each brand exactly what their role there allows.'],
+            ['improved', 'The People list shows each role a person has, and "3 brands" with the brands\' marks for somebody in several brands (the names show on hover).'],
+            ['improved', 'Only Admins share brands. A Manager still adds new people to their own brand, but cannot add somebody who already works in another brand, or add again somebody already in theirs: they are told to ask an Admin.'],
+        ],
+    ],
+    [
         'version' => '1.15.2',
         'date' => '2026-10-14',
         'title' => 'No false alarm about caches on the System screen',

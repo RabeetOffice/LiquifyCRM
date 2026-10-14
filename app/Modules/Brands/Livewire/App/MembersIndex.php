@@ -11,6 +11,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Invitation;
 use App\Modules\Brands\Models\Membership;
 use App\Modules\Brands\Notifications\InvitationNotification;
+use App\Modules\Brands\Support\BrandSharing;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Enums\MembershipStatus;
@@ -110,6 +111,15 @@ final class MembersIndex extends Component
         $department = filled($data['inviteDepartment']) ? Department::query()->findOrFail((int) $data['inviteDepartment']) : null;
 
         $this->guardRoleChoice($role, $department);
+
+        // Someone from another brand, or already in this one, is an Admin's to place (People screen).
+        $refusal = BrandSharing::refusal($this->user(), User::query()->where('email', mb_strtolower(trim($data['inviteEmail'])))->first(), $this->brand);
+
+        if ($refusal !== null) {
+            $this->addError('inviteEmail', $refusal);
+
+            return;
+        }
 
         app(InviteMember::class)->handle(
             $this->brand,

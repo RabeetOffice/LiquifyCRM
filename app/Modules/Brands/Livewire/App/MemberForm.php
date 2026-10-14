@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Actions\AddMemberToBrand;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Membership;
+use App\Modules\Brands\Support\BrandSharing;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
@@ -19,6 +20,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -83,6 +85,13 @@ final class MemberForm extends Component
         if (! $user->isGlobalAdmin()) {
             abort_if($role !== BrandRole::Agent, 403, 'Managers can only add Agents.');
             abort_if($department === null || ! $user->managesDepartment($department), 403, 'Choose one of your own departments.');
+        }
+
+        // Someone from another brand, or already in this one, is an Admin's to place (People screen).
+        $refusal = BrandSharing::refusal($user, User::query()->where('email', mb_strtolower(trim($data['email'])))->first(), $this->brand);
+
+        if ($refusal !== null) {
+            throw ValidationException::withMessages(['email' => $refusal]);
         }
 
         $membership = DB::transaction(function () use ($data, $role, $department, $user): Membership {

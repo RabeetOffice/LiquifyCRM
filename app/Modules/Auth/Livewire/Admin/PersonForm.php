@@ -6,12 +6,15 @@ namespace App\Modules\Auth\Livewire\Admin;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Actions\AddMemberToBrand;
+use App\Modules\Brands\Actions\ChangeBrandAccess;
+use App\Modules\Brands\Actions\RemoveMemberFromBrand;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Membership;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Enums\GlobalRole;
 use App\Modules\Core\Enums\MembershipStatus;
+use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Departments\Models\Department;
@@ -28,12 +31,15 @@ use Livewire\Component;
 /**
  * Add or edit a person from the admin area. One form for every kind of
  * account: an Admin (all brands), or a Manager or Agent placed in a brand
- * and a department with their designation and monthly target.
+ * and a department with their designation and monthly target. On a Manager
+ * or Agent, an Admin also shares more brands with them, each with its own
+ * role and department (only Admins may: UserPolicy::shareBrands).
  */
 #[Layout('components.layouts.app')]
 final class PersonForm extends Component
 {
     use AuthorizesRequests;
+    use WithConfirmation;
     use WithToasts;
 
     public ?User $account = null;
@@ -61,6 +67,13 @@ final class PersonForm extends Component
 
     public string $targetCount = '';
 
+    /** Another brand to share with an existing Manager or Agent, their role there and department. */
+    public string $newBrandId = '';
+
+    public string $newBrandRole = 'agent';
+
+    public string $newDepartmentId = '';
+
     public function mount(?int $userId = null): void
     {
         if ($userId === null) {
@@ -87,6 +100,89 @@ final class PersonForm extends Component
         $this->departmentId = '';
     }
 
+    public function updatedNewBrandId(): void
+    {
+        $this->newDepartmentId = '';
+    }
+
+    // ----------------------------------------------------------- shared brands
+
+    /** Give the person one more brand, with their role and department there. */
+    public function addBrand(AddMemberToBrand $add): void
+    {
+        $person = $this->sharedAccount();
+
+        $data = $this->validate([
+            'newBrandId' => ['required', 'integer'],
+            'newBrandRole' => ['required', Rule::in(array_column(BrandRole::assignable(), 'value'))],
+            'newDepartmentId' => ['nullable', 'integer'],
+        ], attributes: ['newBrandId' => 'brand', 'newBrandRole' => 'role', 'newDepartmentId' => 'department']);
+
+        $brand = Brand::query()->findOrFail((int) $data['newBrandId']);
+
+        if ($person->membershipFor($brand) !== null) {
+            throw ValidationException::withMessages(['newBrandId' => $person->name.' is already in '.$brand->name.'.']);
+        }
+
+        $role = BrandRole::from($data['newBrandRole']);
+        $department = filled($data['newDepartmentId']) ? Department::query()->forBrand($brand)->findOrFail((int) $data['newDepartmentId']) : null;
+
+        $add->handle($brand, $person, $role, $department, $department ? ChangeBrandAccess::seatRole($role) : null, $this->actor());
+
+        $this->reset('newBrandId', 'newDepartmentId');
+        $this->newBrandRole = 'agent';
+        $this->toastSuccess($person->name.' can now work in '.$brand->name, 'As '.$role->getLabel().($department ? ' in '.$department->name : '').'.');
+    }
+
+    public function changeBrandRole(int $membershipId, string $role, ChangeBrandAccess $change): void
+    {
+        $membership = $this->sharedMembership($membershipId);
+        $newRole = BrandRole::tryFrom($role);
+        abort_unless(in_array($newRole, BrandRole::assignable(), true), 422);
+
+        $change->role($membership, $newRole, $this->actor());
+
+        $this->toastSuccess('Now '.$newRole->getLabel().' in '.($membership->brand->name ?? 'this brand'));
+    }
+
+    public function changeBrandDepartment(int $membershipId, string $departmentId, ChangeBrandAccess $change): void
+    {
+        $membership = $this->sharedMembership($membershipId);
+        /** @var Brand $brand */
+        $brand = $membership->brand;
+        $department = ctype_digit($departmentId) ? Department::query()->forBrand($brand)->findOrFail((int) $departmentId) : null;
+
+        $change->department($membership, $department, $this->actor());
+
+        $this->toastSuccess($department !== null ? 'Moved to '.$department->name : 'Taken out of the departments of '.$brand->name);
+    }
+
+    public function confirmRemoveBrand(int $membershipId): void
+    {
+        $membership = $this->sharedMembership($membershipId);
+        $brandName = $membership->brand->name ?? 'this brand';
+        $last = Membership::query()->acrossBrands()->where('user_id', $membership->user_id)->count() === 1;
+
+        $this->askConfirmation(
+            'removeBrand',
+            [$membershipId],
+            'Remove '.$this->sharedAccount()->name.' from '.$brandName.'?',
+            'They lose access to '.$brandName.' at once and their open leads there go back to the queue. Their other brands stay as they are.'.($last ? ' It is their only brand: they will see nothing until you add one.' : ''),
+            'Remove',
+            'danger',
+        );
+    }
+
+    public function removeBrand(int $membershipId, RemoveMemberFromBrand $remove): void
+    {
+        $membership = $this->sharedMembership($membershipId);
+        $brandName = $membership->brand->name ?? 'the brand';
+
+        $remove->handle($membership, $this->actor());
+
+        $this->toastSuccess('Removed from '.$brandName);
+    }
+
     public function save(): void
     {
         $this->account === null ? $this->create() : $this->update();
@@ -96,6 +192,9 @@ final class PersonForm extends Component
     {
         $brand = ctype_digit($this->brandId) ? Brand::query()->find((int) $this->brandId) : null;
         $title = $this->account ? 'Edit '.$this->account->name : 'Add person';
+        $shared = $this->sharedBrands();
+        $canShare = $this->account !== null && (bool) auth()->user()?->can('shareBrands', $this->account);
+        $newBrand = $canShare && ctype_digit($this->newBrandId) ? Brand::query()->find((int) $this->newBrandId) : null;
 
         return view('auth::livewire.admin.person-form', [
             'title' => $title,
@@ -105,9 +204,14 @@ final class PersonForm extends Component
             'departments' => $brand !== null ? Department::query()->forBrand($brand)->orderBy('name')->pluck('name', 'id')->all() : [],
             'statuses' => MembershipStatus::cases(),
             'canMakeSuperAdmin' => (bool) auth()->user()?->can('assignGlobalRole', [User::class, GlobalRole::SuperAdmin]),
-            'memberships' => $this->account !== null
-                ? Membership::query()->acrossBrands()->where('user_id', $this->account->getKey())->with('brand')->get()
+            'shared' => $shared,
+            'canShare' => $canShare,
+            'roles' => BrandRole::assignable(),
+            // Brands the person is not in yet, and the departments of the one chosen to add.
+            'otherBrands' => $canShare
+                ? Brand::query()->where('is_active', true)->whereNotIn('id', array_map(fn (array $row): int => (int) $row['brand']->getKey(), $shared))->orderBy('name')->get(['id', 'name'])
                 : collect(),
+            'newDepartments' => $newBrand !== null ? Department::query()->forBrand($newBrand)->orderBy('name')->pluck('name', 'id')->all() : [],
         ])->title($title);
     }
 
@@ -249,5 +353,63 @@ final class PersonForm extends Component
     private function locked(): bool
     {
         return $this->account !== null && ($this->account->isSuperAdmin() || $this->account->is(auth()->user()));
+    }
+
+    /** The Manager or Agent being edited, when the actor may share brands with them. */
+    private function sharedAccount(): User
+    {
+        $account = $this->account ?? abort(404);
+        $this->authorize('shareBrands', $account);
+
+        return $account;
+    }
+
+    private function sharedMembership(int $membershipId): Membership
+    {
+        $person = $this->sharedAccount();
+
+        return Membership::query()->acrossBrands()->with('brand')->where('user_id', $person->getKey())->findOrFail($membershipId);
+    }
+
+    private function actor(): User
+    {
+        /** @var User $actor */
+        $actor = auth()->user();
+
+        return $actor;
+    }
+
+    /**
+     * Each brand the person works in, with their role, their departments
+     * there and the departments they could move to.
+     *
+     * @return list<array{membership: Membership, brand: Brand, departments: array<int, string>, current: list<int>}>
+     */
+    private function sharedBrands(): array
+    {
+        if ($this->account === null || $this->account->isGlobalAdmin()) {
+            return [];
+        }
+
+        $memberships = Membership::query()->acrossBrands()->where('user_id', $this->account->getKey())->with('brand')->get()
+            ->filter(fn (Membership $membership): bool => $membership->brand !== null)
+            ->sortBy(fn (Membership $membership): string => (string) $membership->brand?->name);
+
+        $departments = Department::query()->acrossBrands()->whereIn('brand_id', $memberships->pluck('brand_id'))->orderBy('name')->get(['id', 'brand_id', 'name'])->groupBy('brand_id');
+        $seats = $this->account->departments()->acrossBrands()->pluck('departments.id')->map(fn ($id): int => (int) $id)->all();
+
+        return $memberships->map(function (Membership $membership) use ($departments, $seats): array {
+            $options = ($departments[$membership->brand_id] ?? collect())->pluck('name', 'id')->all();
+
+            /** @var Brand $brand */
+            $brand = $membership->brand;
+
+            return [
+                'membership' => $membership,
+                'brand' => $brand,
+                'departments' => $options,
+                'current' => array_values(array_intersect($seats, array_map('intval', array_keys($options)))),
+            ];
+        })->values()->all();
     }
 }

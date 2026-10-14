@@ -69,7 +69,12 @@
                                     @if ($person->role)
                                         <x-ui.badge :color="$person->role->getColor()" :icon="$person->isSuperAdmin() ? 'heroicon-m-shield-check' : null">{{ $person->role->getLabel() }}</x-ui.badge>
                                     @elseif ($firstRole)
-                                        <x-ui.badge :color="$firstRole->getColor()">{{ $firstRole->getLabel() }}</x-ui.badge>
+                                        {{-- Each brand has its own role: a Manager in one and an Agent in another shows both. --}}
+                                        <span class="flex flex-wrap gap-1">
+                                            @foreach ($memberships->pluck('role')->unique(fn ($role) => $role->value)->sortBy(fn ($role) => $role === \App\Modules\Core\Enums\BrandRole::Manager ? 0 : 1) as $role)
+                                                <x-ui.badge :color="$role->getColor()">{{ $role->getLabel() }}</x-ui.badge>
+                                            @endforeach
+                                        </span>
                                     @else
                                         <span class="lq-muted">No role yet</span>
                                     @endif
@@ -79,20 +84,23 @@
                                         <span class="lq-muted">Every brand</span>
                                     @elseif ($memberships->isEmpty())
                                         <span class="lq-muted">—</span>
+                                    @elseif ($memberships->filter(fn ($membership) => $membership->brand)->count() === 1)
+                                        @php $membership = $memberships->first(fn ($item) => $item->brand); @endphp
+                                        <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
+                                            <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
+                                            {{ $membership->brand->name }}
+                                        </a>
                                     @else
-                                        <div class="flex flex-wrap items-center gap-1.5">
-                                            @foreach ($memberships->take(3) as $membership)
-                                                @if ($membership->brand)
-                                                    <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
-                                                        <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
-                                                        {{ $membership->brand->name }}
-                                                    </a>
-                                                @endif
-                                            @endforeach
-                                            @if ($memberships->count() > 3)
-                                                <span class="lq-muted text-xs">+{{ $memberships->count() - 3 }}</span>
-                                            @endif
-                                        </div>
+                                        {{-- Several brands: their marks side by side, the brand and role on hover; the list is on Edit. --}}
+                                        @php $shown = $memberships->filter(fn ($membership) => $membership->brand)->sortBy(fn ($membership) => $membership->brand->name); @endphp
+                                        <a href="{{ route('admin.people.edit', ['userId' => $person->getKey()]) }}" class="lq-brand-stack" title="{{ $shown->map(fn ($membership) => $membership->role->getLabel().' in '.$membership->brand->name)->implode("\n") }}" wire:navigate>
+                                            <span class="lq-brand-stack-marks">
+                                                @foreach ($shown->take(4) as $membership)
+                                                    <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
+                                                @endforeach
+                                            </span>
+                                            <span>{{ $shown->count() }} brands</span>
+                                        </a>
                                     @endif
                                 </td>
                                 <td><x-ui.badge :color="$person->status->getColor()">{{ $person->status->getLabel() }}</x-ui.badge></td>

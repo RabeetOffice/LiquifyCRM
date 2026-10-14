@@ -3813,6 +3813,99 @@ a.lq-stat-hero:hover {
     gap: 0.625rem;
 }
 
+/* People › Edit: the brands a person works in, one row each (brand, role, department, remove). */
+.lq-access {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lq-access-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(7.5rem, 0.7fr) minmax(9rem, 1fr) auto;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+}
+
+.lq-access-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+}
+
+.lq-access-brand a:hover {
+    color: var(--lq-orange-deep);
+}
+
+.lq-access-note {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-access-add {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--lq-hairline);
+}
+
+.lq-access-add-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lq-ink-soft);
+}
+
+.lq-access-add-title svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-orange-deep);
+}
+
+.lq-access-row-add {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+/* On a phone: the brand and its remove button on top, the role and the department under them. */
+@media (max-width: 767px) {
+    .lq-access-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    }
+
+    .lq-access-brand {
+        grid-column: 1 / 3;
+    }
+
+    .lq-access-remove {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    /* The department takes the rest of the second line. */
+    .lq-access-row > :nth-child(3) {
+        grid-column: 2 / -1;
+    }
+
+    .lq-access-row-add {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
 /* A value to copy: label, the value, a Copy button. */
 .lq-copyrow {
     display: flex;
@@ -4672,6 +4765,34 @@ a.lq-stat-hero:hover {
 .lq-badge-brand {
     gap: 0.375rem;
     padding-inline-start: 0.25rem;
+}
+
+/* People list: a person in several brands, their brand marks overlapping, then "4 brands". */
+.lq-brand-stack {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--lq-ink-soft);
+    white-space: nowrap;
+}
+
+.lq-brand-stack:hover {
+    color: var(--lq-ink);
+}
+
+.lq-brand-stack-marks {
+    display: inline-flex;
+}
+
+.lq-brand-stack-marks > * + * {
+    margin-inline-start: -0.375rem;
+}
+
+.lq-brand-stack-marks > * {
+    box-shadow: 0 0 0 2px var(--lq-surface);
+    border-radius: 9999px;
 }
 
 .lq-avatar-empty {

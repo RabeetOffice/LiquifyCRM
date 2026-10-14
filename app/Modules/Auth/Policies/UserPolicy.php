@@ -80,6 +80,16 @@ final class UserPolicy
     }
 
     /**
+     * Which brands a Manager or Agent works in, and their role and department
+     * in each: an Admin's decision only, on the People screen. A Manager adds
+     * people to their own brand on its Members screen (see BrandSharing).
+     */
+    public function shareBrands(User $user, User $target): bool
+    {
+        return $user->isGlobalAdmin() && $user->isActive() && ! $target->isGlobalAdmin();
+    }
+
+    /**
      * Who may hand out a global role. Admins and Super Admins can make someone
      * an Admin; only a Super Admin can make another Super Admin.
      */

@@ -54,7 +54,7 @@
         </x-ui.card>
 
         @if ($account === null && $kind !== 'admin')
-            <x-ui.card title="Where they work" description="The brand whose leads they see, and the team they belong to.">
+            <x-ui.card title="Where they work" description="The brand whose leads they see, and the team they belong to. To let them work in more brands, open Edit after adding them.">
                 @if ($brands->isEmpty())
                     <x-ui.empty title="Add a brand first" description="Managers and Agents work inside a brand." icon="heroicon-o-building-storefront">
                         <x-ui.button variant="secondary" :href="route('admin.brands.create')">Add brand</x-ui.button>
@@ -86,32 +86,96 @@
             </x-ui.card>
         @endif
 
-        @if ($account !== null)
-            <x-ui.card title="Access" :description="$account->isGlobalAdmin() ? 'Admins and Super Admins see every brand.' : 'Roles and departments are changed on each brand’s Members screen.'">
-                @if ($account->isGlobalAdmin())
-                    <div class="lq-form-grid lq-form-grid-2">
-                        <x-ui.field label="Role" name="kind" required help="A Super Admin is protected: nobody else can edit, suspend or remove one.">
-                            <x-ui.select wire:model="kind" name="kind" :disabled="$locked || ! $canMakeSuperAdmin">
-                                <option value="admin">Admin</option>
-                                <option value="super_admin">Super Admin</option>
-                            </x-ui.select>
-                        </x-ui.field>
-                    </div>
-                @elseif ($memberships->isEmpty())
-                    <p class="lq-help">Not in any brand yet. Open a brand’s Members screen to add them.</p>
+        @if ($account !== null && $account->isGlobalAdmin())
+            <x-ui.card title="Access" description="Admins and Super Admins see every brand.">
+                <div class="lq-form-grid lq-form-grid-2">
+                    <x-ui.field label="Role" name="kind" required help="A Super Admin is protected: nobody else can edit, suspend or remove one.">
+                        <x-ui.select wire:model="kind" name="kind" :disabled="$locked || ! $canMakeSuperAdmin">
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </x-ui.select>
+                    </x-ui.field>
+                </div>
+            </x-ui.card>
+        @elseif ($account !== null)
+            {{-- The brands they work in, each with its own role and department. Only Admins change this. --}}
+            <x-ui.card title="Brands" description="Where they work. The role and the department are chosen for each brand on its own: Manager in one brand and Agent in another is fine. A change applies at once.">
+                @if ($shared === [])
+                    <p class="lq-help">Not in any brand yet{{ $canShare ? ': give them one below.' : '.' }}</p>
                 @else
-                    <ul class="flex flex-col gap-2">
-                        @foreach ($memberships as $membership)
-                            @if ($membership->brand)
-                                <li class="lq-copyrow">
-                                    <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="sm" brand />
-                                    <span class="min-w-0 flex-1 truncate text-sm font-semibold">{{ $membership->brand->name }}</span>
+                    <ul class="lq-access">
+                        @foreach ($shared as $row)
+                            @php
+                                $membership = $row['membership'];
+                                $rowBrand = $row['brand'];
+                            @endphp
+                            <li class="lq-access-row" wire:key="access-{{ $membership->getKey() }}-{{ $membership->role->value }}-{{ implode('.', $row['current']) }}">
+                                <span class="lq-access-brand">
+                                    <x-ui.avatar :name="$rowBrand->name" :src="$rowBrand->avatarUrl()" :color="$rowBrand->primaryColor()" :tile="$rowBrand->tileColor()" size="sm" brand />
+                                    <span class="min-w-0">
+                                        <a href="{{ route('brand.members.index', ['brand' => $rowBrand->slug]) }}" class="lq-cell-title truncate" wire:navigate title="Open the Members screen of {{ $rowBrand->name }}">{{ $rowBrand->name }}</a>
+                                        @unless ($membership->isActive())
+                                            <span class="lq-cell-sub">{{ $membership->status->getLabel() }} in this brand</span>
+                                        @endunless
+                                    </span>
+                                </span>
+
+                                @if ($canShare)
+                                    <select class="lq-input lq-input-sm" aria-label="Role in {{ $rowBrand->name }}" wire:change="changeBrandRole({{ $membership->getKey() }}, $event.target.value)" wire:loading.attr="disabled">
+                                        @foreach ($roles as $option)
+                                            <option value="{{ $option->value }}" @selected($membership->role === $option)>{{ $option->getLabel() }}</option>
+                                        @endforeach
+                                    </select>
+
+                                    @if (count($row['current']) > 1)
+                                        <span class="lq-access-note" title="Change it on the Departments screen of {{ $rowBrand->name }}">{{ collect($row['current'])->map(fn (int $id): string => $row['departments'][$id] ?? '')->filter()->implode(', ') }}</span>
+                                    @elseif ($row['departments'] === [])
+                                        <span class="lq-access-note">No departments yet</span>
+                                    @else
+                                        <select class="lq-input lq-input-sm" aria-label="Department in {{ $rowBrand->name }}" wire:change="changeBrandDepartment({{ $membership->getKey() }}, $event.target.value)" wire:loading.attr="disabled">
+                                            <option value="" @selected($row['current'] === [])>No department</option>
+                                            @foreach ($row['departments'] as $id => $departmentName)
+                                                <option value="{{ $id }}" @selected(in_array((int) $id, $row['current'], true))>{{ $departmentName }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
+
+                                    <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-sm lq-access-remove" wire:click="confirmRemoveBrand({{ $membership->getKey() }})" title="Remove from {{ $rowBrand->name }}" aria-label="Remove from {{ $rowBrand->name }}">
+                                        <x-heroicon-o-x-mark />
+                                    </button>
+                                @else
                                     <x-ui.badge :color="$membership->role->getColor()">{{ $membership->role->getLabel() }}</x-ui.badge>
-                                    <x-ui.button size="sm" variant="ghost" :href="route('brand.members.index', ['brand' => $membership->brand->slug])">Open Members</x-ui.button>
-                                </li>
-                            @endif
+                                @endif
+                            </li>
                         @endforeach
                     </ul>
+                @endif
+
+                @if ($canShare && $otherBrands->isNotEmpty())
+                    <div class="lq-access-add">
+                        <p class="lq-access-add-title"><x-heroicon-o-plus-circle /> Give access to another brand</p>
+                        <div class="lq-access-row lq-access-row-add">
+                            <x-ui.select wire:model.live="newBrandId" name="newBrandId" class="lq-input-sm" placeholder="Choose a brand" aria-label="Brand">
+                                @foreach ($otherBrands as $option)
+                                    <option value="{{ $option->id }}">{{ $option->name }}</option>
+                                @endforeach
+                            </x-ui.select>
+                            <x-ui.select wire:model="newBrandRole" name="newBrandRole" class="lq-input-sm" aria-label="Role in that brand">
+                                @foreach ($roles as $option)
+                                    <option value="{{ $option->value }}">{{ $option->getLabel() }}</option>
+                                @endforeach
+                            </x-ui.select>
+                            <x-ui.select wire:model="newDepartmentId" name="newDepartmentId" class="lq-input-sm" :placeholder="$newBrandId === '' ? 'Department' : ($newDepartments === [] ? 'No departments yet' : 'No department')" :disabled="$newDepartments === []" aria-label="Department in that brand">
+                                @foreach ($newDepartments as $id => $departmentName)
+                                    <option value="{{ $id }}">{{ $departmentName }}</option>
+                                @endforeach
+                            </x-ui.select>
+                            <x-ui.button size="sm" icon="heroicon-o-plus" wire:click="addBrand" wire:loading.attr="disabled" wire:target="addBrand">Add</x-ui.button>
+                        </div>
+                        @foreach (['newBrandId', 'newBrandRole', 'newDepartmentId'] as $field)
+                            @error($field) <p class="lq-error">{{ $message }}</p> @enderror
+                        @endforeach
+                    </div>
                 @endif
             </x-ui.card>
         @endif
@@ -121,4 +185,6 @@
             <x-ui.button type="submit" variant="primary" wire:loading.attr="disabled">{{ $account ? 'Save changes' : 'Add person' }}</x-ui.button>
         </div>
     </form>
+
+    <x-ui.confirm :confirm="$confirm" />
 </div>
