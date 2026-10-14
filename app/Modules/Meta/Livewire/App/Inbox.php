@@ -94,7 +94,7 @@ final class Inbox extends Component
         }
 
         if (! $this->user()->can('assign', $lead)) {
-            $this->toastWarning('Only a Manager or an Admin can assign a lead');
+            $this->toastWarning('You cannot assign this lead', 'Only an Admin, or the Manager of the lead\x27s department, can give it to someone.');
 
             return;
         }
@@ -162,8 +162,8 @@ final class Inbox extends Component
         $agent = null;
 
         if ($agentId !== '') {
-            abort_unless(array_key_exists((int) $agentId, app(AssignableAgents::class)->for($user, $this->brand)), 403);
-            $agent = User::query()->findOrFail((int) $agentId);
+            // Somebody of the lead's department, as in the assign menu everywhere else.
+            $agent = app(AssignableAgents::class)->find($user, $this->brand, (int) $agentId, $lead->department_id) ?? abort(403);
         }
 
         if ($lead->assigned_to === $agent?->getKey()) {

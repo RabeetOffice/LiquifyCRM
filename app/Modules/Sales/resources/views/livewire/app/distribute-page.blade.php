@@ -60,7 +60,7 @@
                         $upsell = $item->isUpsell();
                         $what = $upsell ? 'client' : 'lead';
                     @endphp
-                    <li class="lq-rank" wire:key="sharing-{{ $item->getKey() }}">
+                    <li class="lq-rank lq-rank-wrap" wire:key="sharing-{{ $item->getKey() }}">
                         <span @class(['lq-logo-tile lq-logo-sm', 'lq-logo-web' => $on])>
                             @if ($on)
                                 <x-heroicon-o-arrow-path-rounded-square />
@@ -83,6 +83,8 @@
                                 @endif
                             </span>
                         </span>
+                        {{-- On a phone the actions go under the department's name and words. --}}
+                        <div class="lq-rank-actions">
                         @if ($upsell && $row['waiting'] > 0)
                             <x-ui.button size="sm" variant="ghost" :href="route('brand.clients.index', ['brand' => $brand->slug, 'view' => 'waiting'])">See the {{ $row['waiting'] }} waiting</x-ui.button>
                         @elseif ($on && $row['waiting'] > 0 && $row['agents'] > 0)
@@ -92,6 +94,7 @@
                             @foreach ($modes as $mode)
                                 <button type="button" role="radio" aria-checked="{{ $item->assignment_mode === $mode ? 'true' : 'false' }}" title="{{ $mode->getDescription() }}" wire:click="setSharing({{ $item->getKey() }}, '{{ $mode->value }}')" @class(['lq-tab', 'lq-tab-active' => $item->assignment_mode === $mode])>{{ $mode->getLabel() }}</button>
                             @endforeach
+                        </div>
                         </div>
                     </li>
                 @endforeach

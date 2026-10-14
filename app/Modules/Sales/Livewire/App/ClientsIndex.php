@@ -174,11 +174,41 @@ final class ClientsIndex extends Component
             ->orderBy($column, $direction)
             ->paginate($this->perPage);
 
+        // Front sales must not see what Upsell sells: on a client this person is not on, the money, the sales and
+        // the upsells shown are only what their own team sold, as on the client's own page. Admins and the client's
+        // team see everything.
+        $careIds = $user->isGlobalAdmin() ? null : ($ready ? $scope()->inCareOf($user)->toBase()->pluck('clients.id')->map(fn (mixed $id): int => (int) $id)->all() : []);
+        $ownSales = fn (array $ids) => $ids === [] ? collect() : Sale::query()->visibleTo($user)->whereIn('client_id', $ids)
+            ->selectRaw('client_id, COALESCE(SUM(amount), 0) as value, COUNT(*) as sales')->groupBy('client_id')->get()->keyBy('client_id');
+
         $totals = $scope()->toBase()
+            ->when($careIds !== null, fn ($query) => $query->whereIn('clients.id', $careIds === [] ? [0] : $careIds))
             ->selectRaw('COUNT(*) as clients, COALESCE(SUM(lifetime_value), 0) as value, COALESCE(MAX(lifetime_value), 0) as top, COALESCE(SUM(CASE WHEN sales_count > 1 THEN 1 ELSE 0 END), 0) as came_back')
             ->first();
 
         $count = (int) ($totals->clients ?? 0);
+        $shown = [];
+
+        if ($careIds !== null) {
+            $all = $scope()->toBase()->pluck('clients.id')->map(fn (mixed $id): int => (int) $id)->all();
+            $others = $ownSales(array_values(array_diff($all, $careIds)));
+            $count = count($all);
+            $totals = (object) [
+                'clients' => $count,
+                'value' => (float) ($totals->value ?? 0) + (float) $others->sum('value'),
+                'top' => max((float) ($totals->top ?? 0), (float) ($others->max('value') ?? 0)),
+                'came_back' => (int) ($totals->came_back ?? 0) + $others->filter(fn ($row): bool => (int) $row->sales > 1)->count(),
+            ];
+
+            // The rows of this page that are not theirs show their own team's part.
+            $notTheirs = array_values(array_diff(collect($clients->items())->map(fn (Client $client): int => (int) $client->getKey())->all(), $careIds));
+            $onPage = ($ownSales)($notTheirs);
+
+            foreach ($notTheirs as $clientId) {
+                $row = $onPage->get($clientId);
+                $shown[$clientId] = ['value' => (float) ($row->value ?? 0), 'sales' => (int) ($row->sales ?? 0)];
+            }
+        }
 
         return view('sales::livewire.app.clients-index', [
             'ready' => $ready,
@@ -190,8 +220,10 @@ final class ClientsIndex extends Component
                 'average' => $count > 0 ? (float) $totals->value / $count : 0.0,
                 'returning' => (int) ($totals->came_back ?? 0),
                 'top' => (float) ($totals->top ?? 0),
-                'upsell' => $ready ? (float) Sale::query()->where('kind', SaleKind::Upsell->value)->whereIn('client_id', $scope()->select('clients.id'))->sum('amount') : 0.0,
+                'upsell' => $ready ? (float) Sale::query()->where('kind', SaleKind::Upsell->value)->whereIn('client_id', $careIds === null ? $scope()->select('clients.id') : ($careIds === [] ? [0] : $careIds))->sum('amount') : 0.0,
             ],
+            // client id => what this person may see of a client they are not on
+            'shown' => $shown,
             'tabs' => $tabs,
             'tab' => $tab,
             'counts' => $ready ? [

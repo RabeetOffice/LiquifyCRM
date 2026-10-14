@@ -200,6 +200,8 @@ final class LogsPage extends Component
 
     public function deleteLogs(): void
     {
+        $this->ensureConfirmed();
+
         abort_unless($this->user()->isGlobalAdmin(), 403);
 
         // Checked again: the confirm dialog must not be a way around the 7-day rule.

@@ -240,7 +240,8 @@
                                                 </div>
                                             </div>
                                             <div class="lq-story-money">
-                                                @if ($sale->lead_id && ! $upsell)
+                                                {{-- The lead behind the sale opens only for someone who may see it (an Upsell team may not see front sales' lead). --}}
+                                                @if ($sale->lead_id && ! $upsell && $leads->contains('id', $sale->lead_id))
                                                     <a class="lq-story-amount" href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $sale->lead_id]) }}" title="Open the lead this sale came from" wire:navigate>{{ Money::format($sale->amount, $sale->currency) }}</a>
                                                 @else
                                                     <span class="lq-story-amount">{{ Money::format($sale->amount, $sale->currency) }}</span>

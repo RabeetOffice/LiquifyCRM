@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Support\Audit;
@@ -195,14 +196,22 @@ final class LeadsIndex extends Component
     {
         $this->validate(['bulkAssignTo' => ['required', 'integer']]);
 
-        $agent = User::query()->findOrFail((int) $this->bulkAssignTo);
+        $agentId = (int) $this->bulkAssignTo;
+        abort_unless(array_key_exists($agentId, app(AssignableAgents::class)->for($this->user(), $this->brand)), 403);
+        $agent = User::query()->findOrFail($agentId);
         $done = 0;
+        $skipped = 0;
 
         foreach ($this->selectedLeads() as $lead) {
-            if ($this->user()->can('assign', $lead)) {
-                app(AssignLead::class)->handle($lead, $agent, $this->user());
-                $done++;
+            // The same rule as one lead's assign menu: a lead in a department goes to somebody of that department.
+            if (! $this->user()->can('assign', $lead) || app(AssignableAgents::class)->find($this->user(), $this->brand, $agentId, $lead->department_id) === null) {
+                $skipped++;
+
+                continue;
             }
+
+            app(AssignLead::class)->handle($lead, $agent, $this->user());
+            $done++;
         }
 
         if ($done > 1) {
@@ -211,13 +220,14 @@ final class LeadsIndex extends Component
 
         $this->showBulkAssign = false;
         $this->selected = [];
-        $this->toastSuccess("{$done} ".str('lead')->plural($done).' assigned to '.$agent->name);
+        $this->toastSuccess("{$done} ".str('lead')->plural($done).' assigned to '.$agent->name, $skipped > 0 ? $skipped.' '.str('lead')->plural($skipped).' left as they were: '.($skipped === 1 ? 'it is' : 'they are').' in a department '.$agent->name.' does not work in.' : null);
     }
 
     public function bulkSend(): void
     {
         $this->authorize('distribute', Lead::class);
         $this->validate(['bulkSendTo' => ['required', 'integer']]);
+        abort_unless(array_key_exists((int) $this->bulkSendTo, $this->sendOptions()), 403);
 
         $department = Department::query()->findOrFail((int) $this->bulkSendTo);
         $leads = $this->selectedLeads();
@@ -316,10 +326,12 @@ final class LeadsIndex extends Component
         return view('leads::livewire.app.leads-index', [
             'leads' => $leads,
             'agent' => $agent,
+            'isAdmin' => $user->isGlobalAdmin(),
             'tabs' => $this->tabs($visible, $agent),
             'statuses' => $statuses,
             'sources' => LeadSource::cases(),
             'departmentOptions' => $departmentOptions,
+            'sendOptions' => $this->sendOptions(),
             'agentOptions' => $agentOptions,
             'chips' => $chips,
             'previewLead' => $this->previewLead($user),
@@ -386,7 +398,7 @@ final class LeadsIndex extends Component
         };
 
         $query
-            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)))
+            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
             ->when($this->status !== '', fn (Builder $q): Builder => $q->where('status_id', (int) $this->status))
             ->when($this->source !== '', fn (Builder $q): Builder => $q->where('source_type', $this->source))
             ->when($this->department !== '', fn (Builder $q): Builder => $q->where('department_id', (int) $this->department))
@@ -471,6 +483,18 @@ final class LeadsIndex extends Component
         return $query->pluck('name', 'id')->all();
     }
 
+    /**
+     * Where leads can be sent: the same departments, without the Upsell teams (they look after clients, not leads).
+     *
+     * @return array<int, string>
+     */
+    private function sendOptions(): array
+    {
+        $upsell = Department::query()->whereKey(array_keys($this->departmentOptions()))->get()->filter(fn (Department $department): bool => $department->isUpsell())->modelKeys();
+
+        return array_diff_key($this->departmentOptions(), array_flip($upsell));
+    }
+
     private function isAgent(): bool
     {
         $user = $this->user();
@@ -484,5 +508,24 @@ final class LeadsIndex extends Component
         $user = auth()->user();
 
         return $user;
+    }
+
+    /**
+     * Email and phone are searched by any part for those who see them in full;
+     * for somebody who sees them masked (an Agent) only the whole address or
+     * number matches, so typed fragments cannot uncover a masked contact.
+     *
+     * @param  Builder<Lead>  $query
+     * @return Builder<Lead>
+     */
+    private function searchContacts(Builder $query): Builder
+    {
+        $user = auth()->user();
+        $full = $user instanceof User && ($user->isGlobalAdmin() || $user->can(Permission::LeadsRevealContact->value));
+        $term = trim($this->search);
+
+        return $full
+            ? $query->orWhere('email', 'like', '%'.$term.'%')->orWhere('phone', 'like', '%'.$term.'%')
+            : $query->orWhere('email', mb_strtolower($term))->orWhere('phone', $term);
     }
 }

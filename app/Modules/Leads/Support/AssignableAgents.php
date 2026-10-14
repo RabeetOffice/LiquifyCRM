@@ -19,7 +19,8 @@ final class AssignableAgents
     /** @return array<int, string> */
     public function for(User $user, Brand $brand): array
     {
-        return $this->query($user, $brand)->pluck('name', 'id')->all();
+        // The same people as the assign menu: somebody who only works clients is not given leads.
+        return collect($this->people($user, $brand))->pluck('name', 'id')->all();
     }
 
     /**

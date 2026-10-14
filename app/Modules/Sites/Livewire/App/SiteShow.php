@@ -210,6 +210,8 @@ final class SiteShow extends Component
 
     public function newSecret(): void
     {
+        $this->ensureConfirmed();
+
         $this->authorize('update', $this->site);
 
         $this->site->update(['secret' => Site::generateSecret()]);
@@ -228,6 +230,8 @@ final class SiteShow extends Component
 
     public function delete(): void
     {
+        $this->ensureConfirmed();
+
         $this->authorize('delete', $this->site);
 
         $this->site->delete();

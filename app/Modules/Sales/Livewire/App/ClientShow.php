@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use InvalidArgumentException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -118,6 +119,8 @@ final class ClientShow extends Component
 
     public function remove(int $saleId): void
     {
+        $this->ensureConfirmed();
+
         $sale = $this->sale($saleId);
         $this->authorize('delete', $sale);
 
@@ -188,6 +191,7 @@ final class ClientShow extends Component
     public function openHandOver(): void
     {
         abort_unless($this->user()->can('handOver', $this->client) || $this->user()->can('assign', $this->client), 403);
+        abort_if($this->client->isClosed(), 422, 'Reopen this client first.');
 
         $this->handTo = $this->client->department_id !== null
             ? $this->client->department_id.($this->client->owner_id !== null ? ':'.$this->client->owner_id : '')
@@ -341,7 +345,8 @@ final class ClientShow extends Component
 
     public bool $noteSecret = false;
 
-    /** @var list<int> hidden texts this person asked to see */
+    /** @var list<int> hidden texts this person asked to see; only reveal() adds one, and it writes who looked */
+    #[Locked]
     public array $revealed = [];
 
     public function openNote(?int $noteId = null): void
@@ -481,7 +486,10 @@ final class ClientShow extends Component
                 ->orWhere(fn (Builder $onLead): Builder => $onLead->where('fileable_type', (new Lead)->getMorphClass())->whereIn('fileable_id', $leads->pluck('id')))))
             ->with('uploader')
             ->latest('id')
-            ->get();
+            ->get()
+            // Every file listed opens: the same rule as the file link itself.
+            ->filter(fn (ClientFile $file): bool => $user->can('viewFile', [$this->client, $file]))
+            ->values();
 
         $upsells = $sales->filter(fn (Sale $sale): bool => $sale->isUpsell());
         $team = $ready && $this->client->department !== null ? CareTeams::people($this->client->department) : new Collection;
@@ -509,7 +517,8 @@ final class ClientShow extends Component
             'can' => [
                 'correct' => $user->isGlobalAdmin(),
                 'upsell' => $ready && $user->can('recordUpsell', $this->client),
-                'handOver' => $ready && ($user->can('handOver', $this->client) || $user->can('assign', $this->client)),
+                // A closed client is reopened first, as everywhere else.
+                'handOver' => $ready && ! $this->client->isClosed() && ($user->can('handOver', $this->client) || $user->can('assign', $this->client)),
                 'share' => $ready && $this->client->isHandedOver() && $user->can('share', $this->client),
                 'close' => $ready && ! $this->client->isClosed() && $user->can('close', $this->client),
                 'reopen' => $ready && $this->client->isClosed() && $user->can('reopen', $this->client),

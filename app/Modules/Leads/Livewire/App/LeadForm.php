@@ -6,14 +6,13 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\AssignableAgents;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -67,6 +66,12 @@ final class LeadForm extends Component
         $departmentId = filled($data['department']) && $user->isGlobalAdmin() ? (int) $data['department'] : null;
         $assignTo = filled($data['assignTo']) ? (int) $data['assignTo'] : null;
 
+        if ($departmentId !== null && Department::query()->forBrand($this->brand)->find($departmentId)?->isUpsell() !== false) {
+            $this->addError('department', 'Choose a sales department: an Upsell team looks after clients, not new leads.');
+
+            return;
+        }
+
         if ($assignTo !== null && ! array_key_exists($assignTo, $this->agentOptions($departmentId))) {
             $this->addError('assignTo', 'Choose one of the Agents listed.');
 
@@ -79,18 +84,44 @@ final class LeadForm extends Component
             'phone' => $data['phone'] ?: null,
             'message' => $data['message'] ?: null,
             'fields' => filled($data['service']) ? ['service' => $data['service']] : null,
-            'department_id' => $departmentId ?? ($assignTo !== null ? (User::query()->find($assignTo)?->departmentIds($this->brand)[0] ?? null) : ($user->isManagerIn($this->brand) ? ($user->managedDepartmentIds($this->brand)[0] ?? null) : null)),
+            'department_id' => $departmentId ?? $this->departmentFor($user, $assignTo),
             'assigned_to' => $assignTo,
             'source_type' => LeadSource::Manual,
         ], $user);
 
+        // The enquiry may have joined a lead this person cannot open (another team's): say so without its name, and stay on the list.
+        $canOpen = $user->can('view', $result->lead);
+
         if ($result->wasMerged) {
-            $this->toast('Added to an existing lead', $result->lead->name.' was already in this brand, so this enquiry went to their timeline.', 'info');
+            $this->toast('Added to an existing lead', $canOpen
+                ? $result->lead->name.' was already in this brand, so this enquiry went to their timeline.'
+                : 'This person was already a lead of this brand that another team works, so the enquiry went to that lead.', 'info');
         } else {
             $this->toastSuccess('Lead added');
         }
 
-        $this->redirectRoute('brand.leads.show', ['brand' => $this->brand->slug, 'lead' => $result->lead], navigate: true);
+        $canOpen
+            ? $this->redirectRoute('brand.leads.show', ['brand' => $this->brand->slug, 'lead' => $result->lead], navigate: true)
+            : $this->redirectRoute('brand.leads.index', ['brand' => $this->brand->slug], navigate: true);
+    }
+
+    /**
+     * The department a new lead goes to when none was chosen: the Agent's own
+     * front-sales department (for a Manager, one they run), or the Manager's
+     * first department. Never an Upsell team, which works clients, not leads.
+     */
+    private function departmentFor(User $user, ?int $assignTo): ?int
+    {
+        $managed = $user->isGlobalAdmin() ? null : $user->managedDepartmentIds($this->brand);
+        $ids = $assignTo !== null ? (User::query()->find($assignTo)?->departmentIds($this->brand) ?? []) : ($managed ?? []);
+
+        if ($assignTo !== null && $managed !== null) {
+            $ids = array_values(array_intersect($ids, $managed));
+        }
+
+        $department = Department::query()->forBrand($this->brand)->whereKey($ids)->orderBy('name')->get()->first(fn (Department $department): bool => ! $department->isUpsell());
+
+        return $department !== null ? (int) $department->getKey() : null;
     }
 
     public function render(): View
@@ -100,7 +131,8 @@ final class LeadForm extends Component
         return view('leads::livewire.app.lead-form', [
             'canRoute' => $user->isGlobalAdmin() || $user->isManagerIn($this->brand),
             'isAdmin' => $user->isGlobalAdmin(),
-            'departmentOptions' => Department::query()->orderBy('name')->pluck('name', 'id')->all(),
+            // Upsell teams look after clients: a new lead goes to a sales department.
+            'departmentOptions' => Department::query()->orderBy('name')->get()->reject(fn (Department $department): bool => $department->isUpsell())->pluck('name', 'id')->all(),
             'agentOptions' => $this->agentOptions($this->department !== '' ? (int) $this->department : null),
         ]);
     }
@@ -108,21 +140,16 @@ final class LeadForm extends Component
     /** @return array<int, string> */
     private function agentOptions(?int $departmentId): array
     {
-        $user = $this->user();
+        // The people the assign menu offers (never somebody who only works clients), narrowed to the chosen department.
+        $agents = app(AssignableAgents::class)->for($this->user(), $this->brand);
 
-        $query = User::query()
-            ->whereHas('memberships', fn (Builder $query): Builder => $query->acrossBrands()->where('brand_id', $this->brand->getKey())->where('role', BrandRole::Agent->value)->where('status', 'active'))
-            ->orderBy('name');
-
-        $departmentIds = $departmentId !== null
-            ? [$departmentId]
-            : ($user->isGlobalAdmin() ? null : $user->managedDepartmentIds($this->brand));
-
-        if ($departmentIds !== null) {
-            $query->whereHas('departments', fn (Builder $query): Builder => $query->acrossBrands()->whereIn('departments.id', $departmentIds));
+        if ($departmentId === null) {
+            return $agents;
         }
 
-        return $query->pluck('name', 'id')->all();
+        $inDepartment = Department::query()->forBrand($this->brand)->find($departmentId)?->users()->pluck('users.id')->map(fn (mixed $id): int => (int) $id)->all() ?? [];
+
+        return array_filter($agents, fn (int $id): bool => in_array($id, $inDepartment, true), ARRAY_FILTER_USE_KEY);
     }
 
     private function user(): User

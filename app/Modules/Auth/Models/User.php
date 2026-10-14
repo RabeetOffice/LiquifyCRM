@@ -198,15 +198,29 @@ class User extends Authenticatable
         return $this->brandRole($brand) === BrandRole::Agent;
     }
 
-    /** Plain-words role for the sidebar and profile. */
+    /**
+     * Plain-words role for the sidebar and profile: the role in that brand,
+     * or, outside a brand, every role the person has ("Manager and Agent"
+     * for somebody who is a Manager in one brand and an Agent in another).
+     */
     public function roleLabelIn(?Brand $brand = null): string
     {
         return match (true) {
             $this->isSuperAdmin() => 'Super Admin',
             $this->isAdmin() => 'Administrator',
             $brand !== null => $this->brandRole($brand)?->getLabel() ?? 'Member',
-            default => 'Member',
+            default => $this->brandRolesLabel(),
         };
+    }
+
+    private function brandRolesLabel(): string
+    {
+        $roles = $this->memberships()->acrossBrands()->where('status', MembershipStatus::Active->value)->pluck('role')
+            ->map(fn (mixed $role): string => $role instanceof BrandRole ? $role->value : (string) $role);
+
+        $labels = collect(BrandRole::cases())->filter(fn (BrandRole $role): bool => $roles->contains($role->value))->map(fn (BrandRole $role): string => $role->getLabel());
+
+        return $labels->isEmpty() ? 'Member' : $labels->join(', ', ' and ');
     }
 
     // ------------------------------------------------------------- departments

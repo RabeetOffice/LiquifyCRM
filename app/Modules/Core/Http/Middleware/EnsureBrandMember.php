@@ -38,6 +38,11 @@ final class EnsureBrandMember
 
         app(CurrentBrand::class)->set($brand);
 
+        // Their profile and other screens outside a brand show the menu of the brand they were last in.
+        if (! $user->isGlobalAdmin() && $request->hasSession()) {
+            $request->session()->put('last_brand_id', (int) $brand->getKey());
+        }
+
         return $next($request);
     }
 }

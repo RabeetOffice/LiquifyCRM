@@ -30,6 +30,10 @@ final class HandOverClient
 {
     public function handle(Client $client, Department $department, ?User $owner, User $by): Client
     {
+        if ($client->isClosed()) {
+            throw new InvalidArgumentException('This client is closed. Reopen them before giving them to someone.');
+        }
+
         if ((int) $department->brand_id !== (int) $client->brand_id || ! $department->isUpsell()) {
             throw new InvalidArgumentException('A client is handed to an Upsell department of the same brand.');
         }
@@ -53,6 +57,14 @@ final class HandOverClient
 
             if ($owner !== null) {
                 $client->helpers()->detach($owner->getKey());
+            }
+
+            // Moved to another team: the old team's helpers leave it (a helper works on clients of their own team).
+            $stay = $department->users()->pluck('users.id')->all();
+            $leaving = $client->helpers()->pluck('users.id')->reject(fn (mixed $id): bool => in_array($id, $stay, false))->all();
+
+            if ($leaving !== []) {
+                $client->helpers()->detach($leaving);
             }
 
             $text = 'Client handed to '.$department->name.($owner !== null ? ': '.$owner->name : '');

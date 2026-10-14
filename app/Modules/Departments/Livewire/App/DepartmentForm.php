@@ -67,6 +67,9 @@ final class DepartmentForm extends Component
 
     public function save(): void
     {
+        // Checked again on every save, not only when the page opened: access can be taken away in between.
+        $this->department !== null ? $this->authorize('update', $this->department) : $this->authorize('create', Department::class);
+
         $data = $this->validate([
             'name' => ['required', 'string', 'max:120', Rule::unique('departments', 'name')->where('brand_id', $this->brand->getKey())->ignore($this->department?->getKey())],
             'color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
@@ -115,6 +118,12 @@ final class DepartmentForm extends Component
         abort_unless($user->isMemberOf($this->brand), 403);
 
         $role = DepartmentRole::from($this->newMemberRole);
+
+        if (($refusal = $this->seatRefusal($user, $role)) !== null) {
+            $this->addError('newMemberRole', $refusal);
+
+            return;
+        }
         $department->addMember($user, $role, auth()->user());
 
         Audit::log('departments.member_added', $department, ['user_id' => $user->getKey(), 'role' => $role->value], "Added {$user->name} to {$department->name}", logName: 'departments');
@@ -129,7 +138,17 @@ final class DepartmentForm extends Component
         $this->authorize('manageMembers', $department);
 
         $user = User::query()->findOrFail($userId);
-        $department->addMember($user, DepartmentRole::from($role), auth()->user());
+        $newRole = DepartmentRole::tryFrom($role) ?? abort(422);
+        // Only somebody already in this department, and a Manager seat only for a Manager of the brand.
+        abort_unless($department->hasMember($user), 404);
+
+        if (($refusal = $this->seatRefusal($user, $newRole)) !== null) {
+            $this->toastWarning('Not changed', $refusal);
+
+            return;
+        }
+
+        $department->addMember($user, $newRole, auth()->user());
 
         Audit::log('departments.member_role_changed', $department, ['user_id' => $userId, 'role' => $role], "{$user->name} is now ".DepartmentRole::from($role)->getLabel()." in {$department->name}", logName: 'departments');
 
@@ -138,7 +157,11 @@ final class DepartmentForm extends Component
 
     public function confirmRemoveMember(int $userId): void
     {
+        $department = $this->requireDepartment();
+        $this->authorize('manageMembers', $department);
+
         $user = User::query()->findOrFail($userId);
+        abort_unless($department->hasMember($user), 404);
 
         $this->askConfirmation('removeMember', [$userId], 'Remove '.$user->name.' from this department?', 'They stay a member of the brand.', 'Remove', 'danger');
     }
@@ -154,6 +177,20 @@ final class DepartmentForm extends Component
         Audit::log('departments.member_removed', $department, ['user_id' => $userId], "Removed {$user->name} from {$department->name}", logName: 'departments');
 
         $this->toastSuccess($user->name.' removed from '.$department->name);
+    }
+
+    /**
+     * A department's seat follows the person's role in the brand: only a
+     * Manager of the brand leads a department (an Agent with a Manager seat
+     * would be told of leads they cannot open, and left out of round robin).
+     */
+    private function seatRefusal(User $user, DepartmentRole $role): ?string
+    {
+        if ($role === DepartmentRole::Manager && ! $user->isGlobalAdmin() && ! $user->isManagerIn($this->brand)) {
+            return $user->name.' is an Agent in '.$this->brand->name.'. To lead a department they must be a Manager of the brand first (Members screen).';
+        }
+
+        return null;
     }
 
     public function render(): View

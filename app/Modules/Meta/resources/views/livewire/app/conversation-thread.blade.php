@@ -25,8 +25,12 @@
         @endif
         {{-- On a screen too narrow for the lead beside the chat, its two actions sit here. --}}
         @if ($inbox)
-            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-assign')" title="Assign this chat"><x-heroicon-o-user-plus /></button>
-            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-details')" title="Edit details"><x-heroicon-o-pencil-square /></button>
+            @if ($canAssign)
+                <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-assign')" title="Assign this chat"><x-heroicon-o-user-plus /></button>
+            @endif
+            @if ($canReply)
+                <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" x-data x-on:click="$dispatch('inbox-details')" title="Edit details"><x-heroicon-o-pencil-square /></button>
+            @endif
         @endif
         @if ($leadUrl)
             <a href="{{ $leadUrl }}" class="lq-btn lq-btn-ghost lq-btn-icon lq-thread-leadlink" title="Open lead" wire:navigate><x-heroicon-o-arrow-top-right-on-square /></a>

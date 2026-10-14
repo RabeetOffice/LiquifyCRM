@@ -223,8 +223,9 @@ it('records every upsell under the name of whoever sold it and builds the story'
         ->and(SalesReport::forPerson($this->brand, $this->seller, $month)->totals()['revenue'])->toBe(1500.0)
         ->and(SalesReport::forAdmin($month, (int) $this->brand->getKey())->totals())->toMatchArray(['revenue' => 2420.0, 'count' => 3, 'upsells' => 2, 'upsell_revenue' => 920.0]);
 
-    // The project manager is not on this client, so cannot open it or sell on it.
-    $this->actingAs($this->projectManager)->get('/b/ukph/clients/'.$client->getKey())->assertForbidden();
+    // The project manager sold to this client, so they now work on it (a helper): the "Open client" they were sent opens.
+    expect($client->helpers()->where('users.id', $this->projectManager->getKey())->exists())->toBeTrue();
+    $this->actingAs($this->projectManager)->get('/b/ukph/clients/'.$client->getKey())->assertOk();
 });
 
 it('lets the people added to a client work on it under their own name', function (): void {

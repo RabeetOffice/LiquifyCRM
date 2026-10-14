@@ -76,6 +76,8 @@ final class UpdatesPage extends Component
 
     public function runUpdate(bool $withoutBackup = false): void
     {
+        $this->ensureConfirmed();
+
         abort_unless($this->user()->isGlobalAdmin(), 403);
 
         $deployment = app(SystemUpdater::class)->run($this->user(), $withoutBackup);

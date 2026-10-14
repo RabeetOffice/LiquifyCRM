@@ -7,7 +7,6 @@ namespace App\Modules\Core\Livewire;
 use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Core\Support\SetupChecklist;
 use App\Modules\Leads\Actions\AssignLead;
@@ -16,6 +15,7 @@ use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
+use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
@@ -57,7 +57,8 @@ final class BrandDashboard extends Component
         $lead = Lead::query()->findOrFail($leadId);
         $this->authorize('assign', $lead);
 
-        $agent = User::query()->findOrFail($agentId);
+        // The same rule as the assign menu: somebody of the lead's department, never somebody who only works clients.
+        $agent = app(AssignableAgents::class)->find($this->user(), $this->brand, $agentId, $lead->department_id) ?? abort(403);
         $previous = $lead->assigned_to;
 
         app(AssignLead::class)->handle($lead, $agent, $this->user());
@@ -175,17 +176,7 @@ final class BrandDashboard extends Component
     /** @return array<int, string> */
     private function agentOptions(): array
     {
-        $user = $this->user();
-
-        $query = User::query()
-            ->whereHas('memberships', fn (Builder $query): Builder => $query->acrossBrands()->where('brand_id', $this->brand->getKey())->where('role', BrandRole::Agent->value)->where('status', 'active'))
-            ->orderBy('name');
-
-        if (! $user->isGlobalAdmin()) {
-            $query->whereHas('departments', fn (Builder $query): Builder => $query->acrossBrands()->whereIn('departments.id', $user->managedDepartmentIds($this->brand)));
-        }
-
-        return $query->pluck('name', 'id')->all();
+        return app(AssignableAgents::class)->for($this->user(), $this->brand);
     }
 
     /** @return array{text: string, up: ?bool}|null */

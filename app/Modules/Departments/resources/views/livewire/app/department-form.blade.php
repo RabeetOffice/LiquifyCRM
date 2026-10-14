@@ -46,7 +46,8 @@
                                     @if ($canManageMembers)
                                         <select class="lq-input lq-input-sm" style="width: 8.5rem" aria-label="Role of {{ $person->name }}" wire:change="changeRole({{ $person->getKey() }}, $event.target.value)">
                                             @foreach ($roles as $role)
-                                                <option value="{{ $role->value }}" @selected($held === $role)>{{ $role->getLabel() }}</option>
+                                                {{-- Only a Manager of the brand can lead a department. --}}
+                                                <option value="{{ $role->value }}" @selected($held === $role) @disabled($role === \App\Modules\Core\Enums\DepartmentRole::Manager && $held !== $role && ! $person->isManagerIn($brand))>{{ $role->getLabel() }}</option>
                                             @endforeach
                                         </select>
                                         <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmRemoveMember({{ $person->getKey() }})" title="Remove from department" aria-label="Remove {{ $person->name }} from the department"><x-heroicon-o-x-mark /></button>

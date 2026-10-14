@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Enums\Permission;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Livewire\Concerns\PreviewsLead;
@@ -100,7 +101,7 @@ final class Pipeline extends Component
 
         $leads = Lead::query()
             ->visibleTo($user)
-            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)))
+            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
             ->when(! $agent && $this->owner === 'none', fn (Builder $q): Builder => $q->whereNull('assigned_to'))
             ->when(! $agent && ctype_digit($this->owner), fn (Builder $q): Builder => $q->where('assigned_to', (int) $this->owner))
             ->with(['assignee', 'department'])
@@ -139,5 +140,24 @@ final class Pipeline extends Component
         $user = auth()->user();
 
         return $user;
+    }
+
+    /**
+     * Email and phone are searched by any part for those who see them in full;
+     * for somebody who sees them masked (an Agent) only the whole address or
+     * number matches, so typed fragments cannot uncover a masked contact.
+     *
+     * @param  Builder<Lead>  $query
+     * @return Builder<Lead>
+     */
+    private function searchContacts(Builder $query): Builder
+    {
+        $user = auth()->user();
+        $full = $user instanceof User && ($user->isGlobalAdmin() || $user->can(Permission::LeadsRevealContact->value));
+        $term = trim($this->search);
+
+        return $full
+            ? $query->orWhere('email', 'like', '%'.$term.'%')->orWhere('phone', 'like', '%'.$term.'%')
+            : $query->orWhere('email', mb_strtolower($term))->orWhere('phone', $term);
     }
 }

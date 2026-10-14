@@ -28,7 +28,11 @@
                             @if ($task->lead)
                                 <span class="lq-task-lead">
                                     <x-ui.avatar :name="$task->lead->name" size="xs" tone />
-                                    <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $task->lead]) }}" class="lq-link" wire:navigate>{{ $task->lead->name }}</a>
+                                    @can('view', $task->lead)
+                                        <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $task->lead]) }}" class="lq-link" wire:navigate>{{ $task->lead->name }}</a>
+                                    @else
+                                        <span>{{ $task->lead->name }}</span>
+                                    @endcan
                                     <x-ui.status-pill :status="$task->lead->status" />
                                 </span>
                             @endif

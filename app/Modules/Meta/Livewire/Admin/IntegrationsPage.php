@@ -163,6 +163,8 @@ final class IntegrationsPage extends Component
 
     public function disconnect(): void
     {
+        $this->ensureConfirmed();
+
         $this->authorize(Permission::MetaManage->value);
 
         foreach (MetaSource::query()->get() as $page) {

@@ -91,6 +91,8 @@ final class PeopleIndex extends Component
 
     public function delete(int $userId): void
     {
+        $this->ensureConfirmed();
+
         $user = User::query()->findOrFail($userId);
         $this->authorize('delete', $user);
 

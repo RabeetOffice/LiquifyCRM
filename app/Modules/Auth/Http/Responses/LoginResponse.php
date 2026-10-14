@@ -31,6 +31,11 @@ final class LoginResponse implements LoginResponseContract, TwoFactorLoginRespon
             return redirect()->intended(route('admin.brands.index'));
         }
 
+        // Somebody with no brand left who signed in to accept an invitation goes back to it.
+        if ($brand === null && str_contains((string) $request->session()->get('url.intended'), '/invite/')) {
+            return redirect()->intended('/');
+        }
+
         if ($brand === null) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();

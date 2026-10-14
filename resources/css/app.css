@@ -2948,6 +2948,30 @@ button.lq-rank:hover {
     background: var(--lq-raised);
 }
 
+/* A row's buttons and switches; on a phone they go under the words (Distribute › how each department shares). */
+.lq-rank-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 639px) {
+    .lq-rank-wrap {
+        flex-wrap: wrap;
+    }
+
+    .lq-rank-wrap > .min-w-0 {
+        flex: 1 1 calc(100% - 3.5rem);
+    }
+
+    .lq-rank-wrap > .lq-rank-actions {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        padding-inline-start: 3rem;
+    }
+}
+
 .lq-rank-place {
     flex: none;
     width: 1.5rem;
@@ -4701,6 +4725,19 @@ a.lq-stat-hero:hover {
 
 .lq-changes .lq-badge {
     justify-self: start;
+}
+
+/* The words of the update card keep a readable width; on a phone the button goes under them. */
+.lq-update-body {
+    min-width: 0;
+    flex: 1 1 14rem;
+}
+
+@media (max-width: 639px) {
+    .lq-changes li {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.25rem;
+    }
 }
 
 /* ==========================================================================

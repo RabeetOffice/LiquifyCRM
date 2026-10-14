@@ -46,6 +46,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `ChangeBrandAccess` keeps their department seats in that brand in step with the role. Managers still add people to
   their own brand, but `BrandSharing::refusal()` stops them adding (or inviting) somebody who works in another brand or
   is already in theirs. Never let a Manager's action reach a person's other brands.
+- Role audit (14 Oct 2026), rules that keep it clean: what a screen hides must also be refused on the server. A
+  method behind a password dialog starts with `ensureConfirmed()` (`WithConfirmation::$confirm` is `#[Locked]`); a
+  public property that unlocks something (`showRecoveryCodes`, `ClientShow::$revealed`) is `#[Locked]`. Every way of
+  assigning a lead goes through `AssignableAgents::find()` / `for()` (never somebody who only works clients); leads are
+  never sent to an Upsell department. A link to a record is shown only when `can('view')` would let it open. Outside a
+  brand (profile) a Manager or Agent gets the menu and search of `Menu::homeBrand()`, never the admin menu. An
+  invitation never signs in an existing account (it signs in first). On a client the viewer is not on, money and
+  sales come from `Sale::visibleTo()`, as on the client page. Re-crawl every screen per role when screens change
+  (Admin, preview Manager, preview Agent, Upsell agent login files in storage/app/private).
 - Forgotten password (user request, 12 Oct 2026): besides Fortify's emailed link, `/forgot-password/authenticator`
   (`AuthenticatorResetController`, `ResetPasswordWithAuthenticator`) takes the email, the authenticator code and a new
   password. The code is the only proof there, so keep its guards: wrong tries counted per email and per address, one

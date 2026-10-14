@@ -67,7 +67,11 @@
                                     <div class="flex items-center gap-3">
                                         <span class="h-3 w-3 flex-none rounded-full" style="background: {{ $department->color ?? 'var(--lq-orange)' }}"></span>
                                         <div class="min-w-0">
-                                            <a href="{{ route('brand.departments.edit', ['brand' => $brand->slug, 'department' => $department]) }}" class="lq-cell-title" wire:navigate>{{ $department->name }}</a>
+                                            @can('update', $department)
+                                                <a href="{{ route('brand.departments.edit', ['brand' => $brand->slug, 'department' => $department]) }}" class="lq-cell-title" wire:navigate>{{ $department->name }}</a>
+                                            @else
+                                                <span class="lq-cell-title">{{ $department->name }}</span>
+                                            @endcan
                                             @if ($department->isUpsell())
                                                 <x-ui.badge color="success">Upsell</x-ui.badge>
                                             @endif

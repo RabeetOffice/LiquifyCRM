@@ -79,6 +79,8 @@ final class ConversationThread extends Component
             // The newest 100, shown oldest first.
             'messages' => Message::query()->where('conversation_id', $conversation->getKey())->with('sender')->latest('id')->limit(100)->get()->reverse()->values(),
             'canReply' => (bool) auth()->user()?->can('reply', $conversation),
+            // The Inbox head's Assign button, for screens too narrow for the side pane: only for who may assign the lead.
+            'canAssign' => $conversation->lead !== null && (bool) auth()->user()?->can('assign', $conversation->lead),
             'leadUrl' => $this->leadUrl($conversation),
         ]);
     }

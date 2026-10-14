@@ -19,6 +19,27 @@
             </p>
         </div>
 
+        @if ($mustSignIn)
+            {{-- The link is not a password: an account that exists joins while signed in as itself. --}}
+            <div class="lq-form">
+                <p class="lq-muted">
+                    An account with <strong>{{ $invitation->email }}</strong> already exists.
+                    @if ($signedInAsOther)
+                        You are signed in as {{ auth()->user()?->email }}. Sign out, then sign in as {{ $invitation->email }} to add {{ $invitation->brand->name }} to it.
+                    @else
+                        Sign in to it, and you come back here to add {{ $invitation->brand->name }}.
+                    @endif
+                </p>
+                @if ($signedInAsOther)
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="lq-btn lq-btn-primary lq-btn-block">Sign out</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="lq-btn lq-btn-primary lq-btn-block">Sign in as {{ $invitation->email }}</a>
+                @endif
+            </div>
+        @else
         <form method="POST" action="{{ route('invitations.accept', $invitation->token) }}" class="lq-form">
             @csrf
 
@@ -60,5 +81,6 @@
 
             <p class="lq-hint lq-center">This invitation expires {{ $invitation->expires_at->diffForHumans() }}.</p>
         </form>
+        @endif
     </div>
 </x-core::guest-layout>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Brands\Livewire\App;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Actions\ChangeBrandAccess;
 use App\Modules\Brands\Actions\InviteMember;
 use App\Modules\Brands\Actions\RemoveMemberFromBrand;
 use App\Modules\Brands\Models\Brand;
@@ -115,6 +116,10 @@ final class MembersIndex extends Component
         // Someone from another brand, or already in this one, is an Admin's to place (People screen).
         $refusal = BrandSharing::refusal($this->user(), User::query()->where('email', mb_strtolower(trim($data['inviteEmail'])))->first(), $this->brand);
 
+        if ($refusal === null && ! $this->user()->isGlobalAdmin() && Invitation::query()->pending()->where('email', mb_strtolower(trim($data['inviteEmail'])))->where('invited_by', '!=', $this->user()->getKey())->exists()) {
+            $refusal = 'Somebody else has already invited this email to '.$this->brand->name.'. Ask an Admin to change that invitation.';
+        }
+
         if ($refusal !== null) {
             $this->addError('inviteEmail', $refusal);
 
@@ -138,7 +143,7 @@ final class MembersIndex extends Component
     public function resendInvitation(int $invitationId): void
     {
         $invitation = Invitation::query()->pending()->findOrFail($invitationId);
-        $this->authorize('viewAny', Invitation::class);
+        $this->authorize('view', $invitation);
 
         $invitation->forceFill(['expires_at' => now()->addDays((int) config('liquify.invitation_expiry_days'))])->save();
 
@@ -184,13 +189,12 @@ final class MembersIndex extends Component
             'editStatus' => ['required', Rule::in(array_column(MembershipStatus::cases(), 'value'))],
         ]);
 
-        $changes = ['status' => MembershipStatus::from($data['editStatus'])];
+        $membership->forceFill(['status' => MembershipStatus::from($data['editStatus'])])->save();
 
+        // Only an Admin changes the role; their seat in the brand's departments follows it, as on the People screen.
         if ($this->user()->isGlobalAdmin()) {
-            $changes['role'] = BrandRole::from($data['editRole']);
+            app(ChangeBrandAccess::class)->role($membership, BrandRole::from($data['editRole']), $this->user());
         }
-
-        $membership->forceFill($changes)->save();
 
         Audit::log('members.updated', $membership, ['user_id' => $membership->user_id, 'role' => $membership->role->value, 'status' => $membership->status->value], 'Access updated for '.($membership->user->name ?? ''), logName: 'members');
 
@@ -232,6 +236,8 @@ final class MembersIndex extends Component
 
     public function remove(int $membershipId): void
     {
+        $this->ensureConfirmed();
+
         $membership = $this->membershipQuery()->findOrFail($membershipId);
         $this->authorize('delete', $membership);
 

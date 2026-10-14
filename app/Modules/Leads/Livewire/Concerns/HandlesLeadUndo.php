@@ -5,23 +5,31 @@ declare(strict_types=1);
 namespace App\Modules\Leads\Livewire\Concerns;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Leads\Support\AssignableAgents;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 /**
  * The "Undo" button on the assign and status toasts (10 seconds) puts the
- * previous value back, through the same actions so it is logged too.
+ * previous value back, through the same actions so it is logged too, and
+ * under the same rules as doing it by hand: a lead is given only to somebody
+ * the assign menu offers, and becomes Won only through a sale. Every screen
+ * on the page listens (the list and its slide-over), so each Undo carries a
+ * token and runs once.
  */
 trait HandlesLeadUndo
 {
     use WithToasts;
 
     #[On('lead-undo')]
-    public function undoLeadChange(int $lead, string $kind, ?int $value = null): void
+    public function undoLeadChange(int $lead, string $kind, ?int $value = null, ?string $token = null): void
     {
         /** @var User $user */
         $user = auth()->user();
@@ -31,12 +39,30 @@ trait HandlesLeadUndo
             return;
         }
 
+        // The list and the open slide-over both hear the same Undo: the first one does it.
+        if ($token !== null && ! Cache::add('lead-undo:'.$token, true, 120)) {
+            return;
+        }
+
         if ($kind === 'assign' && $user->can('assign', $record)) {
-            app(AssignLead::class)->handle($record, $value ? User::query()->find($value) : null, $user);
+            $agent = null;
+
+            if ($value !== null) {
+                /** @var Brand $brand */
+                $brand = Brand::query()->findOrFail($record->brand_id);
+                $agent = app(AssignableAgents::class)->find($user, $brand, $value, $record->department_id);
+
+                if ($agent === null) {
+                    return;
+                }
+            }
+
+            app(AssignLead::class)->handle($record, $agent, $user);
         } elseif ($kind === 'status' && $value !== null) {
             $status = LeadStatus::query()->find($value);
 
-            if ($status === null) {
+            // Won is only reached by recording the sale.
+            if ($status === null || $status->is_won) {
                 return;
             }
 
@@ -51,6 +77,6 @@ trait HandlesLeadUndo
     /** @return array{event: string, params: array<string, mixed>} */
     protected function undoPayload(Lead $lead, string $kind, ?int $previous): array
     {
-        return ['event' => 'lead-undo', 'params' => ['lead' => $lead->getKey(), 'kind' => $kind, 'value' => $previous]];
+        return ['event' => 'lead-undo', 'params' => ['lead' => $lead->getKey(), 'kind' => $kind, 'value' => $previous, 'token' => (string) Str::uuid()]];
     }
 }

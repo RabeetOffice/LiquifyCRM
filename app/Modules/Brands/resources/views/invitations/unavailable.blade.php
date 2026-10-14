@@ -3,7 +3,9 @@
         <span class="lq-icon-circle"><x-heroicon-o-envelope-open class="lq-icon" /></span>
         <h1 class="lq-title">This invitation can't be used</h1>
         <p class="lq-muted">
-            @if ($invitation?->isAccepted())
+            @if (filled($reason ?? null))
+                {{ $reason }}
+            @elseif ($invitation?->isAccepted())
                 It has already been accepted. Sign in to continue.
             @elseif ($invitation?->isExpired())
                 It has expired. Ask the person who invited you to send a new one.

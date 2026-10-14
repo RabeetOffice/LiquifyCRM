@@ -315,7 +315,7 @@
 
             @if ($can['reveal'])
                 <div class="lq-reveal">
-                    <p>Contact details stay masked until you reveal them. Every reveal is logged, and your Manager sets how many you can do per hour.</p>
+                    <p>Contact details stay masked until you reveal them. Every reveal is logged, and an Admin sets how many you can do per hour.</p>
                     <x-ui.button size="sm" wire:click="reveal" icon="heroicon-o-eye">Reveal contact details</x-ui.button>
                 </div>
             @endif

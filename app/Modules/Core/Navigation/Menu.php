@@ -30,9 +30,31 @@ final class Menu
      */
     public static function for(User $user, ?Brand $brand, string $currentRoute): array
     {
-        return $brand !== null
-            ? self::brandMenu($user, $brand, $currentRoute)
-            : self::adminMenu($user, $currentRoute);
+        return match (true) {
+            $brand !== null => self::brandMenu($user, $brand, $currentRoute),
+            // The admin area's menu is for Admins only: a Manager or Agent never sees it, even without a brand.
+            $user->isGlobalAdmin() => self::adminMenu($user, $currentRoute),
+            default => [],
+        };
+    }
+
+    /**
+     * The brand whose menu a Manager or Agent gets on a screen outside any
+     * brand (their profile, security): the brand they were last in, else
+     * their first one. Admins get the admin menu there instead (null).
+     */
+    public static function homeBrand(User $user): ?Brand
+    {
+        if ($user->isGlobalAdmin()) {
+            return null;
+        }
+
+        $brands = $user->accessibleBrands();
+        $last = session('last_brand_id');
+
+        $brand = $brands->first(fn (Brand $brand): bool => (int) $brand->getKey() === (int) $last) ?? $brands->first();
+
+        return $brand instanceof Brand ? $brand : null;
     }
 
     /** @return list<MenuGroup> */

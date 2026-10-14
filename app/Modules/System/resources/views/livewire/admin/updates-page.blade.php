@@ -8,7 +8,7 @@
     @if ($available)
         <section class="lq-update">
             <span class="lq-update-mark"><x-heroicon-o-arrow-up-circle /></span>
-            <div class="min-w-0 flex-1">
+            <div class="lq-update-body">
                 <h2 class="lq-update-title">Version {{ $codeVersion }} is ready</h2>
                 <p class="lq-update-text">
                     @if ($installed !== null && $installed !== $codeVersion)

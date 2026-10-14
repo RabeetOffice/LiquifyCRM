@@ -149,10 +149,16 @@
                                 <tr wire:key="event-{{ $event->getKey() }}">
                                     <td class="lq-muted whitespace-nowrap" title="{{ $event->created_at?->format('j M Y, H:i:s') }}">{{ $event->created_at?->diffForHumans() }}</td>
                                     <td>
+                                        @php $mayOpen = $event->lead !== null && ! $event->lead->trashed() && auth()->user()?->can('view', $event->lead); @endphp
                                         @if ($event->isTest())
                                             <span class="lq-muted">Connection test</span>
                                         @else
-                                            <span class="lq-cell-title">{{ $event->lead?->name ?? str((string) ($fields['name'] ?? $fields['Name'] ?? $fields['full_name'] ?? 'Unknown'))->limit(40) }}</span>
+                                            @if ($event->lead !== null && ! $mayOpen && ! auth()->user()?->isGlobalAdmin())
+                                                {{-- A lead of another team: its name is not this person's to see. --}}
+                                                <span class="lq-cell-title lq-muted">A lead for another team</span>
+                                            @else
+                                                <span class="lq-cell-title">{{ $event->lead?->name ?? str((string) ($fields['name'] ?? $fields['Name'] ?? $fields['full_name'] ?? 'Unknown'))->limit(40) }}</span>
+                                            @endif
                                             @if ($event->external_id)
                                                 <span class="lq-cell-sub">Website row {{ $event->external_id }}</span>
                                             @endif
@@ -167,7 +173,7 @@
                                     </td>
                                     <td class="lq-table-end">
                                         <div class="lq-row-tools">
-                                            @if ($event->lead && ! $event->lead->trashed())
+                                            @if ($mayOpen)
                                                 <x-ui.button size="sm" variant="ghost" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $event->lead_id])">Open lead</x-ui.button>
                                             @endif
                                             @if ($canManage && $event->status !== \App\Modules\Sites\Enums\InboundStatus::Done)

@@ -71,12 +71,22 @@ final class CoreServiceProvider extends ModuleServiceProvider
         // is open and which menu that person gets.
         View::composer(['partials.sidebar', 'partials.topbar'], function (ViewInstance $view): void {
             $user = auth()->user();
-            $brand = app(CurrentBrand::class)->get();
+            $current = app(CurrentBrand::class);
+            $brand = $current->get();
+            $route = (string) Route::currentRouteName();
+
+            // Outside any brand (the profile), a Manager or Agent keeps the menu of the brand they work in,
+            // counted within that brand; Admins get the admin area's menu.
+            if ($brand === null && $user instanceof User && ($home = Menu::homeBrand($user)) !== null) {
+                $view->with(['user' => $user, 'brand' => $home, 'menu' => $current->within($home, fn (): array => Menu::for($user, $home, $route))]);
+
+                return;
+            }
 
             $view->with([
                 'user' => $user instanceof User ? $user : null,
                 'brand' => $brand,
-                'menu' => $user instanceof User ? Menu::for($user, $brand, (string) Route::currentRouteName()) : [],
+                'menu' => $user instanceof User ? Menu::for($user, $brand, $route) : [],
             ]);
         });
 

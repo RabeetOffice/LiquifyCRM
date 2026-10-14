@@ -20,6 +20,26 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.16.2',
+        'date' => '2026-10-14',
+        'title' => 'Every screen checked as Admin, Manager and Agent',
+        'changes' => [
+            ['fixed', 'A Manager or Agent opening their profile saw the admin area\'s menu (Overview, Brands, People, System...). They now see the menu of the brand they work in, and their role ("Manager", not "Member").'],
+            ['fixed', 'An invitation link for an email that already has an account no longer signs in on its own: the person signs in as usual (password and authenticator code) and then joins. A link does not wake up paused access, change somebody\'s role, or give somebody of another brand a second one unless an Admin sent it.'],
+            ['fixed', 'Steps that ask for your password (turning off two-factor, new recovery codes, removing people, deleting logs, disconnecting Facebook, a new website secret, updates) cannot be skipped any more.'],
+            ['fixed', 'The Clients list showed front sales the whole lifetime value and the upsells of a client they are not on. They now see only what their own team sold, as on the client\'s page. A hidden saved text opens only with Show, which records who looked.'],
+            ['fixed', 'Assigning works the same everywhere (the list, several leads at once, the dashboard, the Inbox, Undo): only people of the lead\'s department are offered, never somebody who only works clients. Undo can no longer mark a lead Won: that is done by recording the sale. "Send to team" and "Add lead" no longer offer Upsell teams.'],
+            ['fixed', 'Deleting a lead from its panel no longer ends on an error. A lead a Manager adds that joins a lead of another team no longer ends on "This screen is not open to you", and does not show that lead\'s name.'],
+            ['fixed', 'Open follow-ups move with a lead given to somebody else, instead of staying with the person who had it.'],
+            ['fixed', 'Links that led to "This screen is not open to you" are gone: the lead of a sale on a client\'s page for the Upsell team, contract files after a lead changed hands, department names a Manager does not lead (also in search), "Open lead" on a website\'s page for another team\'s leads, paused brands on the profile, and the Assign button in a chat for Agents.'],
+            ['fixed', 'Only a Manager of the brand can lead a department. Changing somebody\'s role on Members now also changes their place in the departments.'],
+            ['fixed', 'An upsell recorded in a teammate\'s name adds them to the client, so the link they are sent opens. A client moved to another Upsell team leaves the old team\'s helpers behind. A closed client is reopened before it can be given to someone.'],
+            ['improved', 'Search works on your profile too, in the brand of your menu, and finds masked phone numbers and emails only when typed in full.'],
+            ['improved', 'On a phone, the Updates screen and "How each department shares" on Distribute no longer squeeze their text or run off the side.'],
+            ['improved', 'Clearer words: the reveal limit is set by an Admin, and the Leads screen tells a Manager it shows their departments\' leads.'],
+        ],
+    ],
+    [
         'version' => '1.16.1',
         'date' => '2026-10-14',
         'title' => 'Connect Facebook comes back quickly; a refused reply says why',

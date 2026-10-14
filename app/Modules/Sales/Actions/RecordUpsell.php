@@ -57,6 +57,12 @@ final class RecordUpsell
 
             $client->recalculate();
 
+            // Recorded in the name of a teammate who is not on the client yet: they sold to it, so they work on it
+            // from now on (and the "Open client" they are sent opens).
+            if ($client->department_id !== null && $client->owner_id !== $seller->getKey() && ! $client->helpers()->where('users.id', $seller->getKey())->exists()) {
+                $client->helpers()->attach($seller->getKey(), ['added_by' => $by->getKey()]);
+            }
+
             Audit::log(
                 'sales.upsell_recorded',
                 $client,

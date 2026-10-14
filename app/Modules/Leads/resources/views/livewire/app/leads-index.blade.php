@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh
     x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team) })">
-    <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.'">
+    <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : ($isAdmin ? 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.' : 'The leads of your departments in '.$brand->name.', and leads given to you.')">
         <x-slot:actions>
             @if ($can['export'])
                 <x-ui.button variant="ghost" wire:click="export" icon="heroicon-o-arrow-down-tray">Export</x-ui.button>
@@ -103,7 +103,7 @@
         @endif
 
         @if ($leads->isEmpty())
-            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent ? 'No leads assigned to you yet' : 'No leads yet')" :description="$search !== '' || $hasFilters ? 'Try another search or clear the filters.' : ($agent ? 'Your Manager assigns leads to you; they appear here with a notification.' : 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.')" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
+            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent ? 'No leads assigned to you yet' : 'No leads yet')" :description="$search !== '' || $hasFilters ? 'Try another search or clear the filters.' : ($agent ? 'Your Manager assigns leads to you; they appear here with a notification.' : ($isAdmin ? 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.' : 'Leads sent to your departments appear here. You can also add one by hand.'))" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
                 <x-slot:actions>
                     @if ($search !== '' || $hasFilters)
                         <x-ui.button variant="secondary" wire:click="clearFilters">Clear search and filters</x-ui.button>
@@ -237,7 +237,7 @@
         <form wire:submit="bulkSend" class="lq-form" id="bulk-send-form">
             <x-ui.field label="Department" name="bulkSendTo" required>
                 <x-ui.select wire:model="bulkSendTo" name="bulkSendTo" placeholder="Choose a department…">
-                    @foreach ($departmentOptions as $id => $name)
+                    @foreach ($sendOptions as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach
                 </x-ui.select>

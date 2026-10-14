@@ -15,6 +15,7 @@ use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -34,6 +35,8 @@ final class ProfileSecurity extends Component
 
     public string $code = '';
 
+    /** Set on the server only: the codes show right after a password-confirmed step, never on the browser's word. */
+    #[Locked]
     public bool $showRecoveryCodes = false;
 
     public function updatePassword(): void
@@ -61,6 +64,8 @@ final class ProfileSecurity extends Component
 
     public function doEnableTwoFactor(): void
     {
+        $this->ensureConfirmed();
+
         app(EnableTwoFactorAuthentication::class)($this->user());
         $this->code = '';
     }
@@ -78,9 +83,12 @@ final class ProfileSecurity extends Component
         $this->toastSuccess('Two-factor authentication is on', 'Save your recovery codes somewhere safe.');
     }
 
+    /** Leaves a setup that was never confirmed. Two-factor that is on is only turned off with the password. */
     public function cancelTwoFactorSetup(): void
     {
-        $this->doDisableTwoFactor(silent: true);
+        if (! $this->user()->hasTwoFactorEnabled()) {
+            $this->turnOffTwoFactor(silent: true);
+        }
     }
 
     public function disableTwoFactor(): void
@@ -88,7 +96,13 @@ final class ProfileSecurity extends Component
         $this->askConfirmation('doDisableTwoFactor', [], 'Turn off two-factor authentication?', 'Your account will be protected by your password only.', 'Turn off', 'danger', password: true);
     }
 
-    public function doDisableTwoFactor(bool $silent = false): void
+    public function doDisableTwoFactor(): void
+    {
+        $this->ensureConfirmed();
+        $this->turnOffTwoFactor(silent: false);
+    }
+
+    private function turnOffTwoFactor(bool $silent): void
     {
         $user = $this->user();
 
@@ -109,6 +123,8 @@ final class ProfileSecurity extends Component
 
     public function doRegenerateRecoveryCodes(): void
     {
+        $this->ensureConfirmed();
+
         app(GenerateNewRecoveryCodes::class)($this->user());
         $this->showRecoveryCodes = true;
         $this->toastSuccess('New recovery codes generated');

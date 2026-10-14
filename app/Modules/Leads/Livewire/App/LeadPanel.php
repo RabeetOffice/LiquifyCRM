@@ -200,6 +200,7 @@ final class LeadPanel extends Component
         $lead = $this->lead();
         $this->authorize('distribute', $lead);
         $this->validate(['sendTo' => ['required', 'integer']]);
+        abort_unless(array_key_exists((int) $this->sendTo, $this->departmentOptions()), 403);
 
         $department = Department::query()->findOrFail((int) $this->sendTo);
 
@@ -509,6 +510,11 @@ final class LeadPanel extends Component
 
     public function render(): View
     {
+        // Deleted here a moment ago, or deleted or merged by somebody else while it was open: say so, not "Not found".
+        if (! Lead::query()->whereKey($this->leadId)->exists()) {
+            return view('leads::livewire.app.lead-panel-gone');
+        }
+
         $lead = $this->lead()->load(['status', 'department', 'assignee', 'notes.author', 'tasks']);
         $user = $this->user();
         $canSeeFull = app(ContactVisibility::class)->canSeeFull($user, $lead);
@@ -543,7 +549,8 @@ final class LeadPanel extends Component
             'openTasks' => $lead->tasks->whereNull('done_at'),
             'sales' => $sales,
             'client' => $client,
-            'clientFiles' => $client !== null ? ClientFile::query()->ofLead($lead)->latest('id')->get() : new Collection,
+            // Only the files this person may open: a lead given to somebody else after the sale does not bring the seller's contract with it.
+            'clientFiles' => $client !== null ? ClientFile::query()->ofLead($lead)->latest('id')->get()->filter(fn (ClientFile $file): bool => $user->can('viewFile', [$client, $file]))->values() : new Collection,
             'teams' => $canRecordSale || $client !== null ? CareTeams::options($this->brand()) : [],
             'fileCategories' => ClientFile::CATEGORIES,
             'maxMb' => ClientFile::MAX_KB / 1024,
@@ -646,7 +653,8 @@ final class LeadPanel extends Component
             $query->whereKey($user->managedDepartmentIds($this->brand()));
         }
 
-        return $query->pluck('name', 'id')->all();
+        // Upsell teams look after clients: leads are sent to sales departments only.
+        return $query->get()->reject(fn (Department $department): bool => $department->isUpsell())->pluck('name', 'id')->all();
     }
 
     private function brand(): Brand

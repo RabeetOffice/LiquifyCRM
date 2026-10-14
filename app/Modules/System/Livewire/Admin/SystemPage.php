@@ -66,6 +66,8 @@ final class SystemPage extends Component
 
     public function runDatabaseUpdate(): void
     {
+        $this->ensureConfirmed();
+
         if (app(SystemStatus::class)->runningDeployment() !== null) {
             $this->toastWarning('Something is already running');
 
@@ -122,6 +124,8 @@ final class SystemPage extends Component
 
     public function runRollback(): void
     {
+        $this->ensureConfirmed();
+
         $releases = app(ReleaseManager::class);
 
         try {

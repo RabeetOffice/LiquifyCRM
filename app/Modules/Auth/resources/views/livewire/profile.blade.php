@@ -29,13 +29,20 @@
                         <x-ui.badge :color="$user->role->getColor()" :icon="$user->isSuperAdmin() ? 'heroicon-m-shield-check' : 'heroicon-m-key'">{{ $user->role->getLabel() }} · every brand</x-ui.badge>
                     @endif
                     @foreach ($memberships as $membership)
-                        <a href="{{ $membership->brand->url() }}" class="lq-badge lq-badge-{{ $membership->role->getColor() }}" wire:navigate>
-                            <x-heroicon-m-building-storefront />
-                            {{ $membership->role->getLabel() }} · {{ $membership->brand->name }}
-                        </a>
+                        {{-- A brand opens only while the access is on and the brand is active; otherwise the chip says why. --}}
+                        @if ($membership->isActive() && $membership->brand->is_active)
+                            <a href="{{ $membership->brand->url() }}" class="lq-badge lq-badge-{{ $membership->role->getColor() }}" wire:navigate>
+                                <x-heroicon-m-building-storefront />
+                                {{ $membership->role->getLabel() }} · {{ $membership->brand->name }}
+                            </a>
+                        @else
+                            <x-ui.badge color="gray" icon="heroicon-m-pause-circle">{{ $membership->role->getLabel() }} · {{ $membership->brand->name }} · {{ $membership->brand->is_active ? $membership->status->getLabel() : 'Brand switched off' }}</x-ui.badge>
+                        @endif
                     @endforeach
+                    @php $severalBrands = $memberships->count() > 1; @endphp
                     @foreach ($departments as $department)
-                        <x-ui.badge color="gray" icon="heroicon-m-rectangle-group">{{ $department->name }}</x-ui.badge>
+                        {{-- In several brands the same team name can come twice: the brand tells them apart. --}}
+                        <x-ui.badge color="gray" icon="heroicon-m-rectangle-group">{{ $department->name }}{{ $severalBrands ? ' · '.($memberships->firstWhere('brand_id', $department->brand_id)?->brand?->name ?? '') : '' }}</x-ui.badge>
                     @endforeach
                     @if ($user->hasTwoFactorEnabled())
                         <x-ui.badge color="success" icon="heroicon-m-lock-closed">2FA on</x-ui.badge>

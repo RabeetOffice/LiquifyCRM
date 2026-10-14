@@ -124,16 +124,21 @@
                                             @endif
                                         </td>
                                     @endif
+                                    @php
+                                        // A client this person is not on: only what their own team sold (front sales does not see Upsell's sales).
+                                        $own = $shown[$client->getKey()] ?? null;
+                                        $worth = $own['value'] ?? (float) $client->lifetime_value;
+                                    @endphp
                                     <td class="lq-table-end">
-                                        <span class="lq-num">{{ $client->sales_count }}</span>
-                                        @if ($ready && $client->upsells_count > 0)
+                                        <span class="lq-num">{{ $own['sales'] ?? $client->sales_count }}</span>
+                                        @if ($ready && $own === null && $client->upsells_count > 0)
                                             <span class="lq-cell-sub">{{ $client->upsells_count }} {{ str('upsell')->plural($client->upsells_count) }}</span>
                                         @endif
                                     </td>
                                     <td class="lq-table-end">
-                                        <span class="lq-worth">
-                                            <span class="lq-worth-value lq-tabular">{{ Money::format($client->lifetime_value, $brand->currency) }}</span>
-                                            <span class="lq-worth-bar"><span style="width: {{ $summary['top'] > 0 ? max(4, (int) round((float) $client->lifetime_value / $summary['top'] * 100)) : 0 }}%"></span></span>
+                                        <span class="lq-worth" @if ($own !== null) title="Sold by your team" @endif>
+                                            <span class="lq-worth-value lq-tabular">{{ Money::format($worth, $brand->currency) }}</span>
+                                            <span class="lq-worth-bar"><span style="width: {{ $summary['top'] > 0 ? max(4, (int) round($worth / $summary['top'] * 100)) : 0 }}%"></span></span>
                                         </span>
                                     </td>
                                     <td class="lq-muted whitespace-nowrap lq-col-wide">{{ $client->first_sale_at?->format('j M Y') ?? '—' }}</td>
