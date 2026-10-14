@@ -8247,6 +8247,505 @@ a.lq-linkrow:hover .lq-linkrow-arrow {
     color: var(--lq-ink);
 }
 
+/* --------------------------------------------------------- sign-in pages */
+/* The form on the left and the brand's artwork on the right (from 1024 px); below that, the form alone.
+   Used by sign-in, forgotten and new password, the two-step code and invitations (x-layouts.guest). */
+.lq-auth {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--lq-bg);
+    color: var(--lq-ink);
+    font-family: var(--font-sans);
+}
+
+.lq-auth-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100dvh;
+}
+
+.lq-auth-side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding: 1.25rem 1.25rem 1rem;
+    isolation: isolate;
+}
+
+/* A soft warm light behind the form. */
+.lq-auth-side::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(40rem 26rem at 18% -8%, rgb(255 107 44 / 0.13), transparent 70%),
+        radial-gradient(30rem 22rem at 105% 108%, rgb(255 94 98 / 0.08), transparent 70%);
+    pointer-events: none;
+}
+
+.dark .lq-auth-side::before {
+    background:
+        radial-gradient(40rem 26rem at 18% -8%, rgb(255 122 61 / 0.15), transparent 70%),
+        radial-gradient(30rem 22rem at 105% 108%, rgb(255 94 98 / 0.07), transparent 70%);
+}
+
+.lq-auth-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lq-auth-main {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 0;
+}
+
+.lq-auth-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 24rem;
+}
+
+/* Each block arrives a moment after the one above. */
+.lq-auth-panel > :not(.lq-glass),
+.lq-auth-panel > .lq-glass > * {
+    animation: lq-rise 460ms var(--lq-ease) backwards;
+}
+
+.lq-auth-panel > :nth-child(2),
+.lq-auth-panel > .lq-glass > :nth-child(2) {
+    animation-delay: 60ms;
+}
+
+.lq-auth-panel > :nth-child(3),
+.lq-auth-panel > .lq-glass > :nth-child(3) {
+    animation-delay: 120ms;
+}
+
+.lq-auth-panel > :nth-child(n + 4),
+.lq-auth-panel > .lq-glass > :nth-child(n + 4) {
+    animation-delay: 180ms;
+}
+
+/* Pages that bring their own card (password, two-step, invitation) sit on the page like the sign-in form. */
+.lq-auth-panel .lq-glass,
+.dark .lq-auth-panel .lq-glass {
+    gap: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+.lq-auth-panel .lq-title {
+    font-size: 1.875rem;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+.lq-auth-panel .lq-card-header-stack .lq-muted {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+}
+
+/* No word left alone on the last line. */
+.lq-auth-panel p,
+.lq-auth-pitch-text {
+    text-wrap: pretty;
+}
+
+.lq-auth-panel .lq-title,
+.lq-auth-pitch-title {
+    text-wrap: balance;
+}
+
+/* Roomier fields and button on these pages. */
+.lq-auth-panel .lq-input {
+    min-height: 2.875rem;
+    border-radius: 12px;
+}
+
+.lq-auth-panel .lq-btn-primary.lq-btn-block {
+    min-height: 2.875rem;
+    border-radius: 12px;
+    font-size: 0.9375rem;
+}
+
+.lq-auth-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1.25rem;
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+}
+
+.lq-auth-foot nav {
+    display: flex;
+    gap: 1.25rem;
+}
+
+.lq-auth-foot a {
+    color: var(--lq-muted);
+    text-decoration: none;
+    transition: color 150ms var(--lq-ease);
+}
+
+.lq-auth-foot a:hover {
+    color: var(--lq-ink);
+}
+
+/* A field with an icon at its start; the password also has a show or hide button at its end. */
+.lq-input-icon {
+    position: relative;
+}
+
+.lq-input-icon > svg {
+    position: absolute;
+    top: 50%;
+    left: 0.875rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--lq-muted);
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: color 150ms var(--lq-ease);
+}
+
+.lq-input-icon:focus-within > svg {
+    color: var(--lq-orange);
+}
+
+.lq-input-icon .lq-input {
+    padding-left: 2.625rem;
+}
+
+.lq-input-icon-reveal .lq-input {
+    padding-right: 2.875rem;
+}
+
+.lq-input-reveal {
+    position: absolute;
+    top: 50%;
+    right: 0.375rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lq-muted);
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.lq-input-reveal:hover {
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+}
+
+.lq-input-reveal:focus-visible {
+    outline: 2px solid var(--lq-orange);
+    outline-offset: 1px;
+}
+
+.lq-input-reveal svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-auth-caps {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--lq-warning);
+}
+
+.lq-auth-caps svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-auth-submit {
+    gap: 0.5rem;
+}
+
+.lq-auth-submit .lq-auth-submit-arrow {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 200ms var(--lq-ease);
+}
+
+.lq-auth-submit:hover .lq-auth-submit-arrow {
+    transform: translateX(3px);
+}
+
+.lq-auth-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    animation: lq-spin 700ms linear infinite;
+}
+
+.lq-auth-note {
+    margin: 0;
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+/* The artwork with a few of LiquifyCRM's own cards floating on it. */
+.lq-auth-art {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .lq-auth-side {
+        padding: 1.75rem 2.5rem 1.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .lq-auth-shell {
+        grid-template-columns: minmax(30rem, 0.92fr) minmax(0, 1.08fr);
+    }
+
+    .lq-auth-art {
+        position: relative;
+        display: block;
+        margin: 0.75rem 0.75rem 0.75rem 0;
+        overflow: hidden;
+        border-radius: 28px;
+        background: #1c1210;
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+        isolation: isolate;
+    }
+
+    /* The artwork drifts very slowly. */
+    .lq-auth-art::before {
+        content: '';
+        position: absolute;
+        inset: -4%;
+        z-index: -2;
+        background: var(--lq-login-art) 78% center / cover no-repeat;
+        animation: lq-drift 28s ease-in-out infinite alternate;
+    }
+
+    /* Darker towards the words at the bottom. */
+    .lq-auth-art::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(to top, rgb(24 10 4 / 0.55) 0%, rgb(24 10 4 / 0.18) 34%, transparent 58%);
+    }
+}
+
+.lq-auth-float {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid rgb(255 255 255 / 0.6);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 0.66);
+    box-shadow: 0 22px 44px -20px rgb(80 24 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.7);
+    color: #1c1917;
+    font-size: 0.8125rem;
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    animation: lq-float 7s ease-in-out infinite;
+}
+
+.dark .lq-auth-float {
+    border-color: rgb(255 255 255 / 0.14);
+    background: rgb(24 20 19 / 0.55);
+    box-shadow: 0 22px 44px -20px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.08);
+    color: #fafaf9;
+}
+
+.lq-auth-float-lead {
+    top: 12%;
+    right: 9%;
+}
+
+.lq-auth-float-assigned {
+    top: 29%;
+    left: 8%;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.875rem 0.4375rem 0.4375rem;
+    border-radius: 999px;
+    font-weight: 500;
+    animation-delay: -2.4s;
+}
+
+.lq-auth-float-target {
+    top: 43%;
+    right: 15%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.375rem;
+    width: 14rem;
+    padding: 1rem 1.125rem;
+    animation-delay: -4.6s;
+}
+
+.lq-auth-float-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: var(--lq-gradient);
+    box-shadow: 0 8px 16px -8px rgb(255 94 98 / 0.8);
+    color: #ffffff;
+}
+
+.lq-auth-float-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-auth-float-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+
+.lq-auth-float-text strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.lq-auth-float-text span,
+.lq-auth-float-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.lq-auth-float-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: 0.25rem;
+    border-radius: 999px;
+    background: #ff6b2c;
+    box-shadow: 0 0 0 4px rgb(255 107 44 / 0.2);
+    animation: lq-breathe 2.4s ease-in-out infinite;
+}
+
+.lq-auth-float-figure {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+
+.lq-auth-float-bar {
+    height: 0.375rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(28 25 23 / 0.1);
+}
+
+.dark .lq-auth-float-bar {
+    background: rgb(255 255 255 / 0.12);
+}
+
+.lq-auth-float-bar span {
+    display: block;
+    width: 84%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--lq-gradient);
+    animation: lq-grow 1.4s var(--lq-ease) 400ms backwards;
+}
+
+.lq-auth-float-avatar {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    background: #ede9fe;
+    color: #6d28d9;
+    font-size: 0.6875rem;
+    font-weight: 700;
+}
+
+.lq-auth-float-tick {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: #16a34a;
+}
+
+.lq-auth-pitch {
+    position: absolute;
+    right: 3rem;
+    bottom: 2.75rem;
+    left: 3rem;
+    max-width: 31rem;
+    color: #ffffff;
+}
+
+.lq-auth-pitch-title {
+    margin: 0 0 0.625rem;
+    font-size: clamp(1.5rem, 2.1vw, 2.125rem);
+    font-weight: 650;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    text-shadow: 0 2px 18px rgb(0 0 0 / 0.25);
+}
+
+.lq-auth-pitch-text {
+    margin: 0;
+    color: rgb(255 255 255 / 0.86);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+@keyframes lq-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes lq-drift {
+    from { transform: scale(1) translate3d(0, 0, 0); }
+    to { transform: scale(1.06) translate3d(-1.5%, -1%, 0); }
+}
+
+@keyframes lq-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lq-auth-art::before,
+    .lq-auth-float,
+    .lq-auth-float-dot,
+    .lq-auth-float-bar span,
+    .lq-auth-panel > :not(.lq-glass),
+    .lq-auth-panel > .lq-glass > * {
+        animation: none;
+    }
+}
+
 /* Public reading pages (privacy policy, delete your data): a wide glass card of plain text. */
 .lq-legal-page {
     background-attachment: fixed;

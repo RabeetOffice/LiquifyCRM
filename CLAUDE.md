@@ -158,7 +158,19 @@ in the document's weekly phases; never skip a phase or silently change the desig
   on, a hidden tab still asks `/api/live`, every 15 seconds. The service worker sends page opens straight to the server and
   keeps only `offline.html`: never cache app pages or build files there (a deploy must be used at once), and a failure to
   keep the offline page must never stop it installing. Its fetch handler is what lets Chrome offer "Install app" (account
-  menu, bell). Notifications with the browser closed would need Web Push and a package: ask first.
+  menu, bell).
+- Web Push (user request, 14 Oct 2026; package `minishlink/web-push`, approved): desktop alerts also with LiquifyCRM closed.
+  `push_subscriptions` (behind `WebPush::ready()`) holds each browser's endpoint and encrypted keys; `PushSettings` holds the
+  VAPID pair, made on first use by `WebPush::keys()` (Windows PHP needs `OPENSSL_CONF` for that; on failure it waits an
+  hour). Every new bell entry of someone with a subscription goes out through `SendWebPush` (RunSoon, one try, tag = the
+  bell entry's id, so the page path and the push never show twice); 404/410/403 forget the browser. The page subscribes on
+  every load while desktop alerts are on and posts to `/push/subscription`, which accepts only the browser makers' push
+  hosts (the server posts there: never loosen that list). Signing out deletes this browser's row (session `push_endpoint`).
+  `sw.js` shows a push unless a LiquifyCRM window is focused, and keeps the sound choice for closed-app pushes in Cache
+  Storage. Tests swap `PushTransport` for a fake and use a fixed key pair.
+- Sign-in pages (user request, 14 Oct 2026): `x-layouts.guest` is a split screen (form side `lq-auth-side`, artwork
+  `lq-auth-art` with decorative floating cards from 1024 px). Pages that wrap their form in `.lq-glass` lose the card
+  inside `.lq-auth-panel`. Error pages keep their own markup (`lq-guest-*`).
 - Nothing a person waits for depends on the scheduler's minute: `AppNotification` writes the bell entry at once
   (`viaConnections`, only the email is queued), and `RunSoon::dispatch()` runs a job right after the response
   (incoming website and Meta events, Messenger replies). Only for jobs that keep their own failure on the record.

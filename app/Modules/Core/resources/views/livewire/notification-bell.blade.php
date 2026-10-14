@@ -66,7 +66,7 @@
                     <span class="lq-pref-icon"><x-heroicon-o-computer-desktop /></span>
                     <span class="lq-pref-text">
                         <span class="lq-pref-label">Desktop alerts</span>
-                        <span class="lq-pref-hint" x-show="$store.alerts.permission !== 'denied'">New leads pop up on your screen while you work in other windows</span>
+                        <span class="lq-pref-hint" x-show="$store.alerts.permission !== 'denied'" x-text="$store.alerts.whenClosed ? 'New leads pop up on your screen, even with LiquifyCRM closed' : 'New leads pop up on your screen while you work in other windows'">New leads pop up on your screen while you work in other windows</span>
                         <span class="lq-pref-hint" x-show="$store.alerts.permission === 'denied'" x-cloak>Blocked by the browser. Click the icon left of the address and allow notifications.</span>
                     </span>
                     <button

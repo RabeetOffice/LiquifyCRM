@@ -49,16 +49,17 @@
         <li>Your password, stored as a one-way hash that nobody can read, and the key of your authenticator app, stored encrypted.</li>
         <li>When, and from which IP address, you last signed in.</li>
         <li>A record of what you do in {{ $name }}, such as changing the status of an enquiry, with the time, your IP address and your browser type.</li>
+        <li>If you turn on desktop alerts: for each browser where you did, the address its push service gave it and the keys that encrypt alerts for it (stored encrypted).</li>
     </ul>
 
     <h3>Cookies</h3>
-    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Remember me", and one that remembers light or dark mode. There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us. Desktop alerts are shown by the browser itself, without any outside service.</p>
+    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Keep me signed in", and one that remembers light or dark mode. There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us.</p>
 
     <h2>4. What we use it for</h2>
     <ul>
         <li>To show each enquiry to the team of the business it was sent to, so they can answer it, follow it up and record the result.</li>
         <li>To send the replies the team writes in Messenger or Instagram and, if the business has switched it on, an email saying your website enquiry arrived.</li>
-        <li>To tell team members about new and assigned enquiries, in the app and by email.</li>
+        <li>To tell team members about new and assigned enquiries, in the app, on their computer's screen and by email.</li>
         <li>To show the business its own reports: how many enquiries arrived, from where, and how many became sales.</li>
         <li>To keep accounts safe and to keep a record of who did what.</li>
     </ul>
@@ -70,6 +71,7 @@
         <li><strong>The administrators</strong> who run {{ $name }}.</li>
         <li><strong>Companies that work for us:</strong> the hosting company whose servers store the data (Hostinger), and the email service each business uses to send its emails.</li>
         <li><strong>Meta,</strong> when a reply is sent in Messenger or Instagram: it travels through Facebook or Instagram, as every message there does.</li>
+        <li><strong>The push service of a team member's browser</strong> (Google for Chrome, Microsoft for Edge, Mozilla for Firefox, Apple for Safari), when that team member has turned on desktop alerts: it carries each alert, such as the name of a new enquiry, to their computer. The alert is encrypted on our server, so that service cannot read it.</li>
         <li><strong>Authorities,</strong> when the law requires it.</li>
     </ul>
 
@@ -79,6 +81,7 @@
         <li><strong>The raw copy of an incoming form, Facebook or Instagram event:</strong> 14 days after it has been handled, and never longer than 30 days.</li>
         <li><strong>Activity records:</strong> between 7 and 90 days in the live system, then in archive files for up to one year. The history shown on an enquiry stays with that enquiry.</li>
         <li><strong>Facebook access tokens:</strong> until Facebook is disconnected in {{ $name }}; they are removed at that moment.</li>
+        <li><strong>A browser's address for desktop alerts:</strong> until desktop alerts are turned off there, the person signs out there, or the browser stops taking them; an alert the browser has not received within four hours is dropped by its push service.</li>
         <li><strong>Backups:</strong> made daily and removed automatically as they age. The oldest backup we keep can be up to two years old.</li>
     </ul>
 

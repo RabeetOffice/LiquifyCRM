@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Activity\Settings\LogSettings;
+use App\Modules\Core\Settings\PushSettings;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeInterfaceCast;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeZoneCast;
 use Spatie\LaravelSettings\SettingsRepositories\DatabaseSettingsRepository;
@@ -16,6 +17,7 @@ return [
      */
     'settings' => [
         LogSettings::class,
+        PushSettings::class,
 
     ],
 

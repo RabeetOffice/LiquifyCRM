@@ -220,7 +220,8 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 ### Sound, desktop alerts and install from Chrome (14 October, asked for by the user)
 - [x] A chime (made in the browser, no sound file) for each new bell entry, and desktop notifications while no LiquifyCRM window is in front; a click opens the entry's screen. Both are switched under the bell ("On this computer") and kept per computer. One tab sounds each entry however many are open. Version 1.17.0, no migration, no package.
 - [x] `public/sw.js`: opens pages straight from the server (with navigation preload), keeps only `offline.html` for when the internet is gone, draws the desktop notifications. Chrome now offers "Install app" (address bar, account menu, bell); headless Chrome reports no installability errors.
-- [ ] Desktop notifications need LiquifyCRM open (a tab or the installed app, also minimised or in the background). Notifications with the browser closed need Web Push: a VAPID key pair, a table of subscriptions and a package such as `minishlink/web-push` (ask first).
+- [x] Web Push (1.18.0, package `minishlink/web-push` approved by the user): desktop alerts also with LiquifyCRM closed while the browser runs. One migration (`push_subscriptions`) and one settings migration (`push` key pair, made on first use), behind `WebPush::ready()` until "Update system". Checked end to end on 14 October: headless Chrome subscribed with Google's push service, the server sent a real alert through it and the browser showed it.
+- [x] New sign-in page (1.18.0): split screen with the artwork and floating cards, password show/hide, Caps Lock warning, theme switch; the other sign-in pages share it.
 - [ ] The install icon is the 180 px touch icon; a 512 px original of the app icon would make the desktop and Start menu icon sharper (see Week 6 below).
 
 ### Agreed differences from the document

@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.18.0',
+        'date' => '2026-10-14',
+        'title' => 'Desktop alerts with LiquifyCRM closed; a new sign-in page',
+        'changes' => [
+            ['new', 'Desktop alerts now also arrive when LiquifyCRM is closed, as long as the browser is running (Chrome, Edge, Firefox; Safari when LiquifyCRM is installed). Turn on "Desktop alerts" under the bell once on each computer. A click opens the lead.'],
+            ['improved', 'Signing out stops the desktop alerts on that computer; whoever signs in there next turns them on for themselves. Turning desktop alerts off under the bell stops them at once.'],
+            ['new', 'A new sign-in page: the form on one side and the LiquifyCRM artwork on the other, a button to show the password while typing, a warning when Caps Lock is on, and light or dark mode right on the page. The forgotten password, two-step code and invitation pages have the same look.'],
+            ['improved', 'The privacy policy says how desktop alerts reach a computer: through the push service of the browser\'s maker, encrypted so that service cannot read them.'],
+        ],
+    ],
+    [
         'version' => '1.17.0',
         'date' => '2026-10-14',
         'title' => 'A sound, desktop alerts and LiquifyCRM as an app',

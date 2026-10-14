@@ -1,14 +1,40 @@
-// LiquifyCRM's service worker. It does three small things and nothing else:
+// LiquifyCRM's service worker. It does four small things and nothing else:
 //  1. when the internet is gone, a page opened in LiquifyCRM shows our own "You are offline" page;
-//  2. it draws the desktop notification for a new bell entry (the page sends it, see app.js);
-//  3. a click on that notification brings LiquifyCRM forward on the right screen.
+//  2. it draws the desktop notification for a new bell entry, sent by an open page (see app.js)
+//     or, with LiquifyCRM closed, by the server through the browser's push service (Web Push);
+//  3. a click on that notification brings LiquifyCRM forward on the right screen;
+//  4. it remembers this computer's sound choice, so a push with LiquifyCRM closed can stay quiet.
 // It keeps no copy of the app's pages or files, so every deploy is used at once. The fetch handler
 // is also what lets Chrome offer "Install app".
 
 const CACHE = 'lq-offline-v1';
+const PREFS = 'lq-prefs-v1';
+const PREFS_KEY = '/__lq-prefs';
 const OFFLINE = '/offline.html';
 const ICON = '/images/brand/apple-touch-icon.png';
 const HOME = '/b';
+
+const show = (item, silent) => self.registration.showNotification(String(item.title ?? 'LiquifyCRM'), {
+    body: String(item.body ?? ''),
+    icon: ICON,
+    // The same entry from two tabs, or from a tab and a push, replaces itself instead of showing twice.
+    tag: String(item.id ?? ''),
+    data: { url: item.url ?? HOME },
+    silent: Boolean(silent),
+});
+
+// Somebody is looking at LiquifyCRM: its bell, toast and chime announce what is new.
+const looking = (windows) => windows.some((client) => client.focused && client.visibilityState === 'visible');
+
+const readPrefs = async () => {
+    try {
+        const saved = await (await caches.open(PREFS)).match(PREFS_KEY);
+
+        return saved ? await saved.json() : {};
+    } catch (error) {
+        return {};
+    }
+};
 
 // The offline page is a nicety: when the browser cannot keep it (storage full or blocked), the worker
 // still installs, so desktop alerts and "Install app" keep working.
@@ -24,7 +50,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
         const names = await caches.keys();
-        await Promise.all(names.filter((name) => name !== CACHE).map((name) => caches.delete(name)));
+        await Promise.all(names.filter((name) => name !== CACHE && name !== PREFS).map((name) => caches.delete(name)));
 
         // The page is asked for while the worker starts, so having one costs no time.
         if (self.registration.navigationPreload) await self.registration.navigationPreload.enable();
@@ -48,28 +74,53 @@ self.addEventListener('fetch', (event) => {
     })());
 });
 
-// New bell entries, sent by the tab that heard them first. While somebody is looking at LiquifyCRM
-// the bell and its toast are enough; otherwise each entry becomes a desktop notification.
 self.addEventListener('message', (event) => {
     const message = event.data ?? {};
 
+    // This computer's sound choice, for pushes that arrive while no page is open.
+    if (message.type === 'lq-prefs') {
+        event.waitUntil(caches.open(PREFS).then((cache) => cache.put(PREFS_KEY, new Response(JSON.stringify({ sound: Boolean(message.sound) })))).catch(() => {}));
+
+        return;
+    }
+
+    // New bell entries, sent by the tab that heard them first: desktop notifications unless somebody is looking.
     if (message.type !== 'lq-alert') return;
 
     event.waitUntil((async () => {
         const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
 
-        if (! message.always && windows.some((client) => client.focused && client.visibilityState === 'visible')) return;
+        if (! message.always && looking(windows)) return;
 
         for (const item of message.items ?? []) {
-            await self.registration.showNotification(String(item.title ?? 'LiquifyCRM'), {
-                body: String(item.body ?? ''),
-                icon: ICON,
-                // The same entry heard by two tabs replaces itself instead of showing twice.
-                tag: String(item.id ?? ''),
-                data: { url: item.url ?? HOME },
-                silent: Boolean(message.silent),
-            });
+            await show(item, message.silent);
         }
+    })());
+});
+
+// A new bell entry sent by the server (Web Push), also with LiquifyCRM closed. Browsers want every push to
+// show something; only while a LiquifyCRM window is in front, which the browser counts as shown, does the
+// open page announce it instead. Open pages hear of it either way, so their bell looks at once.
+self.addEventListener('push', (event) => {
+    event.waitUntil((async () => {
+        let item;
+
+        try {
+            item = event.data ? event.data.json() : {};
+        } catch (error) {
+            item = { title: 'LiquifyCRM', body: event.data?.text() ?? '' };
+        }
+
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const shown = ! looking(windows);
+
+        if (shown) {
+            const prefs = await readPrefs();
+
+            await show(item, prefs.sound === false);
+        }
+
+        windows.forEach((client) => client.postMessage({ type: 'lq-pushed', id: item.id ?? null, shown }));
     })());
 });
 

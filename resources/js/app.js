@@ -473,15 +473,22 @@ Alpine.store('alerts', {
         this.sound = remembered('lq_sound') !== 'off';
         this.permission = worker && 'Notification' in window ? Notification.permission : 'unsupported';
         this.desktop = this.permission === 'granted' && remembered('lq_desktop') !== 'off';
+        tellWorker({ type: 'lq-prefs', sound: this.sound });
     },
 
     get listening() {
         return this.sound || this.desktop;
     },
 
+    // Alerts also with LiquifyCRM closed: this browser can take pushes and the server sends them.
+    get whenClosed() {
+        return worker && 'PushManager' in window && pushKey() !== null;
+    },
+
     toggleSound() {
         this.sound = ! this.sound;
         remember('lq_sound', this.sound ? null : 'off');
+        tellWorker({ type: 'lq-prefs', sound: this.sound });
 
         // A sample, so the person hears what it will sound like.
         if (this.sound) chime();
@@ -496,7 +503,8 @@ Alpine.store('alerts', {
             remember('lq_desktop', null);
 
             if (this.desktop) {
-                tellWorker({ type: 'lq-alert', always: true, silent: true, items: [{ id: 'lq-sample', title: 'Desktop alerts are on', body: 'New leads and assignments will show here while you work in other windows.', url: location.pathname }] });
+                tellWorker({ type: 'lq-alert', always: true, silent: true, items: [{ id: 'lq-sample', title: 'Desktop alerts are on', body: 'New leads and assignments will show here, also while LiquifyCRM is closed.', url: location.pathname }] });
+                syncPush();
             }
 
             return;
@@ -504,8 +512,72 @@ Alpine.store('alerts', {
 
         this.desktop = ! this.desktop;
         remember('lq_desktop', this.desktop ? null : 'off');
+        syncPush();
     },
 });
+
+// Desktop alerts with LiquifyCRM closed (Web Push). While desktop alerts are on, this browser keeps a subscription
+// with its maker's push service and gives the server its address, every time a page opens, so a browser follows
+// whoever signed in last; turning them off takes it back. The key is on the page (<meta name="lq-push-key">) once
+// an Admin has applied the update; without it the alerts still come while a page is open.
+const pushKey = () => document.querySelector('meta[name="lq-push-key"]')?.content || null;
+
+const keyBytes = (key) => {
+    const base64 = (key + '='.repeat((4 - (key.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+
+    return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+};
+
+const sameKey = (buffer, key) => {
+    if (! buffer) return false;
+
+    const held = new Uint8Array(buffer);
+    const wanted = keyBytes(key);
+
+    return held.length === wanted.length && held.every((byte, index) => byte === wanted[index]);
+};
+
+const tellServer = (method, subscription) => fetch('/push/subscription', {
+    method,
+    credentials: 'same-origin',
+    headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+    },
+    body: JSON.stringify(subscription.toJSON()),
+});
+
+async function syncPush() {
+    const key = pushKey();
+
+    if (! worker || ! key || ! ('PushManager' in window)) return;
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+
+        if (! Alpine.store('alerts').desktop) {
+            if (subscription) {
+                await tellServer('DELETE', subscription).catch(() => null);
+                await subscription.unsubscribe();
+            }
+
+            return;
+        }
+
+        // Made with an older key pair: the push service would refuse every alert.
+        if (subscription && ! sameKey(subscription.options?.applicationServerKey, key)) {
+            await subscription.unsubscribe();
+            subscription = null;
+        }
+
+        subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+        await tellServer('POST', subscription);
+    } catch (error) {
+        // No push service here (some browsers, private windows): the alerts still come while a page is open.
+    }
+}
 
 // One chime and one desktop notification per entry, however many tabs are open: the first tab to hear it takes it.
 const claim = (id) => {
@@ -574,10 +646,18 @@ window.addEventListener('appinstalled', () => {
 if (worker) {
     navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(() => {});
 
-    // A desktop notification was clicked: open its screen in this window.
     navigator.serviceWorker.addEventListener('message', (event) => {
+        // A desktop notification was clicked: open its screen in this window.
         if (event.data?.type === 'lq-open' && typeof event.data.url === 'string') Livewire.navigate(event.data.url);
+
+        // A push arrived (sw.js). One already shown on the desktop is not sounded again here; the bell looks at once.
+        if (event.data?.type === 'lq-pushed') {
+            if (event.data.shown && event.data.id) claim(String(event.data.id));
+            window.dispatchEvent(new CustomEvent('lq-notified'));
+        }
     });
+
+    syncPush();
 }
 
 // ------------------------------------------------------------ live updates

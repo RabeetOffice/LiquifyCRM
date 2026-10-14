@@ -5,15 +5,22 @@ declare(strict_types=1);
 namespace App\Modules\Core;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Core\Contracts\PushTransport;
 use App\Modules\Core\Enums\Permission;
+use App\Modules\Core\Jobs\SendWebPush;
+use App\Modules\Core\Models\PushSubscription;
 use App\Modules\Core\Navigation\Menu;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Core\Support\Live;
+use App\Modules\Core\Support\RunSoon;
+use App\Modules\Core\Support\WebPush;
+use App\Modules\Core\Support\WebPushTransport;
 use App\Modules\Leads\Events\LeadAssigned;
 use App\Modules\Leads\Events\LeadCreated;
 use App\Modules\Leads\Events\LeadStatusChanged;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Notifications\DatabaseNotification;
@@ -32,6 +39,7 @@ final class CoreServiceProvider extends ModuleServiceProvider
     public function register(): void
     {
         $this->app->singleton(CurrentBrand::class);
+        $this->app->bind(PushTransport::class, WebPushTransport::class);
     }
 
     protected function bootModule(): void
@@ -59,7 +67,23 @@ final class CoreServiceProvider extends ModuleServiceProvider
         // more than once in a second are written when the request or the job ends.
         DatabaseNotification::created(function (DatabaseNotification $notification): void {
             if ($notification->getAttribute('notifiable_type') === (new User)->getMorphClass()) {
-                Live::touchUser((int) $notification->getAttribute('notifiable_id'));
+                $userId = (int) $notification->getAttribute('notifiable_id');
+
+                Live::touchUser($userId);
+
+                // Desktop alerts with LiquifyCRM closed, for the browsers where this person turned them on.
+                if (WebPush::wanted($userId)) {
+                    RunSoon::dispatch(new SendWebPush((string) $notification->getKey()));
+                }
+            }
+        });
+
+        // Signing out stops this browser's desktop alerts; the next person to sign in there turns them on for themselves.
+        Event::listen(Logout::class, function (Logout $event): void {
+            $hash = session()->pull('push_endpoint');
+
+            if (is_string($hash) && $event->user !== null && WebPush::ready()) {
+                PushSubscription::query()->where('user_id', $event->user->getAuthIdentifier())->where('endpoint_hash', $hash)->delete();
             }
         });
 

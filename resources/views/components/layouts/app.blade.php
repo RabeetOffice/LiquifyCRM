@@ -12,6 +12,15 @@
     <meta name="apple-mobile-web-app-title" content="LiquifyCRM">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f2">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0a09">
+    @auth
+        {{-- The public key for desktop alerts with LiquifyCRM closed (Web Push); absent until "Update system". --}}
+        @php
+            $pushKey = \App\Modules\Core\Support\WebPush::publicKey();
+        @endphp
+        @if ($pushKey !== null)
+            <meta name="lq-push-key" content="{{ $pushKey }}">
+        @endif
+    @endauth
     <script>
         // Apply the saved theme before the first paint so nothing flashes.
         (function () {
