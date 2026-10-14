@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.15.1',
+        'date' => '2026-10-14',
+        'title' => 'Instagram: the ad of a returning person, a count while you type',
+        'changes' => [
+            ['improved', 'When somebody who already has an Instagram chat taps one of your ads again, the ad shows on their lead (if it had none yet) and on its timeline ("Tapped the ad ... on Instagram").'],
+            ['improved', 'While you write an Instagram reply, a count shows how much of Instagram\'s 1,000 characters is used (an emoji counts as four). Over the limit it turns red and Send waits until the message is shorter.'],
+        ],
+    ],
+    [
         'version' => '1.15.0',
         'date' => '2026-10-14',
         'title' => 'Instagram direct messages in the Inbox',

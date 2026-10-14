@@ -4,6 +4,7 @@
         'leads.repeat_enquiry' => 'heroicon-o-arrow-path-rounded-square',
         'leads.form_joined' => 'heroicon-o-clipboard-document-list',
         'leads.chat_joined' => 'heroicon-o-chat-bubble-left-right',
+        'leads.ad_tapped' => 'heroicon-o-megaphone',
         'leads.merged' => 'heroicon-o-arrows-pointing-in',
         'leads.assigned' => 'heroicon-o-user-plus',
         'leads.unassigned' => 'heroicon-o-user-minus',

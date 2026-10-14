@@ -1,5 +1,6 @@
-{{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one. --}}
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh x-data="{ sending: [] }">
+{{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one.
+     `bytes` counts the reply as Instagram does (an emoji is four), against `limit` (0: no count shown). --}}
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }} }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
@@ -116,10 +117,11 @@
             x-on:submit.prevent="
                 const text = ($wire.reply ?? '').trim();
                 const box = $el.querySelector('textarea');
-                if (text === '' || sending.length > 0) return;
+                if (text === '' || sending.length > 0 || (limit > 0 && bytes > limit)) return;
                 sending.push(text);
                 $nextTick(() => {
                     if (box) { box.value = ''; box.style.height = 'auto'; }
+                    bytes = 0;
                     const thread = $root.querySelector('.lq-thread-body');
                     if (thread) thread.scrollTop = thread.scrollHeight;
                 });
@@ -127,6 +129,7 @@
                     sending = [];
                     // Not sent (the window closed, Facebook refused): the words go back into the box.
                     if (box && ($wire.reply ?? '') !== '') box.value = $wire.reply;
+                    bytes = box ? new TextEncoder().encode(box.value).length : 0;
                 });
             "
         >
@@ -140,16 +143,21 @@
                         placeholder="Write a reply…"
                         aria-label="Reply"
                         x-data
-                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'"
+                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'; bytes = new TextEncoder().encode($el.value).length"
                         x-on:conversation-updated.window="$el.style.height = 'auto'"
                         x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()"
                         x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"
                     ></textarea>
-                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" x-bind:disabled="sending.length > 0">
+                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" x-bind:disabled="sending.length > 0 || (limit > 0 && bytes > limit)">
                         <x-heroicon-m-paper-airplane />
                     </button>
                 </div>
-                <p class="lq-composer-hint"><kbd class="lq-kbd">Ctrl</kbd> <kbd class="lq-kbd">Enter</kbd> sends{{ $instagram ? ' · Instagram takes up to 1,000 characters' : '' }}</p>
+                <p class="lq-composer-hint">
+                    <kbd class="lq-kbd">Ctrl</kbd> <kbd class="lq-kbd">Enter</kbd> sends
+                    @if ($instagram)
+                        <span x-bind:class="{ 'lq-composer-over': bytes > limit }" x-text="bytes > 0 ? '· ' + bytes.toLocaleString() + ' / 1,000' + (bytes > limit ? ': too long for Instagram' : '') : '· Instagram takes up to 1,000 characters'">· Instagram takes up to 1,000 characters</span>
+                    @endif
+                </p>
             @else
                 <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> {{ $instagram ? 'Instagram only lets a business' : 'Messenger only lets a Page' }} reply within 24 hours of the person's last message. You can reply again as soon as they write.</p>
             @endif

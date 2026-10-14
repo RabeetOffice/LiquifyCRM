@@ -6808,6 +6808,12 @@ a.lq-boardbar-item:hover {
     color: var(--lq-muted);
 }
 
+/* An Instagram reply over its 1,000 bytes. */
+.lq-composer-over {
+    color: var(--lq-danger);
+    font-weight: 600;
+}
+
 .lq-composer-locked {
     display: flex;
     align-items: flex-start;

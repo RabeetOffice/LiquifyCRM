@@ -232,6 +232,11 @@ final class ProcessMetaEvent implements ShouldQueue
             return null;
         }
 
+        // No message, only an ad: somebody who already has a chat tapped an ad again.
+        if ($message === [] && isset($payload['referral'])) {
+            return $this->adTapped($page, $brand, $channel, $contactId, $payload);
+        }
+
         $conversation = Conversation::query()
             ->with('lead.status')
             ->where('meta_source_id', $page->getKey())
@@ -383,6 +388,38 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         return $conversation->lead;
+    }
+
+    /**
+     * Somebody who already writes to the account tapped one of its ads again.
+     * The ad goes on the open lead (when it has none yet) and on its timeline;
+     * a first chat brings its ad with its first message instead.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function adTapped(MetaSource $page, Brand $brand, string $channel, string $contactId, array $payload): ?Lead
+    {
+        $ad = $this->adFields($payload, []);
+        $conversation = Conversation::query()
+            ->with('lead.status')
+            ->where('meta_source_id', $page->getKey())
+            ->where('channel', $channel)
+            ->where('contact_external_id', $contactId)
+            ->first();
+        $lead = $conversation?->lead;
+
+        if ($ad === [] || $conversation === null || $lead === null || ! $lead->isOpen()) {
+            return $lead;
+        }
+
+        if (blank($lead->fields['ad'] ?? null)) {
+            $lead->forceFill(['fields' => [...(array) $lead->fields, ...$ad]])->save();
+        }
+
+        Audit::log('leads.ad_tapped', $lead, $ad, 'Tapped the ad "'.$ad['ad'].'" on '.$conversation->channelLabel(), brand: $brand, logName: 'leads');
+        $lead->touchActivity();
+
+        return $lead;
     }
 
     /** The person deleted a message on Instagram: its words and attachments go here too. */

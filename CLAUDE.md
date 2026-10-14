@@ -202,7 +202,8 @@ in the document's weekly phases; never skip a phase or silently change the desig
   linked to a Page (read by `ConnectFacebook::syncPages`), so the account follows its Page's brand and `lead_routes` row.
   An `object: instagram` webhook entry is the account and the sender an IGSID; the event is `ProcessMetaEvent::INSTAGRAM`,
   the chat `channel = instagram` (the @username in `contact_handle`), the lead `LeadSource::Instagram`. Echoes come in
-  `messages` with `is_echo`; a deleted message (`is_deleted`) is stored as `mid:deleted` and wipes the words. Replies
+  `messages` with `is_echo`; a deleted message (`is_deleted`) is stored as `mid:deleted` and wipes the words; a
+  `referral` alone (a returning person tapped an ad) puts the ad on the open lead (`leads.ad_tapped`). Replies
   carry no `messaging_type` and fit `Conversation::replyTooLong()` (1,000 bytes). The new columns are behind
   `Instagram::ready()`. Code that shows a chat asks `isInstagram()` / `channelLabel()` instead of saying "Messenger".
 - A click on a lead in the list or the pipeline opens the slide-over, always; the row carries no link to the full

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Activity\Models\Activity;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Livewire\App\LeadPanel;
 use App\Modules\Leads\Models\Lead;
@@ -201,6 +202,27 @@ it('sends a reply on Instagram through the Page, within its length', function ()
     ]]]]])->assertOk();
 
     expect($sent->refresh()->status)->toBe(MessageStatus::Read);
+});
+
+it('puts the ad on the lead when somebody who already has a chat taps an ad', function (): void {
+    instagramWebhook(instagramDm(['mid' => 'ig.1', 'text' => 'Hi']))->assertOk();
+
+    $tap = ['object' => 'instagram', 'entry' => [['id' => '17841400111', 'time' => time(), 'messaging' => [[
+        'sender' => ['id' => '5550001'], 'recipient' => ['id' => '17841400111'], 'timestamp' => 1791900000000,
+        'referral' => ['ref' => 'ad', 'ad_id' => '120300', 'source' => 'ADS', 'type' => 'OPEN_THREAD', 'ads_context_data' => ['ad_title' => 'Winter memoir offer']],
+    ]]]]];
+
+    instagramWebhook($tap)->assertOk();
+    instagramWebhook($tap)->assertOk();
+
+    $lead = Lead::query()->forBrand($this->brand)->sole();
+
+    expect($lead->fields)->toMatchArray(['ad' => 'Winter memoir offer', 'ad_id' => '120300'])
+        ->and(Message::query()->count())->toBe(1)
+        ->and(InboundEvent::query()->where('external_id', 'referral:5550001:1791900000000')->sole()->status)->toBe(InboundStatus::Done);
+
+    $this->assertDatabaseHas('activity_log', ['event' => 'leads.ad_tapped', 'subject_id' => $lead->getKey(), 'description' => 'Tapped the ad "Winter memoir offer" on Instagram']);
+    expect(Activity::query()->where('event', 'leads.ad_tapped')->count())->toBe(1);
 });
 
 it('removes the words of a message the person deleted', function (): void {

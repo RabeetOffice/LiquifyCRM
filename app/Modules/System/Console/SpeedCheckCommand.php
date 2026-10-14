@@ -92,7 +92,7 @@ final class SpeedCheckCommand extends Command
     private function fill(Brand $brand, int $count): void
     {
         $statuses = LeadStatus::query()->forBrand($brand)->pluck('id')->all();
-        $sources = ['website', 'facebook', 'messenger', 'manual', 'import'];
+        $sources = ['website', 'facebook', 'messenger', 'instagram', 'manual', 'import'];
         $now = now();
         $bar = $this->output->createProgressBar($count);
 
@@ -104,7 +104,7 @@ final class SpeedCheckCommand extends Command
 
                 $rows[] = [
                     'brand_id' => $brand->getKey(),
-                    'source_type' => $sources[$i % 5],
+                    'source_type' => $sources[$i % count($sources)],
                     'external_id' => 'speed-'.$i,
                     'name' => 'Lead '.$i,
                     'email' => 'lead'.$i.'@example.com',

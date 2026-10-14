@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (14 October): 257 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (14 October): 258 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -203,7 +203,8 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 ### Instagram direct messages (14 October, asked for by the user, brought forward from the document's future modules)
 - [x] The document's "Instagram DMs: Instagram messages into the same Inbox, same Meta app and webhook, new adapter", built through Meta's Instagram API with Facebook Login (Page token, no new package). Version 1.15.0, one migration (`meta_sources.instagram_id`, `instagram_username`, `conversations.contact_handle`), behind `Instagram::ready()` until "Update system".
 - [x] Refresh Pages / Connect again reads the Instagram account linked to each Page; its messages go to the Page's brand and follow the Page's rule on Distribute. The webhook takes `object: instagram` (and the dashboard test's `changes` shape); `ProcessMetaEvent::INSTAGRAM` makes the chat (`channel = instagram`) and a lead with source Instagram, the ad's name when the person came from an ad, the reply written in the Instagram app (echo), a deleted message, a "seen" receipt.
-- [x] Inbox: Every channel / Messenger / Instagram, the channel's mark on each chat, search by @username, the person's @username and profile link; replies up to 1,000 bytes. Lead panel tab named after the chat's channel. Privacy and data deletion pages updated (14 October).
+- [x] Inbox: Every channel / Messenger / Instagram, the channel's mark on each chat, search by @username, the person's @username and profile link; replies up to 1,000 bytes, counted while typing (1.15.1). A returning person who taps an ad again gets the ad on the lead and its timeline (`messaging_referral`, 1.15.1).
+- [ ] Not built, from the plan's optional list: bringing in Instagram chats from before the connection (Conversations API), the 7-day "Human Agent" reply tag (needs Meta's approval), joining an Instagram lead form with the same person's Instagram chat (Meta gives no shared id we know of). Lead panel tab named after the chat's channel. Privacy and data deletion pages updated (14 October).
 - [ ] Needs the user: add `instagram_basic` and `instagram_manage_messages` to the Meta app (and to the Login for Business configuration if `META_LOGIN_CONFIG_ID` is set), subscribe the Instagram webhook object (`messages`, `messaging_postbacks`, `messaging_seen`, `messaging_referral`), link each Instagram account to its Page, turn on "Allow access to messages" in the Instagram app, click Update system, then Connect again. Messages from people without a role on the Meta app need App Review (Advanced Access) if they do not arrive under Standard Access.
 
 ### Agreed differences from the document

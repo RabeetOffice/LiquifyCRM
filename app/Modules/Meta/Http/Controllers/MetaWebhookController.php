@@ -86,7 +86,8 @@ final class MetaWebhookController
      * Page), the sender the person's Instagram-scoped id. A message the
      * account sent itself comes back with "is_echo"; one the person deleted
      * comes again with "is_deleted", kept under its own id so it is not taken
-     * for a repeat. Meta's dashboard test sends the same event in the
+     * for a repeat; a tap on an ad by somebody who already has a chat comes
+     * as a "referral" alone. Meta's dashboard test sends the same event in the
      * "changes" shape, so both are read.
      *
      * @param  array<string, mixed>  $payload
@@ -98,7 +99,7 @@ final class MetaWebhookController
             $items = (array) ($entry['messaging'] ?? []);
 
             foreach ((array) ($entry['changes'] ?? []) as $change) {
-                if (in_array($change['field'] ?? null, ['messages', 'messaging_postbacks', 'messaging_seen'], true) && is_array($change['value'] ?? null)) {
+                if (in_array($change['field'] ?? null, ['messages', 'messaging_postbacks', 'messaging_seen', 'messaging_referral'], true) && is_array($change['value'] ?? null)) {
                     $items[] = $change['value'];
                 }
             }
@@ -114,6 +115,9 @@ final class MetaWebhookController
                     $mid = (string) ($item['message']['mid'] ?? $item['postback']['mid'] ?? '');
                     $deleted = ! empty($item['message']['is_deleted']);
                     $this->store(ProcessMetaEvent::INSTAGRAM, $mid !== '' ? $mid.($deleted ? ':deleted' : '') : null, ['instagram_id' => $accountId, ...$item]);
+                } elseif (isset($item['referral']['ad_id']) && $contact !== '') {
+                    // Somebody who already has a chat tapped an ad again: it carries no message, only the ad.
+                    $this->store(ProcessMetaEvent::INSTAGRAM, 'referral:'.$contact.':'.(string) ($item['timestamp'] ?? ''), ['instagram_id' => $accountId, ...$item]);
                 } elseif (isset($item['read']) && isset($item['timestamp'])) {
                     // Instagram names the message that was seen, not a watermark: everything sent until then has been seen.
                     UpdateMessageReceipts::dispatch($accountId, $contact, 'read', (int) $item['timestamp'], instagram: true);
