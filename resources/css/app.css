@@ -1677,6 +1677,131 @@ a.lq-stat:hover .lq-stat-link svg {
     background: var(--lq-hairline);
 }
 
+/* The bell's list gives way on a short screen, so the choices under it stay in view. */
+.lq-bell-list {
+    max-height: max(8rem, min(24rem, calc(100dvh - 24rem)));
+}
+
+/* Choices of this computer at the foot of the bell: desktop alerts, sound, install. */
+.lq-prefs {
+    padding: 0.375rem;
+}
+
+.lq-prefs-title {
+    padding: 0.5rem 0.75rem 0.25rem;
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.lq-pref {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lq-ink);
+    font: inherit;
+    text-align: start;
+}
+
+.lq-pref-action {
+    cursor: pointer;
+}
+
+.lq-pref-action:hover {
+    background: var(--lq-raised);
+}
+
+.lq-pref-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+}
+
+.lq-pref-action .lq-pref-icon {
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+.lq-pref-icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-pref-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.lq-pref-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.lq-pref-hint {
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+/* An on/off switch: a <button role="switch"> whose aria-checked is the state. */
+.lq-switch {
+    position: relative;
+    flex: none;
+    width: 2.25rem;
+    height: 1.375rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--lq-field-border);
+    cursor: pointer;
+    transition: background-color 160ms var(--lq-ease);
+}
+
+.lq-switch::after {
+    content: '';
+    position: absolute;
+    top: 0.1875rem;
+    left: 0.1875rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    transition: transform 180ms var(--lq-ease);
+}
+
+.lq-switch[aria-checked='true'] {
+    background: var(--lq-orange);
+}
+
+.lq-switch[aria-checked='true']::after {
+    transform: translateX(0.875rem);
+}
+
+.lq-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.lq-switch:focus-visible {
+    outline: 2px solid var(--lq-orange);
+    outline-offset: 2px;
+}
+
 /* ------------------------------------------------------- modals and sheets */
 
 .lq-modal-backdrop {

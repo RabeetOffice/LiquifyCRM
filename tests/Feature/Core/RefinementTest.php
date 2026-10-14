@@ -249,9 +249,28 @@ it('announces a notification that arrived since the last check', function (): vo
 
     $bell->call('tick')
         ->assertDispatched('toast')
+        ->assertDispatched('lq-alert', fn (string $name, array $params): bool => count($params['items']) === 1
+            && $params['items'][0]['title'] === 'New lead: Sarah Lee'
+            && $params['items'][0]['body'] === 'Assigned to you.'
+            && $params['items'][0]['url'] === null)
         ->assertSet('seen', 1)
         ->call('tick')
-        ->assertNotDispatched('toast');
+        ->assertNotDispatched('toast')
+        ->assertNotDispatched('lq-alert');
+});
+
+it('sends at most three new entries to the desktop at once', function (): void {
+    $bell = Livewire::actingAs($this->first)->test(NotificationBell::class);
+
+    foreach (range(1, 5) as $number) {
+        $this->first->notifications()->create(['id' => (string) Str::uuid(), 'type' => AppNotification::class, 'data' => ['title' => 'Lead '.$number, 'body' => '', 'url' => 'https://crm.test/b/ukph/leads/'.$number]]);
+    }
+
+    $bell->call('tick')
+        ->assertDispatched('toast')
+        ->assertDispatched('lq-alert', fn (string $name, array $params): bool => count($params['items']) === 3
+            && str_starts_with($params['items'][0]['url'], 'https://crm.test/b/ukph/leads/'))
+        ->assertSet('seen', 5);
 });
 
 // ------------------------------------------------------------------- theme

@@ -1,4 +1,5 @@
 {
+    "id": "/b",
     "name": "LiquifyCRM",
     "short_name": "LiquifyCRM",
     "description": "Leads, sales and targets for every brand in one place.",
@@ -8,17 +9,12 @@
     "orientation": "any",
     "background_color": "#0b0a09",
     "theme_color": "#ff6b2c",
+    "categories": ["business", "productivity"],
     "icons": [
         {
             "src": "/images/brand/apple-touch-icon.png",
             "sizes": "180x180",
             "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/favicon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
             "purpose": "any"
         }
     ]

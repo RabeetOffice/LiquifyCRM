@@ -106,6 +106,10 @@
                 <a href="{{ route('profile.security') }}" class="lq-menu-item" role="menuitem" wire:navigate>
                     <x-heroicon-o-lock-closed /> Password and 2FA
                 </a>
+                {{-- Shown once Chrome offers to install LiquifyCRM (app.js, the install store). --}}
+                <button type="button" class="lq-menu-item" role="menuitem" x-show="$store.install.available" x-cloak x-on:click="close(); $store.install.run()">
+                    <x-heroicon-o-arrow-down-tray /> Install app
+                </button>
                 <div class="lq-menu-divider"></div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

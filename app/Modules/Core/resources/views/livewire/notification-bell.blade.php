@@ -25,7 +25,7 @@
                     <p class="lq-empty-desc">Nothing yet. New leads and assignments show up here the moment they arrive.</p>
                 </div>
             @else
-                <ul class="flex max-h-96 flex-col gap-0.5 overflow-y-auto p-1.5 lq-live">
+                <ul class="lq-bell-list flex flex-col gap-0.5 overflow-y-auto p-1.5 lq-live">
                     @foreach ($notifications as $notification)
                         @php
                             $data = $notification->data;
@@ -56,6 +56,57 @@
                     @endforeach
                 </ul>
             @endif
+
+            {{-- Choices of this computer, kept by the browser (app.js: the alerts and install stores). --}}
+            <div class="lq-menu-divider" style="margin: 0"></div>
+            <div class="lq-prefs" wire:ignore>
+                <div class="lq-prefs-title">On this computer</div>
+
+                <div class="lq-pref" x-show="$store.alerts.permission !== 'unsupported'">
+                    <span class="lq-pref-icon"><x-heroicon-o-computer-desktop /></span>
+                    <span class="lq-pref-text">
+                        <span class="lq-pref-label">Desktop alerts</span>
+                        <span class="lq-pref-hint" x-show="$store.alerts.permission !== 'denied'">New leads pop up on your screen while you work in other windows</span>
+                        <span class="lq-pref-hint" x-show="$store.alerts.permission === 'denied'" x-cloak>Blocked by the browser. Click the icon left of the address and allow notifications.</span>
+                    </span>
+                    <button
+                        type="button"
+                        class="lq-switch"
+                        role="switch"
+                        aria-label="Desktop alerts"
+                        x-bind:aria-checked="$store.alerts.desktop ? 'true' : 'false'"
+                        x-bind:disabled="$store.alerts.permission === 'denied'"
+                        x-on:click="$store.alerts.toggleDesktop()"
+                    ></button>
+                </div>
+
+                <div class="lq-pref">
+                    <span class="lq-pref-icon">
+                        <x-heroicon-o-speaker-wave x-show="$store.alerts.sound" />
+                        <x-heroicon-o-speaker-x-mark x-show="! $store.alerts.sound" x-cloak />
+                    </span>
+                    <span class="lq-pref-text">
+                        <span class="lq-pref-label">Sound</span>
+                        <span class="lq-pref-hint">A short chime for each new notification</span>
+                    </span>
+                    <button
+                        type="button"
+                        class="lq-switch"
+                        role="switch"
+                        aria-label="Sound"
+                        x-bind:aria-checked="$store.alerts.sound ? 'true' : 'false'"
+                        x-on:click="$store.alerts.toggleSound()"
+                    ></button>
+                </div>
+
+                <button type="button" class="lq-pref lq-pref-action" x-show="$store.install.available" x-cloak x-on:click="$store.install.run()">
+                    <span class="lq-pref-icon"><x-heroicon-o-arrow-down-tray /></span>
+                    <span class="lq-pref-text">
+                        <span class="lq-pref-label">Install the app</span>
+                        <span class="lq-pref-hint">LiquifyCRM in its own window, on the desktop and taskbar</span>
+                    </span>
+                </button>
+            </div>
         </div>
     @endif
 </div>

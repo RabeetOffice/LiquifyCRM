@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.17.0',
+        'date' => '2026-10-14',
+        'title' => 'A sound, desktop alerts and LiquifyCRM as an app',
+        'changes' => [
+            ['new', 'A short chime plays when a new notification arrives (a new lead, an assignment). Turn it off or on under the bell, in "On this computer".'],
+            ['new', 'Desktop alerts: new leads and assignments pop up on your screen while LiquifyCRM is open in the background and you work in another window. Turn them on under the bell, then click "Allow" in the browser. A click on an alert opens the lead in LiquifyCRM.'],
+            ['new', 'Install LiquifyCRM as an app from Chrome or Edge: "Install app" in your account menu (or the install icon in the address bar) puts it in its own window, on the desktop, the taskbar and the Start menu.'],
+            ['improved', 'When the internet is gone, a page shows "You are offline" and opens again by itself when the connection is back, instead of the browser\'s error.'],
+        ],
+    ],
+    [
         'version' => '1.16.2',
         'date' => '2026-10-14',
         'title' => 'Every screen checked as Admin, Manager and Agent',

@@ -52,7 +52,7 @@
     </ul>
 
     <h3>Cookies</h3>
-    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Remember me", and one that remembers light or dark mode. There are no advertising or analytics cookies.</p>
+    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Remember me", and one that remembers light or dark mode. There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us. Desktop alerts are shown by the browser itself, without any outside service.</p>
 
     <h2>4. What we use it for</h2>
     <ul>

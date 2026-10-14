@@ -150,6 +150,23 @@ it('offers add-to-home-screen through a web manifest', function (): void {
     $this->actingAs($this->admin)->get('/b/ukph')->assertSee('manifest.webmanifest', false);
 });
 
+it('can be installed from Chrome: a service worker that opens pages and keeps an offline page', function (): void {
+    $worker = (string) file_get_contents(public_path('sw.js'));
+
+    // Chrome offers "Install app" only with a fetch handler that does something.
+    expect($worker)->toContain("addEventListener('fetch'")
+        ->and($worker)->toContain('event.respondWith(')
+        ->and($worker)->toContain("const OFFLINE = '/offline.html'")
+        ->and(file_exists(public_path('offline.html')))->toBeTrue()
+        ->and((string) file_get_contents(public_path('offline.html')))->toContain('You are offline');
+
+    // The desktop notification's icon is the app icon of the manifest.
+    expect($worker)->toContain("const ICON = '/images/brand/apple-touch-icon.png'");
+
+    // The account menu holds "Install app" for when Chrome offers it.
+    $this->actingAs($this->admin)->get('/b/ukph')->assertOk()->assertSee('$store.install.run()', false);
+});
+
 it('reveals a contact through the endpoint, logged and limited per hour', function (): void {
     $this->brand->update(['settings' => ['reveal_limit_per_hour' => 1]]);
     $first = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey(), 'email' => 'sarah@example.com']);

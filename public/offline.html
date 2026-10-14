@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>You are offline · LiquifyCRM</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <!-- Shown by the service worker (sw.js) when a page cannot be reached: it must work with no server at all. -->
+    <script>
+        (function () {
+            try {
+                var mode = localStorage.getItem('theme') || 'system';
+                var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.classList.toggle('dark', dark);
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #1c1917;
+            --muted: #78716c;
+            --bg: #f5f4f1;
+            --card: #ffffff;
+            --border: rgb(28 25 23 / 0.08);
+            --orange: #ff6b2c;
+            --orange-hover: #f7631b;
+            --shadow: 0 1px 2px rgb(28 25 23 / 0.04), 0 24px 56px -16px rgb(28 25 23 / 0.18);
+        }
+
+        .dark {
+            color-scheme: dark;
+            --ink: #fafaf9;
+            --muted: #a8a29e;
+            --bg: #0a0909;
+            --card: #1b1818;
+            --border: rgb(255 255 255 / 0.085);
+            --orange: #ff8a4c;
+            --orange-hover: #ff9a63;
+            --shadow: 0 2px 8px rgb(0 0 0 / 0.4), 0 28px 64px -16px rgb(0 0 0 / 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            background:
+                radial-gradient(60rem 30rem at 50% -10%, rgb(255 107 44 / 0.12), transparent 70%),
+                var(--bg);
+            color: var(--ink);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        main {
+            width: min(26rem, 100%);
+            padding: 2.25rem 2rem 2rem;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        svg {
+            width: 3.5rem;
+            height: 3.5rem;
+        }
+
+        h1 {
+            margin: 1.25rem 0 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+
+        p {
+            margin: 0 0 1.5rem;
+            color: var(--muted);
+            font-size: 0.9375rem;
+            line-height: 1.55;
+        }
+
+        button {
+            min-height: 2.5rem;
+            padding: 0 1.25rem;
+            border: 0;
+            border-radius: 10px;
+            background: var(--orange);
+            color: #1c1917;
+            font: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--orange-hover);
+        }
+
+        button:focus-visible {
+            outline: 2px solid var(--orange);
+            outline-offset: 3px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -15 68 68" role="img" aria-label="LiquifyCRM">
+            <path d="M17 2C26.4 2 34 9.6 34 19C34 25 37.5 29 43 29L60.5 29A2.5 2.5 0 0 1 60.5 34L40 34C30 34 25 36 17 36C7.6 36 0 28.4 0 19C0 9.6 7.6 2 17 2Z" fill="#FF6B2C"/>
+        </svg>
+        <h1>You are offline</h1>
+        <p>LiquifyCRM cannot be reached without the internet. This page opens again by itself when the connection is back.</p>
+        <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+    <script>
+        window.addEventListener('online', function () { location.reload(); });
+    </script>
+</body>
+</html>

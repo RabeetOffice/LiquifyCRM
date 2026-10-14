@@ -15,11 +15,16 @@ use Livewire\Component;
  * The in-app bell: latest database notifications with mark-as-read. It
  * looks again the moment the page hears that something arrived for this
  * person (lq-notified, see Live and app.js), and once a minute anyway; what
- * is new since the last look also shows as a toast, so nobody reloads.
+ * is new since the last look also shows as a toast, so nobody reloads, and
+ * goes to the page as `lq-alert`, which plays the chime and, while nobody
+ * is looking at LiquifyCRM, shows it on the desktop (app.js, public/sw.js).
  */
 final class NotificationBell extends Component
 {
     use WithToasts;
+
+    /** At most this many desktop notifications for one look; the bell holds the rest. */
+    private const ALERTS = 3;
 
     public bool $open = false;
 
@@ -40,15 +45,26 @@ final class NotificationBell extends Component
         if ($this->seen >= 0 && $unread > $this->seen) {
             $arrived = $unread - $this->seen;
 
-            /** @var DatabaseNotification|null $latest */
-            $latest = $user->unreadNotifications()->latest()->first();
-            $data = $latest !== null ? (array) $latest->data : [];
+            /** @var Collection<int, DatabaseNotification> $latest */
+            $latest = $user->unreadNotifications()->latest()->limit(min($arrived, self::ALERTS))->get();
+            $data = (array) ($latest->first()->data ?? []);
 
             $this->toast(
                 $arrived === 1 ? (string) ($data['title'] ?? 'New notification') : $arrived.' new notifications',
                 $arrived === 1 ? ($data['body'] ?? null) : (string) ($data['title'] ?? ''),
                 'info',
             );
+
+            $this->dispatch('lq-alert', items: $latest->map(function (DatabaseNotification $notification): array {
+                $data = (array) $notification->data;
+
+                return [
+                    'id' => (string) $notification->getKey(),
+                    'title' => (string) ($data['title'] ?? 'New notification'),
+                    'body' => (string) ($data['body'] ?? ''),
+                    'url' => isset($data['url']) ? (string) $data['url'] : null,
+                ];
+            })->values()->all());
         }
 
         $this->seen = $unread;

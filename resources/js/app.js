@@ -405,15 +405,193 @@ document.addEventListener('livewire:navigated', () => {
     markReady();
 });
 
+// ---------------------------------------------------------------- alerts
+// A new bell entry plays a short chime and, while nobody is looking at LiquifyCRM, shows on the desktop.
+// Both are a choice of this computer (kept in localStorage, like the theme). The desktop notification is
+// drawn by the service worker (public/sw.js), which also brings the app forward when it is clicked.
+const remembered = (key) => {
+    try {
+        return localStorage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+};
+
+const remember = (key, value) => {
+    try {
+        value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value);
+    } catch (error) {
+        // Private window or blocked storage: the choice lasts until the page closes.
+    }
+};
+
+const worker = 'serviceWorker' in navigator && window.isSecureContext;
+let audio = null;
+
+// Two soft rising notes, made in the browser: no sound file to download. Browsers keep a page quiet
+// until the person has clicked or typed on it once, so it says whether the chime can be heard.
+const chime = () => {
+    const Context = window.AudioContext ?? window.webkitAudioContext;
+
+    if (! Context || navigator.userActivation?.hasBeenActive === false) return false;
+
+    audio ??= new Context();
+    if (audio.state === 'suspended') audio.resume().catch(() => {});
+
+    const start = audio.currentTime + 0.02;
+
+    [[784, 0], [1175, 0.12]].forEach(([frequency, delay]) => {
+        const tone = audio.createOscillator();
+        const level = audio.createGain();
+
+        tone.type = 'sine';
+        tone.frequency.value = frequency;
+        level.gain.setValueAtTime(0.0001, start + delay);
+        level.gain.exponentialRampToValueAtTime(0.18, start + delay + 0.02);
+        level.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.7);
+        tone.connect(level).connect(audio.destination);
+        tone.start(start + delay);
+        tone.stop(start + delay + 0.75);
+    });
+
+    return true;
+};
+
+const tellWorker = (message) => {
+    if (! worker) return;
+
+    navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage(message)).catch(() => {});
+};
+
+Alpine.store('alerts', {
+    sound: true,
+    desktop: false,
+    // 'default' (not asked yet), 'granted', 'denied' or 'unsupported'.
+    permission: 'unsupported',
+
+    init() {
+        this.sound = remembered('lq_sound') !== 'off';
+        this.permission = worker && 'Notification' in window ? Notification.permission : 'unsupported';
+        this.desktop = this.permission === 'granted' && remembered('lq_desktop') !== 'off';
+    },
+
+    get listening() {
+        return this.sound || this.desktop;
+    },
+
+    toggleSound() {
+        this.sound = ! this.sound;
+        remember('lq_sound', this.sound ? null : 'off');
+
+        // A sample, so the person hears what it will sound like.
+        if (this.sound) chime();
+    },
+
+    async toggleDesktop() {
+        if (this.permission === 'unsupported' || this.permission === 'denied') return;
+
+        if (this.permission === 'default') {
+            this.permission = await Notification.requestPermission();
+            this.desktop = this.permission === 'granted';
+            remember('lq_desktop', null);
+
+            if (this.desktop) {
+                tellWorker({ type: 'lq-alert', always: true, silent: true, items: [{ id: 'lq-sample', title: 'Desktop alerts are on', body: 'New leads and assignments will show here while you work in other windows.', url: location.pathname }] });
+            }
+
+            return;
+        }
+
+        this.desktop = ! this.desktop;
+        remember('lq_desktop', this.desktop ? null : 'off');
+    },
+});
+
+// One chime and one desktop notification per entry, however many tabs are open: the first tab to hear it takes it.
+const claim = (id) => {
+    try {
+        const taken = JSON.parse(localStorage.getItem('lq_alerted') ?? '[]');
+
+        if (taken.includes(id)) return false;
+
+        localStorage.setItem('lq_alerted', JSON.stringify([id, ...taken].slice(0, 40)));
+    } catch (error) {
+        // No storage: every tab sounds, which is still better than none.
+    }
+
+    return true;
+};
+
+// New bell entries (NotificationBell::tick).
+window.addEventListener('lq-alert', (event) => {
+    const items = (event.detail?.items ?? []).filter((item) => claim(item.id));
+    const alerts = Alpine.store('alerts');
+
+    if (items.length === 0) return;
+
+    const sounded = alerts.sound && chime();
+
+    // With the chime heard (or the sound turned off) the desktop notification stays quiet; else the system's own sound plays.
+    if (alerts.desktop && Notification.permission === 'granted') {
+        tellWorker({ type: 'lq-alert', items, silent: sounded || ! alerts.sound });
+    }
+});
+
+// ------------------------------------------------------------ install app
+// Chrome offers to install LiquifyCRM as an app (its own window, on the desktop and taskbar) once it has seen
+// the manifest and the service worker. The offer is kept here for "Install app" in the account menu and the
+// bell; it stays outside Alpine's reactive data, because a proxied event refuses prompt().
+let installOffer = null;
+
+Alpine.store('install', {
+    available: false,
+
+    async run() {
+        const offer = installOffer;
+
+        if (! offer) return;
+
+        // An offer can be shown once; Chrome makes a new one if this one is turned down.
+        installOffer = null;
+        this.available = false;
+        offer.prompt();
+        await offer.userChoice.catch(() => null);
+    },
+});
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installOffer = event;
+    Alpine.store('install').available = ! window.matchMedia('(display-mode: standalone)').matches;
+});
+
+window.addEventListener('appinstalled', () => {
+    installOffer = null;
+    Alpine.store('install').available = false;
+    window.dispatchEvent(new CustomEvent('toast', { detail: { title: 'LiquifyCRM is installed', body: 'Open it from your desktop, taskbar or Start menu.' } }));
+});
+
+if (worker) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(() => {});
+
+    // A desktop notification was clicked: open its screen in this window.
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'lq-open' && typeof event.data.url === 'string') Livewire.navigate(event.data.url);
+    });
+}
+
 // ------------------------------------------------------------ live updates
 // The hosting runs no daemons, so no websockets. Instead one small request asks every few seconds
 // whether anything of this brand or for this person has changed (GET /api/live, see Live.php).
 // Only when a stamp has moved do the screens reload their data: the roots marked `data-live-refresh`,
 // and whoever listens for `lq-changed` (the board) or `lq-notified` (the bell).
+// A tab in the background keeps asking, more slowly, while its alerts are on (sound or desktop), so a new
+// lead is heard while the person works elsewhere; its screens reload only once it is looked at again.
 const live = { token: null, brand: null, user: null, timer: null, busy: false, own: false, refreshed: 0, owed: false, input: Date.now() };
 
 const LIVE_EVERY = 4000;
 const LIVE_IDLE_EVERY = 12000;
+const LIVE_HIDDEN_EVERY = 15000;
 const LIVE_IDLE_AFTER = 180000;
 const LIVE_REFRESH_GAP = 6000;
 
@@ -432,7 +610,7 @@ const askLive = async () => {
 
     const token = document.querySelector('[data-live]')?.dataset.live ?? null;
 
-    if (token !== null && ! document.hidden) {
+    if (token !== null && (! document.hidden || Alpine.store('alerts').listening)) {
         // Another page (another brand, another person): start counting from what it shows now.
         if (token !== live.token) {
             Object.assign(live, { token, brand: null, user: null, owed: false });
@@ -460,11 +638,11 @@ const askLive = async () => {
             // Offline for a moment: the next round asks again.
         }
 
-        if (live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
+        if (! document.hidden && live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
     }
 
     live.busy = false;
-    live.timer = setTimeout(askLive, Date.now() - live.input > LIVE_IDLE_AFTER ? LIVE_IDLE_EVERY : LIVE_EVERY);
+    live.timer = setTimeout(askLive, document.hidden ? LIVE_HIDDEN_EVERY : (Date.now() - live.input > LIVE_IDLE_AFTER ? LIVE_IDLE_EVERY : LIVE_EVERY));
 
     // Something was done while this round was on its way: ask again, so its change is not taken for somebody else's.
     if (live.own) askLive();

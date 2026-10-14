@@ -151,6 +151,14 @@ in the document's weekly phases; never skip a phase or silently change the desig
   read) and, when a stamp moved, reloads the roots marked `data-live-refresh`, fires `lq-changed` (the board) and
   `lq-notified` (the bell). A new screen that shows shared data gets `data-live-refresh` on its root, never a short
   `wire:poll`; a form that people type into (Targets, lead form) does not. `wire:poll.60s` stays as a fallback.
+- Alerts and the installed app (user request, 14 Oct 2026): `NotificationBell::tick()` dispatches `lq-alert` with up to three
+  new entries; `app.js` plays a chime made with Web Audio (no file) and asks `public/sw.js` for desktop notifications, which it
+  shows only while no LiquifyCRM window is focused. Sound and desktop alerts are choices of the computer (localStorage
+  `lq_sound` / `lq_desktop`, "On this computer" under the bell); one tab claims each entry (`lq_alerted`). While alerts are
+  on, a hidden tab still asks `/api/live`, every 15 seconds. The service worker sends page opens straight to the server and
+  keeps only `offline.html`: never cache app pages or build files there (a deploy must be used at once), and a failure to
+  keep the offline page must never stop it installing. Its fetch handler is what lets Chrome offer "Install app" (account
+  menu, bell). Notifications with the browser closed would need Web Push and a package: ask first.
 - Nothing a person waits for depends on the scheduler's minute: `AppNotification` writes the bell entry at once
   (`viaConnections`, only the email is queued), and `RunSoon::dispatch()` runs a job right after the response
   (incoming website and Meta events, Messenger replies). Only for jobs that keep their own failure on the record.
