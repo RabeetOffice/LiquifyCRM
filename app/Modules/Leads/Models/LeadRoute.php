@@ -31,7 +31,7 @@ class LeadRoute extends Model
 
     public const WEBSITE = 'website';
 
-    /** A Page's lead forms and its Messenger chats share one rule. */
+    /** A Page's lead forms, its Messenger chats and the Instagram messages of the account linked to it share one rule. */
     public const FACEBOOK = 'facebook';
 
     protected $fillable = ['brand_id', 'channel', 'source_id', 'department_id', 'user_id', 'set_by'];
@@ -55,7 +55,7 @@ class LeadRoute extends Model
     {
         return match ($source) {
             LeadSource::Website => self::WEBSITE,
-            LeadSource::Facebook, LeadSource::Messenger => self::FACEBOOK,
+            LeadSource::Facebook, LeadSource::Messenger, LeadSource::Instagram => self::FACEBOOK,
             default => null,
         };
     }

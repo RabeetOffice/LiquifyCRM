@@ -62,8 +62,8 @@
                 <div class="lq-integration">
                     <span class="lq-logo-tile lq-logo-facebook"><x-ui.brand-icon name="facebook" /></span>
                     <div class="min-w-0 flex-1">
-                        <h2 class="lq-card-title">Facebook Lead Ads and Messenger</h2>
-                        <p class="lq-card-desc">Three steps, done once. After that every lead form and every message to your Pages lands in the right brand by itself.</p>
+                        <h2 class="lq-card-title">Facebook Lead Ads, Messenger and Instagram</h2>
+                        <p class="lq-card-desc">Three steps, done once. After that every lead form, every message to your Pages and every Instagram direct message lands in the right brand by itself.</p>
                     </div>
                     <x-ui.badge color="gray">Not connected</x-ui.badge>
                 </div>
@@ -87,7 +87,7 @@
                         <span class="lq-guide-mark">2</span>
                         <div>
                             <h3 class="lq-guide-title">Tell Meta where to send leads and messages</h3>
-                            <p class="lq-guide-text">In the Meta app dashboard, paste the first address under <strong>Webhooks &rsaquo; Page</strong> with your verify token, and the second under <strong>Facebook Login &rsaquo; Valid OAuth Redirect URIs</strong>.</p>
+                            <p class="lq-guide-text">In the Meta app dashboard, paste the first address under <strong>Webhooks &rsaquo; Page</strong> and <strong>Webhooks &rsaquo; Instagram</strong> with your verify token, and the second under <strong>Facebook Login &rsaquo; Valid OAuth Redirect URIs</strong>.</p>
                             @if ($configured)
                                 <div class="lq-guide-body">
                                     @foreach (['Webhook address' => MetaApp::webhookUrl(), 'Redirect address' => MetaApp::redirectUri()] as $label => $value)
@@ -139,7 +139,7 @@
                 <div class="lq-integration">
                     <span class="lq-logo-tile lq-logo-facebook"><x-ui.brand-icon name="facebook" /></span>
                     <div class="min-w-0 flex-1">
-                        <h2 class="lq-card-title">Facebook Lead Ads and Messenger</h2>
+                        <h2 class="lq-card-title">Facebook Lead Ads, Messenger and Instagram</h2>
                         <p class="lq-card-desc">
                             Connected as <strong class="lq-ink">{{ $connection->fb_user_name }}</strong>
                             by {{ $connection->connectedBy?->name ?? 'someone' }} {{ $connection->created_at?->diffForHumans() }}.
@@ -191,7 +191,20 @@
                 </div>
             @endif
 
-            <x-ui.card title="Your Pages" description="Choose the brand each Page belongs to. Its leads and Messenger chats go only there." flush>
+            {{-- Instagram direct messages need the update and an Instagram account linked to a Page. --}}
+            @if (! $instagramReady)
+                <div class="lq-alert">
+                    <x-ui.brand-icon name="instagram" />
+                    <span>Instagram direct messages come in once an Admin clicks <a class="lq-link" href="{{ route('admin.updates') }}" wire:navigate>Update system</a>. Messages that arrive before that wait under Received and are processed afterwards.</span>
+                </div>
+            @elseif ($pages->isNotEmpty() && $pages->every(fn ($page) => $page->instagramId() === null))
+                <div class="lq-alert">
+                    <x-ui.brand-icon name="instagram" />
+                    <span>No Instagram account is linked to these Pages yet. To bring in Instagram direct messages: link the account to its Page in Meta Business Suite, turn on <strong>Allow access to messages</strong> in the Instagram app (Settings, Messages and story replies, Message controls, Connected tools), then click <strong>Connect again</strong> above.</span>
+                </div>
+            @endif
+
+            <x-ui.card title="Your Pages" description="Choose the brand each Page belongs to. Its leads, its Messenger chats and the direct messages of the Instagram account linked to it go only there." flush>
                 @if ($pages->isEmpty())
                     <x-ui.empty title="No Pages found" description="The Facebook account has no Pages it manages, or none were shared. Click Refresh Pages after giving it access." icon="heroicon-o-flag" />
                 @else
@@ -209,6 +222,9 @@
                                                 <div class="min-w-0">
                                                     <span class="lq-cell-title">{{ $page->name }}</span>
                                                     <span class="lq-cell-sub lq-tabular">Page {{ $page->external_id }}</span>
+                                                    @if ($page->instagramHandle())
+                                                        <span class="lq-cell-sub lq-channel-line" title="Instagram account linked to this Page: its direct messages come in with the Page's chats"><x-ui.brand-icon name="instagram" /> {{ $page->instagramHandle() }}</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>
@@ -329,7 +345,7 @@
             </div>
 
             @if ($events->isEmpty())
-                <x-ui.empty title="Nothing received yet" description="Website forms, Facebook leads and Messenger messages are listed here as they arrive. Anything that fails can be retried, so no lead is lost." icon="heroicon-o-inbox" />
+                <x-ui.empty title="Nothing received yet" description="Website forms, Facebook leads, Messenger messages and Instagram direct messages are listed here as they arrive. Anything that fails can be retried, so no lead is lost." icon="heroicon-o-inbox" />
             @else
                 <div class="lq-table-wrap">
                     <table class="lq-table">
@@ -344,6 +360,8 @@
                                         <div class="flex items-center gap-3">
                                             @if ($event->source === 'site')
                                                 <span class="lq-logo-tile lq-logo-sm lq-logo-web"><x-heroicon-o-globe-alt /></span>
+                                            @elseif ($event->source === \App\Modules\Meta\Jobs\ProcessMetaEvent::INSTAGRAM)
+                                                <span class="lq-logo-tile lq-logo-sm lq-logo-instagram"><x-ui.brand-icon name="instagram" /></span>
                                             @elseif ($event->source === \App\Modules\Meta\Jobs\ProcessMetaEvent::MESSAGE)
                                                 <span class="lq-logo-tile lq-logo-sm lq-logo-messenger"><x-ui.brand-icon name="messenger" /></span>
                                             @else

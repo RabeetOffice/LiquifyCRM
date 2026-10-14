@@ -15,8 +15,9 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
- * One Messenger thread: the messages, how long the 24-hour reply window
- * stays open, and the reply box. Used in the Inbox and on the lead page.
+ * One Messenger or Instagram thread: the messages, how long the 24-hour
+ * reply window stays open, and the reply box. Used in the Inbox and on the
+ * lead page.
  */
 final class ConversationThread extends Component
 {
@@ -49,7 +50,13 @@ final class ConversationThread extends Component
         $conversation = $this->conversation();
         $this->authorize('reply', $conversation);
 
-        $this->validate(['reply' => ['required', 'string', 'max:2000']], attributes: ['reply' => 'message']);
+        $this->validate(['reply' => ['required', 'string']], attributes: ['reply' => 'message']);
+
+        if (($tooLong = $conversation->replyTooLong(trim($this->reply))) !== null) {
+            $this->addError('reply', $tooLong);
+
+            return;
+        }
 
         try {
             $action->handle($conversation, $this->reply, auth()->user());

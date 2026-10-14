@@ -74,7 +74,7 @@ class Message extends Model
         return $this->direction === self::OUT;
     }
 
-    /** A reply the team wrote on Facebook itself, not in LiquifyCRM: it arrived as an echo, so nobody here sent it. */
+    /** A reply the team wrote on Facebook or Instagram itself, not in LiquifyCRM: it arrived as an echo, so nobody here sent it. */
     public function isFromFacebook(): bool
     {
         return $this->isOutbound() && $this->sent_by === null && ! empty($this->raw['message']['is_echo']);
@@ -82,14 +82,17 @@ class Message extends Model
 
     /**
      * Pictures, videos, voice notes, files and shared links of the message,
-     * as Facebook sent them. They are shown from Facebook's own address and
-     * never copied here, so one may stop loading after a long time.
+     * as Facebook or Instagram sent them. They are shown from Meta's own
+     * address and never copied here, so one may stop loading after a long
+     * time. Instagram also sends shared posts and reels, a mention in the
+     * person's story, and the story a reply answers: those open as links.
      *
      * @return list<array{type: string, url: string, name: string}>
      */
     public function attachments(): array
     {
         $found = [];
+        $shared = ['share' => 'A shared post', 'ig_reel' => 'A shared reel', 'reel' => 'A shared reel', 'story_mention' => 'Mentioned you in their story', 'ig_story' => 'A shared story'];
 
         foreach ((array) ($this->raw['message']['attachments'] ?? []) as $item) {
             $type = (string) ($item['type'] ?? 'file');
@@ -100,12 +103,20 @@ class Message extends Model
             }
 
             $path = (string) parse_url($url, PHP_URL_PATH);
+            $title = (string) ($item['title'] ?? $item['payload']['title'] ?? '');
 
             $found[] = [
-                'type' => in_array($type, ['image', 'video', 'audio'], true) ? $type : ($type === 'fallback' ? 'link' : 'file'),
+                'type' => in_array($type, ['image', 'video', 'audio'], true) ? $type : ($type === 'fallback' || isset($shared[$type]) ? 'link' : 'file'),
                 'url' => $url,
-                'name' => (string) (($item['title'] ?? null) ?: (basename($path) !== '' ? urldecode(basename($path)) : 'Attachment')),
+                'name' => $title !== '' ? $title : ($shared[$type] ?? (basename($path) !== '' ? urldecode(basename($path)) : 'Attachment')),
             ];
+        }
+
+        // An Instagram reply to the business's story names the story it answers.
+        $story = (string) ($this->raw['message']['reply_to']['story']['url'] ?? '');
+
+        if (str_starts_with($story, 'https://')) {
+            $found[] = ['type' => 'link', 'url' => $story, 'name' => 'Replied to your story'];
         }
 
         return $found;

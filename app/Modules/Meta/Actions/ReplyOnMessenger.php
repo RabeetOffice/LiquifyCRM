@@ -12,10 +12,10 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 
 /**
- * A reply typed in the Inbox or on the lead page. The message shows at once
- * as "Sending…" and the queue delivers it, so a click never waits for
- * Facebook. Messenger only allows it within 24 hours of the person's last
- * message.
+ * A reply typed in the Inbox or on the lead page, on Messenger or Instagram
+ * (the chat's channel). It is sent inside the request, so the screen answers
+ * with "Sent" or the reason it was not. Both channels only allow it within
+ * 24 hours of the person's last message.
  */
 final class ReplyOnMessenger
 {
@@ -25,6 +25,10 @@ final class ReplyOnMessenger
 
         if ($text === '') {
             throw new MetaException('Write a message first.');
+        }
+
+        if (($tooLong = $conversation->replyTooLong($text)) !== null) {
+            throw new MetaException($tooLong);
         }
 
         if (! $conversation->canReply()) {

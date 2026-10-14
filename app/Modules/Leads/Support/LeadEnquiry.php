@@ -20,6 +20,7 @@ final class LeadEnquiry
     /** Where the enquiry came from, in the order it is shown, with the word for each. */
     private const SOURCE = [
         'facebook_page' => 'Facebook Page',
+        'instagram' => 'Instagram account',
         'website' => 'Website',
         'form' => 'Form',
         'campaign' => 'Campaign',
@@ -34,7 +35,7 @@ final class LeadEnquiry
     private const DETAILS = ['company', 'address'];
 
     /** Kept for the machine, never listed (the chat link is offered as a button). */
-    private const HIDDEN = ['inbox_url', 'leadgen_id'];
+    private const HIDDEN = ['inbox_url', 'leadgen_id', 'ad_id'];
 
     private const PLATFORMS = ['fb' => 'Facebook', 'ig' => 'Instagram', 'msg' => 'Messenger', 'an' => 'Audience Network', 'wa' => 'WhatsApp'];
 

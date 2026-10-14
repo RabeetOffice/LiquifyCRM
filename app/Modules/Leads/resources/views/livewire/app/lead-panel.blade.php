@@ -165,7 +165,7 @@
                 </dl>
             @endif
             @if (! $lead->message && $answers === [])
-                <p class="lq-help">{{ $conversationId ? 'This lead began as a chat. The conversation is under Messenger below.' : 'This lead came with no message and no answers.' }}</p>
+                <p class="lq-help">{{ $conversationId ? 'This lead began as a chat. The conversation is under '.$chatChannel.' below.' : 'This lead came with no message and no answers.' }}</p>
             @endif
         </section>
 
@@ -175,7 +175,7 @@
                 <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'notes']) wire:click="$set('tab', 'notes')" role="tab"><x-heroicon-o-pencil-square /> Notes @if ($lead->notes->isNotEmpty())<span class="lq-view-count">{{ $lead->notes->count() }}</span>@endif</button>
                 <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'tasks']) wire:click="$set('tab', 'tasks')" role="tab"><x-heroicon-o-calendar-days /> Follow-ups @if ($openTasks->isNotEmpty())<span class="lq-view-count lq-view-count-primary">{{ $openTasks->count() }}</span>@endif</button>
                 @if ($conversationId)
-                    <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right /> Messenger</button>
+                    <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right /> {{ $chatChannel }}</button>
                 @endif
                 <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'timeline']) wire:click="$set('tab', 'timeline')" role="tab"><x-heroicon-o-clock /> Timeline</button>
             </div>

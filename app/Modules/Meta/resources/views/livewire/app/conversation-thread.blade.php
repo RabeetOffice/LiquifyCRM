@@ -4,6 +4,8 @@
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
         $previousDay = null;
+        $channel = $conversation->channelLabel();
+        $instagram = $conversation->isInstagram();
     @endphp
 
     <header class="lq-thread-head">
@@ -13,10 +15,10 @@
         <x-ui.avatar :name="$conversation->displayName()" :src="$conversation->pictureUrl()" tone />
         <div class="min-w-0 flex-1">
             <span class="lq-cell-title truncate">{{ $conversation->displayName() }}</span>
-            <span class="lq-cell-sub truncate">Messenger · {{ $conversation->source?->name ?? 'Page removed' }}</span>
+            <span class="lq-cell-sub lq-channel-line truncate"><x-ui.brand-icon :name="$conversation->channel" /> {{ $channel }} · {{ $conversation->accountName() }}</span>
         </div>
         @if ($open)
-            <x-ui.badge color="success" icon="heroicon-m-clock" title="Messenger lets you reply for 24 hours after this person's last message">Reply within {{ $ends->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'short' => true]) }}</x-ui.badge>
+            <x-ui.badge color="success" icon="heroicon-m-clock" title="{{ $channel }} lets you reply for 24 hours after this person's last message">Reply within {{ $ends->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'short' => true]) }}</x-ui.badge>
         @else
             <x-ui.badge color="warning" icon="heroicon-m-lock-closed">Reply window closed</x-ui.badge>
         @endif
@@ -57,11 +59,11 @@
             @endif
 
             <div @class(['lq-msg', 'lq-msg-out' => $message->isOutbound(), 'lq-msg-last' => $last, 'lq-msg-failed' => $failed]) wire:key="message-{{ $message->getKey() }}">
-                {{-- Pictures, videos, voice notes and files, shown from Facebook's own address. --}}
+                {{-- Pictures, videos, voice notes, files and shared posts, shown from Meta's own address. --}}
                 @foreach ($message->attachments() as $file)
                     @if ($file['type'] === 'image')
                         <a href="{{ $file['url'] }}" class="lq-attach lq-attach-image" target="_blank" rel="noopener noreferrer" title="Open the picture">
-                            <img src="{{ $file['url'] }}" alt="Picture" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('lq-attach-gone'); this.replaceWith(document.createTextNode('This picture is no longer kept by Facebook.'))">
+                            <img src="{{ $file['url'] }}" alt="Picture" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('lq-attach-gone'); this.replaceWith(document.createTextNode('This picture is no longer kept by {{ $instagram ? 'Instagram' : 'Facebook' }}.'))">
                         </a>
                     @elseif ($file['type'] === 'video')
                         <video class="lq-attach lq-attach-video" controls preload="metadata" src="{{ $file['url'] }}"></video>
@@ -83,7 +85,7 @@
                 @if ($last || $failed)
                     <span class="lq-bubble-meta">
                         @if ($message->isOutbound())
-                            {{ $message->isFromFacebook() ? 'Sent on Facebook' : ($message->sender?->name ?? 'Team') }} · {{ $message->created_at?->format('H:i') }} · {{ $message->status->getLabel() }}
+                            {{ $message->isFromFacebook() ? ($instagram ? 'Sent on Instagram' : 'Sent on Facebook') : ($message->sender?->name ?? 'Team') }} · {{ $message->created_at?->format('H:i') }} · {{ $message->status->getLabel() }}
                         @else
                             {{ $message->created_at?->format('H:i') }}
                         @endif
@@ -147,9 +149,9 @@
                         <x-heroicon-m-paper-airplane />
                     </button>
                 </div>
-                <p class="lq-composer-hint"><kbd class="lq-kbd">Ctrl</kbd> <kbd class="lq-kbd">Enter</kbd> sends</p>
+                <p class="lq-composer-hint"><kbd class="lq-kbd">Ctrl</kbd> <kbd class="lq-kbd">Enter</kbd> sends{{ $instagram ? ' · Instagram takes up to 1,000 characters' : '' }}</p>
             @else
-                <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> Messenger only lets a Page reply within 24 hours of the person's last message. You can reply again as soon as they write.</p>
+                <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> {{ $instagram ? 'Instagram only lets a business' : 'Messenger only lets a Page' }} reply within 24 hours of the person's last message. You can reply again as soon as they write.</p>
             @endif
             @error('reply')
                 <p class="lq-error">{{ $message }}</p>

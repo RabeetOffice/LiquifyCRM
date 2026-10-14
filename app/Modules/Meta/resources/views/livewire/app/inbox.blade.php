@@ -1,9 +1,9 @@
 <div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh>
-    <x-ui.page-header title="Inbox" subtitle="Messenger chats of your leads. Reply here or from the lead page." />
+    <x-ui.page-header title="Inbox" subtitle="Messenger and Instagram chats of your leads. Reply here or from the lead page." />
 
     @if ($total === 0)
         <x-ui.card>
-            <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
+            <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, or sends a direct message to its Instagram account, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
         </x-ui.card>
     @else
         <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null])>
@@ -24,6 +24,13 @@
                         </button>
                         <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'open']) wire:click="$set('filter', 'open')" role="tab" title="Chats you can still answer: the person wrote in the last 24 hours">Can reply</button>
                     </div>
+                    @if ($hasInstagram)
+                        <div class="lq-seg" role="tablist" aria-label="Which channel">
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === '']) wire:click="$set('channel', '')" role="tab">Every channel</button>
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'messenger']) wire:click="$set('channel', 'messenger')" role="tab"><x-ui.brand-icon name="messenger" /> Messenger</button>
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'instagram']) wire:click="$set('channel', 'instagram')" role="tab"><x-ui.brand-icon name="instagram" /> Instagram</button>
+                        </div>
+                    @endif
                 </div>
 
                 <ul class="lq-inbox-items">
@@ -36,7 +43,7 @@
                             <button type="button" @class(['lq-inbox-item', 'lq-inbox-item-active' => $active, 'lq-inbox-item-unread' => $fresh]) wire:click="open({{ $conversation->getKey() }})" @if ($active) aria-current="true" @endif>
                                 <span class="lq-inbox-avatar">
                                     <x-ui.avatar :name="$conversation->displayName()" :src="$conversation->pictureUrl()" tone />
-                                    <span class="lq-inbox-channel"><x-ui.brand-icon name="messenger" /></span>
+                                    <span @class(['lq-inbox-channel', 'lq-inbox-channel-instagram' => $conversation->isInstagram()]) title="{{ $conversation->channelLabel() }}"><x-ui.brand-icon :name="$conversation->channel" /></span>
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="lq-inbox-row">
@@ -56,7 +63,7 @@
                         </li>
                     @empty
                         <li class="lq-inbox-none">
-                            {{ $search !== '' ? 'No chat matches your search.' : ($filter === 'unread' ? 'You have read everything.' : 'No chat can be answered right now.') }}
+                            {{ $search !== '' ? 'No chat matches your search.' : ($filter === 'unread' ? 'You have read everything.' : ($filter === 'open' ? 'No chat can be answered right now.' : 'No '.($channel === 'instagram' ? 'Instagram' : 'Messenger').' chats yet.')) }}
                         </li>
                     @endforelse
                 </ul>
@@ -80,8 +87,9 @@
                         <h2 class="lq-inbox-side-name">{{ $lead->name }}</h2>
                         <x-ui.status-pill :status="$lead->status" />
                         @if ($canUpdate)
-                            <button type="button" class="lq-inbox-refresh" wire:click="refreshProfile" wire:loading.attr="disabled" wire:target="refreshProfile" title="Ask Facebook again for this person's name and picture">
-                                <x-heroicon-m-arrow-path wire:loading.class="animate-spin" wire:target="refreshProfile" /> Name and picture from Facebook
+                            @php $service = $selected->isInstagram() ? 'Instagram' : 'Facebook'; @endphp
+                            <button type="button" class="lq-inbox-refresh" wire:click="refreshProfile" wire:loading.attr="disabled" wire:target="refreshProfile" title="Ask {{ $service }} again for this person's name and picture">
+                                <x-heroicon-m-arrow-path wire:loading.class="animate-spin" wire:target="refreshProfile" /> Name and picture from {{ $service }}
                             </button>
                         @endif
                     </div>
@@ -143,10 +151,29 @@
                             <dt>Follow-up</dt>
                             <dd><x-ui.due :at="$lead->next_follow_up_at" empty="None set" /></dd>
                         </div>
-                        <div>
-                            <dt>Page</dt>
-                            <dd>{{ $selected->source?->name ?? 'Page removed' }}</dd>
-                        </div>
+                        @if ($selected->isInstagram())
+                            @if ($selected->handle())
+                                <div>
+                                    <dt>Instagram</dt>
+                                    <dd>
+                                        @if ($selected->profileUrl())
+                                            <a href="{{ $selected->profileUrl() }}" class="lq-link" target="_blank" rel="noopener noreferrer">{{ '@'.$selected->handle() }}</a>
+                                        @else
+                                            {{ '@'.$selected->handle() }}
+                                        @endif
+                                    </dd>
+                                </div>
+                            @endif
+                            <div>
+                                <dt>Wrote to</dt>
+                                <dd>{{ $selected->accountName() }}</dd>
+                            </div>
+                        @else
+                            <div>
+                                <dt>Page</dt>
+                                <dd>{{ $selected->accountName() }}</dd>
+                            </div>
+                        @endif
                         <div>
                             <dt>First wrote</dt>
                             <dd title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans() }}</dd>
@@ -159,9 +186,15 @@
                         @endif
                         <x-ui.button block variant="ghost" icon="heroicon-o-arrow-top-right-on-square" :href="route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead->getKey()])">Open lead</x-ui.button>
                         @if ($selected->facebookInboxUrl())
-                            <a href="{{ $selected->facebookInboxUrl() }}" class="lq-btn lq-btn-ghost lq-btn-block" target="_blank" rel="noopener noreferrer" title="Facebook does not share a link to a person's profile. Their profile is one click away in the Page's own inbox.">
-                                <x-ui.brand-icon name="facebook" /> Page inbox on Facebook
-                            </a>
+                            @if ($selected->isInstagram())
+                                <a href="{{ $selected->facebookInboxUrl() }}" class="lq-btn lq-btn-ghost lq-btn-block" target="_blank" rel="noopener noreferrer" title="The Page's inbox in Meta Business Suite, where its Instagram messages are too.">
+                                    <x-ui.brand-icon name="instagram" /> Inbox in Meta Business Suite
+                                </a>
+                            @else
+                                <a href="{{ $selected->facebookInboxUrl() }}" class="lq-btn lq-btn-ghost lq-btn-block" target="_blank" rel="noopener noreferrer" title="Facebook does not share a link to a person's profile. Their profile is one click away in the Page's own inbox.">
+                                    <x-ui.brand-icon name="facebook" /> Page inbox on Facebook
+                                </a>
+                            @endif
                         @endif
                     </div>
                 </aside>

@@ -144,6 +144,6 @@ final class LeadMatcher
     /** A name that stands in for a missing one. */
     public static function isPlaceholder(?string $name): bool
     {
-        return in_array(mb_strtolower(trim((string) $name)), ['', 'unknown', 'messenger contact'], true);
+        return in_array(mb_strtolower(trim((string) $name)), ['', 'unknown', 'messenger contact', 'instagram contact'], true);
     }
 }

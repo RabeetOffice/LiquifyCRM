@@ -26,7 +26,7 @@
             <span class="lq-guide-mark">2</span>
             <div>
                 <p class="lq-guide-title">Tell us what to look for</p>
-                <p class="lq-guide-text">The name, email address or phone number you used, and the business, website or Facebook Page you contacted. For a Messenger chat, the name on your Facebook profile.</p>
+                <p class="lq-guide-text">The name, email address or phone number you used, and the business, website, Facebook Page or Instagram account you contacted. For a Messenger chat, the name on your Facebook profile; for an Instagram message, your Instagram username.</p>
             </div>
         </li>
         <li class="lq-guide-step">
@@ -50,9 +50,9 @@
     <ul>
         <li>Your enquiry: your name, email address, phone number, message and the answers you gave in a form.</li>
         <li>The notes and follow-up tasks written about your enquiry.</li>
-        <li>Your Messenger conversation with the business.</li>
+        <li>Your Messenger or Instagram conversation with the business.</li>
         <li>If you became a client: the files kept for your order (such as a contract or an invoice) and any text you shared for the work, such as a login.</li>
-        <li>If you connected Facebook: your Facebook name and user ID, the list of your Pages and their access tokens.</li>
+        <li>If you connected Facebook: your Facebook name and user ID, the list of your Pages and their Instagram accounts, and their access tokens.</li>
         <li>If you are a team member: your {{ $name }} account.</li>
     </ul>
 

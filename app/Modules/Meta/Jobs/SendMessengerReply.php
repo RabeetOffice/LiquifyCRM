@@ -16,7 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
 
-/** Delivers one Messenger reply and logs "reply sent" or "reply failed". */
+/** Delivers one Messenger or Instagram reply and logs "reply sent" or "reply failed". */
 final class SendMessengerReply implements ShouldQueue
 {
     use Queueable;
@@ -36,6 +36,7 @@ final class SendMessengerReply implements ShouldQueue
         }
 
         $conversation = $message->conversation;
+        $channel = $conversation->channelLabel();
         $lead = $conversation->lead_id !== null ? Lead::query()->acrossBrands()->find($conversation->lead_id) : null;
 
         try {
@@ -45,7 +46,7 @@ final class SendMessengerReply implements ShouldQueue
                 throw new MetaException('The 24-hour reply window has closed.');
             }
 
-            $externalId = $graph->sendMessage($page, $conversation->contact_external_id, (string) $message->body);
+            $externalId = $graph->sendMessage($page, $conversation->contact_external_id, (string) $message->body, instagram: $conversation->isInstagram());
 
             $message->forceFill(['status' => MessageStatus::Sent, 'external_id' => $externalId !== '' ? $externalId : null, 'error' => null])->save();
 
@@ -55,14 +56,14 @@ final class SendMessengerReply implements ShouldQueue
 
             $lead?->touchActivity();
 
-            Audit::log('messages.reply_sent', $lead ?? $conversation, ['conversation_id' => $conversation->getKey(), 'excerpt' => mb_substr((string) $message->body, 0, 140)], 'Messenger reply sent', brand: $conversation->brand_id, causer: $message->sender, logName: 'messages');
+            Audit::log('messages.reply_sent', $lead ?? $conversation, ['conversation_id' => $conversation->getKey(), 'excerpt' => mb_substr((string) $message->body, 0, 140)], $channel.' reply sent', brand: $conversation->brand_id, causer: $message->sender, logName: 'messages');
         } catch (Throwable $exception) {
             $message->forceFill(['status' => MessageStatus::Failed, 'error' => mb_substr($exception->getMessage(), 0, 500)])->save();
 
-            Audit::log('messages.reply_failed', $lead ?? $conversation, ['conversation_id' => $conversation->getKey(), 'error' => $message->error], 'Messenger reply failed', brand: $conversation->brand_id, causer: $message->sender, logName: 'messages');
+            Audit::log('messages.reply_failed', $lead ?? $conversation, ['conversation_id' => $conversation->getKey(), 'error' => $message->error], $channel.' reply failed', brand: $conversation->brand_id, causer: $message->sender, logName: 'messages');
 
             $message->sender?->notify(new AppNotification(
-                'Your Messenger reply was not sent',
+                'Your '.$channel.' reply was not sent',
                 (string) $message->error,
                 'danger',
                 url('/b/'.$this->brandSlug($conversation->brand_id).'/inbox?chat='.$conversation->getKey()),

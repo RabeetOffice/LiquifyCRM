@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.15.0',
+        'date' => '2026-10-14',
+        'title' => 'Instagram direct messages in the Inbox',
+        'changes' => [
+            ['new', 'Instagram direct messages arrive in the Inbox next to Messenger chats. The first message from someone starts a lead in the New queue (source "Instagram"), and later messages join the same chat. Replies written here go out on Instagram, within 24 hours of the person\'s last message, as on Messenger.'],
+            ['new', 'Somebody who writes after tapping your ad brings the ad\'s name with them: it shows on the lead under where it came from.'],
+            ['new', 'The Inbox has a choice between every channel, Messenger and Instagram once Instagram chats are there, and each chat carries its channel\'s mark. Search finds an Instagram chat by its @username too.'],
+            ['new', 'An Instagram chat shows the person\'s @username with a link to their profile, and their name and picture when Instagram shares them. Shared posts and reels, story mentions and replies to your story open as links; a message the person deletes is removed here too.'],
+            ['new', 'Integrations shows the Instagram account linked to each Page. Its messages go to the brand of the Page and follow the Page\'s rule on the Distribute screen.'],
+            ['improved', 'The privacy policy and the data deletion page now cover Instagram messages.'],
+            ['improved', 'To switch it on: click Update system, link each Instagram account to its Page in Meta Business Suite, turn on "Allow access to messages" in the Instagram app, then click Connect again on Integrations. GIFs and stickers are not passed on by Instagram.'],
+        ],
+    ],
+    [
         'version' => '1.14.0',
         'date' => '2026-10-13',
         'title' => 'A lead at a glance, one click to assign, one person as one lead',

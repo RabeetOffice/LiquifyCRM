@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-/** POST /b/{brand}/conversations/{conversation}/messages: reply on Messenger. */
+/** POST /b/{brand}/conversations/{conversation}/messages: reply on Messenger or Instagram (the chat's channel). */
 final class ConversationMessageController
 {
     public function __invoke(Request $request, Brand $brand, Conversation $conversation, ReplyOnMessenger $reply): JsonResponse

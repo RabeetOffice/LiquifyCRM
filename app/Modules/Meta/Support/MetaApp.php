@@ -18,6 +18,8 @@ final class MetaApp
         'leads_retrieval' => 'read Lead Ads leads',
         'pages_messaging' => 'receive and answer Messenger chats',
         'business_management' => 'see the Pages of your Business Manager',
+        'instagram_basic' => 'see the Instagram account linked to each Page',
+        'instagram_manage_messages' => 'receive and answer Instagram direct messages',
     ];
 
     public static function id(): string

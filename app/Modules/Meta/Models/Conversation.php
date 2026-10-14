@@ -14,8 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One chat thread with a person (Messenger now; WhatsApp and email later).
- * The last inbound time drives Messenger's 24-hour reply window.
+ * One chat thread with a person: Messenger (to a Facebook Page) or an
+ * Instagram direct message (to the account linked to that Page); WhatsApp
+ * and email later. The contact is the id Meta gives the person for that Page
+ * or account (PSID or IGSID). The last inbound time drives the 24-hour reply
+ * window both channels share.
  *
  * @property int $id
  * @property int $brand_id
@@ -23,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $channel
  * @property string $contact_external_id
  * @property string|null $contact_name
+ * @property string|null $contact_handle
  * @property string|null $contact_picture
  * @property CarbonImmutable|null $contact_synced_at
  * @property int|null $meta_source_id
@@ -39,8 +43,13 @@ class Conversation extends Model
 
     public const CHANNEL_MESSENGER = 'messenger';
 
-    /** Messenger lets a Page reply freely for 24 hours after the person's last message. */
+    public const CHANNEL_INSTAGRAM = 'instagram';
+
+    /** Messenger and Instagram let a business reply freely for 24 hours after the person's last message. */
     public const REPLY_WINDOW_HOURS = 24;
+
+    /** Instagram takes a text of up to 1,000 bytes (an emoji counts as four); Messenger 2,000 characters. */
+    public const INSTAGRAM_MAX_BYTES = 1000;
 
     protected $fillable = [
         'brand_id', 'lead_id', 'channel', 'contact_external_id', 'contact_name', 'meta_source_id',
@@ -63,9 +72,9 @@ class Conversation extends Model
     }
 
     /**
-     * The person's Messenger picture, when Facebook shared one. Read from the
-     * raw attributes so a server that has not run "Update system" yet (no
-     * such column) simply shows the initials.
+     * The person's Messenger or Instagram picture, when Meta shared one. Read
+     * from the raw attributes so a server that has not run "Update system" yet
+     * (no such column) simply shows the initials.
      */
     public function pictureUrl(): ?string
     {
@@ -74,7 +83,56 @@ class Conversation extends Model
         return is_string($picture) && $picture !== '' ? $picture : null;
     }
 
-    /** The Page's own inbox at Facebook, where the person's profile can be seen. Meta gives no link to a profile. */
+    public function isInstagram(): bool
+    {
+        return $this->channel === self::CHANNEL_INSTAGRAM;
+    }
+
+    /** "Messenger" or "Instagram", for the screens. */
+    public function channelLabel(): string
+    {
+        return $this->isInstagram() ? 'Instagram' : 'Messenger';
+    }
+
+    /** Who the person wrote to: the Facebook Page, or the Instagram account linked to it. */
+    public function accountName(): string
+    {
+        if ($this->source === null) {
+            return $this->isInstagram() ? 'Account removed' : 'Page removed';
+        }
+
+        return $this->isInstagram() ? ($this->source->instagramHandle() ?? $this->source->name) : $this->source->name;
+    }
+
+    /** The person's Instagram @username, when Instagram shared it (Messenger has none). Raw, for the same reason as the picture. */
+    public function handle(): ?string
+    {
+        $handle = $this->getAttributes()['contact_handle'] ?? null;
+
+        return is_string($handle) && $handle !== '' ? $handle : null;
+    }
+
+    /** The person's public Instagram profile. Instagram shares the @username; Messenger shares no profile link at all. */
+    public function profileUrl(): ?string
+    {
+        $handle = $this->handle();
+
+        return $this->isInstagram() && $handle !== null && preg_match('/^[A-Za-z0-9._]{1,30}$/', $handle) === 1
+            ? 'https://www.instagram.com/'.$handle.'/'
+            : null;
+    }
+
+    /** Why a text is too long for this channel, or null when it fits. */
+    public function replyTooLong(string $text): ?string
+    {
+        if ($this->isInstagram() && strlen($text) > self::INSTAGRAM_MAX_BYTES) {
+            return 'Instagram takes up to 1,000 characters in one message (an emoji counts as four). Shorten it or send it in two.';
+        }
+
+        return mb_strlen($text) > 2000 ? 'Messenger takes up to 2,000 characters in one message. Shorten it or send it in two.' : null;
+    }
+
+    /** The Page's own inbox at Meta (Messenger and Instagram together), where the person's profile can be seen. Meta gives no link to a Messenger profile. */
     public function facebookInboxUrl(): ?string
     {
         $pageId = $this->source?->external_id;
@@ -125,6 +183,12 @@ class Conversation extends Model
 
     public function displayName(): string
     {
-        return $this->contact_name ?: 'Messenger contact';
+        if (filled($this->contact_name)) {
+            return (string) $this->contact_name;
+        }
+
+        $handle = $this->handle();
+
+        return $handle !== null ? '@'.$handle : $this->channelLabel().' contact';
     }
 }

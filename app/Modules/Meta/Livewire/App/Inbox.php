@@ -14,6 +14,7 @@ use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Meta\Actions\SyncContactProfile;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Meta\Support\Instagram;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -24,11 +25,11 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * Inbox: Messenger threads of the leads a person may see (Admins all,
- * Managers their departments, Agents their own), newest first, in three
- * panes: the chats, the open thread, and the lead it belongs to. From the
- * third pane the lead can be handed to an Agent and its details filled in
- * without leaving the chat.
+ * Inbox: Messenger and Instagram threads of the leads a person may see
+ * (Admins all, Managers their departments, Agents their own), newest first,
+ * in three panes: the chats, the open thread, and the lead it belongs to.
+ * From the third pane the lead can be handed to an Agent and its details
+ * filled in without leaving the chat.
  */
 #[Layout('components.layouts.app')]
 #[Title('Inbox')]
@@ -49,6 +50,10 @@ final class Inbox extends Component
     /** all, unread, or open (chats that can still be answered). */
     #[Url(except: 'all')]
     public string $filter = 'all';
+
+    /** "" for every channel, or messenger / instagram. */
+    #[Url(except: '')]
+    public string $channel = '';
 
     public bool $showAssign = false;
 
@@ -118,7 +123,7 @@ final class Inbox extends Component
         $this->openDetails();
     }
 
-    /** Ask Facebook again for this person's name and picture, and say plainly what came back. */
+    /** Ask Facebook (or Instagram) again for this person's name and picture, and say plainly what came back. */
     public function refreshProfile(SyncContactProfile $sync): void
     {
         $conversation = $this->chat === '' ? null : Conversation::query()->visibleTo($this->user())->with(['lead', 'source'])->find((int) $this->chat);
@@ -128,16 +133,17 @@ final class Inbox extends Component
         }
 
         $result = $sync->handle($conversation, force: true);
+        $service = $conversation->isInstagram() ? 'Instagram' : 'Facebook';
 
         if ($result['name'] || $result['picture']) {
-            $this->toastSuccess('Updated from Facebook', $result['name'] ? 'The name'.($result['picture'] ? ' and the picture are' : ' is').' in.' : 'The picture is in.');
+            $this->toastSuccess('Updated from '.$service, $result['name'] ? 'The name'.($result['picture'] ? ' and the picture are' : ' is').' in.' : 'The picture is in.');
 
             return;
         }
 
         $this->toastWarning(
-            'Facebook did not share this person\'s profile',
-            ($result['reason'] !== null ? 'Facebook says: '.$result['reason'].' ' : '').'It shares names and pictures once your app has passed its review, and before that only for people with a role on the app. You can type the name in with Edit details.',
+            $service.' did not share this person\'s profile',
+            ($result['reason'] !== null ? $service.' says: '.$result['reason'].' ' : '').'Meta shares names and pictures once your app has passed its review, and before that only for people with a role on the app. You can type the name in with Edit details.',
         );
     }
 
@@ -186,11 +192,16 @@ final class Inbox extends Component
         $replyableSince = now()->subHours(Conversation::REPLY_WINDOW_HOURS);
         $visible = fn (): Builder => Conversation::query()->visibleTo($user);
 
+        $channels = [Conversation::CHANNEL_MESSENGER, Conversation::CHANNEL_INSTAGRAM];
+        $handles = Instagram::ready();
+
         $conversations = $visible()
             ->with(['lead.status', 'lead.assignee', 'lead.department', 'source'])
             ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $inner): Builder => $inner
                 ->where('contact_name', 'like', $like)
+                ->when($handles, fn (Builder $handle): Builder => $handle->orWhere('contact_handle', 'like', '%'.ltrim($this->search, '@').'%'))
                 ->orWhere('last_message_preview', 'like', $like)))
+            ->when(in_array($this->channel, $channels, true), fn (Builder $query): Builder => $query->where('channel', $this->channel))
             ->when($this->filter === 'unread', fn (Builder $query): Builder => $query->where('unread_count', '>', 0))
             ->when($this->filter === 'open', fn (Builder $query): Builder => $query->where('last_inbound_at', '>', $replyableSince))
             ->orderByDesc('last_message_at')
@@ -212,6 +223,8 @@ final class Inbox extends Component
             'selected' => $selected,
             'total' => $visible()->count(),
             'unread' => $visible()->where('unread_count', '>', 0)->count(),
+            // The channel choice shows once there is more than Messenger to choose from.
+            'hasInstagram' => $this->channel !== '' || $visible()->where('channel', Conversation::CHANNEL_INSTAGRAM)->exists(),
             'fullContact' => $lead !== null && app(ContactVisibility::class)->canSeeFull($user, $lead),
             'canAssign' => $canAssign,
             'canUpdate' => $lead !== null && $user->can('update', $lead),

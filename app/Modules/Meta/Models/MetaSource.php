@@ -12,13 +12,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * A Facebook Page and the brand it is mapped to. Managed globally by the
  * Admins on the Integrations screen, so it is not brand-scoped; a Page with
- * no brand yet keeps its events waiting.
+ * no brand yet keeps its events waiting. The Instagram professional account
+ * linked to the Page rides along: its direct messages go to the same brand.
  *
  * @property int $id
  * @property int|null $meta_connection_id
  * @property int|null $brand_id
  * @property string $type
  * @property string $external_id
+ * @property string|null $instagram_id
+ * @property string|null $instagram_username
  * @property string $name
  * @property string|null $access_token
  * @property list<string>|null $subscribed_fields
@@ -35,7 +38,7 @@ class MetaSource extends Model
     public const FIELDS = ['leadgen', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_echoes'];
 
     protected $fillable = [
-        'meta_connection_id', 'brand_id', 'type', 'external_id', 'name', 'access_token',
+        'meta_connection_id', 'brand_id', 'type', 'external_id', 'instagram_id', 'instagram_username', 'name', 'access_token',
         'subscribed_fields', 'subscribed_at', 'last_event_at', 'error',
     ];
 
@@ -71,5 +74,24 @@ class MetaSource extends Model
     public function isSubscribed(): bool
     {
         return $this->subscribed_at !== null && $this->error === null;
+    }
+
+    /**
+     * The Instagram account linked to this Page, as "@account". Read from the
+     * raw attributes so a server that has not run "Update system" yet (no such
+     * column) simply has none.
+     */
+    public function instagramHandle(): ?string
+    {
+        $username = $this->getAttributes()['instagram_username'] ?? null;
+
+        return is_string($username) && $username !== '' ? '@'.$username : null;
+    }
+
+    public function instagramId(): ?string
+    {
+        $id = $this->getAttributes()['instagram_id'] ?? null;
+
+        return is_string($id) && $id !== '' ? $id : null;
     }
 }

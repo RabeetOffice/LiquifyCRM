@@ -337,7 +337,7 @@ final class DistributePage extends Component
         ]);
 
         $pages = MetaSource::query()->where('brand_id', $this->brand->getKey())->orderBy('name')->get()->map(fn (MetaSource $page): array => [
-            'channel' => LeadRoute::FACEBOOK, 'id' => (int) $page->getKey(), 'name' => $page->name, 'detail' => 'Facebook Page · lead forms and Messenger', 'site' => null,
+            'channel' => LeadRoute::FACEBOOK, 'id' => (int) $page->getKey(), 'name' => $page->name, 'detail' => 'Facebook Page · lead forms and Messenger'.(($handle = $page->instagramHandle()) !== null ? ', Instagram '.$handle : ''), 'site' => null,
         ]);
 
         return [...$sites->all(), ...$pages->all()];

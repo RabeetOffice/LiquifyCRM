@@ -18,6 +18,7 @@ use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 use App\Modules\Meta\Models\MetaSource;
+use App\Modules\Meta\Support\Instagram;
 use App\Modules\Meta\Support\MetaApp;
 use App\Modules\Meta\Support\MetaGraph;
 use App\Modules\Sites\Enums\InboundStatus;
@@ -32,8 +33,10 @@ use Throwable;
 /**
  * One stored Meta webhook event, from the queue: a Lead Ads lead is fetched
  * from the Graph API and becomes a lead of the Page's brand; a Messenger
- * message joins its conversation by PSID (the first one creates the lead).
- * A failure stays on the event with a Retry button.
+ * message joins its conversation by PSID, an Instagram direct message by
+ * IGSID (the first one creates the lead). An Instagram account belongs to the
+ * brand of the Page it is linked to. A failure stays on the event with a
+ * Retry button.
  */
 final class ProcessMetaEvent implements ShouldQueue
 {
@@ -42,6 +45,8 @@ final class ProcessMetaEvent implements ShouldQueue
     public const LEADGEN = 'meta_leadgen';
 
     public const MESSAGE = 'meta_message';
+
+    public const INSTAGRAM = 'meta_instagram';
 
     public int $tries = 1;
 
@@ -60,12 +65,7 @@ final class ProcessMetaEvent implements ShouldQueue
         $event->increment('attempts');
 
         try {
-            $page = MetaSource::query()->with('brand')->where('external_id', (string) ($event->payload['page_id'] ?? ''))->first();
-
-            if ($page === null) {
-                throw new LeadRejected('This Facebook Page is not connected. Click "Refresh Pages" on the Integrations screen.');
-            }
-
+            $page = $this->page($event);
             $brand = $page->brand;
 
             if ($brand === null) {
@@ -78,7 +78,7 @@ final class ProcessMetaEvent implements ShouldQueue
 
             $lead = app(CurrentBrand::class)->within($brand, fn (): ?Lead => $event->source === self::LEADGEN
                 ? $this->leadAd($event, $page, $brand, $graph, $createLead, $normalizer)
-                : $this->message($event, $page, $brand, $graph, $createLead));
+                : $this->message($event, $page, $brand, $createLead));
 
             $page->forceFill(['last_event_at' => now()])->save();
             $event->markDone($lead);
@@ -89,6 +89,24 @@ final class ProcessMetaEvent implements ShouldQueue
                 report($exception);
             }
         }
+    }
+
+    /** The Page the event belongs to: named by the event, or the Page an Instagram account is linked to. */
+    private function page(InboundEvent $event): MetaSource
+    {
+        if ($event->source !== self::INSTAGRAM) {
+            return MetaSource::query()->with('brand')->where('external_id', (string) ($event->payload['page_id'] ?? ''))->first()
+                ?? throw new LeadRejected('This Facebook Page is not connected. Click "Refresh Pages" on the Integrations screen.');
+        }
+
+        if (! Instagram::ready()) {
+            throw new LeadRejected('Instagram messages need the latest version: an Admin clicks "Update system" on the Updates screen, then "Refresh Pages" on the Integrations screen. This message is processed then.');
+        }
+
+        $account = (string) ($event->payload['instagram_id'] ?? '');
+        $page = $account !== '' ? MetaSource::query()->with('brand')->where('instagram_id', $account)->first() : null;
+
+        return $page ?? throw new LeadRejected('This Instagram account is not linked to a connected Facebook Page yet. Link it to its Page in Meta Business Suite, then click "Refresh Pages" on the Integrations screen; the message is processed then.');
     }
 
     private function leadAd(InboundEvent $event, MetaSource $page, Brand $brand, MetaGraph $graph, CreateLead $createLead, SiteLeadNormalizer $normalizer): Lead
@@ -181,36 +199,51 @@ final class ProcessMetaEvent implements ShouldQueue
         return $lead;
     }
 
-    private function message(InboundEvent $event, MetaSource $page, Brand $brand, MetaGraph $graph, CreateLead $createLead): ?Lead
+    /**
+     * A Messenger or Instagram message. Both work alike: the person is known
+     * by the id Meta gives them for that Page or account, the first message
+     * starts a lead in the New queue and later ones join its chat.
+     */
+    private function message(InboundEvent $event, MetaSource $page, Brand $brand, CreateLead $createLead): ?Lead
     {
         $payload = $event->payload;
-        $psid = (string) ($payload['sender']['id'] ?? '');
+        $instagram = $event->source === self::INSTAGRAM;
+        $channel = $instagram ? Conversation::CHANNEL_INSTAGRAM : Conversation::CHANNEL_MESSENGER;
+        // The Page (Messenger) or its Instagram account: who the person writes to.
+        $own = $instagram ? $page->instagramId() : $page->external_id;
+        $contactId = (string) ($payload['sender']['id'] ?? '');
         $message = (array) ($payload['message'] ?? $payload['postback'] ?? []);
         $mid = (string) ($message['mid'] ?? $event->external_id ?? '');
 
         $text = $this->text($message);
-        $sentAt = isset($payload['timestamp']) ? CarbonImmutable::createFromTimestampMs((int) $payload['timestamp']) : now();
+        $sentAt = $this->sentAt($payload);
 
-        // The Page's own messages come back as "echoes": a reply written on Facebook itself joins the chat.
+        // The Page's own messages come back as "echoes": a reply written on Facebook or Instagram itself joins the chat.
         if (! empty($message['is_echo'])) {
-            return $this->echo($page, $payload, $message, $mid, $text, $sentAt);
+            return $this->echo($page, $channel, $own, $payload, $message, $mid, $text, $sentAt);
         }
 
-        if ($psid === '' || $psid === $page->external_id) {
+        // Instagram says when the person deleted a message: its words go here too.
+        if (! empty($message['is_deleted'])) {
+            return $this->deleted($mid);
+        }
+
+        if ($contactId === '' || $contactId === $own) {
             return null;
         }
 
         $conversation = Conversation::query()
             ->with('lead.status')
             ->where('meta_source_id', $page->getKey())
-            ->where('contact_external_id', $psid)
+            ->where('channel', $channel)
+            ->where('contact_external_id', $contactId)
             ->first();
 
         if ($conversation === null) {
             $conversation = Conversation::query()->create([
                 'brand_id' => $brand->getKey(),
-                'channel' => Conversation::CHANNEL_MESSENGER,
-                'contact_external_id' => $psid,
+                'channel' => $channel,
+                'contact_external_id' => $contactId,
                 'meta_source_id' => $page->getKey(),
             ]);
             $conversation->setRelation('lead', null);
@@ -224,8 +257,8 @@ final class ProcessMetaEvent implements ShouldQueue
 
         // Somebody who filled in a lead form and now writes to the Page is one person: the form
         // named this chat, so the chat joins that lead instead of starting a second one.
-        if ($lead === null || ! $lead->isOpen()) {
-            $known = LeadMatcher::byMessenger($brand, $psid);
+        if (! $instagram && ($lead === null || ! $lead->isOpen())) {
+            $known = LeadMatcher::byMessenger($brand, $contactId);
 
             if ($known !== null) {
                 $lead = $known;
@@ -237,12 +270,15 @@ final class ProcessMetaEvent implements ShouldQueue
         // A new chat, or one whose lead was closed or removed, starts a lead in the New queue.
         if ($lead === null || ! $lead->isOpen()) {
             $lead = $createLead->handle($brand, [
-                'source_type' => LeadSource::Messenger,
+                'source_type' => $instagram ? LeadSource::Instagram : LeadSource::Messenger,
                 'source_id' => $page->getKey(),
-                'external_id' => $psid.':'.$conversation->getKey().':'.$sentAt->getTimestamp(),
+                'external_id' => $contactId.':'.$conversation->getKey().':'.$sentAt->getTimestamp(),
                 'name' => $conversation->displayName(),
                 'message' => $text,
-                'fields' => ['facebook_page' => $page->name],
+                'fields' => array_filter([
+                    ...($instagram ? ['instagram' => $page->instagramHandle()] : ['facebook_page' => $page->name]),
+                    ...$this->adFields($payload, $message),
+                ]),
             ], mergeDuplicates: false)->lead;
             $newLead = true;
         }
@@ -272,7 +308,7 @@ final class ProcessMetaEvent implements ShouldQueue
             if (! $newLead && $lead->assigned_to !== null) {
                 $lead->loadMissing('assignee');
                 $lead->assignee?->notify(new AppNotification(
-                    'New message from '.$conversation->displayName(),
+                    ($instagram ? 'New Instagram message from ' : 'New message from ').$conversation->displayName(),
                     mb_substr($text, 0, 140),
                     'info',
                     $brand->url('inbox?chat='.$conversation->getKey()),
@@ -286,25 +322,28 @@ final class ProcessMetaEvent implements ShouldQueue
     }
 
     /**
-     * A reply the team wrote on Facebook itself (the Page's inbox, the phone
-     * app) joins the chat as an outgoing message. What LiquifyCRM sent is
-     * already there, so the echo of our own app is left out.
+     * A reply the team wrote on Facebook or Instagram itself (the Page's
+     * inbox, the phone app) joins the chat as an outgoing message. What
+     * LiquifyCRM sent is already there, so the echo of our own app is left
+     * out: Messenger names the app, and a reply sent from here a moment ago
+     * with the same words is the same message.
      *
      * @param  array<string, mixed>  $payload
      * @param  array<string, mixed>  $message
      */
-    private function echo(MetaSource $page, array $payload, array $message, string $mid, string $text, CarbonImmutable $sentAt): ?Lead
+    private function echo(MetaSource $page, string $channel, ?string $own, array $payload, array $message, string $mid, string $text, CarbonImmutable $sentAt): ?Lead
     {
-        $psid = (string) ($payload['recipient']['id'] ?? '');
+        $contactId = (string) ($payload['recipient']['id'] ?? '');
 
-        if ($psid === '' || $psid === $page->external_id || (MetaApp::id() !== '' && (string) ($message['app_id'] ?? '') === MetaApp::id())) {
+        if ($contactId === '' || $contactId === $own || (MetaApp::id() !== '' && (string) ($message['app_id'] ?? '') === MetaApp::id())) {
             return null;
         }
 
         $conversation = Conversation::query()
             ->with('lead')
             ->where('meta_source_id', $page->getKey())
-            ->where('contact_external_id', $psid)
+            ->where('channel', $channel)
+            ->where('contact_external_id', $contactId)
             ->first();
 
         if ($conversation === null) {
@@ -312,6 +351,18 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         if ($mid === '' || ! Message::query()->where('external_id', $mid)->exists()) {
+            $ours = Message::query()
+                ->where('conversation_id', $conversation->getKey())
+                ->where('direction', Message::OUT)
+                ->whereNotNull('sent_by')
+                ->where('body', $text)
+                ->where('created_at', '>=', $sentAt->subMinutes(2))
+                ->exists();
+
+            if ($ours) {
+                return $conversation->lead;
+            }
+
             Message::query()->create([
                 'conversation_id' => $conversation->getKey(),
                 'direction' => Message::OUT,
@@ -334,6 +385,66 @@ final class ProcessMetaEvent implements ShouldQueue
         return $conversation->lead;
     }
 
+    /** The person deleted a message on Instagram: its words and attachments go here too. */
+    private function deleted(string $mid): ?Lead
+    {
+        $message = $mid !== '' ? Message::query()->with('conversation.lead')->where('external_id', $mid)->first() : null;
+
+        if ($message === null) {
+            return null;
+        }
+
+        $message->forceFill(['body' => '[Deleted by the sender]', 'raw' => null])->save();
+
+        $conversation = $message->conversation;
+
+        if ((int) Message::query()->where('conversation_id', $conversation->getKey())->max('id') === (int) $message->getKey()) {
+            $conversation->forceFill(['last_message_preview' => '[Deleted by the sender]'])->save();
+        }
+
+        return $conversation->lead;
+    }
+
+    /**
+     * The ad the person came from, when they started the chat from one
+     * ("Send message" on a Facebook or Instagram ad). Kept on the lead so it
+     * shows where the enquiry came from.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $message
+     * @return array<string, string>
+     */
+    private function adFields(array $payload, array $message): array
+    {
+        $referral = (array) ($message['referral'] ?? $payload['referral'] ?? $payload['postback']['referral'] ?? []);
+        $adId = (string) ($referral['ad_id'] ?? '');
+
+        if ($adId === '') {
+            return [];
+        }
+
+        $title = trim((string) ($referral['ads_context_data']['ad_title'] ?? ''));
+
+        return ['ad' => $title !== '' ? $title : 'Ad '.$adId, 'ad_id' => $adId];
+    }
+
+    /**
+     * When the message was sent. Meta sends milliseconds; its dashboard test
+     * sends seconds.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function sentAt(array $payload): CarbonImmutable
+    {
+        $stamp = (int) ($payload['timestamp'] ?? 0);
+
+        if ($stamp <= 0) {
+            return CarbonImmutable::now();
+        }
+
+        return $stamp < 100_000_000_000 ? CarbonImmutable::createFromTimestamp($stamp) : CarbonImmutable::createFromTimestampMs($stamp);
+    }
+
     /**
      * What a message says. One with only pictures or files says how many, and the thread shows them.
      *
@@ -347,8 +458,18 @@ final class ProcessMetaEvent implements ShouldQueue
             return $text;
         }
 
-        $attachments = count((array) ($message['attachments'] ?? []));
+        if (! empty($message['is_unsupported'])) {
+            return '[A kind of message Instagram does not pass on. Open the chat on Instagram to see it.]';
+        }
 
-        return $attachments > 0 ? '['.$attachments.' '.str('attachment')->plural($attachments).']' : '[Message without text]';
+        $attachments = (array) ($message['attachments'] ?? []);
+        $count = count($attachments);
+        $disappearing = array_filter($attachments, fn (mixed $item): bool => is_array($item) && ($item['type'] ?? null) === 'ephemeral');
+
+        if ($count > 0 && count($disappearing) === $count) {
+            return '[A disappearing photo or video. Open the chat on Instagram to see it.]';
+        }
+
+        return $count > 0 ? '['.$count.' '.str('attachment')->plural($count).']' : '[Message without text]';
     }
 }

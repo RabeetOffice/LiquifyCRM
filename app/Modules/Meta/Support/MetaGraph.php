@@ -174,19 +174,69 @@ final class MetaGraph
         return ['name' => $name, 'picture' => $picture, 'reason' => $name === null ? $reason : null];
     }
 
+    /**
+     * The Instagram professional account linked to a Page, or null when it
+     * has none (or the connection was made before Instagram was asked for).
+     * Never fails the Page.
+     *
+     * @return array{id: string, username: ?string}|null
+     */
+    public function instagramAccount(MetaSource $page): ?array
+    {
+        try {
+            $account = (array) ($this->get('/'.$page->external_id, $this->pageToken($page), ['fields' => 'instagram_business_account{id,username}'])['instagram_business_account'] ?? []);
+        } catch (MetaException) {
+            return null;
+        }
+
+        $id = (string) ($account['id'] ?? '');
+
+        return $id !== '' ? ['id' => $id, 'username' => filled($account['username'] ?? null) ? (string) $account['username'] : null] : null;
+    }
+
+    /**
+     * The Instagram contact's name, @username and picture, asked with the
+     * Page's token. Instagram shares them once the person has written to the
+     * account, and only as far as the app may see (see contactProfile).
+     *
+     * @return array{name: ?string, username: ?string, picture: ?string, reason: ?string}
+     */
+    public function instagramProfile(MetaSource $page, string $igsid): array
+    {
+        try {
+            $profile = $this->get('/'.$igsid, $this->pageToken($page), ['fields' => 'name,username,profile_pic']);
+        } catch (MetaException $exception) {
+            return ['name' => null, 'username' => null, 'picture' => null, 'reason' => $exception->getMessage()];
+        }
+
+        $name = trim((string) ($profile['name'] ?? ''));
+        $username = ltrim(trim((string) ($profile['username'] ?? '')), '@');
+
+        return [
+            'name' => $name !== '' ? $name : null,
+            'username' => $username !== '' ? $username : null,
+            'picture' => $this->pictureUrl((string) ($profile['profile_pic'] ?? '')),
+            'reason' => null,
+        ];
+    }
+
     private function pictureUrl(string $url): ?string
     {
         return str_starts_with($url, 'https://') ? $url : null;
     }
 
-    /** Send a Messenger reply inside the 24-hour window. Returns Meta's message id. */
-    public function sendMessage(MetaSource $page, string $psid, string $text): string
+    /**
+     * Send a reply inside the 24-hour window, on Messenger to a PSID or on
+     * Instagram to an IGSID: both go through the Page with its token. Returns
+     * Meta's message id.
+     */
+    public function sendMessage(MetaSource $page, string $recipientId, string $text, bool $instagram = false): string
     {
-        $response = $this->post('/'.$page->external_id.'/messages', $this->pageToken($page), [
-            'recipient' => ['id' => $psid],
-            'messaging_type' => 'RESPONSE',
+        $response = $this->post('/'.$page->external_id.'/messages', $this->pageToken($page), array_filter([
+            'recipient' => ['id' => $recipientId],
+            'messaging_type' => $instagram ? null : 'RESPONSE',
             'message' => ['text' => $text],
-        ]);
+        ]));
 
         return (string) ($response['message_id'] ?? '');
     }

@@ -15,9 +15,9 @@ use Illuminate\Http\Response;
 
 /**
  * GET /webhooks/meta answers Meta's one-time verification with the verify
- * token. POST /webhooks/meta receives Lead Ads and Messenger events: it only
- * checks X-Hub-Signature-256, stores each event and answers 200 at once; the
- * queue does the rest.
+ * token. POST /webhooks/meta receives Lead Ads, Messenger and Instagram
+ * events: it only checks X-Hub-Signature-256, stores each event and answers
+ * 200 at once; the queue does the rest.
  */
 final class MetaWebhookController
 {
@@ -42,8 +42,14 @@ final class MetaWebhookController
 
         $payload = json_decode($body, true);
 
+        if (is_array($payload) && ($payload['object'] ?? null) === 'instagram') {
+            $this->instagram($payload);
+
+            return response('EVENT_RECEIVED', 200);
+        }
+
         if (! is_array($payload) || ($payload['object'] ?? null) !== 'page') {
-            // Other objects (Instagram, WhatsApp) arrive later; tell Meta they were received.
+            // Other objects (WhatsApp) arrive later; tell Meta they were received.
             return response('EVENT_RECEIVED', 200);
         }
 
@@ -73,6 +79,47 @@ final class MetaWebhookController
         }
 
         return response('EVENT_RECEIVED', 200);
+    }
+
+    /**
+     * Instagram direct messages. The entry is the Instagram account (not the
+     * Page), the sender the person's Instagram-scoped id. A message the
+     * account sent itself comes back with "is_echo"; one the person deleted
+     * comes again with "is_deleted", kept under its own id so it is not taken
+     * for a repeat. Meta's dashboard test sends the same event in the
+     * "changes" shape, so both are read.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function instagram(array $payload): void
+    {
+        foreach ((array) ($payload['entry'] ?? []) as $entry) {
+            $accountId = (string) ($entry['id'] ?? '');
+            $items = (array) ($entry['messaging'] ?? []);
+
+            foreach ((array) ($entry['changes'] ?? []) as $change) {
+                if (in_array($change['field'] ?? null, ['messages', 'messaging_postbacks', 'messaging_seen'], true) && is_array($change['value'] ?? null)) {
+                    $items[] = $change['value'];
+                }
+            }
+
+            foreach ($items as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $contact = (string) ($item['sender']['id'] ?? '');
+
+                if (isset($item['message']) || isset($item['postback'])) {
+                    $mid = (string) ($item['message']['mid'] ?? $item['postback']['mid'] ?? '');
+                    $deleted = ! empty($item['message']['is_deleted']);
+                    $this->store(ProcessMetaEvent::INSTAGRAM, $mid !== '' ? $mid.($deleted ? ':deleted' : '') : null, ['instagram_id' => $accountId, ...$item]);
+                } elseif (isset($item['read']) && isset($item['timestamp'])) {
+                    // Instagram names the message that was seen, not a watermark: everything sent until then has been seen.
+                    UpdateMessageReceipts::dispatch($accountId, $contact, 'read', (int) $item['timestamp'], instagram: true);
+                }
+            }
+        }
     }
 
     /**

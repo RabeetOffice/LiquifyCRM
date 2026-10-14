@@ -533,6 +533,9 @@ final class LeadPanel extends Component
             ->limit(80)
             ->get();
 
+        // The lead's chat (Messenger or Instagram), its latest if there are two.
+        $chat = Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->first(['id', 'channel']);
+
         return view('leads::livewire.app.lead-panel', [
             'lead' => $lead,
             'canSeeFull' => $canSeeFull,
@@ -546,7 +549,8 @@ final class LeadPanel extends Component
             'maxMb' => ClientFile::MAX_KB / 1024,
             'careReady' => ClientCare::ready(),
             'brandCurrency' => $this->brand()->currency,
-            'conversationId' => Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->value('id'),
+            'conversationId' => $chat?->getKey(),
+            'chatChannel' => $chat?->channelLabel() ?? 'Messenger',
             'statuses' => $statuses,
             'path' => $this->path($statuses, $lead),
             'answers' => LeadEnquiry::answers($lead),

@@ -30,6 +30,7 @@ final class MetaServiceProvider extends ModuleServiceProvider
     {
         InboundEvent::processWith(ProcessMetaEvent::LEADGEN, ProcessMetaEvent::class);
         InboundEvent::processWith(ProcessMetaEvent::MESSAGE, ProcessMetaEvent::class);
+        InboundEvent::processWith(ProcessMetaEvent::INSTAGRAM, ProcessMetaEvent::class);
 
         // 120 webhook calls a minute per Page; Meta retries anything refused.
         RateLimiter::for('meta-webhook', fn (Request $request): Limit => Limit::perMinute((int) config('liquify.meta.rate_limit', 120))

@@ -3,7 +3,7 @@
     $currency = $report->currency();
     $symbol = Money::symbol($currency);
     $minutes = fn (int $m): string => $m < 60 ? $m.' min' : ($m < 1440 ? round($m / 60, 1).' h' : round($m / 1440, 1).' days');
-    $sourceColors = ['website' => '#0ea5e9', 'facebook' => '#1877f2', 'messenger' => '#a855f7', 'manual' => '#a8a29e', 'import' => '#f59e0b', 'api' => '#22c55e'];
+    $sourceColors = ['website' => '#0ea5e9', 'facebook' => '#1877f2', 'messenger' => '#a855f7', 'instagram' => '#e1306c','manual' => '#a8a29e', 'import' => '#f59e0b', 'api' => '#22c55e'];
     $personal = $report->isPersonal();
     $hasTrend = array_sum($trend['count']) > 0;
 @endphp

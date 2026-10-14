@@ -1,7 +1,7 @@
 # LiquifyCRM — done and pending
 
 Checked against `docs/LiquifyCRM — MVP Architecture (Laravel).docx` on 8 October 2026.
-State of the code (13 October): 249 Pest tests passing, Pint and Larastan level 6 clean.
+State of the code (14 October): 257 Pest tests passing, Pint and Larastan level 6 clean.
 
 ## At a glance
 
@@ -200,6 +200,12 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 - [x] Existing pairs: "This person has another lead" (same Messenger chat, email or phone) or "This may be the same person" (same name, and one of the two has nothing but a name) on the lead, with Merge for whoever may assign both (`MergeLeads::handle`): the chat, notes, follow-ups, website events and timeline move, missing details are filled, the owner and the further status carry over, the other lead goes to the bin. Won and lost leads are not merged.
 - [x] A click on a lead in the list or pipeline always opens the slide-over (the hover icon to the full page is removed; Ctrl + click still opens a new tab), and "Open full page" follows the lead that is open.
 
+### Instagram direct messages (14 October, asked for by the user, brought forward from the document's future modules)
+- [x] The document's "Instagram DMs: Instagram messages into the same Inbox, same Meta app and webhook, new adapter", built through Meta's Instagram API with Facebook Login (Page token, no new package). Version 1.15.0, one migration (`meta_sources.instagram_id`, `instagram_username`, `conversations.contact_handle`), behind `Instagram::ready()` until "Update system".
+- [x] Refresh Pages / Connect again reads the Instagram account linked to each Page; its messages go to the Page's brand and follow the Page's rule on Distribute. The webhook takes `object: instagram` (and the dashboard test's `changes` shape); `ProcessMetaEvent::INSTAGRAM` makes the chat (`channel = instagram`) and a lead with source Instagram, the ad's name when the person came from an ad, the reply written in the Instagram app (echo), a deleted message, a "seen" receipt.
+- [x] Inbox: Every channel / Messenger / Instagram, the channel's mark on each chat, search by @username, the person's @username and profile link; replies up to 1,000 bytes. Lead panel tab named after the chat's channel. Privacy and data deletion pages updated (14 October).
+- [ ] Needs the user: add `instagram_basic` and `instagram_manage_messages` to the Meta app (and to the Login for Business configuration if `META_LOGIN_CONFIG_ID` is set), subscribe the Instagram webhook object (`messages`, `messaging_postbacks`, `messaging_seen`, `messaging_referral`), link each Instagram account to its Page, turn on "Allow access to messages" in the Instagram app, click Update system, then Connect again. Messages from people without a role on the Meta app need App Review (Advanced Access) if they do not arrive under Standard Access.
+
 ### Agreed differences from the document
 - **Company details live in `brands.settings` (13 October).** The document's `brands` table has no phone, email or address. They are kept under `settings.company` rather than as new columns, so the screens work the moment the code is on the server, with no "Update system" in between. Brands is the only module that writes them.
 - **Live updates and nothing waiting for the minute (12 October, user request).** The document has the queue drained once a minute and screens polling. Now a stamp per brand and person (`Live`) is asked for every 4 seconds by one small request and screens reload only when it moved; bell entries are written at once; incoming website and Meta events and Messenger replies run right after the response (`RunSoon`). The scheduler cron was missing on the live server until 12 October (18 jobs were waiting); it was added that day and still does the emails, website pulls, backups, token renewal and log archive.
@@ -270,7 +276,7 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 - [ ] A larger install icon (192 and 512 px PNG) for Android's install prompt; the manifest uses the 180 px touch icon today. Needs the original artwork of the app icon at 512 px or larger: enlarging the 180 px file would be blurry.
 
 ### Phase 2 and later
-- [ ] Files module (the `files` table and the client storage exist; still open: files on any lead and on a brand, expiring links, S3-compatible storage), NDA and contracts, client portal (in that order), then email inbox, automations, reports, Instagram DMs, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
+- [ ] Files module (the `files` table and the client storage exist; still open: files on any lead and on a brand, expiring links, S3-compatible storage), NDA and contracts, client portal (in that order), then email inbox, automations, reports, mobile app, WhatsApp, Viewer role, commissions, invoices, forecasts, automatic exchange rates, monthly PDF report.
 
 ## Needed from you before the next phases
 - The six weeks are built. What is left is in "Week 6 · needs you" above.

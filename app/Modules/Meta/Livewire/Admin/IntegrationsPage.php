@@ -14,6 +14,7 @@ use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Jobs\ProcessMetaEvent;
 use App\Modules\Meta\Models\MetaConnection;
 use App\Modules\Meta\Models\MetaSource;
+use App\Modules\Meta\Support\Instagram;
 use App\Modules\Meta\Support\MetaApp;
 use App\Modules\Meta\Support\MetaGraph;
 use App\Modules\Sites\Enums\InboundStatus;
@@ -136,11 +137,14 @@ final class IntegrationsPage extends Component
             return;
         }
 
-        // Anything that arrived while the Page had no brand is processed now.
+        // Anything that arrived while the Page had no brand is processed now, Instagram messages of its account too.
+        $instagramId = $page->instagramId();
         $waiting = InboundEvent::query()
-            ->whereIn('source', [ProcessMetaEvent::LEADGEN, ProcessMetaEvent::MESSAGE])
+            ->whereIn('source', [ProcessMetaEvent::LEADGEN, ProcessMetaEvent::MESSAGE, ProcessMetaEvent::INSTAGRAM])
             ->where('status', InboundStatus::Failed->value)
-            ->where('payload->page_id', $page->external_id)
+            ->where(fn ($query) => $query
+                ->where('payload->page_id', $page->external_id)
+                ->when($instagramId !== null, fn ($instagram) => $instagram->orWhere('payload->instagram_id', $instagramId)))
             ->limit(500)
             ->get();
 
@@ -153,7 +157,7 @@ final class IntegrationsPage extends Component
     {
         $this->authorize(Permission::MetaManage->value);
 
-        $this->askConfirmation('disconnect', [], 'Disconnect Facebook?', 'Leads and Messenger chats stop arriving for every brand. Leads and chats already received stay.', 'Disconnect', 'danger', password: true);
+        $this->askConfirmation('disconnect', [], 'Disconnect Facebook?', 'Leads, Messenger chats and Instagram messages stop arriving for every brand. Leads and chats already received stay.', 'Disconnect', 'danger', password: true);
     }
 
     public function disconnect(): void
@@ -213,7 +217,8 @@ final class IntegrationsPage extends Component
                 ->when($this->eventStatus !== '', fn ($query) => $query->where('status', $this->eventStatus))
                 ->latest('id')
                 ->paginate(25),
-            'sources' => ['site' => 'Website', ProcessMetaEvent::LEADGEN => 'Facebook lead', ProcessMetaEvent::MESSAGE => 'Messenger'],
+            'sources' => ['site' => 'Website', ProcessMetaEvent::LEADGEN => 'Facebook lead', ProcessMetaEvent::MESSAGE => 'Messenger', ProcessMetaEvent::INSTAGRAM => 'Instagram'],
+            'instagramReady' => Instagram::ready(),
             'statuses' => InboundStatus::cases(),
             'brandNames' => Brand::query()->pluck('name', 'id'),
             'brandSlugs' => Brand::query()->pluck('slug', 'id'),
