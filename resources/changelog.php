@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.15.2',
+        'date' => '2026-10-14',
+        'title' => 'No false alarm about caches on the System screen',
+        'changes' => [
+            ['fixed', 'The System screen no longer shows "Optimized App: Failed, Configs are not cached". The settings and routes are left uncached on purpose: the site updates itself from GitHub, and a cached copy would keep using the old ones after an update.'],
+            ['fixed', '"Backup and run database update" on the System screen now only clears the caches, like Update system. Before, it built them again, which could have kept old settings and pages after the next update.'],
+        ],
+    ],
+    [
         'version' => '1.15.1',
         'date' => '2026-10-14',
         'title' => 'Instagram: the ad of a returning person, a count while you type',

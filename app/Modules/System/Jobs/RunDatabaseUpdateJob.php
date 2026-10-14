@@ -59,14 +59,10 @@ final class RunDatabaseUpdateJob implements ShouldQueue
                 return;
             }
 
-            $deployment->appendLog('Step 3/3  Refreshing caches');
+            // Cleared, never rebuilt: the site deploys itself on a push, and cached config or routes would outlive it.
+            $deployment->appendLog('Step 3/3  Clearing caches');
             Artisan::call('optimize:clear');
             $deployment->appendLog(trim(Artisan::output()));
-
-            if (app()->isProduction()) {
-                Artisan::call('optimize');
-                $deployment->appendLog(trim(Artisan::output()));
-            }
 
             $pendingAfter = $status->pendingMigrations();
             $ran = array_values(array_diff($pendingBefore, $pendingAfter));

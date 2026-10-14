@@ -13,7 +13,6 @@ use Spatie\Health\Checks\Checks\CacheCheck;
 use Spatie\Health\Checks\Checks\DatabaseCheck;
 use Spatie\Health\Checks\Checks\DebugModeCheck;
 use Spatie\Health\Checks\Checks\EnvironmentCheck;
-use Spatie\Health\Checks\Checks\OptimizedAppCheck;
 use Spatie\Health\Checks\Checks\QueueCheck;
 use Spatie\Health\Checks\Checks\ScheduleCheck;
 use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
@@ -50,10 +49,11 @@ final class SystemServiceProvider extends ModuleServiceProvider
                 ->failWhenUsedSpaceIsAbovePercentage(92);
         }
 
+        // No "optimized app" check: config, routes and events are never cached on the server on purpose
+        // (the site deploys itself on a push, and new code would run against a stale cache), so it could only fail.
         if ($this->app->isProduction()) {
             $checks[] = DebugModeCheck::new();
             $checks[] = EnvironmentCheck::new();
-            $checks[] = OptimizedAppCheck::new();
         }
 
         Health::checks($checks);
