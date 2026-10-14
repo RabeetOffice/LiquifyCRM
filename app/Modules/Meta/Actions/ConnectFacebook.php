@@ -6,8 +6,10 @@ namespace App\Modules\Meta\Actions;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\RunSoon;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Jobs\ProcessMetaEvent;
+use App\Modules\Meta\Jobs\SubscribePages;
 use App\Modules\Meta\Models\MetaConnection;
 use App\Modules\Meta\Models\MetaSource;
 use App\Modules\Meta\Support\Instagram;
@@ -49,10 +51,19 @@ final class ConnectFacebook
         return $connection;
     }
 
-    /** @return int number of Pages found */
-    public function syncPages(MetaConnection $connection): int
+    /**
+     * One call to Meta for the list (Pages, tokens, Instagram accounts); the
+     * Pages are subscribed to the webhook right after the answer has gone out
+     * (one call each), so connecting a Facebook account with dozens of Pages
+     * does not keep the screen waiting until the host gives up with a 503.
+     * Pages already subscribed are left alone unless `$force` (Refresh Pages).
+     *
+     * @return int number of Pages found
+     */
+    public function syncPages(MetaConnection $connection, bool $force = false): int
     {
         $pages = $this->graph->pages($connection->user_token);
+        $ids = [];
 
         foreach ($pages as $page) {
             $source = MetaSource::query()->updateOrCreate(['external_id' => $page['id']], [
@@ -62,14 +73,15 @@ final class ConnectFacebook
                 'access_token' => $page['access_token'],
             ])->refresh();
 
-            try {
-                $this->graph->subscribe($source);
-                $source->update(['subscribed_fields' => MetaSource::FIELDS, 'subscribed_at' => now(), 'error' => null]);
-            } catch (MetaException $exception) {
-                $source->update(['error' => mb_substr($exception->getMessage(), 0, 500)]);
+            if (array_key_exists('instagram', $page)) {
+                $this->linkInstagram($source, $page['instagram']);
             }
 
-            $this->linkInstagram($source);
+            $ids[] = (int) $source->getKey();
+        }
+
+        if ($ids !== []) {
+            RunSoon::dispatch(new SubscribePages($ids, $force));
         }
 
         return count($pages);
@@ -79,14 +91,15 @@ final class ConnectFacebook
      * The Instagram account linked to the Page, whose direct messages arrive
      * under the account's own id. An account moved to another Page leaves the
      * old one. Instagram events that waited for the link are processed now.
+     *
+     * @param  array{id: string, username: ?string}|null  $account
      */
-    private function linkInstagram(MetaSource $source): void
+    private function linkInstagram(MetaSource $source, ?array $account): void
     {
         if (! Instagram::ready()) {
             return;
         }
 
-        $account = $this->graph->instagramAccount($source);
         $id = $account['id'] ?? null;
 
         if ($id !== null) {

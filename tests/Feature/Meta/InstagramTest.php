@@ -119,10 +119,10 @@ it('keeps a message for an account that is not linked yet and processes it once 
         ->and($event->error)->toContain('not linked to a connected Facebook Page')
         ->and(Lead::query()->acrossBrands()->count())->toBe(0);
 
+    // The Instagram account comes with the list of Pages, in the same call.
     Http::fake([
-        'graph.facebook.com/*/me/accounts*' => Http::response(['data' => [['id' => '111', 'name' => 'UKPH Page', 'access_token' => 'page-token']]]),
+        'graph.facebook.com/*/me/accounts*' => Http::response(['data' => [['id' => '111', 'name' => 'UKPH Page', 'access_token' => 'page-token', 'instagram_business_account' => ['id' => '17841400111', 'username' => 'ukph.books']]]]),
         'graph.facebook.com/*/111/subscribed_apps' => Http::response(['success' => true]),
-        'graph.facebook.com/*/111?*' => Http::response(['id' => '111', 'instagram_business_account' => ['id' => '17841400111', 'username' => 'ukph.books']]),
         'graph.facebook.com/*/5550001*' => Http::response(['name' => 'Zara Khan', 'username' => 'zara.reads']),
     ]);
 

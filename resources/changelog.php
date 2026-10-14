@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.16.1',
+        'date' => '2026-10-14',
+        'title' => 'Connect Facebook comes back quickly; a refused reply says why',
+        'changes' => [
+            ['fixed', '"Connect Facebook" and "Connect again" no longer end on a "503" error after Facebook\'s window when the account has many Pages. The Pages and their Instagram accounts now come in one step, and each Page is linked to LiquifyCRM right after you are back on Integrations; Pages that are already linked are not linked again. "Refresh Pages" still links every Page again.'],
+            ['improved', 'When Meta refuses a reply, the chat says why in plain words. For example, when Meta has blocked an account from sending messages for a while, it says that this is Meta\'s limit (Meta Business Suite cannot send either) and that it usually lifts by itself, with Meta\'s own words after it.'],
+        ],
+    ],
+    [
         'version' => '1.16.0',
         'date' => '2026-10-14',
         'title' => 'One person in several brands',

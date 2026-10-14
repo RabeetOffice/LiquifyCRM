@@ -61,21 +61,51 @@ final class MetaGraph
     }
 
     /**
-     * Every Page the token can manage, with its own Page token.
+     * Every Page the token can manage, with its own Page token and the
+     * Instagram account linked to it, in one call per hundred Pages (a call
+     * per Page made "Connect" slow enough for the host to cut it off). The
+     * `instagram` key is there only when Meta answered about Instagram: a
+     * token without Instagram's permission brings the Pages without it.
      *
-     * @return list<array{id: string, name: string, access_token: string}>
+     * @return list<array{id: string, name: string, access_token: string, instagram?: array{id: string, username: ?string}|null}>
      */
     public function pages(string $token): array
     {
+        try {
+            return $this->pageList($token, true);
+        } catch (MetaException $exception) {
+            if ($exception->tokenExpired()) {
+                throw $exception;
+            }
+
+            return $this->pageList($token, false);
+        }
+    }
+
+    /**
+     * @return list<array{id: string, name: string, access_token: string, instagram?: array{id: string, username: ?string}|null}>
+     */
+    private function pageList(string $token, bool $instagram): array
+    {
         $pages = [];
         $after = null;
+        $fields = 'id,name,access_token'.($instagram ? ',instagram_business_account{id,username}' : '');
 
         for ($page = 0; $page < 20; $page++) {
-            $response = $this->get('/me/accounts', $token, array_filter(['fields' => 'id,name,access_token', 'limit' => 100, 'after' => $after]));
+            $response = $this->get('/me/accounts', $token, array_filter(['fields' => $fields, 'limit' => 100, 'after' => $after]));
 
             foreach ((array) ($response['data'] ?? []) as $row) {
                 if (filled($row['id'] ?? null) && filled($row['access_token'] ?? null)) {
-                    $pages[] = ['id' => (string) $row['id'], 'name' => (string) ($row['name'] ?? $row['id']), 'access_token' => (string) $row['access_token']];
+                    $found = ['id' => (string) $row['id'], 'name' => (string) ($row['name'] ?? $row['id']), 'access_token' => (string) $row['access_token']];
+
+                    if ($instagram) {
+                        $account = (array) ($row['instagram_business_account'] ?? []);
+                        $found['instagram'] = filled($account['id'] ?? null)
+                            ? ['id' => (string) $account['id'], 'username' => filled($account['username'] ?? null) ? (string) $account['username'] : null]
+                            : null;
+                    }
+
+                    $pages[] = $found;
                 }
             }
 
@@ -172,26 +202,6 @@ final class MetaGraph
         }
 
         return ['name' => $name, 'picture' => $picture, 'reason' => $name === null ? $reason : null];
-    }
-
-    /**
-     * The Instagram professional account linked to a Page, or null when it
-     * has none (or the connection was made before Instagram was asked for).
-     * Never fails the Page.
-     *
-     * @return array{id: string, username: ?string}|null
-     */
-    public function instagramAccount(MetaSource $page): ?array
-    {
-        try {
-            $account = (array) ($this->get('/'.$page->external_id, $this->pageToken($page), ['fields' => 'instagram_business_account{id,username}'])['instagram_business_account'] ?? []);
-        } catch (MetaException) {
-            return null;
-        }
-
-        $id = (string) ($account['id'] ?? '');
-
-        return $id !== '' ? ['id' => $id, 'username' => filled($account['username'] ?? null) ? (string) $account['username'] : null] : null;
     }
 
     /**

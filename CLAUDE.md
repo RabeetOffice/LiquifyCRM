@@ -212,6 +212,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `referral` alone (a returning person tapped an ad) puts the ad on the open lead (`leads.ad_tapped`). Replies
   carry no `messaging_type` and fit `Conversation::replyTooLong()` (1,000 bytes). The new columns are behind
   `Instagram::ready()`. Code that shows a chat asks `isInstagram()` / `channelLabel()` instead of saying "Messenger".
+- Connect Facebook must stay quick (live 503 on 14 Oct 2026: Hostinger cuts a long request): `MetaGraph::pages()` brings
+  the Pages, their tokens and Instagram accounts in one call, and `SubscribePages` (via `RunSoon`, after the answer)
+  subscribes only Pages that need it (`force` on Refresh Pages). Never add a Graph call per Page inside a request.
+  A refused reply is shown through `MetaException::forPeople()` (368 is Meta blocking the account, not us).
 - A click on a lead in the list or the pipeline opens the slide-over, always; the row carries no link to the full
   page (it stole clicks). "Open full page" in the slide-over builds its address from `$wire.open` in the browser.
 

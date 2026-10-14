@@ -107,7 +107,8 @@ final class IntegrationsPage extends Component
 
         try {
             foreach (MetaConnection::query()->get() as $connection) {
-                $found += $connect->syncPages($connection);
+                // Every Page is subscribed again, right after this answer: the screen does not wait for it.
+                $found += $connect->syncPages($connection, force: true);
                 $connection->update(['error' => null]);
             }
         } catch (MetaException $exception) {
