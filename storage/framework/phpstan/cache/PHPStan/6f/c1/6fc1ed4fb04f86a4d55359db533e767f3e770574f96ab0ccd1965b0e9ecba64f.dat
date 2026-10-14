@@ -1,0 +1,22 @@
+O:23:"PHPStan\Cache\CacheItem":2:{s:11:"variableKey";s:38:"v3-6.73.0.5-dev-master@e4f5f6c-8.4.26-";s:4:"data";a:17:{s:4:"name";s:9:"str_split";s:10:"parameters";a:2:{s:6:"string";a:13:{s:4:"name";s:6:"string";s:7:"default";N;s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:6:"string";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:28;s:7:"endLine";i:28;s:11:"startColumn";i:24;s:9:"endColumn";i:37;s:14:"parameterIndex";i:0;s:10:"isOptional";b:0;}s:6:"length";a:13:{s:4:"name";s:6:"length";s:7:"default";a:2:{s:4:"code";s:1:"1";s:10:"attributes";a:6:{s:9:"startLine";i:28;s:7:"endLine";i:28;s:13:"startTokenPos";i:46;s:12:"startFilePos";i:1060;s:11:"endTokenPos";i:46;s:10:"endFilePos";i:1060;}}s:4:"type";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:3:"int";s:12:"isIdentifier";b:1;}}s:10:"isVariadic";b:0;s:5:"byRef";b:0;s:10:"isPromoted";b:0;s:10:"attributes";a:0:{}s:9:"startLine";i:28;s:7:"endLine";i:28;s:11:"startColumn";i:40;s:9:"endColumn";i:54;s:14:"parameterIndex";i:1;s:10:"isOptional";b:1;}}s:16:"returnsReference";b:0;s:10:"returnType";a:2:{s:5:"class";s:55:"PHPStan\BetterReflection\Reflection\ReflectionNamedType";s:4:"data";a:2:{s:4:"name";s:5:"array";s:12:"isIdentifier";b:1;}}s:10:"attributes";a:2:{i:0;a:3:{s:4:"name";s:23:"JetBrains\PhpStorm\Pure";s:10:"isRepeated";b:0;s:9:"arguments";a:0:{}}i:1;a:3:{s:4:"name";s:50:"JetBrains\PhpStorm\Internal\LanguageLevelTypeAware";s:10:"isRepeated";b:0;s:9:"arguments";a:2:{i:0;a:2:{s:4:"code";s:18:"["8.0" => "array"]";s:10:"attributes";a:6:{s:9:"startLine";i:27;s:7:"endLine";i:27;s:13:"startTokenPos";i:15;s:12:"startFilePos";i:962;s:11:"endTokenPos";i:21;s:10:"endFilePos";i:979;}}s:7:"default";a:2:{s:4:"code";s:13:""array|false"";s:10:"attributes";a:6:{s:9:"startLine";i:27;s:7:"endLine";i:27;s:13:"startTokenPos";i:27;s:12:"startFilePos";i:991;s:11:"endTokenPos";i:27;s:10:"endFilePos";i:1003;}}}}}s:10:"docComment";s:764:"/**
+ * Convert a string to an array
+ * @link https://php.net/manual/en/function.str-split.php
+ * @param string $string <p>
+ * The input string.
+ * </p>
+ * @param int $length [optional] <p>
+ * Maximum length of the chunk.
+ * </p>
+ * @return string[]|false <p>If the optional split_length parameter is
+ * specified, the returned array will be broken down into chunks with each
+ * being split_length in length, otherwise each chunk
+ * will be one character in length.
+ * </p>
+ * <p>
+ * <b>FALSE</b> is returned if split_length is less than 1.
+ * If the split_length length exceeds the length of
+ * string, the entire string is returned as the first
+ * (and only) array element.
+ * </p>
+ * @throws \ValueError If length is less than 1, a ValueError will be thrown.
+ */";s:9:"startLine";i:26;s:7:"endLine";i:30;s:11:"startColumn";i:5;s:9:"endColumn";i:5;s:10:"couldThrow";b:0;s:9:"isClosure";b:0;s:11:"isGenerator";b:0;s:10:"isVariadic";b:0;s:8:"isStatic";b:0;s:9:"namespace";N;s:13:"locatedSource";a:2:{s:5:"class";s:68:"PHPStan\BetterReflection\SourceLocator\Located\InternalLocatedSource";s:4:"data";a:4:{s:4:"name";s:9:"str_split";s:8:"filename";s:39:"phpstorm-stubs:standard/standard_1.stub";s:13:"extensionName";s:8:"standard";s:9:"aliasName";N;}}}}
