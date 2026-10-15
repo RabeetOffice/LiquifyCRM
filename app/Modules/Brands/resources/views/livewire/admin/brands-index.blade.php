@@ -1,4 +1,4 @@
-<div class="flex flex-col gap-6" data-live-refresh>
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
     <x-ui.page-header title="Brands" subtitle="Each brand is a workspace for one business: its websites, Facebook Pages, leads and people.">
         <x-slot:actions>
             @can('create', \App\Modules\Brands\Models\Brand::class)

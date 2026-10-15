@@ -46,12 +46,15 @@
         @include('partials.topbar')
         @include('partials.update-bar')
 
-        {{-- data-live: what this page shows to GET /api/live, which app.js asks every few seconds. --}}
+        {{-- data-live: what this page shows to GET /api/live, which app.js asks every few seconds.
+             data-live-at: the brand stamp this page was drawn with. A page fetched earlier (hovered
+             link, back button) is reloaded at once when something changed since. --}}
         @php
             $liveUser = auth()->user();
             $liveBrand = app(\App\Modules\Core\Support\CurrentBrand::class)->id();
+            $liveEvery = $liveUser instanceof \App\Modules\Auth\Models\User && $liveBrand === null && $liveUser->isGlobalAdmin();
         @endphp
-        <main class="lq-content" id="main-content" @if ($liveUser instanceof \App\Modules\Auth\Models\User) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveBrand === null && $liveUser->isGlobalAdmin()) }}" @endif>
+        <main class="lq-content" id="main-content" @if ($liveUser instanceof \App\Modules\Auth\Models\User) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveEvery) }}" data-live-at="{{ \App\Modules\Core\Support\Live::stamps($liveBrand, (int) $liveUser->getKey(), $liveEvery)['b'] }}" @endif>
             {{ $slot }}
         </main>
     </div>

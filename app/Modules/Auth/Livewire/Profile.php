@@ -130,7 +130,7 @@ final class Profile extends Component
             return [
                 ['label' => 'Brands', 'value' => (string) Brand::query()->where('is_active', true)->count()],
                 ['label' => 'People', 'value' => (string) User::query()->count()],
-                ['label' => 'Leads this month', 'value' => number_format(Lead::query()->acrossBrands()->where('created_at', '>=', now()->startOfMonth())->count())],
+                ['label' => 'Leads this month', 'value' => number_format(Lead::query()->acrossBrands()->whereIn('brand_id', Brand::query()->select('id'))->where('created_at', '>=', now()->startOfMonth())->count())],
                 $since,
             ];
         }

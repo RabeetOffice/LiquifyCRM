@@ -337,9 +337,10 @@
             </ol>
 
             <x-slot:footer>
-                <x-ui.button variant="ghost" wire:click="back">Back</x-ui.button>
+                <x-ui.button variant="ghost" wire:click="back" class="mr-auto">Back</x-ui.button>
                 <x-ui.button variant="ghost" :href="route('admin.brands.edit', ['brandId' => $brand->getKey()])">Edit brand</x-ui.button>
                 <x-ui.button variant="secondary" icon="heroicon-o-globe-alt" :href="route('brand.sites.connect', ['brand' => $brand->slug])">Connect website</x-ui.button>
+                <x-ui.button variant="secondary" icon="heroicon-o-arrow-right-circle" :href="$brand->url()">Open brand</x-ui.button>
                 @if ($hasDepartments)
                     <x-ui.button variant="primary" icon="heroicon-o-user-plus" :href="route('brand.members.create', ['brand' => $brand->slug])">Add its people</x-ui.button>
                 @else

@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.19.0',
+        'date' => '2026-10-15',
+        'title' => 'An Overview of every brand side by side',
+        'changes' => [
+            ['new', 'Overview shows every brand side by side for this month: its leads (and the change against the same days last month), unassigned leads, overdue follow-ups, sales, and revenue against its target in the brand\'s own currency. A click on a number opens that list in the brand.'],
+            ['new', 'Overview has two new cards in place of Departments and Managers and Agents: the sales of the month across all brands, and the leads nobody owns yet, with the overdue follow-ups under it.'],
+            ['improved', '"Leads this month" on Overview is compared with the same days of last month, so the first days of a month no longer look like a fall. It no longer counts leads of a brand that was removed, and neither does the Brands screen.'],
+            ['improved', 'The LiquifyCRM version is now a quiet line at the bottom of Overview.'],
+            ['new', 'The last step of Add brand has an "Open brand" button that takes you straight into the new brand.'],
+            ['fixed', 'Screens stopped updating by themselves after the first change they saw, so a new lead showed up late (for example "Leads this month" on Brands, up to a minute or only after a reload), and so did the bell, its sound and its desktop alerts. Screens now update within a few seconds every time.'],
+            ['fixed', 'A screen opened from the menu right after pointing at its link could show numbers from a few seconds earlier and miss a lead that arrived in between. It now catches up at once.'],
+        ],
+    ],
+    [
         'version' => '1.18.0',
         'date' => '2026-10-14',
         'title' => 'Desktop alerts with LiquifyCRM closed; a new sign-in page',

@@ -106,7 +106,10 @@ it('adds a brand in four steps with a check at the end', function (): void {
         ->assertSee('6 statuses ready')
         ->assertSee('The website answers')
         ->assertSee('Front Sales, Upsell')
-        ->assertSee('Add its people');
+        ->assertSee('Add its people')
+        // And straight into the new brand from there.
+        ->assertSee('Open brand')
+        ->assertSeeHtml('href="'.$brand->url().'"');
 
     expect($brand->refresh()->colors)->toMatchArray(['primary' => '#FFFFFF', 'secondary' => '#1E3A8A'])
         ->and(Department::query()->forBrand($brand)->orderBy('name')->get()->map(fn (Department $department): string => $department->name.':'.$department->kind()->value)->all())

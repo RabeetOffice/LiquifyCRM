@@ -351,10 +351,15 @@ Alpine.directive('count', (el) => {
     const started = performance.now();
     const duration = 700;
 
+    let shown = el.textContent;
+
     const tick = (now) => {
+        // A live update wrote the new number meanwhile: it stays, the old one is not put back.
+        if (el.textContent !== shown) return;
+
         const progress = Math.min(1, (now - started) / duration);
         const eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = progress < 1 ? format(target * eased) : text;
+        el.textContent = shown = progress < 1 ? format(target * eased) : text;
         if (progress < 1) requestAnimationFrame(tick);
     };
 
@@ -679,7 +684,8 @@ const refreshLive = () => {
     live.refreshed = Date.now();
     live.owed = false;
     window.dispatchEvent(new CustomEvent('lq-changed'));
-    document.querySelectorAll('[wire\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
+    // The colon of wire:id is escaped for CSS, and the backslash once more for JavaScript: '[wire:id]' is not a selector.
+    document.querySelectorAll('[wire\\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
 };
 
 const askLive = async () => {
@@ -688,12 +694,17 @@ const askLive = async () => {
     live.busy = true;
     clearTimeout(live.timer);
 
-    const token = document.querySelector('[data-live]')?.dataset.live ?? null;
+    const page = document.querySelector('[data-live]');
+    const token = page?.dataset.live ?? null;
 
     if (token !== null && (! document.hidden || Alpine.store('alerts').listening)) {
-        // Another page (another brand, another person): start counting from what it shows now.
+        // Another page (another brand, another person): count from the stamp it was drawn with. A page
+        // fetched before it was shown (a hovered link waits up to 30 seconds, the back button longer)
+        // then reloads its data at once when anything changed in between.
         if (token !== live.token) {
-            Object.assign(live, { token, brand: null, user: null, owed: false });
+            const drawn = Number(page.dataset.liveAt);
+
+            Object.assign(live, { token, brand: Number.isFinite(drawn) ? drawn : null, user: null, owed: false, refreshed: 0 });
         }
 
         // What this person just did is on their screen already: that change only moves the starting point.
@@ -718,7 +729,12 @@ const askLive = async () => {
             // Offline for a moment: the next round asks again.
         }
 
-        if (! document.hidden && live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
+        // A screen that fails to reload must never stop the rounds (and the bell with them).
+        try {
+            if (! document.hidden && live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     live.busy = false;

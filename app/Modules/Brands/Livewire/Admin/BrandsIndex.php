@@ -94,7 +94,8 @@ final class BrandsIndex extends Component
                 'brands' => Brand::query()->count(),
                 'active' => Brand::query()->where('is_active', true)->count(),
                 'people' => Membership::query()->acrossBrands()->distinct()->count('user_id'),
-                'leads' => Lead::query()->acrossBrands()->where('created_at', '>=', now()->startOfMonth())->count(),
+                // Only brands that were not removed, so the total is the sum of the cards.
+                'leads' => Lead::query()->acrossBrands()->whereIn('brand_id', Brand::query()->select('id'))->where('created_at', '>=', now()->startOfMonth())->count(),
             ],
         ]);
     }

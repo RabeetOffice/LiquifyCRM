@@ -80,6 +80,22 @@ it('puts the token on every signed-in page and marks the screens that reload the
         ->assertSee('data-live-refresh', escape: false);
 });
 
+it('tells a page which stamp it was drawn with, so a page fetched early reloads when a lead came in since', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+    $admin = admin();
+
+    Lead::factory()->create(['brand_id' => $brand->getKey()]);
+    Live::flush();
+
+    $everyBrand = Live::stamps(null, $admin->getKey(), everyBrand: true)['b'];
+
+    expect($everyBrand)->toBeGreaterThan(0);
+
+    // The admin area counts every brand's changes; a brand's page counts its own.
+    $this->actingAs($admin)->get('/admin/brands')->assertOk()->assertSee('data-live-at="'.$everyBrand.'"', escape: false);
+    $this->get('/b/ukph/leads')->assertOk()->assertSee('data-live-at="'.Live::stamps($brand->getKey(), $admin->getKey())['b'].'"', escape: false);
+});
+
 it('queues work from the command line and runs it after the answer during a web request', function (): void {
     Queue::fake();
 
