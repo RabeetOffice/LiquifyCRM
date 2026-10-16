@@ -51,6 +51,7 @@ use Illuminate\Support\Str;
  * @property CarbonImmutable|null $first_contacted_at
  * @property int|null $created_by
  * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $deleted_at
  * @property-read LeadStatus $status
  */
 class Lead extends Model

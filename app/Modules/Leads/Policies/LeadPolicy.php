@@ -79,9 +79,15 @@ final class LeadPolicy
         return $user->isGlobalAdmin();
     }
 
+    /** Delete forever from the bin (user decision, 16 Oct 2026: every Admin, as for delete and restore). */
     public function forceDelete(User $user, Lead $lead): bool
     {
-        return $user->isSuperAdmin();
+        return $user->isGlobalAdmin();
+    }
+
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->isGlobalAdmin();
     }
 
     /** Hand a lead to a department: Admin only. */

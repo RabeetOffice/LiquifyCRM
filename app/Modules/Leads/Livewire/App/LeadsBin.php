@@ -6,13 +6,16 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Actions\DeleteLeadForever;
 use App\Modules\Leads\Actions\RestoreLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -23,17 +26,22 @@ use Livewire\Component;
 /**
  * The bin: the leads somebody deleted in this brand, newest first, with who
  * deleted them and when. Restore brings one back, or every ticked one, as it
- * was. A lead that was merged into another is not here: its notes, chat and
- * timeline moved to the lead that stayed, so bringing it back would only
- * make an empty twin. Only Admins delete leads, so only Admins see the bin.
+ * was; Delete forever (password asked again) removes it for good, and the bin
+ * does that by itself after DeleteLeadForever::KEEP_DAYS. A lead that was
+ * merged into another is not here: its notes, chat and timeline moved to the
+ * lead that stayed, so bringing it back would only make an empty twin. Only
+ * Admins delete leads, so only Admins see the bin.
  */
 #[Layout('components.layouts.app')]
 #[Title('Bin')]
 final class LeadsBin extends Component
 {
     use AuthorizesRequests;
+    use WithConfirmation;
     use WithTableState;
     use WithToasts;
+
+    private const FOREVER = 'The lead, its notes, follow-ups, chat and history are removed and cannot be brought back. A sale it had stays in the numbers and with its client.';
 
     public Brand $brand;
 
@@ -88,6 +96,61 @@ final class LeadsBin extends Component
         $this->toastSuccess($done.' '.str('lead')->plural($done).' back in Leads');
     }
 
+    public function confirmDeleteForever(int $leadId): void
+    {
+        $lead = $this->binned()->findOrFail($leadId);
+        $this->authorize('forceDelete', $lead);
+
+        $this->askConfirmation('deleteForever', [$leadId], 'Delete '.$lead->name.' forever?', self::FOREVER, 'Delete forever', 'danger', password: true);
+    }
+
+    public function deleteForever(int $leadId): void
+    {
+        $this->ensureConfirmed();
+
+        $lead = $this->binned()->findOrFail($leadId);
+        $this->authorize('forceDelete', $lead);
+
+        app(DeleteLeadForever::class)->handle($lead, $this->user());
+
+        $this->selected = array_values(array_diff($this->selected, [$leadId]));
+        $this->toastSuccess('Lead deleted for good');
+    }
+
+    public function confirmDeleteSelected(): void
+    {
+        $this->authorize('forceDeleteAny', Lead::class);
+
+        // The ticked leads are fixed now: the dialog deletes these, whatever is ticked meanwhile.
+        $ids = $this->binned()->whereKey($this->selected)->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
+        $count = count($ids);
+
+        if ($count === 0) {
+            return;
+        }
+
+        $this->askConfirmation('deleteSelectedForever', [$ids], 'Delete '.$count.' '.str('lead')->plural($count).' forever?', self::FOREVER, 'Delete forever', 'danger', password: true);
+    }
+
+    /** @param  list<int>  $ids */
+    public function deleteSelectedForever(array $ids): void
+    {
+        $this->ensureConfirmed();
+        $this->authorize('forceDeleteAny', Lead::class);
+
+        $done = 0;
+
+        foreach ($this->binned()->whereKey($ids)->get() as $lead) {
+            if ($this->user()->can('forceDelete', $lead)) {
+                app(DeleteLeadForever::class)->handle($lead, $this->user());
+                $done++;
+            }
+        }
+
+        $this->selected = [];
+        $this->toastSuccess($done.' '.str('lead')->plural($done).' deleted for good');
+    }
+
     public function render(): View
     {
         $like = '%'.trim($this->search).'%';
@@ -114,16 +177,26 @@ final class LeadsBin extends Component
         $removedTeams = Department::onlyTrashed()->forBrand($this->brand)->whereKey($leads->pluck('department_id')->filter()->unique()->all())->pluck('name', 'id')->all();
 
         $total = $this->binned()->count();
+        $oldest = $total > 0 ? CarbonImmutable::parse((string) $this->binned()->min('deleted_at')) : null;
 
         return view('leads::livewire.app.leads-bin', [
             'leads' => $leads,
             'removedTeams' => $removedTeams,
+            'keepDays' => DeleteLeadForever::KEEP_DAYS,
+            'daysLeft' => $leads->getCollection()->mapWithKeys(fn (Lead $lead): array => [$lead->getKey() => $this->daysLeft($lead->deleted_at)])->all(),
+            'canDelete' => $this->user()->can('forceDeleteAny', Lead::class),
             'summary' => [
                 'total' => $total,
                 'week' => $total > 0 ? $this->binned()->where('deleted_at', '>=', now()->subDays(7))->count() : 0,
-                'last' => $total > 0 ? CarbonImmutable::parse((string) $this->binned()->max('deleted_at')) : null,
+                'next' => $oldest !== null ? $this->daysLeft($oldest) : null,
             ],
         ]);
+    }
+
+    /** Whole days until the bin deletes a lead by itself (0: tonight). */
+    private function daysLeft(?CarbonInterface $deletedAt): int
+    {
+        return $deletedAt === null ? DeleteLeadForever::KEEP_DAYS : max(0, (int) ceil(now()->diffInDays($deletedAt->copy()->addDays(DeleteLeadForever::KEEP_DAYS), false)));
     }
 
     /**

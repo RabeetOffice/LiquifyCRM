@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
-    <x-ui.page-header title="Bin" subtitle="Leads deleted in {{ $brand->name }}. Restore brings a lead back with its notes, follow-ups, chat and history." :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), 'Bin' => null]">
+    <x-ui.page-header title="Bin" subtitle="Leads deleted in {{ $brand->name }}. Restore brings a lead back with its notes, follow-ups, chat and history; after {{ $keepDays }} days in the bin a lead is deleted for good." :breadcrumbs="['Leads' => route('brand.leads.index', ['brand' => $brand->slug]), 'Bin' => null]">
         <x-slot:actions>
             <x-ui.button variant="ghost" icon="heroicon-o-arrow-left" :href="route('brand.leads.index', ['brand' => $brand->slug])">Back to Leads</x-ui.button>
         </x-slot:actions>
@@ -9,13 +9,13 @@
         <div class="lq-minis">
             <x-ui.mini label="In the bin" :value="number_format($summary['total'])" icon="heroicon-o-trash" />
             <x-ui.mini label="Deleted in the last 7 days" :value="number_format($summary['week'])" icon="heroicon-o-calendar-days" />
-            <x-ui.mini label="Last deleted" :value="$summary['last']?->diffForHumans()" icon="heroicon-o-clock" :hint="$summary['last']?->format('j M Y, H:i')" />
+            <x-ui.mini label="Next deleted for good" :value="$summary['next'] === 0 ? 'Tonight' : 'In '.$summary['next'].' '.str('day')->plural($summary['next'])" icon="heroicon-o-clock" :tone="$summary['next'] !== null && $summary['next'] <= 3 ? 'warn' : null" :hint="'A lead is deleted for good '.$keepDays.' days after it went into the bin'" />
         </div>
     @endif
 
     <x-ui.card flush class="lq-list">
         @if ($summary['total'] === 0)
-            <x-ui.empty title="The bin is empty" description="A lead you delete waits here, and an Admin can bring it back with Restore." icon="heroicon-o-trash">
+            <x-ui.empty title="The bin is empty" :description="'A lead you delete waits here for '.$keepDays.' days, and an Admin can bring it back with Restore.'" icon="heroicon-o-trash">
                 <x-slot:actions>
                     <x-ui.button variant="secondary" :href="route('brand.leads.index', ['brand' => $brand->slug])">Open Leads</x-ui.button>
                 </x-slot:actions>
@@ -55,7 +55,8 @@
                                 <th class="lq-col-wide">Source</th>
                                 <th>Owner</th>
                                 <x-ui.sort-th field="deleted_at" :sort="$sort" :direction="$direction" label="Deleted" />
-                                <th class="lq-table-end"><span class="sr-only">Restore</span></th>
+                                <th>Deleted for good</th>
+                                <th class="lq-table-end"><span class="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody class="lq-live">
@@ -95,12 +96,21 @@
                                             </span>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="whitespace-nowrap">
                                         <span class="lq-cell-name" title="{{ $lead->deleted_at?->format('j M Y, H:i') }}">{{ $lead->deleted_at?->diffForHumans() }}</span>
                                         <span class="lq-cell-sub">{{ $deletedBy ? 'by '.$deletedBy->name : 'by an Admin' }}</span>
                                     </td>
+                                    <td class="whitespace-nowrap">
+                                        @php $left = $daysLeft[$lead->getKey()]; @endphp
+                                        <x-ui.badge :color="$left <= 3 ? 'warning' : 'gray'" icon="heroicon-m-clock" :title="'Unless it is restored, this lead is deleted for good '.$lead->deleted_at?->addDays($keepDays)->format('j M Y')">{{ $left === 0 ? 'Tonight' : 'In '.$left.' '.str('day')->plural($left) }}</x-ui.badge>
+                                    </td>
                                     <td class="lq-table-end">
-                                        <x-ui.button size="sm" icon="heroicon-o-arrow-uturn-left" wire:click="restore({{ $lead->getKey() }})" wire:loading.attr="disabled" wire:target="restore({{ $lead->getKey() }})">Restore</x-ui.button>
+                                        <div class="lq-row-tools">
+                                            <x-ui.button size="sm" icon="heroicon-o-arrow-uturn-left" wire:click="restore({{ $lead->getKey() }})" wire:loading.attr="disabled" wire:target="restore({{ $lead->getKey() }})">Restore</x-ui.button>
+                                            @if ($canDelete)
+                                                <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-icon-danger" wire:click="confirmDeleteForever({{ $lead->getKey() }})" title="Delete forever" aria-label="Delete {{ $lead->name }} forever"><x-heroicon-o-trash /></button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -118,8 +128,13 @@
             <span class="lq-floatbar-count"><span class="lq-count">{{ count($selected) }}</span> selected</span>
             <span class="lq-floatbar-sep" aria-hidden="true"></span>
             <button type="button" class="lq-floatbar-btn" wire:click="restoreSelected"><x-heroicon-o-arrow-uturn-left /> Restore</button>
+            @if ($canDelete)
+                <button type="button" class="lq-floatbar-btn lq-floatbar-danger" wire:click="confirmDeleteSelected"><x-heroicon-o-trash /> Delete forever</button>
+            @endif
             <span class="lq-floatbar-sep" aria-hidden="true"></span>
             <button type="button" class="lq-floatbar-btn lq-floatbar-close" wire:click="$set('selected', [])" title="Clear the selection"><x-heroicon-m-x-mark /></button>
         </div>
     @endif
+
+    <x-ui.confirm :confirm="$confirm" />
 </div>

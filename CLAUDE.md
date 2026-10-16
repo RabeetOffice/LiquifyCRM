@@ -111,7 +111,8 @@ in the document's weekly phases; never skip a phase or silently change the desig
   brand role carries a logs permission; do not add one. A lead's own timeline is part of the lead and stays.
   "Update system" re-runs `RolesAndPermissionsSeeder`, so a change to `BrandRole::permissions()` reaches the server.
 - Logs (`app/Modules/Activity`): `LogArchiver` writes daily archive files and is the only code that deletes from
-  `activity_log`; entries on a lead's timeline are never deleted. Retention lives in `LogSettings` (spatie settings).
+  `activity_log`, apart from `DeleteLeadForever`; entries on a lead's timeline stay as long as the lead does and go only
+  when it is deleted forever. Retention lives in `LogSettings` (spatie settings).
 - Updates (`app/Modules/System`): the site deploys itself when `main` is pushed, so what is left for an Admin is to
   apply the new version. `resources/changelog.php` lists every release in plain words; its top entry is the code
   version. `SystemUpdater` says an update is ready when that version differs from the installed one (the last
@@ -251,7 +252,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   menu and a Bin button on Leads). `Lead::inBin()` is a deleted lead with a `leads.deleted` line on its timeline, so every
   way of deleting a lead must log that line. A merged lead has none (its history moved) and is never in the bin: restoring
   it would make an empty twin. `RestoreLead` brings a lead back and sends it to the queue if its team or owner is gone.
-  There is no "delete forever" yet.
+- Delete forever (user decisions, 16 Oct 2026): every Admin (`LeadPolicy::forceDelete`), password asked again.
+  `DeleteLeadForever` removes the lead, its notes, follow-ups, chat (conversation and messages), inbound events, bell
+  entries linking to it, its timeline and the leads merged into it, and writes one `leads.deleted_forever` line with no
+  personal details. A sale stays (its `lead_id` becomes null) and so does the client; files added on the lead move to the
+  client (deleted from disk when there is none). `leads:empty-bin` (nightly, 00:50) does it after `KEEP_DAYS` (30). The
+  privacy pages promise those 30 days: change them with it. A new table that keeps a lead's data must be wiped there too.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,

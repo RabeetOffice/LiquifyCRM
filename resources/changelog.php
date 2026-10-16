@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.21.0',
+        'date' => '2026-10-16',
+        'title' => 'Delete leads forever from the Bin',
+        'changes' => [
+            ['new', 'Delete forever in the Bin (Admins and Super Admins, after typing their password again) removes a lead for good: its details, notes, follow-ups, Messenger or Instagram chat, the alerts about it and its history. Tick several leads to delete them together.'],
+            ['new', 'The Bin empties itself: a lead is deleted for good 30 days after it went in. Each lead shows how many days it has left, and the top of the Bin shows when the next one goes.'],
+            ['improved', 'Deleting a won lead forever keeps its sale in the numbers and its client in Clients, and the files added on the lead move to the client.'],
+            ['improved', 'The privacy policy and the "Delete your data" page say that a deleted enquiry waits 30 days in the bin before it is deleted for good.'],
+        ],
+    ],
+    [
         'version' => '1.20.0',
         'date' => '2026-10-16',
         'title' => 'A Bin to bring deleted leads back',

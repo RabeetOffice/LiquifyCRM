@@ -78,6 +78,7 @@
     <h2>6. How long we keep it</h2>
     <ul>
         <li><strong>Enquiries, their notes, Messenger and Instagram chats and sales, and a client's files and shared text:</strong> for as long as the business uses {{ $name }}, or until you or the business ask for them to be deleted.</li>
+        <li><strong>An enquiry the business deletes:</strong> it waits 30 days in a bin, where the business can still bring it back, and is then deleted for good with its notes, follow-ups, chat and history. The record of a sale stays with the client.</li>
         <li><strong>The raw copy of an incoming form, Facebook or Instagram event:</strong> 14 days after it has been handled, and never longer than 30 days.</li>
         <li><strong>Activity records:</strong> between 7 and 90 days in the live system, then in archive files for up to one year. The history shown on an enquiry stays with that enquiry.</li>
         <li><strong>Facebook access tokens:</strong> until Facebook is disconnected in {{ $name }}; they are removed at that moment.</li>

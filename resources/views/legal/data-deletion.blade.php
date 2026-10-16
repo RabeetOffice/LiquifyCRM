@@ -58,6 +58,7 @@
 
     <h2>What may be kept</h2>
     <ul>
+        <li>For up to 30 days, an enquiry the business has deleted waits in a bin before it is deleted for good. When you ask us, we delete it for good straight away.</li>
         <li>Records a business must keep by law, such as the record of a sale.</li>
         <li>Backup copies, which are not edited but are removed automatically as they age. The oldest backup we keep can be up to two years old.</li>
     </ul>

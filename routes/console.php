@@ -49,6 +49,9 @@ Schedule::command('logs:archive')->dailyAt('00:40')->graceTimeInMinutes(60);
 // Raw copies of received leads: done ones go after 14 days, failed ones after 30.
 Schedule::command('model:prune', ['--model' => [InboundEvent::class]])->dailyAt('00:55')->doNotMonitor();
 
+// Leads that have been in the bin for 30 days are deleted for good.
+Schedule::command('leads:empty-bin')->dailyAt('00:50')->doNotMonitor();
+
 // Housekeeping.
 Schedule::command('schedule-monitor:clean-log')->daily();
 Schedule::command('queue:prune-failed --hours=720')->daily();
