@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Sites\Livewire\App;
 
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Brands\Support\BrandWebsite;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Sites\Enums\SiteMode;
@@ -17,12 +18,15 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
  * Connect website in 3 steps: add the website, put liquify.php on it (or the
- * webhook address, or the pull details), then Test connection.
+ * webhook address, or the pull details), then Test connection. The website's
+ * name fills itself in: the brand's name for the brand's own website, else
+ * the name the website gives itself, else its domain. A typed name stays.
  */
 #[Layout('components.layouts.app')]
 #[Title('Connect website')]
@@ -39,6 +43,10 @@ final class SiteWizard extends Component
     public int $step = 1;
 
     public string $name = '';
+
+    /** The name filled in last by LiquifyCRM: a name that differs from it was typed, and stays. */
+    #[Locked]
+    public string $autoName = '';
 
     public string $url = '';
 
@@ -65,6 +73,16 @@ final class SiteWizard extends Component
 
         $this->authorize('create', Site::class);
         $this->url = (string) $brand->website;
+        $this->name = $this->autoName = $this->nameFor($this->url);
+    }
+
+    public function updatedUrl(): void
+    {
+        if ($this->site !== null || trim($this->url) === '' || ($this->name !== '' && $this->name !== $this->autoName)) {
+            return;
+        }
+
+        $this->name = $this->autoName = $this->nameFor($this->url);
     }
 
     public function createSite(): void
@@ -133,6 +151,17 @@ final class SiteWizard extends Component
             'lines' => LiquifySnippet::lines(),
             'cron' => LiquifySnippet::cron(),
         ]);
+    }
+
+    private function nameFor(string $url): string
+    {
+        $domain = trim($url) !== '' ? Site::domainOf($url) : '';
+
+        if ($domain === '' || (filled($this->brand->website) && Site::domainOf((string) $this->brand->website) === $domain)) {
+            return $this->brand->name;
+        }
+
+        return rescue(fn (): ?string => app(BrandWebsite::class)->siteName(Site::cleanUrl($url)), null, false) ?? $domain;
     }
 
     private function requireSite(): Site

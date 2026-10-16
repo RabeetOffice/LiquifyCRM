@@ -43,6 +43,15 @@ class BrandWebsite
         return $this->get(rtrim($url, '/').'/', $fresh);
     }
 
+    /** The name the website gives itself (its tags, its structured data, its title), or null. */
+    public function siteName(string $url): ?string
+    {
+        $url = rtrim($url, '/');
+        $html = $this->page($url)['html'];
+
+        return $html === null ? null : $this->read($html, mb_strtolower((string) parse_url($url, PHP_URL_HOST)))['name'];
+    }
+
     /**
      * Everything the website says about the brand. A key is null when the
      * website does not say it.

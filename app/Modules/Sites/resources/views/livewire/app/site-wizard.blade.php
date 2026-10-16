@@ -19,10 +19,11 @@
             <x-ui.card title="Add the website" description="LiquifyCRM creates a site key and a secret for it. Leads from this website go to {{ $brand->name }}.">
                 <div class="lq-form-grid lq-form-grid-2">
                     <x-ui.field label="Website name" name="name" required>
-                        <x-ui.input wire:model="name" name="name" placeholder="UK Publishing House" required autofocus />
+                        <x-ui.input wire:model="name" name="name" placeholder="UK Publishing House" required />
+                        <p class="lq-help" wire:loading wire:target="url">Reading the name from the website…</p>
                     </x-ui.field>
                     <x-ui.field label="Website address" name="url" required>
-                        <x-ui.input wire:model="url" name="url" placeholder="https://ukpublishinghouse.co.uk" required />
+                        <x-ui.input wire:model.blur="url" name="url" placeholder="https://ukpublishinghouse.co.uk" required autofocus />
                     </x-ui.field>
                     <x-ui.field label="How should leads arrive?" name="connection" required class="lq-col-full">
                         <div class="lq-choices">

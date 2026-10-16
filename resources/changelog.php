@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.21.1',
+        'date' => '2026-10-16',
+        'title' => 'Connect website names the website for you',
+        'changes' => [
+            ['improved', 'Connect website fills in the website name by itself: the brand\'s name for the brand\'s own website, otherwise the name the website gives itself, or its address. A name you type is never replaced.'],
+        ],
+    ],
+    [
         'version' => '1.21.0',
         'date' => '2026-10-16',
         'title' => 'Delete leads forever from the Bin',

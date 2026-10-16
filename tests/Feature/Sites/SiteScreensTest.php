@@ -266,3 +266,24 @@ it('shows the website favicon and name as the source of its leads, and nothing o
     $this->get('/b/ukph/leads/pipeline')->assertOk()->assertSee('sites/ukph.png');
     $this->get('/b/ukph/leads/'.$facebook->getKey())->assertOk()->assertDontSee('UKPH main site');
 });
+
+it('names the website by itself, and keeps a name somebody typed', function (): void {
+    $this->brand->forceFill(['website' => 'https://ukpublishinghouse.co.uk'])->save();
+
+    Http::fake([
+        'blog.example.com/*' => Http::response('<html><head><meta property="og:site_name" content="The Writers Blog"><title>Home</title></head></html>', 200),
+        '*' => Http::response('', 404),
+    ]);
+
+    Livewire::actingAs($this->admin)
+        ->test(SiteWizard::class, ['brand' => $this->brand->fresh()])
+        ->assertSet('url', 'https://ukpublishinghouse.co.uk')
+        ->assertSet('name', 'UK Publishing House')
+        ->set('url', 'blog.example.com')
+        ->assertSet('name', 'The Writers Blog')
+        ->set('url', 'https://www.unreadable.example.org/')
+        ->assertSet('name', 'unreadable.example.org')
+        ->set('name', 'My own name')
+        ->set('url', 'https://ukpublishinghouse.co.uk')
+        ->assertSet('name', 'My own name');
+});
