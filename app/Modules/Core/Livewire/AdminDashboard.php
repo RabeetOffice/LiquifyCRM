@@ -8,6 +8,7 @@ use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Support\BrandsOverview;
+use App\Modules\Sales\Support\Progress;
 use App\Modules\System\Support\SystemUpdater;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -29,6 +30,9 @@ final class AdminDashboard extends Component
     /** For a brand without a colour worth showing, or one that looks like a brand already on the chart. */
     private const SPARE_COLORS = ['#6366F1', '#14B8A6', '#F59E0B', '#EC4899', '#0EA5E9', '#84CC16', '#A855F7', '#EF4444', '#10B981', '#64748B'];
 
+    /** One colour per lead source on "Where leads come from". */
+    private const SOURCE_COLORS = ['website' => '#378ADD', 'facebook' => '#1D9E75', 'messenger' => '#7F77DD', 'instagram' => '#D4537E', 'manual' => '#888780', 'import' => '#BA7517', 'api' => '#639922'];
+
     /** "today", "7" or "30": the range of the Leads per day chart. */
     #[Url(except: '7')]
     public string $range = '7';
@@ -40,6 +44,7 @@ final class AdminDashboard extends Component
 
         $overview = BrandsOverview::make();
         $rows = collect($overview->rows());
+        $timezone = $user->timezone ?: (string) config('app.timezone');
 
         $leads = (int) $rows->sum('leads');
         $sales = (int) $rows->sum('sales');
@@ -58,6 +63,8 @@ final class AdminDashboard extends Component
             'update' => SystemUpdater::flag(),
             'perDay' => $this->perDay($overview, $user),
             'ranges' => BrandsOverview::RANGES,
+            'cards' => $this->cards($overview, $rows->all(), $timezone),
+            'sourceColors' => self::SOURCE_COLORS,
             'activity' => Activity::query()->with(['causer', 'brand'])->latest('id')->limit(8)->get(),
         ]);
     }
@@ -92,6 +99,44 @@ final class AdminDashboard extends Component
         }
 
         return ['labels' => $data['labels'], 'datasets' => $datasets, 'brands' => $brands, 'total' => $data['total'], 'days' => $data['days'], 'hourly' => $range === 'today'];
+    }
+
+    /**
+     * The eight cards under the brands table. Lead to sale comes from the
+     * brand rows: this month's front sales against this month's leads, and
+     * the month's money per lead in the brand's own currency.
+     *
+     * @param  list<array{brand: Brand, leads: int, previous: int, unassigned: int, overdue: int, sales: int, upsells: int, progress: Progress}>  $rows
+     * @return array<string, mixed>
+     */
+    private function cards(BrandsOverview $overview, array $rows, string $timezone): array
+    {
+        $cards = $overview->cards();
+
+        $conversion = collect($rows)
+            ->filter(fn (array $row): bool => $row['leads'] > 0)
+            ->map(fn (array $row): array => [
+                'brand' => $row['brand'],
+                'leads' => $row['leads'],
+                'won' => $row['sales'] - $row['upsells'],
+                'rate' => round(($row['sales'] - $row['upsells']) / $row['leads'] * 100, 1),
+                'perLead' => round($row['progress']->revenue / $row['leads']),
+                'currency' => $row['progress']->currency,
+            ])
+            ->sortByDesc('rate')
+            ->values()
+            ->all();
+
+        return [
+            'speed' => $cards->replySpeed(),
+            'sources' => $cards->sources(),
+            'conversion' => $conversion,
+            'chats' => $cards->chatsWaiting(),
+            'sites' => $cards->quietSites(),
+            'sellers' => $cards->topSellers(),
+            'hours' => $cards->busiestHours($timezone),
+            'followUps' => $cards->followUps(),
+        ];
     }
 
     /** @return array{text: string, up: ?bool}|null */

@@ -20,6 +20,21 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.23.0',
+        'date' => '2026-10-16',
+        'title' => 'Eight new cards on Overview',
+        'changes' => [
+            ['new', 'First reply speed: how long a new lead from a website, Facebook or a chat waits for its first contact in each brand (the middle wait over the last 30 days), and how many were contacted within an hour.'],
+            ['new', 'Lead to sale: this month\'s first sales against this month\'s leads, per brand, and the money per lead in the brand\'s own currency.'],
+            ['new', 'Where leads come from: each brand\'s leads of the last 30 days split by website, Facebook, Messenger, Instagram, added by hand and imported.'],
+            ['new', 'Busiest hours: when leads arrive across all brands, by day of the week and hour, in your own time.'],
+            ['new', 'Chats waiting for a reply: Messenger and Instagram chats where the person wrote last and Meta still allows an answer, with the longest wait.'],
+            ['new', 'Follow-ups today: what is due today and what is overdue, brand by brand.'],
+            ['new', 'Websites that went quiet: websites that are switched on but sent no lead for two days, or whose check failed.'],
+            ['new', 'Top sellers this month: who sold most, with their sales in each brand\'s own currency.'],
+        ],
+    ],
+    [
         'version' => '1.22.0',
         'date' => '2026-10-16',
         'title' => 'Leads per day of every brand on Overview',

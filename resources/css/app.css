@@ -10230,6 +10230,254 @@ a.lq-glance-num:hover {
 }
 
 /* The installed version: one quiet line under everything else. */
+/* The cards under "Brands this month" on Overview: two to a row, each a short list of brands. */
+.lq-grid-cards {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+    .lq-grid-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.lq-ov-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin: -0.375rem -0.5rem;
+}
+
+.lq-ov-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: var(--lq-radius-control);
+    color: var(--lq-ink);
+    font-size: 0.8125rem;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+a.lq-ov-row:hover {
+    background: var(--lq-raised);
+}
+
+.lq-ov-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-ov-name > span:first-child {
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-ov-sub {
+    overflow: hidden;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-ov-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+}
+
+.lq-ov-icons svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-ov-num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.lq-ov-zero {
+    color: var(--lq-muted);
+}
+
+.lq-ov-side {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    min-width: 6.5rem;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.lq-ov-inline {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-ov-ok {
+    color: var(--lq-success);
+}
+
+.lq-ov-warn {
+    color: var(--lq-warning);
+}
+
+.lq-ov-bad {
+    color: var(--lq-danger);
+}
+
+.lq-ov-rank {
+    width: 1rem;
+    color: var(--lq-muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.lq-ov-site {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+}
+
+.lq-ov-site img,
+.lq-ov-site svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.lq-ov-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+}
+
+.lq-ov-empty svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.lq-ov-good svg {
+    color: var(--lq-success);
+}
+
+.lq-ov-note {
+    margin: 0.875rem 0 0;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+}
+
+.lq-src-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem 0.875rem;
+    margin-bottom: 0.875rem;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+}
+
+.lq-src-key span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.lq-src-key i {
+    display: inline-block;
+    width: 0.5625rem;
+    height: 0.5625rem;
+    border-radius: 2px;
+}
+
+.lq-src-row {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr) 2.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4375rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.lq-src-name {
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-src-bar {
+    display: flex;
+    gap: 2px;
+    height: 0.625rem;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--lq-raised);
+}
+
+.lq-src-bar span {
+    min-width: 2px;
+}
+
+/* Busiest hours: days down, hours across, darker orange for more leads. */
+.lq-heat {
+    display: grid;
+    grid-template-columns: 2.25rem repeat(24, minmax(0, 1fr));
+    gap: 3px;
+    align-items: center;
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+}
+
+.lq-heat-cell {
+    height: 1rem;
+    border-radius: 3px;
+    background: var(--lq-raised);
+}
+
+.lq-heat-1 {
+    background: rgb(255 107 44 / 0.22);
+}
+
+.lq-heat-2 {
+    background: rgb(255 107 44 / 0.45);
+}
+
+.lq-heat-3 {
+    background: rgb(255 107 44 / 0.7);
+}
+
+.lq-heat-4 {
+    background: var(--lq-orange);
+}
+
+.lq-heat-hour {
+    grid-column: span 3;
+    padding-top: 0.25rem;
+}
+
 /* Leads per day on Overview: the stacked chart, and beside it the brands as its key, with their totals. */
 .lq-perday {
     display: grid;

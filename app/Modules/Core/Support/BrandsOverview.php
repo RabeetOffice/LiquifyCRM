@@ -42,6 +42,12 @@ final class BrandsOverview
         return new self(Brand::query()->orderBy('name')->get()->keyBy('id'), CarbonImmutable::now());
     }
 
+    /** The cards under the brands table, for the same brands and the same moment. */
+    public function cards(): OverviewCards
+    {
+        return new OverviewCards($this->brands, $this->now);
+    }
+
     /**
      * One row per brand: active ones first, then the busiest.
      *

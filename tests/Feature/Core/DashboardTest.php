@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\AdminDashboard;
+use App\Modules\Core\Support\OverviewCards;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\Task;
+use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\Target;
+use App\Modules\Sites\Models\Site;
 use App\Modules\System\Support\Changelog;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
@@ -161,4 +165,96 @@ it('gives an Agent their own numbers and follow-ups instead of the queue', funct
         ->assertSee('Follow-ups due today')
         ->assertDontSee('Set up UK Publishing House')
         ->assertDontSee('Queued Lead');
+});
+
+it('answers the questions of the cards under the brands table', function (): void {
+    $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00', 'UTC'));
+
+    $uk = brand(['name' => 'UK Publishing House', 'slug' => 'ukph', 'currency' => 'GBP']);
+    $au = brand(['name' => 'ANZ Publishing House', 'slug' => 'anz', 'currency' => 'AUD']);
+    $agent = agentOf(department($uk), ['name' => 'Sam Carter']);
+    $make = fn (Brand $brand, string $source, string $at, ?string $contacted = null): Lead => Lead::factory()->create(['brand_id' => $brand->getKey(), 'source_type' => $source, 'created_at' => $at, 'first_contacted_at' => $contacted]);
+
+    // UK: contacted after 10 and 90 minutes, one waiting for three hours, one imported (left out of the speed).
+    $quick = $make($uk, 'website', '2026-10-14 09:00:00', '2026-10-14 09:10:00');
+    $make($uk, 'website', '2026-10-14 10:00:00', '2026-10-14 11:30:00');
+    $make($uk, 'facebook', '2026-10-15 09:00:00');
+    $make($uk, 'import', '2026-10-13 09:00:00');
+    // ANZ: a chat 20 minutes ago, not answered yet, so it still has time.
+    $make($au, 'messenger', '2026-10-15 11:40:00');
+
+    $client = Client::query()->create(['brand_id' => $uk->getKey(), 'name' => 'Adam Young', 'sales_count' => 2]);
+    Sale::query()->create(['brand_id' => $uk->getKey(), 'client_id' => $client->getKey(), 'lead_id' => $quick->getKey(), 'user_id' => $agent->getKey(), 'kind' => 'front', 'amount' => 1000, 'currency' => 'GBP', 'closed_at' => '2026-10-14 15:00:00']);
+    Sale::query()->create(['brand_id' => $uk->getKey(), 'client_id' => $client->getKey(), 'user_id' => $agent->getKey(), 'kind' => 'upsell', 'amount' => 500, 'currency' => 'GBP', 'closed_at' => '2026-10-15 10:00:00']);
+
+    Conversation::query()->create(['brand_id' => $uk->getKey(), 'contact_external_id' => '1', 'last_inbound_at' => '2026-10-15 10:00:00', 'last_message_at' => '2026-10-15 10:00:00']);
+    Conversation::query()->create(['brand_id' => $uk->getKey(), 'contact_external_id' => '2', 'last_inbound_at' => '2026-10-15 09:00:00', 'last_message_at' => '2026-10-15 09:30:00']);
+    Conversation::query()->create(['brand_id' => $au->getKey(), 'contact_external_id' => '3', 'channel' => 'instagram', 'last_inbound_at' => '2026-10-14 05:00:00', 'last_message_at' => '2026-10-14 05:00:00']);
+
+    Site::factory()->create(['brand_id' => $uk->getKey(), 'url' => 'https://quiet.example', 'last_lead_at' => '2026-10-12 09:00:00']);
+    Site::factory()->create(['brand_id' => $uk->getKey(), 'url' => 'https://paused.example', 'last_lead_at' => '2026-10-01 09:00:00', 'is_active' => false]);
+    Site::factory()->create(['brand_id' => $au->getKey(), 'url' => 'https://busy.example', 'last_lead_at' => '2026-10-15 11:00:00']);
+    Site::factory()->create(['brand_id' => $au->getKey(), 'url' => 'https://broken.example', 'last_lead_at' => '2026-10-15 11:00:00', 'health_status' => 'fail']);
+
+    Task::query()->create(['brand_id' => $uk->getKey(), 'lead_id' => $quick->getKey(), 'user_id' => $agent->getKey(), 'title' => 'Call back', 'due_at' => '2026-10-15 16:00:00']);
+    Task::query()->create(['brand_id' => $uk->getKey(), 'lead_id' => $quick->getKey(), 'user_id' => $agent->getKey(), 'title' => 'Send the quote', 'due_at' => '2026-10-13 10:00:00']);
+
+    $page = Livewire::actingAs(admin())->test(AdminDashboard::class)
+        ->assertSee('First reply speed')
+        ->assertSee('Top sellers this month')
+        ->assertSee('Sam Carter')
+        ->assertSee('quiet.example')
+        ->assertDontSee('paused.example');
+
+    $cards = $page->viewData('cards');
+
+    // 1. The median of 10 and 90 minutes; one of the three leads that had their hour was answered within it.
+    expect($cards['speed'][0]['brand']->slug)->toBe('ukph')
+        ->and($cards['speed'][0]['median'])->toBe(50)
+        ->and($cards['speed'][0]['leads'])->toBe(3)
+        ->and($cards['speed'][0]['quick'])->toBe(33)
+        ->and($cards['speed'][1]['median'])->toBeNull()
+        ->and($cards['speed'][1]['quick'])->toBeNull();
+
+    // 2. Sources, busiest brand first, in the order of the source list.
+    expect($cards['sources']['brands'][0]['sources'])->toBe(['website' => 2, 'facebook' => 1, 'import' => 1])
+        ->and(array_map(fn ($source) => $source->value, $cards['sources']['sources']))->toBe(['website', 'facebook', 'messenger', 'import']);
+
+    // 3. One first sale (the upsell does not count) from four leads, and 1,500 pounds over four leads.
+    $conversion = collect($cards['conversion'])->firstWhere('brand.slug', 'ukph');
+    expect($conversion['won'])->toBe(1)
+        ->and($conversion['rate'])->toBe(25.0)
+        ->and($conversion['perLead'])->toBe(375.0)
+        ->and($conversion['currency'])->toBe('GBP');
+
+    // 4. Only the chat whose last message came from the person, inside the reply window.
+    expect($cards['chats'])->toHaveCount(1)
+        ->and($cards['chats'][0]['chats'])->toBe(1)
+        ->and($cards['chats'][0]['brand']->slug)->toBe('ukph');
+
+    // 5. The quiet website and the one whose check failed; never a paused one.
+    expect(array_map(fn (array $row): string => $row['site']->domain, $cards['sites']))->toBe(['quiet.example', 'broken.example'])
+        ->and($cards['sites'][1]['failed'])->toBeTrue();
+
+    // 6. The seller's sales and money, in the brand's currency.
+    expect($cards['sellers'])->toHaveCount(1)
+        ->and($cards['sellers'][0]['sales'])->toBe(2)
+        ->and($cards['sellers'][0]['revenue'])->toBe(1500.0);
+
+    // 7. Wednesday 09:00 UTC is in the grid (this viewer has no time zone of their own, so UTC).
+    expect($cards['hours']['total'])->toBe(5)
+        ->and($cards['hours']['grid'][2][9])->toBe(1);
+
+    // 8. One due today, one overdue.
+    expect($cards['followUps'])->toHaveCount(1)
+        ->and($cards['followUps'][0]['brand']->slug)->toBe('ukph')
+        ->and($cards['followUps'][0]['today'])->toBe(1)
+        ->and($cards['followUps'][0]['overdue'])->toBe(1);
+});
+
+it('says a wait in words', function (): void {
+    expect(OverviewCards::duration(14))->toBe('14 min')
+        ->and(OverviewCards::duration(130))->toBe('2 h 10 min')
+        ->and(OverviewCards::duration(120))->toBe('2 h')
+        ->and(OverviewCards::duration(4320))->toBe('3 days');
 });
