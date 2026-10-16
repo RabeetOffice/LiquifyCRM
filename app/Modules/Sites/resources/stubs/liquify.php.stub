@@ -141,10 +141,10 @@ function liquify_reply(array $payload, $status = 200)
     exit;
 }
 
-function liquify_answer()
+/** Only LiquifyCRM may ask: a signed, recent POST. Returns the question, or answers no and stops. */
+function liquify_guard()
 {
     ini_set('display_errors', '0');
-    ob_start();
     set_error_handler(function () { return true; }); // a PHP notice must never spoil the answer
 
     if ((isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : '') !== 'POST') {
@@ -163,8 +163,15 @@ function liquify_answer()
     }
 
     $request = json_decode($body, true);
-    $action = is_array($request) && isset($request['action']) ? (string) $request['action'] : '';
-    $params = is_array($request) && isset($request['params']) && is_array($request['params']) ? $request['params'] : array();
+
+    return is_array($request) ? $request : array();
+}
+
+function liquify_answer(array $request)
+{
+    ob_start();
+    $action = isset($request['action']) ? (string) $request['action'] : '';
+    $params = isset($request['params']) && is_array($request['params']) ? $request['params'] : array();
 
     if ($action === 'ping') {
         liquify_reply(array('ok' => true, 'data' => liquify_ping()));
@@ -179,7 +186,40 @@ function liquify_answer()
     liquify_reply(array('ok' => false, 'error' => 'Unknown question: ' . $action), 400);
 }
 
-/** The website's settings: define('NAME', 'value') lines of its config file, read without running it. */
+/** Where websites keep their settings, the usual place first. */
+function liquify_config_files()
+{
+    return defined('LIQUIFY_CONFIG')
+        ? array(LIQUIFY_CONFIG)
+        : array('includes/config.php', 'config.php', 'includes/db.php', 'includes/database.php', 'inc/config.php', 'config/config.php', 'admin/config.php');
+}
+
+/**
+ * A config file whose database settings are worked out when it runs (read from
+ * the admin's saved settings, for example: define('DB_NAME', setting('db_name')))
+ * rather than written out. Such a file is run once, the way the website runs it.
+ */
+function liquify_config_to_run()
+{
+    foreach (liquify_config_files() as $file) {
+        $path = __DIR__ . '/' . ltrim($file, '/');
+        if (!is_file($path) || !is_readable($path)) {
+            continue;
+        }
+        $code = (string) file_get_contents($path);
+        $values = liquify_defines($code);
+        if (isset($values['DB_NAME']) || isset($values['DB_DATABASE'])) {
+            return null; // written out: read without running anything
+        }
+        if (preg_match('/[\'"](DB_NAME|DB_DATABASE)[\'"]/', $code)) {
+            return $path;
+        }
+    }
+
+    return null;
+}
+
+/** The website's settings: define('NAME', 'value') lines of its config file, read without running it when they are written out. */
 function liquify_settings()
 {
     static $settings = null;
@@ -187,19 +227,26 @@ function liquify_settings()
         return $settings;
     }
 
-    $files = defined('LIQUIFY_CONFIG')
-        ? array(LIQUIFY_CONFIG)
-        : array('includes/config.php', 'config.php', 'includes/db.php', 'includes/database.php', 'inc/config.php', 'config/config.php', 'admin/config.php');
-
     $settings = array('file' => null, 'values' => array());
 
-    foreach ($files as $file) {
+    foreach (liquify_config_files() as $file) {
         $path = __DIR__ . '/' . ltrim($file, '/');
         if (!is_file($path) || !is_readable($path)) {
             continue;
         }
         $values = liquify_defines((string) file_get_contents($path));
         if (isset($values['DB_NAME']) || isset($values['DB_DATABASE'])) {
+            $settings = array('file' => $file, 'values' => $values);
+            break;
+        }
+        // Worked out when the config ran (see the end of this file): read what it defined.
+        if (defined('DB_NAME') || defined('DB_DATABASE')) {
+            $defined = get_defined_constants(true);
+            foreach (isset($defined['user']) ? $defined['user'] : array() as $name => $value) {
+                if (preg_match('/^(DB|SMTP|MAIL)_/', $name) && is_scalar($value)) {
+                    $values[$name] = (string) $value;
+                }
+            }
             $settings = array('file' => $file, 'values' => $values);
             break;
         }
@@ -464,5 +511,22 @@ function liquify_smtp()
 }
 
 if (isset($_SERVER['SCRIPT_FILENAME']) && realpath((string) $_SERVER['SCRIPT_FILENAME']) === __FILE__) {
-    liquify_answer();
+    $liquify_request = liquify_guard();
+
+    // A config that works its settings out when it runs is run here, only for LiquifyCRM, at the
+    // top level as the website runs it (its variables must be global); what it prints is thrown away.
+    $liquify_config = liquify_config_to_run();
+    if ($liquify_config !== null) {
+        $liquify_level = ob_get_level();
+        ob_start();
+        try {
+            include_once $liquify_config;
+        } catch (Throwable $liquify_error) {
+            error_log('[liquify] ' . $liquify_error->getMessage());
+        }
+        while (ob_get_level() > $liquify_level) {
+            ob_end_clean();
+        }
+    }
+    liquify_answer($liquify_request);
 }

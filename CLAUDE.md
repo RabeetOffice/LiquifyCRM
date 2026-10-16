@@ -69,7 +69,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   reuse that pipeline (`PullSiteLeads`, `SiteHealthChecker`). Secrets use encrypted casts and never reach a view.
 - One file per PHP website (user request, 16 Oct 2026; the LeadsHub "Hub Agent" was removed): `liquify.php`
   (`resources/stubs/liquify.php.stub`, `LiquifySnippet::file()`) goes in the website's ROOT folder. It reads
-  `define('DB_…')` from `includes/config.php` with the tokenizer (never runs it), finds the `leads` table and answers
+  written-out `define('DB_…', '…')` from `includes/config.php` with the tokenizer; a config that works them out when
+  it runs (Purple Giraffe: `define('DB_NAME', pgp_setting(…))`) is included at the file's TOP level (its variables must
+  be global), only after the signature check, output discarded. It finds the `leads` table and answers
   signed questions (`SiteConnector`: `ping`, `leads`, `diagnostics`; `X-Liquify-Timestamp` / `X-Liquify-Signature`,
   the site secret, 5 minutes) and nothing else. Such a site is `mode = pull`, `pull_config.driver = file`
   (`Site::readsThroughFile()`); `sites:pull` runs every minute (`PullSiteLeads` is unique per site) and its first run

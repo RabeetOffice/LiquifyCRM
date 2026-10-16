@@ -37,6 +37,7 @@ final class SiteLeadNormalizer
     private const DROPPED = [
         'id', 'remote_id', '_csrf', '_token', 'csrf_token', 'g_recaptcha_response', 'recaptcha_token', 'recaptcha', 'submit',
         'password', 'ip', 'ip_address', 'user_agent', 'ua', 'updated_at', 'status', 'is_read', 'action',
+        'recaptcha_score', 'email_sent',
     ];
 
     /** A person never sees these; a bot fills them. */

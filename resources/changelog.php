@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.24.1',
+        'date' => '2026-10-16',
+        'title' => 'liquify.php finds the database on more websites',
+        'changes' => [
+            ['fixed', 'liquify.php said "No database settings were found" on a website whose config takes its database details from the admin\'s saved settings (such as Purple Giraffe Press). It now finds them. Download liquify.php again for that website and upload it over the old one.'],
+            ['improved', 'Two columns some websites keep for themselves (the reCAPTCHA score and whether the email was sent) no longer show up among a lead\'s answers.'],
+        ],
+    ],
+    [
         'version' => '1.24.0',
         'date' => '2026-10-16',
         'title' => 'Connect a website with one file',
