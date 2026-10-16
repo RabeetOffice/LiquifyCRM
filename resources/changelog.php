@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.22.0',
+        'date' => '2026-10-16',
+        'title' => 'Leads per day of every brand on Overview',
+        'changes' => [
+            ['new', 'Overview has a "Leads per day" chart: every brand\'s leads stacked day by day, with Today (hour by hour), 7 days and 30 days to choose from. Beside it, each brand\'s total and its average per day; a click opens that brand\'s leads.'],
+            ['improved', 'The days and hours follow your own time zone (set on your profile), so "today" is your today.'],
+            ['removed', 'The "Leads per brand" chart at the bottom of Overview: the new chart shows the same totals, for the days you choose.'],
+        ],
+    ],
+    [
         'version' => '1.21.1',
         'date' => '2026-10-16',
         'title' => 'Connect website names the website for you',

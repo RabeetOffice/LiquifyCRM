@@ -18,6 +18,58 @@
             :description-icon="$overdue > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle'" />
     </div>
 
+    {{-- Leads per day of every brand: today hour by hour, or the last 7 or 30 days. --}}
+    <x-ui.card title="Leads per day" :description="$perDay['total'] === 0 ? 'Every brand, '.($perDay['hourly'] ? 'today hour by hour' : 'the last '.$perDay['days'].' days') : number_format($perDay['total']).' '.str('lead')->plural($perDay['total']).' '.($perDay['hourly'] ? 'today, hour by hour, in your time' : 'in the last '.$perDay['days'].' days, in your time')">
+        <x-slot:actions>
+            <div class="lq-seg" role="tablist" aria-label="Range of the chart">
+                @foreach ($ranges as $key => $label)
+                    <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $range === (string) $key]) wire:click="$set('range', '{{ $key }}')" role="tab" aria-selected="{{ $range === (string) $key ? 'true' : 'false' }}">{{ $label }}</button>
+                @endforeach
+            </div>
+        </x-slot:actions>
+
+        @if ($perDay['total'] === 0)
+            <x-ui.empty :title="$perDay['hourly'] ? 'No leads yet today' : 'No leads in these days'" description="Leads from websites, Facebook, Instagram, imports and those added by hand show up here, brand by brand." icon="heroicon-o-chart-bar" />
+        @else
+            <div class="lq-perday">
+                <div class="lq-chart" wire:ignore wire:key="perday-{{ md5(json_encode([$perDay['labels'], $perDay['datasets']])) }}" x-data="chart({
+                    type: 'bar',
+                    data: { labels: @js($perDay['labels']), datasets: @js($perDay['datasets']) },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { displayColors: true, boxWidth: 10, boxHeight: 10, boxPadding: 4, filter: (item) => item.raw > 0, itemSort: (a, b) => b.raw - a.raw },
+                        },
+                        scales: {
+                            x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
+                            y: { stacked: true, beginAtZero: true, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5 } },
+                        },
+                    },
+                })">
+                    <canvas x-ref="canvas"></canvas>
+                </div>
+
+                <ul class="lq-perday-list" aria-label="Leads per brand">
+                    @foreach ($perDay['brands'] as $row)
+                        <li wire:key="perday-brand-{{ $row['brand']->getKey() }}">
+                            <a href="{{ route('brand.leads.index', ['brand' => $row['brand']->slug]) }}" class="lq-perday-row" wire:navigate>
+                                <span class="lq-perday-dot" style="background: {{ $row['color'] }}"></span>
+                                <span class="lq-perday-name">{{ $row['brand']->name }}</span>
+                                <span class="lq-perday-num">{{ number_format($row['total']) }}</span>
+                                @unless ($perDay['hourly'])
+                                    <span class="lq-perday-avg" title="Average per day">{{ rtrim(rtrim(number_format($row['total'] / $perDay['days'], 1), '0'), '.') }}/day</span>
+                                @endunless
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </x-ui.card>
+
     <x-ui.card title="Brands this month" description="Side by side, each in its own currency. Click a number to open that list." flush>
         @if ($rows === [])
             <x-ui.empty title="No brands yet" description="Add your first brand to see its month here." icon="heroicon-o-building-storefront" />
@@ -90,42 +142,23 @@
         @endif
     </x-ui.card>
 
-    <div class="lq-grid-main">
-        <x-ui.card title="Leads per brand" description="Last 30 days">
-            @if ($chart['values'] === [])
-                <x-ui.empty title="No leads yet" description="Leads from websites, Facebook, imports and those added by hand show up here, brand by brand." icon="heroicon-o-chart-bar" />
-            @else
-                <div class="lq-chart" wire:ignore wire:key="brands-{{ md5(json_encode($chart)) }}" x-data="chart({
-                    type: 'bar',
-                    data: {
-                        labels: @js($chart['labels']),
-                        datasets: [{ label: 'Leads', data: @js($chart['values']), lqFill: 'orange', borderRadius: 8, maxBarThickness: 56 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, border: { display: false }, ticks: { precision: 0, maxTicksLimit: 5 } }, x: { grid: { display: false }, border: { display: false } } } }
-                })">
-                    <canvas x-ref="canvas"></canvas>
-                </div>
-            @endif
-        </x-ui.card>
-
-        <x-ui.card title="Recent activity" description="Latest entries in the audit trail" flush>
-            @if ($activity->isEmpty())
-                <p class="lq-help px-6 py-6">Nothing logged yet.</p>
-            @else
-                <ul class="flex flex-col lq-live">
-                    @foreach ($activity as $entry)
-                        <li class="flex items-start gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-card-border)" wire:key="activity-{{ $entry->getKey() }}">
-                            <x-ui.avatar :name="$entry->causer?->name ?? 'System'" size="sm" />
-                            <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm">{{ $entry->description }}</div>
-                                <div class="text-xs lq-muted">{{ $entry->causer?->name ?? 'System' }}{{ $entry->brand ? ' · '.$entry->brand->name : '' }} · {{ $entry->created_at?->diffForHumans() }}</div>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </x-ui.card>
-    </div>
+    <x-ui.card title="Recent activity" description="Latest entries in the audit trail" flush>
+        @if ($activity->isEmpty())
+            <p class="lq-help px-6 py-6">Nothing logged yet.</p>
+        @else
+            <ul class="flex flex-col lq-live">
+                @foreach ($activity as $entry)
+                    <li class="flex items-start gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-card-border)" wire:key="activity-{{ $entry->getKey() }}">
+                        <x-ui.avatar :name="$entry->causer?->name ?? 'System'" size="sm" />
+                        <div class="min-w-0 flex-1">
+                            <div class="truncate text-sm">{{ $entry->description }}</div>
+                            <div class="text-xs lq-muted">{{ $entry->causer?->name ?? 'System' }}{{ $entry->brand ? ' · '.$entry->brand->name : '' }} · {{ $entry->created_at?->diffForHumans() }}</div>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </x-ui.card>
 
     {{-- The installed version: a quiet line at the very bottom. --}}
     <a href="{{ route('admin.updates') }}" @class(['lq-versionbar', 'lq-versionbar-due' => $update['available']]) wire:navigate>

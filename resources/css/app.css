@@ -10230,6 +10230,74 @@ a.lq-glance-num:hover {
 }
 
 /* The installed version: one quiet line under everything else. */
+/* Leads per day on Overview: the stacked chart, and beside it the brands as its key, with their totals. */
+.lq-perday {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+    .lq-perday {
+        grid-template-columns: minmax(0, 1fr) 16rem;
+    }
+}
+
+.lq-perday .lq-chart {
+    height: 17rem;
+}
+
+.lq-perday-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    max-height: 17rem;
+    overflow-y: auto;
+}
+
+.lq-perday-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.4375rem 0.625rem;
+    border-radius: var(--lq-radius-control);
+    color: var(--lq-ink);
+    font-size: 0.8125rem;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-perday-row:hover {
+    background: var(--lq-raised);
+}
+
+.lq-perday-dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 3px;
+}
+
+.lq-perday-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-perday-num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-perday-avg {
+    min-width: 3.75rem;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
 .lq-versionbar {
     display: flex;
     flex-wrap: wrap;

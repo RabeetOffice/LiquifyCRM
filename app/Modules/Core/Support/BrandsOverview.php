@@ -79,21 +79,76 @@ final class BrandsOverview
             ->all();
     }
 
+    /** The choices of the "Leads per day" switch. */
+    public const RANGES = ['today' => 'Today', '7' => '7 days', '30' => '30 days'];
+
     /**
-     * Leads per brand over the last 30 days, the busiest first, for the chart.
+     * Leads of every brand in each hour of today, or each day of the last 7 or
+     * 30 days (today included), in the viewer's time zone, for the "Leads per
+     * day" chart. Brands with no lead in the range are left out; the busiest
+     * come first. One query: quarter hours in UTC (dates are stored in UTC),
+     * placed in the viewer's hours and days here, so summer time and
+     * half-hour zones come out right.
      *
-     * @return array{labels: list<string>, values: list<int>}
+     * @return array{labels: list<string>, brands: list<array{brand: Brand, total: int, counts: list<int>}>, total: int, days: int}
      */
-    public function lastThirtyDays(int $limit = 8): array
+    public function leadsPerDay(string $range, string $timezone): array
     {
-        $counts = collect($this->countLeads($this->now->subDays(30), $this->now->addSecond()))
-            ->filter(fn (int $count): bool => $count > 0)
-            ->sortDesc()
-            ->take($limit);
+        $now = $this->now->setTimezone($timezone);
+        $today = $now->startOfDay();
+        $hourly = $range === 'today';
+        $days = match ($range) {
+            'today' => 1,
+            '30' => 30,
+            default => 7,
+        };
+
+        // Hours up to now for today; every day of the range otherwise.
+        $slots = $hourly
+            ? collect(range(0, (int) $now->format('G')))->mapWithKeys(fn (int $hour): array => [(string) $hour => sprintf('%02d:00', $hour)])
+            : collect(range($days - 1, 0))->mapWithKeys(fn (int $ago): array => [$today->subDays($ago)->format('Y-m-d') => $today->subDays($ago)->format($days > 7 ? 'j M' : 'D j')]);
+
+        $quarter = "CONCAT(DATE_FORMAT(created_at, '%Y-%m-%d %H:'), LPAD(FLOOR(MINUTE(created_at) / 15) * 15, 2, '0'))";
+
+        $rows = Lead::query()->acrossBrands()->toBase()
+            ->whereIn('brand_id', $this->brands->keys())
+            ->where('created_at', '>=', $today->subDays($days - 1)->utc())
+            ->where('created_at', '<', $this->now->addSecond())
+            ->groupByRaw('brand_id, '.$quarter)
+            ->selectRaw('brand_id, '.$quarter.' as slot, COUNT(*) as total')
+            ->get();
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $local = CarbonImmutable::createFromFormat('Y-m-d H:i', (string) $row->slot, 'UTC');
+
+            if ($local === null) {
+                continue;
+            }
+
+            $local = $local->setTimezone($timezone);
+            $key = $hourly ? (string) (int) $local->format('G') : $local->format('Y-m-d');
+            $counts[(int) $row->brand_id][$key] = ($counts[(int) $row->brand_id][$key] ?? 0) + (int) $row->total;
+        }
+
+        $brands = collect($counts)
+            ->map(fn (array $perSlot, int $id): array => [
+                'brand' => $this->brands->get($id),
+                'counts' => $slots->keys()->map(fn (int|string $key): int => $perSlot[(string) $key] ?? 0)->values()->all(),
+            ])
+            ->filter(fn (array $row): bool => $row['brand'] instanceof Brand)
+            ->map(fn (array $row): array => [...$row, 'total' => array_sum($row['counts'])])
+            ->filter(fn (array $row): bool => $row['total'] > 0)
+            ->sortByDesc('total')
+            ->values()
+            ->all();
 
         return [
-            'labels' => $counts->keys()->map(fn (int $id): string => (string) $this->brands->get($id)?->name)->values()->all(),
-            'values' => $counts->values()->all(),
+            'labels' => $slots->values()->all(),
+            'brands' => $brands,
+            'total' => (int) array_sum(array_column($brands, 'total')),
+            'days' => $days,
         ];
     }
 
