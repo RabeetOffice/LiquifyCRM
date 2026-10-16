@@ -243,24 +243,21 @@ class Site extends Model
     }
 
     /**
-     * The optional LeadsHub agent on the website (hub-agent.php): used to read
-     * leads in pull mode and for the email and database checks.
-     *
-     * @return array{url: string, key: string, secret: string}|null
+     * The one file a PHP website needs (liquify.php in its root folder): it
+     * answers LiquifyCRM's questions for new leads and for the email and
+     * database checks.
      */
-    public function agentConfig(): ?array
+    public function connectorUrl(): string
     {
-        $agent = $this->pull_config['agent'] ?? null;
+        $url = $this->pull_config['connector_url'] ?? null;
 
-        if (! is_array($agent) || blank($agent['key'] ?? null) || blank($agent['secret'] ?? null)) {
-            return null;
-        }
+        return is_string($url) && $url !== '' ? $url : $this->pageUrl('/liquify.php');
+    }
 
-        return [
-            'url' => filled($agent['url'] ?? null) ? (string) $agent['url'] : $this->pageUrl('/hub-agent.php'),
-            'key' => (string) $agent['key'],
-            'secret' => (string) $agent['secret'],
-        ];
+    /** New leads are read through liquify.php in the website's root folder. */
+    public function readsThroughFile(): bool
+    {
+        return $this->isPull() && $this->pullDriver() === 'file';
     }
 
     /**
@@ -286,19 +283,17 @@ class Site extends Model
         ];
     }
 
-    /** "agent", "database" or null when nothing is filled in yet. */
+    /**
+     * How a pull website is read: "file" (liquify.php in its root folder, the
+     * usual way) or "database" (its database straight from LiquifyCRM), null
+     * while the database details are still missing.
+     */
     public function pullDriver(): ?string
     {
-        $preferred = $this->pull_config['driver'] ?? null;
-
-        if ($preferred === 'database' && $this->databaseConfig() !== null) {
-            return 'database';
+        if (($this->pull_config['driver'] ?? null) === 'database') {
+            return $this->databaseConfig() !== null ? 'database' : null;
         }
 
-        if ($this->agentConfig() !== null) {
-            return 'agent';
-        }
-
-        return $this->databaseConfig() !== null ? 'database' : null;
+        return 'file';
     }
 }

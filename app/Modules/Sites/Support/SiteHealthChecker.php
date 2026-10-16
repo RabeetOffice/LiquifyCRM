@@ -19,8 +19,8 @@ use Throwable;
 
 /**
  * The per-site health checks ported from LeadsHub (includes/checks.php):
- * website is up, SSL expiry, form handler, and (through the optional agent
- * or the pull-mode database) email and database. Each run stores one row per
+ * website is up, SSL expiry, form handler, and (through liquify.php in the
+ * website's root folder, or the database it is read from) email and database. Each run stores one row per
  * check, sets the red / amber / green of the website and warns the Admins
  * once when a website has been quiet for 48 hours.
  *
@@ -30,7 +30,7 @@ final class SiteHealthChecker
 {
     public function __construct(
         private readonly CertificateReader $certificates,
-        private readonly HubAgentClient $agent,
+        private readonly SiteConnector $connector,
         private readonly SiteDatabase $database,
         private readonly SiteIdentity $identity,
     ) {}
@@ -171,34 +171,35 @@ final class SiteHealthChecker
     }
 
     /**
-     * Email and database need a view from inside the website: the LeadsHub
-     * agent reports both; the pull-mode database covers the database check.
+     * Email and database need a view from inside the website: liquify.php in
+     * its root folder reports both; a website read straight from its database
+     * covers the database check.
      *
      * @return list<Result>
      */
     private function emailAndDatabase(Site $site): array
     {
-        $agent = $site->agentConfig();
-
-        if ($agent !== null) {
-            $diagnostics = $this->agent->call($agent, 'diagnostics', [], 40);
+        if ($site->readsThroughFile()) {
+            $diagnostics = $this->connector->call($site, 'diagnostics', [], 40);
 
             if (! $diagnostics['ok']) {
                 return [
-                    $this->result(CheckType::Smtp, CheckStatus::Fail, 'The health agent did not answer: '.$diagnostics['error'], $diagnostics['ms']),
-                    $this->result(CheckType::Database, CheckStatus::Fail, 'The health agent did not answer: '.$diagnostics['error'], $diagnostics['ms']),
+                    $this->result(CheckType::Smtp, CheckStatus::Fail, 'liquify.php did not answer: '.$diagnostics['error'], $diagnostics['ms']),
+                    $this->result(CheckType::Database, CheckStatus::Fail, 'liquify.php did not answer: '.$diagnostics['error'], $diagnostics['ms']),
                 ];
             }
 
             $checks = collect((array) ($diagnostics['data']['checks'] ?? []))->filter(fn (mixed $check): bool => is_array($check));
 
             return [
-                $this->fromAgent(CheckType::Smtp, $checks->where('group', 'email')->all(), 'Email is sending.'),
-                $this->fromAgent(CheckType::Database, $checks->where('group', 'database')->all(), 'The leads database is working.'),
+                $this->fromFile(CheckType::Smtp, $checks->where('group', 'email')->all(), 'The website signs in to its mail server.'),
+                $this->fromFile(CheckType::Database, $checks->where('group', 'database')->all(), 'The leads database is working.'),
             ];
         }
 
-        $skipped = 'Needs the health agent on the website. Add it under Settings on this page.';
+        $skipped = $site->usesWebhook()
+            ? 'Not available for a form that sends leads by webhook.'
+            : 'Needs liquify.php in the root folder of the website: open Setup steps on this page.';
         $database = $site->databaseConfig();
 
         if ($database === null) {
@@ -221,13 +222,13 @@ final class SiteHealthChecker
     }
 
     /**
-     * Collapse the agent's detailed checks of one group into one result: the
+     * Collapse liquify.php's detailed checks of one group into one result: the
      * worst status wins and its message (with the "how to fix" note) is shown.
      *
      * @param  array<array-key, array<string, mixed>>  $checks
      * @return Result
      */
-    private function fromAgent(CheckType $type, array $checks, string $allGood): array
+    private function fromFile(CheckType $type, array $checks, string $allGood): array
     {
         $worst = null;
         $worstStatus = CheckStatus::Skip;

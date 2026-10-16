@@ -23,8 +23,9 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Connect website in 3 steps: add the website, put liquify.php on it (or the
- * webhook address, or the pull details), then Test connection. The website's
+ * Connect website in 3 steps: add the website, put liquify.php in its root
+ * folder (or paste the webhook address, or give the database details), then
+ * Test connection. The website's
  * name fills itself in: the brand's name for the brand's own website, else
  * the name the website gives itself, else its domain. A typed name stays.
  */
@@ -50,7 +51,7 @@ final class SiteWizard extends Component
 
     public string $url = '';
 
-    /** "php", "elementor" or "pull". */
+    /** "php" (one file in the root folder), "elementor" (webhook) or "database" (read straight from it). */
     public string $connection = 'php';
 
     public string $formPath = '/form-submission.php';
@@ -93,7 +94,7 @@ final class SiteWizard extends Component
         $data = $this->validate([
             'name' => ['required', 'string', 'max:160'],
             'url' => ['required', 'url:http,https', 'max:255'],
-            'connection' => ['required', Rule::in(['php', 'elementor', 'pull'])],
+            'connection' => ['required', Rule::in(['php', 'elementor', 'database'])],
             'formPath' => ['nullable', 'string', 'max:190'],
         ], attributes: ['name' => 'website name', 'url' => 'website address', 'formPath' => 'form handler path']);
 
@@ -102,8 +103,14 @@ final class SiteWizard extends Component
             'name' => $data['name'],
             'url' => $data['url'],
             'domain' => Site::domainOf($data['url']),
-            'mode' => $data['connection'] === 'pull' ? SiteMode::Pull : SiteMode::Push,
+            // A PHP website is read through liquify.php; an Elementor form sends each lead itself.
+            'mode' => $data['connection'] === 'elementor' ? SiteMode::Push : SiteMode::Pull,
             'platform' => $data['connection'] === 'elementor' ? SitePlatform::Elementor : SitePlatform::Php,
+            'pull_config' => match ($data['connection']) {
+                'php' => ['driver' => 'file'],
+                'database' => ['driver' => 'database'],
+                default => null,
+            },
             'form_path' => $data['connection'] === 'php' && filled($data['formPath']) ? '/'.ltrim((string) $data['formPath'], '/') : null,
             'created_by' => auth()->id(),
         ]);
@@ -149,7 +156,6 @@ final class SiteWizard extends Component
     {
         return view('sites::livewire.app.site-wizard', [
             'lines' => LiquifySnippet::lines(),
-            'cron' => LiquifySnippet::cron(),
         ]);
     }
 

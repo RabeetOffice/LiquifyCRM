@@ -64,7 +64,7 @@
                             @if ($site->last_lead_at)
                                 Last lead {{ $site->last_lead_at->diffForHumans() }}
                             @elseif ($site->isPull())
-                                {{ $site->last_pull_note ?? 'Reads new leads every 5 minutes' }}
+                                {{ $site->last_pull_note ?? 'Reads new leads every minute' }}
                             @else
                                 Submit the form once to finish connecting
                             @endif

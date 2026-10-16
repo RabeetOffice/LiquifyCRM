@@ -15,7 +15,7 @@ use App\Modules\Sales\Models\Target;
 use App\Modules\Sites\Jobs\ImportSiteHistory;
 use App\Modules\Sites\Livewire\App\SiteShow;
 use App\Modules\Sites\Models\Site;
-use App\Modules\Sites\Support\HubAgentClient;
+use App\Modules\Sites\Support\SiteConnector;
 use App\Modules\Sites\Support\SiteDatabase;
 use App\Modules\Sites\Support\SiteLeadNormalizer;
 use Illuminate\Support\Facades\Http;
@@ -133,7 +133,7 @@ it('imports old leads of a website for a date range without notifying anyone per
 
     Notification::fake();
     (new ImportSiteHistory($site->getKey(), '2026-01-01', '2026-06-30', $this->admin->getKey()))->handle(...array_map(fn (string $class) => app($class), [
-        HubAgentClient::class, SiteDatabase::class, SiteLeadNormalizer::class, CreateLead::class,
+        SiteConnector::class, SiteDatabase::class, SiteLeadNormalizer::class, CreateLead::class,
     ]));
 
     $sarah = Lead::query()->where('email', 'sarah@example.com')->sole();

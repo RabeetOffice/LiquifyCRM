@@ -69,8 +69,8 @@ State of the code (14 October): 278 Pest tests passing, Pint and Larastan level 
 - [x] Connect website wizard in 3 steps: add the website, download the pre-filled `liquify.php` and copy the 2 lines (or copy the webhook address, or enter the pull details), Test connection (website answers, file uploaded, a signed test passes, first real lead).
 - [x] Website page: health checks with messages and history, every lead received with Retry (one or all failed), settings, new secret and remove (both with password re-confirm).
 - [x] Elementor / WordPress: the form's Webhook action posts to the same address with a token; simple and "Advanced data" formats are both read.
-- [x] Pull mode (`sites:pull` every 5 minutes): new rows of the website's own leads table through the LeadsHub agent (`hub-agent.php`) or straight from its database. The first run only notes where the table ends.
-- [x] Health checks ported from LeadsHub (`sites:check` every 30 minutes, `POST /admin/sites/{site}/check`): website is up, SSL expiry (amber under 14 days), form handler in place, and email and database through the LeadsHub agent (database also through the pull-mode connection).
+- [x] Pull mode (`sites:pull` every minute): new rows of the website's own leads table through `liquify.php` in its root folder (the one file a PHP website needs; the LeadsHub agent was removed on 16 Oct 2026) or straight from its database. The first run only notes where the table ends.
+- [x] Health checks ported from LeadsHub (`sites:check` every 30 minutes, `POST /admin/sites/{site}/check`): website is up, SSL expiry (amber under 14 days), form handler in place, and email and database through `liquify.php` (database also through a direct database connection).
 - [x] Quiet for 48 hours: the website turns amber and the Admins get one bell notification and email; it resets when the next lead arrives.
 - [x] Brand email settings (`/b/{brand}/settings/email`): the brand's own SMTP stored as encrypted `mail_settings`, "Send me a test email", and the optional automatic reply to the customer, noted on the lead's timeline.
 - [x] Setup checklist step "Connect your first website" ticks itself.
@@ -248,7 +248,7 @@ The user's flow: a lead from the website or Facebook is worked by front sales un
 - Ingest endpoint will answer 202 Accepted.
 - `inbound_events` carries four columns beyond the document's list (`source_id`, `brand_id`, `lead_id`, `processed_at`) so an event links to its website, brand and lead; `sites` adds `url`, `platform`, `form_path`, `favicon_path`, `pull_cursor`, health and timing columns.
 - Elementor cannot sign a request, so its address carries a token derived from the site secret (`?token=`) instead of the HMAC headers.
-- The email and database checks look from inside the website, so they need the LeadsHub agent file on it (or, for the database, the pull-mode connection); without either they show "Not set up" rather than a guess.
+- The email and database checks look from inside the website, so they need `liquify.php` in its root folder (or, for the database, a direct database connection); without either they show "Not set up" rather than a guess.
 - Pull mode starts from the newest row and never imports history; old leads come in through the import tool in week 5.
 - The received-leads log with Retry lives on each website's page; the global Integrations screen arrives with Facebook in week 4.
 - Meta tables carry a few columns beyond the document's list: `meta_connections` (`is_system_user`, `last_refreshed_at`, `error`), `meta_sources` (`meta_connection_id`, `subscribed_at`, `last_event_at`, `error`), `conversations` (`contact_name`, `last_message_at`, `last_message_preview`, `unread_count`), `messages` (`error`, plus a `sending` status before `sent`).

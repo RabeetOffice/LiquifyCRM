@@ -16,6 +16,7 @@ use App\Modules\Sites\Jobs\PullSiteLeads;
 use App\Modules\Sites\Livewire\Concerns\EditsPullConfig;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Models\SiteCheck;
+use App\Modules\Sites\Support\LiquifySnippet;
 use App\Modules\Sites\Support\SiteHealthChecker;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -126,8 +127,8 @@ final class SiteShow extends Component
             'importUntil' => ['required', 'date', 'after_or_equal:importFrom', 'before_or_equal:today'],
         ], attributes: ['importFrom' => 'start date', 'importUntil' => 'end date']);
 
-        if ($this->site->pullDriver() === null) {
-            $this->addError('importFrom', 'Add the agent or database details of this website under Settings first.');
+        if ($this->site->usesWebhook() || $this->site->pullDriver() === null) {
+            $this->addError('importFrom', $this->site->usesWebhook() ? 'A form that sends by webhook has no leads table to read.' : 'Add the database details of this website under Settings first.');
 
             return;
         }
@@ -182,7 +183,8 @@ final class SiteShow extends Component
             'isActive' => ['boolean'],
         ], attributes: ['name' => 'website name', 'url' => 'website address', 'formPath' => 'form handler path']);
 
-        $pull = $this->validatedPullConfig($this->site);
+        // Only a website read straight from its database has details to keep; liquify.php finds its own.
+        $pull = $this->readsDatabase() ? $this->validatedPullConfig($this->site) : $this->site->pull_config;
         $sourceChanged = $pull !== $this->site->pull_config;
 
         $this->site->update([
@@ -242,6 +244,11 @@ final class SiteShow extends Component
         $this->redirectRoute('brand.sites.index', ['brand' => $this->brand->slug], navigate: true);
     }
 
+    private function readsDatabase(): bool
+    {
+        return $this->site->isPull() && ($this->site->pull_config['driver'] ?? null) === 'database';
+    }
+
     public function render(): View
     {
         $site = $this->site;
@@ -263,6 +270,8 @@ final class SiteShow extends Component
             'failedCount' => $site->events()->where('status', InboundStatus::Failed->value)->count(),
             'statuses' => InboundStatus::cases(),
             'canManage' => (bool) auth()->user()?->can('update', $site),
+            'readsDatabase' => $this->readsDatabase(),
+            'lines' => LiquifySnippet::lines(),
         ])->title($site->name);
     }
 }

@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.24.0',
+        'date' => '2026-10-16',
+        'title' => 'Connect a website with one file',
+        'changes' => [
+            ['new', 'A PHP website now needs one file: download liquify.php in Connect website and upload it to the website\'s root folder, next to index.php. It finds the database in includes/config.php by itself, and LiquifyCRM reads every new lead from the website\'s own leads table within a minute. Nothing in form-submission.php has to change.'],
+            ['new', 'Optional: two lines in form-submission.php send each lead the moment it is saved, instead of within a minute. A lead that arrives both ways is still taken once.'],
+            ['improved', 'The email and database checks of a website now come from liquify.php, and Test connection says exactly what is missing (the file, the database or the leads table).'],
+            ['improved', 'A website that sends leads with the older includes/liquify.php keeps working. As soon as the new liquify.php answers in its root folder, Test connection moves it to the one file.'],
+            ['improved', '"Do not touch the website" is now "Read its database", for a website where nothing can be uploaded.'],
+            ['removed', 'The Hub Agent: hub-agent.php and hub-agent-config.php are no longer used. Delete both from your websites once the new liquify.php is uploaded.'],
+        ],
+    ],
+    [
         'version' => '1.23.0',
         'date' => '2026-10-16',
         'title' => 'Eight new cards on Overview',

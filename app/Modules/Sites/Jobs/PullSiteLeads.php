@@ -5,25 +5,26 @@ declare(strict_types=1);
 namespace App\Modules\Sites\Jobs;
 
 use App\Modules\Sites\Models\Site;
-use App\Modules\Sites\Support\HubAgentClient;
+use App\Modules\Sites\Support\SiteConnector;
 use App\Modules\Sites\Support\SiteDatabase;
 use App\Modules\Sites\Support\SiteIngestor;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use RuntimeException;
 use Throwable;
 
 /**
- * Pull mode, every 5 minutes, for websites that must not be touched: read
- * the new rows of the site's own leads table (through the LeadsHub agent or
- * straight from its database) and feed each one into the same pipeline as a
- * pushed lead. Ported from LeadsHub's sync_site_leads().
+ * Every minute: read the new rows of a website's own leads table, through
+ * liquify.php in its root folder (or straight from its database), and feed
+ * each one into the same pipeline as a sent lead. A lead the form also sent
+ * at once has the same row id, so it is never taken twice.
  *
  * The first run only notes where the table ends, so connecting a website
  * never floods the queue with years of old leads; importing those is the
  * separate "import old leads" tool.
  */
-final class PullSiteLeads implements ShouldQueue
+final class PullSiteLeads implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -35,9 +36,17 @@ final class PullSiteLeads implements ShouldQueue
 
     public int $timeout = 240;
 
+    /** Asked every minute: a read that is still waiting or running is not queued twice. */
+    public int $uniqueFor = 300;
+
     public function __construct(public readonly int $siteId) {}
 
-    public function handle(SiteIngestor $ingestor, HubAgentClient $agent, SiteDatabase $database): void
+    public function uniqueId(): string
+    {
+        return (string) $this->siteId;
+    }
+
+    public function handle(SiteIngestor $ingestor, SiteConnector $connector, SiteDatabase $database): void
     {
         $site = Site::query()->acrossBrands()->with('brand')->find($this->siteId);
 
@@ -46,11 +55,11 @@ final class PullSiteLeads implements ShouldQueue
         }
 
         try {
-            $driver = $site->pullDriver() ?? throw new RuntimeException('Add the agent or database details of this website first.');
+            $driver = $site->pullDriver() ?? throw new RuntimeException('Add the database details of this website first.');
 
             $note = $site->pull_cursor === null
-                ? $this->start($site, $driver, $agent, $database)
-                : $this->pull($site, $driver, $ingestor, $agent, $database);
+                ? $this->start($site, $driver, $connector, $database)
+                : $this->pull($site, $driver, $ingestor, $connector, $database);
         } catch (Throwable $exception) {
             $note = 'Failed: '.$exception->getMessage();
         }
@@ -58,25 +67,22 @@ final class PullSiteLeads implements ShouldQueue
         $site->forceFill(['last_pulled_at' => now(), 'last_pull_note' => mb_substr($note, 0, 255)])->save();
     }
 
-    private function start(Site $site, string $driver, HubAgentClient $agent, SiteDatabase $database): string
+    private function start(Site $site, string $driver, SiteConnector $connector, SiteDatabase $database): string
     {
-        $cursor = 0;
-
         if ($driver === 'database') {
             $cursor = $database->maxId($this->databaseConfig($site));
         } else {
-            // The agent only pages forward, so walk to the end without storing anything.
-            for ($page = 0; $page < 40; $page++) {
-                [$rows, $more] = $this->agentRows($site, $agent, $cursor, 1000);
+            $ping = $connector->call($site, 'ping', [], 30);
 
-                foreach ($rows as $row) {
-                    $cursor = max($cursor, (int) $row['id']);
-                }
-
-                if (! $more || $rows === []) {
-                    break;
-                }
+            if (! $ping['ok']) {
+                throw new RuntimeException($ping['error']);
             }
+
+            if (($ping['data']['table'] ?? null) === null) {
+                throw new RuntimeException((string) ($ping['data']['error'] ?? 'liquify.php found no leads table.'));
+            }
+
+            $cursor = (int) ($ping['data']['max_id'] ?? 0);
         }
 
         $site->forceFill(['pull_cursor' => $cursor])->save();
@@ -84,7 +90,7 @@ final class PullSiteLeads implements ShouldQueue
         return 'Connected. Watching for new leads after row '.$cursor.'.';
     }
 
-    private function pull(Site $site, string $driver, SiteIngestor $ingestor, HubAgentClient $agent, SiteDatabase $database): string
+    private function pull(Site $site, string $driver, SiteIngestor $ingestor, SiteConnector $connector, SiteDatabase $database): string
     {
         $cursor = (int) $site->pull_cursor;
         $new = 0;
@@ -94,7 +100,7 @@ final class PullSiteLeads implements ShouldQueue
                 $rows = $database->rows($this->databaseConfig($site), $cursor, self::PAGE);
                 $more = count($rows) === self::PAGE;
             } else {
-                [$rows, $more] = $this->agentRows($site, $agent, $cursor, self::PAGE);
+                [$rows, $more] = $this->fileRows($site, $connector, $cursor, self::PAGE);
             }
 
             foreach ($rows as $row) {
@@ -139,20 +145,15 @@ final class PullSiteLeads implements ShouldQueue
     /**
      * @return array{0: list<array<string, mixed>>, 1: bool} rows and whether more are waiting
      */
-    private function agentRows(Site $site, HubAgentClient $agent, int $cursor, int $limit): array
+    private function fileRows(Site $site, SiteConnector $connector, int $cursor, int $limit): array
     {
-        $config = $site->agentConfig() ?? throw new RuntimeException('The agent details of this website are missing.');
-        $response = $agent->call($config, 'leads', ['since_id' => $cursor, 'limit' => $limit], 60);
+        $response = $connector->call($site, 'leads', ['since_id' => $cursor, 'limit' => $limit], 60);
 
         if (! $response['ok']) {
             throw new RuntimeException($response['error']);
         }
 
         $rows = array_values(array_filter((array) ($response['data']['leads'] ?? []), fn (mixed $row): bool => is_array($row) && is_numeric($row['id'] ?? null)));
-
-        if ($rows === [] && filled($response['data']['note'] ?? null)) {
-            throw new RuntimeException((string) $response['data']['note']);
-        }
 
         return [$rows, ! empty($response['data']['has_more'])];
     }

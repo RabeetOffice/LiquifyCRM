@@ -30,7 +30,7 @@ Schedule::command('health:schedule-check-heartbeat')->everyMinute()->doNotMonito
 Schedule::command('health:queue-check-heartbeat')->everyMinute()->doNotMonitor();
 
 // Websites: read new leads in pull mode, and the per-site health checks.
-Schedule::command('sites:pull')->everyFiveMinutes()->doNotMonitor();
+Schedule::command('sites:pull')->everyMinute()->doNotMonitor();
 Schedule::command('sites:check')->everyThirtyMinutes()->doNotMonitor();
 
 // Facebook: renew the connection token before its 60 days run out.

@@ -12,7 +12,7 @@ use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sites\Models\Site;
-use App\Modules\Sites\Support\HubAgentClient;
+use App\Modules\Sites\Support\SiteConnector;
 use App\Modules\Sites\Support\SiteDatabase;
 use App\Modules\Sites\Support\SiteLeadNormalizer;
 use Carbon\CarbonImmutable;
@@ -46,7 +46,7 @@ final class ImportSiteHistory implements ShouldQueue
         public readonly ?int $userId = null,
     ) {}
 
-    public function handle(HubAgentClient $agent, SiteDatabase $database, SiteLeadNormalizer $normalizer, CreateLead $createLead): void
+    public function handle(SiteConnector $connector, SiteDatabase $database, SiteLeadNormalizer $normalizer, CreateLead $createLead): void
     {
         $site = Site::query()->acrossBrands()->with('brand')->find($this->siteId);
         $user = $this->userId !== null ? User::query()->find($this->userId) : null;
@@ -60,11 +60,11 @@ final class ImportSiteHistory implements ShouldQueue
         $counts = ['created' => 0, 'merged' => 0, 'skipped' => 0];
 
         try {
-            app(CurrentBrand::class)->within($site->brand, function () use ($site, $agent, $database, $normalizer, $createLead, $user, $from, $until, &$counts): void {
+            app(CurrentBrand::class)->within($site->brand, function () use ($site, $connector, $database, $normalizer, $createLead, $user, $from, $until, &$counts): void {
                 $cursor = 0;
 
                 for ($page = 0; $page < self::MAX_PAGES; $page++) {
-                    [$rows, $more] = $this->rows($site, $agent, $database, $cursor);
+                    [$rows, $more] = $this->rows($site, $connector, $database, $cursor);
 
                     foreach ($rows as $row) {
                         $id = (int) ($row['id'] ?? 0);
@@ -128,7 +128,7 @@ final class ImportSiteHistory implements ShouldQueue
     /**
      * @return array{0: list<array<string, mixed>>, 1: bool}
      */
-    private function rows(Site $site, HubAgentClient $agent, SiteDatabase $database, int $cursor): array
+    private function rows(Site $site, SiteConnector $connector, SiteDatabase $database, int $cursor): array
     {
         if ($site->pullDriver() === 'database' && ($config = $site->databaseConfig()) !== null) {
             $rows = $database->rows($config, $cursor, self::PAGE);
@@ -136,8 +136,8 @@ final class ImportSiteHistory implements ShouldQueue
             return [$rows, count($rows) === self::PAGE];
         }
 
-        $config = $site->agentConfig() ?? throw new RuntimeException('Add the agent or database details of this website under Settings first.');
-        $response = $agent->call($config, 'leads', ['since_id' => $cursor, 'limit' => self::PAGE], 60);
+        // Every other website is read through liquify.php in its root folder.
+        $response = $connector->call($site, 'leads', ['since_id' => $cursor, 'limit' => self::PAGE], 60);
 
         if (! $response['ok']) {
             throw new RuntimeException($response['error']);

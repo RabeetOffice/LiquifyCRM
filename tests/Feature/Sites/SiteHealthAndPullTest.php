@@ -11,6 +11,8 @@ use App\Modules\Sites\Jobs\RunSiteChecks;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Models\SiteCheck;
 use App\Modules\Sites\Support\CertificateReader;
+use App\Modules\Sites\Support\IngestSignature;
+use App\Modules\Sites\Support\SiteConnector;
 use App\Modules\Sites\Support\SiteDatabase;
 use App\Modules\Sites\Support\SiteHealthChecker;
 use Illuminate\Http\Client\Request;
@@ -104,22 +106,21 @@ it('turns amber and emails the Admins once when a website is quiet for 48 hours'
     Notification::assertSentTo($admin, fn (AppNotification $notification): bool => str_contains($notification->title, 'quiet') && $notification->mail);
 });
 
-it('reads the email and database checks from the health agent', function (): void {
+it('reads the email and database checks through liquify.php', function (): void {
     ($this->certificate)([]);
 
-    $this->site->update(['pull_config' => ['driver' => 'agent', 'agent' => ['url' => '', 'key' => 'key-1', 'secret' => 'agent-secret']]]);
+    $this->site->update(['mode' => 'pull', 'pull_config' => ['driver' => 'file']]);
 
     Http::fake([
-        'ukph.test/hub-agent.php' => function (Request $request) {
-            $expected = hash_hmac('sha256', $request->header('X-Hub-Timestamp')[0]."\n".$request->header('X-Hub-Nonce')[0]."\n".$request->body(), 'agent-secret');
+        'ukph.test/liquify.php' => function (Request $request) {
+            $timestamp = $request->header('X-Liquify-Timestamp')[0];
 
-            expect($request->header('X-Hub-Signature')[0])->toBe($expected)
-                ->and($request->header('X-Hub-Key')[0])->toBe('key-1');
+            expect($request->header('X-Liquify-Signature')[0])->toBe(IngestSignature::sign($this->site->secret, $timestamp, $request->body()))
+                ->and($request->data()['action'])->toBe('diagnostics');
 
-            return Http::response(['ok' => true, 'agent' => '1.0', 'data' => ['checks' => [
-                ['group' => 'database', 'key' => 'db_login', 'label' => 'MySQL login', 'status' => 'ok', 'message' => 'Connected', 'ms' => 12],
-                ['group' => 'email', 'key' => 'smtp_connect', 'label' => 'SMTP connect', 'status' => 'ok', 'message' => 'Connected', 'ms' => 40],
-                ['group' => 'email', 'key' => 'smtp_auth', 'label' => 'SMTP login', 'status' => 'fail', 'message' => 'Username and password not accepted', 'fix' => 'Create a new Gmail app password.', 'ms' => 90],
+            return Http::response(['ok' => true, 'liquify' => '2.0', 'data' => ['checks' => [
+                ['group' => 'database', 'label' => 'Database', 'status' => 'ok', 'message' => 'Connected', 'ms' => 12],
+                ['group' => 'email', 'label' => 'Email', 'status' => 'fail', 'message' => 'The mail server refused the login of hello@ukph.test.', 'fix' => 'Check SMTP_USER and SMTP_PASS.', 'ms' => 90],
             ]]]);
         },
         'ukph.test/*' => Http::response('<html></html>', 200),
@@ -131,7 +132,18 @@ it('reads the email and database checks from the health agent', function (): voi
 
     expect($checks['database']->status)->toBe(CheckStatus::Ok)
         ->and($checks['smtp']->status)->toBe(CheckStatus::Fail)
-        ->and($checks['smtp']->message)->toContain('SMTP login')->toContain('Create a new Gmail app password.');
+        ->and($checks['smtp']->message)->toContain('refused the login')->toContain('Check SMTP_USER and SMTP_PASS.');
+});
+
+it('says where liquify.php is missing instead of a vague error', function (): void {
+    $this->site->update(['mode' => 'pull', 'pull_config' => ['driver' => 'file']]);
+
+    Http::fake(['ukph.test/liquify.php' => Http::response('Not found', 404)]);
+
+    $answer = app(SiteConnector::class)->call($this->site->refresh(), 'ping');
+
+    expect($answer['ok'])->toBeFalse()
+        ->and($answer['error'])->toContain('liquify.php was not found in the root folder of ukph.test');
 });
 
 it('queues checks from the admin route and the scheduler command', function (): void {
@@ -146,30 +158,35 @@ it('queues checks from the admin route and the scheduler command', function (): 
     $this->actingAs(managerOf(department($this->brand)))->postJson('/admin/sites/'.$this->site->getKey().'/check')->assertForbidden();
 });
 
-it('reads only new rows of a pull-mode website through the agent', function (): void {
-    $this->site->update(['mode' => 'pull', 'pull_config' => ['driver' => 'agent', 'agent' => ['url' => 'https://ukph.test/hub-agent.php', 'key' => 'key-1', 'secret' => 'agent-secret']]]);
+it('reads only new rows of a website through liquify.php', function (): void {
+    $this->site->update(['mode' => 'pull', 'pull_config' => ['driver' => 'file']]);
 
     $rows = [
         ['id' => 40, 'full_name' => 'Old Lead', 'email' => 'old@example.com', 'created_at' => '2026-09-01 10:00:00'],
         ['id' => 41, 'full_name' => 'Sarah Lee', 'email' => 'sarah@example.com', 'telephone' => '07700 900123', 'form_type' => 'popup', 'msg' => 'Hello', 'created_at' => now()->subMinutes(3)->toDateTimeString()],
     ];
+    $asked = [];
 
-    Http::fake(['ukph.test/hub-agent.php' => function (Request $request) use (&$rows) {
+    Http::fake(['ukph.test/liquify.php' => function (Request $request) use (&$asked, $rows) {
+        $asked[] = $request->data()['action'];
+
+        if ($request->data()['action'] === 'ping') {
+            return Http::response(['ok' => true, 'liquify' => '2.0', 'data' => ['table' => 'leads', 'rows' => 1, 'max_id' => 40]]);
+        }
+
         $since = (int) ($request->data()['params']['since_id'] ?? 0);
 
-        return Http::response(['ok' => true, 'data' => ['leads' => array_values(array_filter($rows, fn (array $row): bool => $row['id'] > $since)), 'has_more' => false, 'note' => '']]);
+        return Http::response(['ok' => true, 'liquify' => '2.0', 'data' => ['leads' => array_values(array_filter($rows, fn (array $row): bool => $row['id'] > $since)), 'has_more' => false]]);
     }]);
 
-    // First run: only note where the table ends.
-    $first = [$rows[0]];
-    [$all, $rows] = [$rows, $first];
+    // First run: only note where the table ends, so old leads never flood in.
     PullSiteLeads::dispatchSync($this->site->getKey());
 
     expect($this->site->refresh()->pull_cursor)->toBe(40)
+        ->and($asked)->toBe(['ping'])
         ->and(Lead::query()->acrossBrands()->count())->toBe(0);
 
-    // Next run: the new row becomes a lead, once.
-    $rows = $all;
+    // Next runs: the new row becomes a lead, once.
     PullSiteLeads::dispatchSync($this->site->getKey());
     PullSiteLeads::dispatchSync($this->site->getKey());
 
@@ -181,6 +198,30 @@ it('reads only new rows of a pull-mode website through the agent', function (): 
         ->and($lead->external_id)->toBe($this->site->getKey().':41')
         ->and($this->site->refresh()->pull_cursor)->toBe(41)
         ->and($this->site->last_pull_note)->toBe('No new leads.');
+});
+
+it('takes a lead once when the form also sends it at once', function (): void {
+    $this->site->update(['mode' => 'pull', 'pull_config' => ['driver' => 'file'], 'pull_cursor' => 40]);
+
+    // The form sends row 41 the moment it saves it...
+    $body = (string) json_encode(['form' => 'popup', 'external_id' => '41', 'submitted_at' => now()->toIso8601String(), 'fields' => ['name' => 'Sarah Lee', 'email' => 'sarah@example.com'], 'meta' => []]);
+    $timestamp = (string) time();
+
+    $this->call('POST', '/api/v1/ingest/site/'.$this->site->site_key, [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_X_LIQUIFY_TIMESTAMP' => $timestamp,
+        'HTTP_X_LIQUIFY_SIGNATURE' => IngestSignature::sign($this->site->secret, $timestamp, $body),
+    ], $body)->assertSuccessful();
+
+    // ...and the minute's read finds the same row in the leads table.
+    Http::fake(['ukph.test/liquify.php' => Http::response(['ok' => true, 'liquify' => '2.0', 'data' => ['leads' => [
+        ['id' => 41, 'name' => 'Sarah Lee', 'email' => 'sarah@example.com', 'created_at' => now()->toDateTimeString()],
+    ], 'has_more' => false]])]);
+
+    PullSiteLeads::dispatchSync($this->site->getKey());
+
+    expect(Lead::query()->forBrand($this->brand)->count())->toBe(1)
+        ->and($this->site->refresh()->pull_cursor)->toBe(41);
 });
 
 it('reads a pull-mode website straight from its leads table', function (): void {

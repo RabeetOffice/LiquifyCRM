@@ -16,7 +16,7 @@ enum SiteMode: string implements HasLabel
     {
         return match ($this) {
             self::Push => 'The website sends each lead',
-            self::Pull => 'LiquifyCRM reads new leads every 5 minutes',
+            self::Pull => 'LiquifyCRM reads new leads every minute',
         };
     }
 }

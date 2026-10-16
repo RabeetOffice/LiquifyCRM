@@ -39,7 +39,7 @@
                 @else
                     <x-ui.button variant="ghost" icon="heroicon-o-wrench-screwdriver" :href="route('brand.sites.connect', ['brand' => $brand->slug, 'site' => $site])">Setup steps</x-ui.button>
                 @endif
-                @if ($site->pullDriver() !== null)
+                @if (! $site->usesWebhook() && $site->pullDriver() !== null)
                     <x-ui.button variant="ghost" icon="heroicon-o-arrow-down-on-square-stack" wire:click="openImport">Import old leads</x-ui.button>
                 @endif
                 <x-ui.button variant="primary" icon="heroicon-o-arrow-path" wire:click="checkNow" wire:loading.attr="disabled" wire:target="checkNow">Check now</x-ui.button>
@@ -214,9 +214,11 @@
                 </div>
             </x-ui.card>
 
-            <x-ui.card :title="$site->isPull() ? 'Where to read leads' : 'Health agent (optional)'" :description="$site->isPull() ? 'Stored encrypted. Changing the source starts watching from its newest row.' : 'The email and database checks look from inside the website. They need the LeadsHub agent file (hub-agent.php) on it. Stored encrypted.'">
-                @include('sites::livewire.app.partials.pull-fields')
-            </x-ui.card>
+            @if ($readsDatabase)
+                <x-ui.card title="Database" description="LiquifyCRM reads this website's leads table straight from its database. Stored encrypted. Changing it starts watching from its newest row.">
+                    @include('sites::livewire.app.partials.pull-fields')
+                </x-ui.card>
+            @endif
 
             <div class="flex items-center justify-end gap-2">
                 <x-ui.button type="submit" variant="secondary" wire:loading.attr="disabled" wire:target="save">Save changes</x-ui.button>
@@ -226,12 +228,20 @@
         <x-ui.card title="Connection" description="How this website identifies itself to LiquifyCRM.">
             <dl class="lq-dl">
                 <div><dt>Site key</dt><dd><code class="lq-code">{{ $site->site_key }}</code></dd></div>
+                @if ($site->readsThroughFile())
+                    <div><dt>Leads are read through</dt><dd><code class="lq-code">{{ $site->connectorUrl() }}</code></dd></div>
+                @endif
                 <div><dt>Leads are sent to</dt><dd><code class="lq-code">{{ $site->ingestUrl() }}</code></dd></div>
                 <div><dt>Secret</dt><dd class="lq-muted">Stored encrypted; it is inside the downloaded liquify.php</dd></div>
             </dl>
 
+            @unless ($site->usesWebhook() || $readsDatabase)
+                <p class="lq-help mt-4">liquify.php sits in the website's root folder, next to index.php; LiquifyCRM reads new leads through it every minute. For leads in seconds, paste these lines into <code class="lq-code">{{ ltrim($site->formPath(), '/') }}</code> right after the lead is saved (optional):</p>
+                <pre class="lq-log mt-2">{{ $lines }}</pre>
+            @endunless
+
             <x-slot:footer>
-                @unless ($site->isPull() || $site->usesWebhook())
+                @unless ($site->usesWebhook() || $readsDatabase)
                     <x-ui.button variant="secondary" icon="heroicon-o-arrow-down-tray" :href="route('brand.sites.download', ['brand' => $brand->slug, 'site' => $site])" :navigate="false">Download liquify.php</x-ui.button>
                 @endunless
                 <x-ui.button variant="ghost" icon="heroicon-o-key" wire:click="confirmNewSecret">Create new secret</x-ui.button>

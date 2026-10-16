@@ -69,7 +69,10 @@ it('does not open a website of another brand', function (): void {
 });
 
 it('connects a PHP website in three steps', function (): void {
-    Http::fake(['*' => Http::response('<html></html>', 200)]);
+    Http::fake([
+        'ukpublishinghouse.co.uk/liquify.php' => Http::response(['ok' => true, 'liquify' => '2.0', 'data' => ['table' => 'leads', 'rows' => 12, 'max_id' => 12]]),
+        '*' => Http::response('<html></html>', 200),
+    ]);
 
     Livewire::actingAs($this->admin)
         ->test(SiteWizard::class, ['brand' => $this->brand])
@@ -84,7 +87,9 @@ it('connects a PHP website in three steps', function (): void {
 
     expect($site->url)->toBe('https://ukpublishinghouse.co.uk')
         ->and($site->domain)->toBe('ukpublishinghouse.co.uk')
-        ->and($site->mode)->toBe(SiteMode::Push)
+        ->and($site->mode)->toBe(SiteMode::Pull)
+        ->and($site->readsThroughFile())->toBeTrue()
+        ->and($site->connectorUrl())->toBe('https://ukpublishinghouse.co.uk/liquify.php')
         ->and($site->platform)->toBe(SitePlatform::Php)
         ->and($site->site_key)->toStartWith('ukpublishi_')
         ->and(strlen($site->secret))->toBe(48)
@@ -94,24 +99,92 @@ it('connects a PHP website in three steps', function (): void {
     $download = $this->actingAs($this->admin)->get('/b/ukph/sites/'.$site->getKey().'/download')->assertOk();
 
     expect($download->headers->get('Content-Disposition'))->toContain('liquify.php')
-        ->and($download->getContent())->toContain("const LIQUIFY_URL    = '".$site->ingestUrl()."';")
-        ->and($download->getContent())->toContain("const LIQUIFY_SECRET = '".$site->secret."';")
-        ->and($download->getContent())->toContain('function liquify_send(');
+        ->and($download->getContent())->toContain("const LIQUIFY_URL     = '".$site->ingestUrl()."';")
+        ->and($download->getContent())->toContain("const LIQUIFY_SECRET  = '".$site->secret."';")
+        ->and($download->getContent())->toContain('function liquify_send(')
+        ->and($download->getContent())->toContain('function liquify_answer(')
+        ->and($download->getContent())->not->toContain('{{');
 
-    // Step 3: Test connection sends a signed test through the pipeline without creating a lead.
+    // Step 2 asks for one upload; the lines for leads in seconds are optional.
+    // Step 3: liquify.php answers and finds the leads table, a signed test goes through the pipeline
+    // without creating a lead, and LiquifyCRM starts watching after the newest row.
     Livewire::actingAs($this->admin)
         ->test(SiteWizard::class, ['brand' => $this->brand, 'site' => $site])
         ->assertSet('step', 2)
+        ->assertSee('Upload it to the website')
         ->assertSee('liquify_send(')
         ->assertDontSee($site->secret)
         ->call('goTo', 3)
         ->call('test')
         ->assertSee('A signed test passed')
-        ->assertSee('includes/liquify.php is on the website');
+        ->assertSee('It reads the leads table (12 rows)');
 
     expect(InboundEvent::query()->sole()->status)->toBe(InboundStatus::Done)
         ->and($site->refresh()->last_test_at)->not->toBeNull()
+        ->and($site->pull_cursor)->toBe(12)
         ->and($site->last_lead_at)->toBeNull();
+});
+
+it('moves an older PHP website to the one file once the file answers', function (): void {
+    $site = Site::factory()->create(['brand_id' => $this->brand->getKey(), 'url' => 'https://old.example.com', 'mode' => SiteMode::Push, 'platform' => SitePlatform::Php]);
+
+    Http::fake([
+        'old.example.com/liquify.php' => Http::sequence()
+            ->push('Not found', 404)
+            ->push(['ok' => true, 'liquify' => '2.0', 'data' => ['table' => 'leads', 'rows' => 3, 'max_id' => 7]])
+            ->push(['ok' => true, 'liquify' => '2.0', 'data' => ['table' => 'leads', 'rows' => 3, 'max_id' => 7]]),
+        '*' => Http::response('<html></html>', 200),
+    ]);
+
+    // Not uploaded yet: it says so, and the website keeps sending leads the old way.
+    Livewire::actingAs($this->admin)
+        ->test(SiteWizard::class, ['brand' => $this->brand, 'site' => $site])
+        ->call('goTo', 3)
+        ->call('test')
+        ->assertSee('liquify.php was not found in the root folder of old.example.com');
+
+    expect($site->refresh()->mode)->toBe(SiteMode::Push);
+
+    // Uploaded: it is read through the file from now on, starting after the newest row.
+    Livewire::actingAs($this->admin)
+        ->test(SiteWizard::class, ['brand' => $this->brand, 'site' => $site])
+        ->call('goTo', 3)
+        ->call('test')
+        ->assertSee('new leads are read every minute');
+
+    expect($site->refresh()->mode)->toBe(SiteMode::Pull)
+        ->and($site->readsThroughFile())->toBeTrue()
+        ->and($site->pull_cursor)->toBe(7);
+});
+
+it('reads a website straight from its database when nothing can be uploaded', function (): void {
+    Livewire::actingAs($this->admin)
+        ->test(SiteWizard::class, ['brand' => $this->brand])
+        ->set('name', 'Shop')
+        ->set('url', 'https://shop.example.com')
+        ->set('connection', 'database')
+        ->call('createSite')
+        ->assertHasNoErrors();
+
+    $site = Site::query()->sole();
+
+    expect($site->mode)->toBe(SiteMode::Pull)
+        ->and($site->pullDriver())->toBeNull();
+
+    Livewire::actingAs($this->admin)
+        ->test(SiteWizard::class, ['brand' => $this->brand, 'site' => $site])
+        ->assertSee('Database host')
+        ->assertDontSee('Download liquify.php')
+        ->set('dbHost', 'srv1.example.net')
+        ->set('dbName', 'shop')
+        ->set('dbUser', 'reader')
+        ->set('dbPassword', 'not-shown-again')
+        ->call('savePull')
+        ->assertHasNoErrors()
+        ->assertDontSee('not-shown-again');
+
+    expect($site->refresh()->pullDriver())->toBe('database')
+        ->and($site->databaseConfig()['password'] ?? null)->toBe('not-shown-again');
 });
 
 it('gives an Elementor website a webhook address instead of a file', function (): void {

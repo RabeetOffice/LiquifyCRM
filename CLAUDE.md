@@ -67,6 +67,16 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks
   reuse that pipeline (`PullSiteLeads`, `SiteHealthChecker`). Secrets use encrypted casts and never reach a view.
+- One file per PHP website (user request, 16 Oct 2026; the LeadsHub "Hub Agent" was removed): `liquify.php`
+  (`resources/stubs/liquify.php.stub`, `LiquifySnippet::file()`) goes in the website's ROOT folder. It reads
+  `define('DB_…')` from `includes/config.php` with the tokenizer (never runs it), finds the `leads` table and answers
+  signed questions (`SiteConnector`: `ping`, `leads`, `diagnostics`; `X-Liquify-Timestamp` / `X-Liquify-Signature`,
+  the site secret, 5 minutes) and nothing else. Such a site is `mode = pull`, `pull_config.driver = file`
+  (`Site::readsThroughFile()`); `sites:pull` runs every minute (`PullSiteLeads` is unique per site) and its first run
+  only notes `max_id`. The same file's `liquify_send()` (two optional lines after `$db = log_lead_to_db($lead)`) sends
+  at once with the row id as `external_id`, so push and pull dedupe. Keep the stub PHP 7.4-safe and
+  self-contained. `driver = database` reads the database straight from LiquifyCRM. Pushes from the older
+  `includes/liquify.php` are still accepted; `ConnectionTester` moves a push PHP site to the file once it answers.
 - Facebook (`app/Modules/Meta`): `/webhooks/meta` verifies `X-Hub-Signature-256` and stores `InboundEvent`s;
   `ProcessMetaEvent` turns them into leads (Lead Ads, via `MetaGraph`) or `Conversation` / `Message` rows (Messenger).
   One global connection (`MetaConnection`), Pages mapped to brands (`MetaSource`, not brand-scoped). Each channel
