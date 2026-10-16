@@ -291,7 +291,7 @@ final class LeadsIndex extends Component
         }
 
         $this->selected = [];
-        $this->toastSuccess($leads->count().' '.str('lead')->plural($leads->count()).' deleted');
+        $this->toastSuccess($leads->count().' '.str('lead')->plural($leads->count()).' moved to the bin', 'Restore them from Bin, at the top of Leads.');
     }
 
     public function export(): BinaryFileResponse
@@ -348,6 +348,7 @@ final class LeadsIndex extends Component
                 'export' => $user->can('export', Lead::class),
                 'distribute' => $user->can('distribute', Lead::class),
                 'deleteAny' => $user->can('deleteAny', Lead::class),
+                'restoreAny' => $user->can('restoreAny', Lead::class),
             ],
             'hasFilters' => $chips !== [],
         ]);

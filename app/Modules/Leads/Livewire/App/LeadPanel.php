@@ -502,7 +502,7 @@ final class LeadPanel extends Component
 
         Audit::log('leads.deleted', $lead, [], 'Lead deleted', logName: 'leads');
 
-        $this->toastSuccess('Lead deleted');
+        $this->toastSuccess('Lead moved to the bin', 'Restore it from Bin, at the top of Leads.');
         $this->dispatch('lead-deleted', id: $lead->getKey());
     }
 
@@ -512,7 +512,11 @@ final class LeadPanel extends Component
     {
         // Deleted here a moment ago, or deleted or merged by somebody else while it was open: say so, not "Not found".
         if (! Lead::query()->whereKey($this->leadId)->exists()) {
-            return view('leads::livewire.app.lead-panel-gone');
+            $binned = $this->user()->can('restoreAny', Lead::class) ? Lead::query()->inBin()->whereKey($this->leadId)->first() : null;
+
+            return view('leads::livewire.app.lead-panel-gone', [
+                'binUrl' => $binned !== null ? route('brand.leads.bin', ['brand' => $this->brand()->slug, 'search' => $binned->name]) : null,
+            ]);
         }
 
         $lead = $this->lead()->load(['status', 'department', 'assignee', 'notes.author', 'tasks']);

@@ -247,6 +247,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   A refused reply is shown through `MetaException::forPeople()` (368 is Meta blocking the account, not us).
 - A click on a lead in the list or the pipeline opens the slide-over, always; the row carries no link to the full
   page (it stole clicks). "Open full page" in the slide-over builds its address from `$wire.open` in the browser.
+- The bin (user request, 16 Oct 2026): `LeadsBin` at `/b/{brand}/leads/bin` (Admins only, `LeadPolicy::restoreAny`; Settings
+  menu and a Bin button on Leads). `Lead::inBin()` is a deleted lead with a `leads.deleted` line on its timeline, so every
+  way of deleting a lead must log that line. A merged lead has none (its history moved) and is never in the bin: restoring
+  it would make an empty twin. `RestoreLead` brings a lead back and sends it to the queue if its team or owner is gone.
+  There is no "delete forever" yet.
 
 ## Conventions
 - Form Requests for validation, Policies for access, Actions/Services for business logic,

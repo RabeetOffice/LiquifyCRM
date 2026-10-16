@@ -73,6 +73,12 @@ final class LeadPolicy
         return $user->isGlobalAdmin();
     }
 
+    /** The bin: whoever may delete leads sees what was deleted and brings it back. */
+    public function restoreAny(User $user): bool
+    {
+        return $user->isGlobalAdmin();
+    }
+
     public function forceDelete(User $user, Lead $lead): bool
     {
         return $user->isSuperAdmin();

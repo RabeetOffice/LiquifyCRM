@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 
 /**
@@ -200,6 +201,21 @@ class Lead extends Model
     public function scopeOpen(Builder $query): Builder
     {
         return $query->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', false)->where('is_lost', false));
+    }
+
+    /**
+     * The bin: leads somebody deleted. A lead merged into another is deleted
+     * too, but has no "deleted" line (its history moved to the lead that
+     * stayed), so it is not in the bin: restoring it would make an empty twin.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeInBin(Builder $query): Builder
+    {
+        return $query->withoutGlobalScope(SoftDeletingScope::class)
+            ->whereNotNull($this->getQualifiedDeletedAtColumn())
+            ->whereHas('activities', fn (Builder $activity): Builder => $activity->where('event', 'leads.deleted'));
     }
 
     /** @param  Builder<static>  $query */

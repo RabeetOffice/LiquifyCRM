@@ -24,6 +24,7 @@ use App\Modules\Departments\Livewire\App\DepartmentsIndex;
 use App\Modules\Leads\Http\Controllers\RevealContactController;
 use App\Modules\Leads\Livewire\App\FollowUps;
 use App\Modules\Leads\Livewire\App\LeadForm;
+use App\Modules\Leads\Livewire\App\LeadsBin;
 use App\Modules\Leads\Livewire\App\LeadShow;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
 use App\Modules\Leads\Livewire\App\Pipeline;
@@ -102,6 +103,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/leads/create', LeadForm::class)->name('leads.create');
         Route::get('/leads/pipeline', Pipeline::class)->name('leads.pipeline');
         Route::get('/leads/distribute', DistributePage::class)->name('leads.distribute');
+        Route::get('/leads/bin', LeadsBin::class)->name('leads.bin');
         Route::get('/leads/{lead}', LeadShow::class)->name('leads.show');
         Route::post('/leads/{lead}/won', RecordSaleController::class)->name('leads.won');
         Route::post('/leads/{lead}/reveal', RevealContactController::class)->name('leads.reveal');

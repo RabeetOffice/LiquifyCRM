@@ -2,6 +2,9 @@
     x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team) })">
     <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : ($isAdmin ? 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.' : 'The leads of your departments in '.$brand->name.', and leads given to you.')">
         <x-slot:actions>
+            @if ($can['restoreAny'])
+                <x-ui.button variant="ghost" icon="heroicon-o-trash" :href="route('brand.leads.bin', ['brand' => $brand->slug])">Bin</x-ui.button>
+            @endif
             @if ($can['export'])
                 <x-ui.button variant="ghost" wire:click="export" icon="heroicon-o-arrow-down-tray">Export</x-ui.button>
             @endif

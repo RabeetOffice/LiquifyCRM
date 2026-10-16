@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.20.0',
+        'date' => '2026-10-16',
+        'title' => 'A Bin to bring deleted leads back',
+        'changes' => [
+            ['new', 'Bin, under Settings in a brand (Admins only), lists the leads deleted in that brand, with who deleted them and when. Restore brings a lead back with its notes, follow-ups, chat and history; tick several to restore them at once.'],
+            ['new', 'Leads has a Bin button at the top for Admins, and a deleted lead that was still open on another screen now offers "Open the Bin".'],
+            ['improved', 'A restored lead whose team was removed, or whose owner left the brand, goes back to the Unassigned queue instead of to nobody.'],
+            ['improved', 'Deleting a lead now says it was moved to the bin and where to restore it from.'],
+        ],
+    ],
+    [
         'version' => '1.19.0',
         'date' => '2026-10-15',
         'title' => 'An Overview of every brand side by side',
