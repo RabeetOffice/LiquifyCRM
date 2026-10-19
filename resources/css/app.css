@@ -6001,6 +6001,14 @@ a.lq-cell-title {
     list-style: none;
 }
 
+/* Under a sale on the lead: Create invoice. */
+.lq-sale-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.625rem;
+}
+
 .lq-due-owed {
     color: var(--lq-warning);
     font-weight: 600;
@@ -9476,6 +9484,30 @@ a.lq-story-amount:hover {
 .lq-file-icon-contract { --file: var(--lq-info); --file-tint: var(--lq-info-tint); }
 .lq-file-icon-invoice { --file: var(--lq-success); --file-tint: var(--lq-success-tint); }
 .lq-file-icon-secret { --file: var(--lq-warning); --file-tint: var(--lq-warning-tint); }
+
+/* Resources (19 Oct 2026): one tint per category, and a heading over each group. */
+.lq-file-icon-contracts { --file: var(--lq-info); --file-tint: var(--lq-info-tint); }
+.lq-file-icon-branding { --file: var(--lq-orange); --file-tint: var(--lq-orange-tint); }
+.lq-file-icon-sales { --file: var(--lq-success); --file-tint: var(--lq-success-tint); }
+.lq-file-icon-scripts { --file: var(--lq-warning); --file-tint: var(--lq-warning-tint); }
+.lq-file-icon-forms { --file: var(--lq-danger); --file-tint: var(--lq-danger-tint); }
+
+.lq-resource-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0 0.75rem;
+}
+
+.lq-resource-heading {
+    margin: 0;
+    padding: 0.875rem 1.5rem 0.25rem;
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
 
 .lq-file-name {
     display: block;

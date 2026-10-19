@@ -16,6 +16,7 @@ use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordUpsell;
 use App\Modules\Sales\Actions\SaveClientNote;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\CreatesInvoices;
 use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ClientFile;
@@ -47,6 +48,7 @@ use Livewire\WithFileUploads;
 final class ClientShow extends Component
 {
     use AuthorizesRequests;
+    use CreatesInvoices;
     use RecordsPayments;
     use WithConfirmation;
     use WithFileUploads;
@@ -467,6 +469,11 @@ final class ClientShow extends Component
     // ----------------------------------------------------------------- render
 
     protected function paymentRecorded(): void
+    {
+        $this->client->refresh();
+    }
+
+    protected function invoiceCreated(): void
     {
         $this->client->refresh();
     }

@@ -8,6 +8,7 @@ use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Departments\DepartmentsServiceProvider;
 use App\Modules\Leads\LeadsServiceProvider;
 use App\Modules\Meta\MetaServiceProvider;
+use App\Modules\Resources\ResourcesServiceProvider;
 use App\Modules\Sales\SalesServiceProvider;
 use App\Modules\Sites\SitesServiceProvider;
 use App\Modules\System\SystemServiceProvider;
@@ -25,6 +26,7 @@ return [
     SitesServiceProvider::class,
     MetaServiceProvider::class,
     SalesServiceProvider::class,
+    ResourcesServiceProvider::class,
     ActivityServiceProvider::class,
     SystemServiceProvider::class,
 ];

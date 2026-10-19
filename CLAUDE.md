@@ -270,6 +270,17 @@ in the document's weekly phases; never skip a phase or silently change the desig
   owed; `opening` for "Paid now" in `RecordSale` / `RecordUpsell`), `SalePolicy::recordPayment` (seller, their
   Manager, the client's care team, Admins), the `RecordsPayments` trait with `sales::partials.payment-sheet` and
   `<x-sales::sale-payments>`. A payment is never a new sale: targets, lifetime value and lead value read `amount`.
+- Resources (user request, 19 Oct 2026; module `app/Modules/Resources`): `BrandResource` (table `resources`, behind
+  `BrandResources::ready()`) is a brand's template or material, a file (a `files` row, fileable the resource, saved by
+  `SaveResource`, served only by `ResourceFileController`) or a link. Everyone in the brand sees and downloads; Admins
+  and Managers manage (`BrandResourcePolicy`). In every brand menu.
+- Invoices (user request, 19 Oct 2026; `spatie/laravel-pdf` with its DOMPDF driver, from the architecture document's
+  package table, called with `->driver('dompdf')` so no config is needed): `CreateInvoice` numbers per brand and year
+  (`invoices`, behind `Invoices::ready()`, a snapshot of who, what, total and paid), renders `sales::invoices.pdf`
+  (tables and DejaVu Sans only: DOMPDF has no flex or grid) and keeps the PDF as a client file (category invoice, on
+  the lead for a front sale). `SalePolicy::invoice` = the people of `recordPayment`; the `CreatesInvoices` trait with
+  `sales::partials.invoice-sheet` never fills in a contact the person sees masked. Number prefix, bank details, due
+  days and note are `brands.settings.invoice` (`Brand::invoiceSettings()`), edited on the Admin brand form.
 - Copy a lead (user request, 19 Oct 2026): `LeadEnquiry::copyText()` (name, phone, email, source, message and
   answers, contact masked as the viewer sees it) behind the copy button in the lead's hero.
 - One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that

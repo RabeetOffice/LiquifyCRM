@@ -67,6 +67,25 @@
             </div>
         </x-ui.card>
 
+        <x-ui.card title="Invoices" description="What the brand's invoices carry, next to the company details above. An invoice is made from a sale, on the lead or the client.">
+            <div class="lq-form">
+                <div class="lq-form-grid lq-form-grid-2">
+                    <x-ui.field label="Invoice number starts with" name="invoicePrefix" help="Letters and numbers, up to 10. The number then reads like UKPH-2026-0001.">
+                        <x-ui.input wire:model="invoicePrefix" name="invoicePrefix" placeholder="UKPH" />
+                    </x-ui.field>
+                    <x-ui.field label="Days to pay" name="invoiceDueDays" help="The due date is this many days after the invoice date. 0 for none.">
+                        <x-ui.input type="number" min="0" max="90" wire:model="invoiceDueDays" name="invoiceDueDays" />
+                    </x-ui.field>
+                </div>
+                <x-ui.field label="How to pay" name="invoicePayment" help="Bank details or a payment link, printed on every invoice.">
+                    <textarea class="lq-input" rows="4" wire:model="invoicePayment" name="invoicePayment" id="invoicePayment" placeholder="Bank: …&#10;Account name: …&#10;Sort code: …  Account number: …"></textarea>
+                </x-ui.field>
+                <x-ui.field label="Note at the bottom" name="invoiceNote" help="Optional, such as thanks or your terms.">
+                    <textarea class="lq-input" rows="2" wire:model="invoiceNote" name="invoiceNote" id="invoiceNote" placeholder="Thank you for choosing us."></textarea>
+                </x-ui.field>
+            </div>
+        </x-ui.card>
+
         <x-ui.card title="Look" description="The brand's logo, mark and colour. The app itself stays Liquify Orange.">
             @if ($brand)
                 <x-slot:actions>

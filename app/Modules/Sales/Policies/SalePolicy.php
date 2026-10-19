@@ -9,6 +9,7 @@ use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\ClientCare;
+use App\Modules\Sales\Support\Invoices;
 use App\Modules\Sales\Support\SalePayments;
 
 /**
@@ -35,10 +36,18 @@ final class SalePolicy
      */
     public function recordPayment(User $user, Sale $sale): bool
     {
-        if (! SalePayments::ready() || $sale->isPaidInFull()) {
-            return false;
-        }
+        return SalePayments::ready() && ! $sale->isPaidInFull() && $this->involved($user, $sale);
+    }
 
+    /** An invoice for the sale (19 Oct 2026): the same people, paid in full or not. */
+    public function invoice(User $user, Sale $sale): bool
+    {
+        return Invoices::ready() && $this->involved($user, $sale);
+    }
+
+    /** Whoever sold it, the Manager of its department, the people who look after the client now, or an Admin. */
+    private function involved(User $user, Sale $sale): bool
+    {
         if ($user->isGlobalAdmin()) {
             return true;
         }

@@ -217,10 +217,16 @@
                                         <div class="lq-story-head">
                                             <span class="lq-story-kind">{{ $upsell ? 'Upsell '.$entry['number'] : 'Front sale' }}</span>
                                             <span class="lq-story-date">{{ $sale->closed_at->format('j M Y') }}</span>
-                                            @if ($can['correct'])
+                                            @php $canInvoice = auth()->user()?->can('invoice', $sale) ?? false; @endphp
+                                            @if ($can['correct'] || $canInvoice)
                                                 <span class="lq-story-tools">
-                                                    <button type="button" class="lq-link text-xs" wire:click="edit({{ $sale->getKey() }})">Correct</button>
-                                                    <button type="button" class="lq-link lq-link-danger text-xs" wire:click="confirmRemove({{ $sale->getKey() }})">Remove</button>
+                                                    @if ($canInvoice)
+                                                        <button type="button" class="lq-link text-xs" wire:click="openInvoice({{ $sale->getKey() }})">Create invoice</button>
+                                                    @endif
+                                                    @if ($can['correct'])
+                                                        <button type="button" class="lq-link text-xs" wire:click="edit({{ $sale->getKey() }})">Correct</button>
+                                                        <button type="button" class="lq-link lq-link-danger text-xs" wire:click="confirmRemove({{ $sale->getKey() }})">Remove</button>
+                                                    @endif
                                                 </span>
                                             @endif
                                         </div>
@@ -455,6 +461,7 @@
     {{-- Dialogs --}}
     @if ($can['upsell'])
         @include('sales::partials.payment-sheet')
+        @include('sales::partials.invoice-sheet')
 
         <x-ui.modal model="showUpsell" title="Record an upsell" description="Another sale to this client. It is added to their story and counts towards this month's targets." size="sm">
             <form wire:submit="recordUpsell" class="lq-form" id="upsell-form">

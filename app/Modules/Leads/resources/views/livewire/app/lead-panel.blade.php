@@ -13,6 +13,7 @@
         'leads.client_handed_over' => 'heroicon-o-arrows-right-left',
         'sales.recorded' => 'heroicon-o-trophy',
         'sales.payment_recorded' => 'heroicon-o-banknotes',
+        'sales.invoice_created' => 'heroicon-o-document-text',
         'leads.archived' => 'heroicon-o-archive-box',
         'leads.unarchived' => 'heroicon-o-arrow-uturn-left',
         'leads.status_changed' => 'heroicon-o-arrow-path',
@@ -457,6 +458,11 @@
                             <span class="lq-sales-amount">{{ \App\Modules\Sales\Support\Money::format($sale->amount, $sale->currency) }}</span>
                             <span class="lq-sales-meta">{{ $sale->service ? $sale->service.' · ' : '' }}{{ $sale->closed_at->format('j M Y') }}{{ $sale->closer ? ' · '.$sale->closer->name : '' }}</span>
                             <x-sales::sale-payments :sale="$sale" :can-pay="auth()->user()?->can('recordPayment', $sale) ?? false" />
+                            @can('invoice', $sale)
+                                <div class="lq-sale-tools">
+                                    <x-ui.button size="sm" variant="secondary" icon="heroicon-o-document-text" wire:click="openInvoice({{ $sale->getKey() }})">Create invoice</x-ui.button>
+                                </div>
+                            @endcan
                         </li>
                     @endforeach
                 </ul>
@@ -545,6 +551,7 @@
     </x-ui.modal>
 
     @include('sales::partials.payment-sheet')
+    @include('sales::partials.invoice-sheet')
 
     <x-ui.modal model="showWon" title="Mark as Won" description="Record the sale. The person becomes a client of this brand and the sale counts towards this month's targets." size="sm">
         <form wire:submit="recordSale" class="lq-form" id="won-form">

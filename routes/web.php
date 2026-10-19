@@ -32,6 +32,8 @@ use App\Modules\Meta\Http\Controllers\ConversationMessageController;
 use App\Modules\Meta\Http\Controllers\FacebookConnectController;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
 use App\Modules\Meta\Livewire\App\Inbox;
+use App\Modules\Resources\Http\Controllers\ResourceFileController;
+use App\Modules\Resources\Livewire\App\ResourcesIndex;
 use App\Modules\Sales\Http\Controllers\ClientFileController;
 use App\Modules\Sales\Http\Controllers\RecordSaleController;
 use App\Modules\Sales\Livewire\App\ClientShow;
@@ -129,5 +131,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/sites/{site}', SiteShow::class)->name('sites.show');
         Route::get('/sites/{site}/download', SiteSnippetController::class)->name('sites.download');
         Route::get('/settings/email', EmailSettings::class)->name('email-settings');
+
+        Route::get('/resources', ResourcesIndex::class)->name('resources.index');
+        Route::get('/resources/{resource}/file', ResourceFileController::class)->whereNumber('resource')->name('resources.file');
     });
 });

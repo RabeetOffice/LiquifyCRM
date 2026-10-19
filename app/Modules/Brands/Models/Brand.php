@@ -172,6 +172,50 @@ class Brand extends Model
     }
 
     /** The name to put on a document: the company's registered name, or the brand's. */
+    /**
+     * What the brand's invoices carry (19 Oct 2026), kept in settings like the
+     * company details: the number's prefix ("UKPH-2026-0001"), how to pay
+     * (bank details), a closing note and the days the client has to pay.
+     *
+     * @return array{prefix: string, payment_details: string, note: string, due_days: int}
+     */
+    public function invoiceSettings(): array
+    {
+        $invoice = (array) $this->setting('invoice', []);
+        $prefix = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', (string) ($invoice['prefix'] ?? '')));
+
+        return [
+            'prefix' => $prefix !== '' ? mb_substr($prefix, 0, 10) : $this->invoicePrefix(),
+            'payment_details' => (string) ($invoice['payment_details'] ?? ''),
+            'note' => (string) ($invoice['note'] ?? ''),
+            'due_days' => max(0, min(90, (int) ($invoice['due_days'] ?? 7))),
+        ];
+    }
+
+    /** "UK Publishing House" → "UKPH": a word in capitals stays whole, every other word gives its first letter. */
+    private function invoicePrefix(): string
+    {
+        $prefix = collect(preg_split('/\s+/', trim($this->name)) ?: [])
+            ->map(fn (string $word): string => (string) preg_replace('/[^A-Za-z0-9]/', '', $word))
+            ->filter()
+            ->map(fn (string $word): string => ctype_upper($word) && strlen($word) <= 4 ? $word : strtoupper($word[0]))
+            ->implode('');
+
+        return $prefix !== '' ? mb_substr($prefix, 0, 10) : 'INV';
+    }
+
+    /** The logo as a file on this server, for a PDF (which cannot fetch a web address); only pictures a PDF can be given. */
+    public function logoPath(): ?string
+    {
+        if (! $this->logo_path || ! in_array(mb_strtolower(pathinfo($this->logo_path, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'], true)) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+
+        return $disk->exists($this->logo_path) ? $disk->path($this->logo_path) : null;
+    }
+
     public function legalName(): string
     {
         return $this->company()['legal_name'] ?: $this->name;

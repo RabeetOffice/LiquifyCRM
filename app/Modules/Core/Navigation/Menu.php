@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Resources\Support\BrandResources;
 use App\Modules\Sales\Enums\ClientStage;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Support\CareTeams;
@@ -106,6 +107,11 @@ final class Menu
                 self::item('Inbox', 'heroicon-o-chat-bubble-left-right', route('brand.inbox', $params), $isActive('brand.inbox'), $unread),
                 self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
             ];
+
+        // The brand's templates and material, for everyone in it (19 Oct 2026).
+        if (BrandResources::ready()) {
+            $main[] = self::item('Resources', 'heroicon-o-folder-open', route('brand.resources.index', $params), $isActive('brand.resources.index'));
+        }
 
         $groups = [['label' => 'Main menu', 'items' => $main]];
 

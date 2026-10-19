@@ -33,6 +33,7 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\CreatesInvoices;
 use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ClientFile;
@@ -62,6 +63,7 @@ use Livewire\WithFileUploads;
 final class LeadPanel extends Component
 {
     use AuthorizesRequests;
+    use CreatesInvoices;
     use EditsLeadDetails;
     use RecordsPayments;
     use TakesLeads;
@@ -683,6 +685,11 @@ final class LeadPanel extends Component
     }
 
     protected function paymentRecorded(): void
+    {
+        $this->changed();
+    }
+
+    protected function invoiceCreated(): void
     {
         $this->changed();
     }

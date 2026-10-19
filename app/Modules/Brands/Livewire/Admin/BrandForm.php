@@ -81,6 +81,15 @@ final class BrandForm extends Component
 
     public string $notificationEmails = '';
 
+    /** What the brand's invoices carry (19 Oct 2026). */
+    public string $invoicePrefix = '';
+
+    public string $invoicePayment = '';
+
+    public string $invoiceNote = '';
+
+    public int $invoiceDueDays = 7;
+
     public function mount(?int $brandId = null): void
     {
         if ($brandId !== null) {
@@ -97,6 +106,12 @@ final class BrandForm extends Component
             $this->secondaryColor = $this->brand->colors['secondary'] ?? '';
             $this->revealLimit = $this->brand->revealLimitPerHour();
             $this->notificationEmails = implode("\n", $this->brand->notificationEmails());
+
+            $invoice = $this->brand->invoiceSettings();
+            $this->invoicePrefix = $invoice['prefix'];
+            $this->invoicePayment = $invoice['payment_details'];
+            $this->invoiceNote = $invoice['note'];
+            $this->invoiceDueDays = $invoice['due_days'];
 
             $company = $this->brand->company();
 
@@ -197,7 +212,11 @@ final class BrandForm extends Component
             'favicon' => ['nullable', 'image', 'max:1024'],
             'revealLimit' => ['required', 'integer', 'min:1', 'max:500'],
             'notificationEmails' => ['nullable', 'string'],
-        ], attributes: ['slug' => 'link', 'timezone' => 'time zone', 'legalName' => 'company name', 'registrationNumber' => 'company number', 'taxNumber' => 'tax number', 'primaryColor' => 'main colour', 'secondaryColor' => 'second colour']);
+            'invoicePrefix' => ['nullable', 'alpha_num:ascii', 'max:10'],
+            'invoicePayment' => ['nullable', 'string', 'max:1000'],
+            'invoiceNote' => ['nullable', 'string', 'max:500'],
+            'invoiceDueDays' => ['required', 'integer', 'min:0', 'max:90'],
+        ], attributes: ['slug' => 'link', 'timezone' => 'time zone', 'legalName' => 'company name', 'registrationNumber' => 'company number', 'taxNumber' => 'tax number', 'primaryColor' => 'main colour', 'secondaryColor' => 'second colour', 'invoicePrefix' => 'invoice number prefix', 'invoicePayment' => 'payment details', 'invoiceNote' => 'note', 'invoiceDueDays' => 'days to pay']);
 
         $emails = collect(preg_split('/[\s,;]+/', $data['notificationEmails'] ?? '') ?: [])
             ->map(fn (string $email): string => mb_strtolower(trim($email)))
@@ -224,6 +243,12 @@ final class BrandForm extends Component
                 ...($this->brand->settings ?? []),
                 'reveal_limit_per_hour' => (int) $data['revealLimit'],
                 'notification_emails' => $emails,
+                'invoice' => [
+                    'prefix' => strtoupper(trim((string) $data['invoicePrefix'])),
+                    'payment_details' => trim((string) $data['invoicePayment']),
+                    'note' => trim((string) $data['invoiceNote']),
+                    'due_days' => (int) $data['invoiceDueDays'],
+                ],
                 'company' => array_filter($company),
             ],
         ];

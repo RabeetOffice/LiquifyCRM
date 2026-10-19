@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.28.0',
+        'date' => '2026-10-19',
+        'title' => 'Resources, and invoices from a sale',
+        'changes' => [
+            ['new', 'Resources, in every brand\'s menu: the brand\'s templates and material in one place for the whole team, such as the NDA template, the letterhead, the price list, scripts and forms. Everyone in the brand opens or downloads them; Admins and Managers add, change and remove them. A resource is a file (PDF, Word, Excel, PowerPoint, pictures, zip, up to 20 MB) or a link to Google Drive or Canva.'],
+            ['new', 'Create invoice: under a sale, on the lead and on the client\'s page. It fills in the client\'s name, email, phone and address, the service and the deal, what is paid and what is still due, and the brand\'s logo, company details and bank details. The PDF downloads at once and is kept in the client\'s files.'],
+            ['new', 'Invoice numbers run per brand and year, such as UKPH-2026-0001. On a brand\'s page an Admin sets how the number starts, the bank details, the days to pay and a note at the bottom.'],
+            ['improved', 'Click "Update system" once after this update: Resources and invoices need it.'],
+        ],
+    ],
+    [
         'version' => '1.27.0',
         'date' => '2026-10-19',
         'title' => 'Won stays Won, and part payments',
