@@ -9,6 +9,7 @@ use App\Modules\Leads\Livewire\App\Pipeline;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -140,4 +141,30 @@ it('returns 404 for a lead of another brand even to its own Manager', function (
 
     $this->actingAs($this->manager)->get('/b/ukph/leads/'.$foreign->getKey())->assertNotFound();
     $this->actingAs($this->admin)->get('/b/anz/leads/'.$foreign->getKey())->assertOk();
+});
+
+it('says when a lead arrived: how long ago for three days, then the date, in the viewer\'s own time', function (): void {
+    $this->travelTo(CarbonImmutable::parse('2026-10-19 12:00:00', 'UTC'));
+    $this->admin->forceFill(['timezone' => 'Asia/Karachi'])->save();
+
+    $fresh = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Fresh Lead', 'created_at' => '2026-10-19 06:00:00']);
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Night Lead', 'created_at' => '2026-10-17 20:00:00']);
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Older Lead', 'created_at' => '2026-10-14 09:30:00']);
+
+    // Karachi is five hours ahead: 06:00 UTC is 11:00 there, and 20:00 on the 17th is already the 18th.
+    Livewire::actingAs($this->admin)
+        ->test(LeadsIndex::class, ['brand' => $this->brand])
+        ->assertSeeInOrder(['Fresh Lead', '6h ago', 'Today, 11:00'])
+        ->assertSeeInOrder(['Night Lead', '1d ago', 'Yesterday, 01:00'])
+        ->assertSeeInOrder(['Older Lead', '14 Oct', 'Wed, 14:30'])
+        ->assertSee('Wednesday 14 October 2026, 14:30 (PKT)');
+
+    Livewire::actingAs($this->admin)
+        ->test(LeadPanel::class, ['leadId' => $fresh->getKey()])
+        ->assertSeeInOrder(['Received', '6h ago · Today, 11:00']);
+
+    // Somebody who has not chosen a time zone sees the default one (London, an hour ahead of UTC in October).
+    Livewire::actingAs($this->manager)
+        ->test(LeadPanel::class, ['leadId' => Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'created_at' => '2026-10-14 09:30:00'])->getKey()])
+        ->assertSeeInOrder(['Received', '14 Oct, 10:30']);
 });

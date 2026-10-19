@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.26.1',
+        'date' => '2026-10-19',
+        'title' => 'When a lead arrived, with the date and time',
+        'changes' => [
+            ['improved', 'Received on Leads now shows the day and time under "6h ago" for the first three days ("Today, 14:32", "Yesterday, 09:10"), and after that the date with the day and time ("14 Oct", "Wed, 14:32"). The lead itself says the same next to Received.'],
+            ['improved', 'These times are in your own time zone, the one chosen in your Profile. Pick yours there if the times look a few hours off.'],
+        ],
+    ],
+    [
         'version' => '1.26.0',
         'date' => '2026-10-19',
         'title' => 'Copy a lead in one click, and archive the leads that lead nowhere',

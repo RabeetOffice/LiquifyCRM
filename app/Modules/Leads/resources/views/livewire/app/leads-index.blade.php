@@ -210,7 +210,7 @@
                                     </td>
                                 @endif
                                 <td><x-ui.due :at="$lead->next_follow_up_at" /></td>
-                                <td class="lq-muted lq-num lq-col-wide" title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans(short: true) }}</td>
+                                <td class="lq-col-wide"><x-ui.received :at="$lead->created_at" /></td>
                             </tr>
                         @endforeach
                     </tbody>

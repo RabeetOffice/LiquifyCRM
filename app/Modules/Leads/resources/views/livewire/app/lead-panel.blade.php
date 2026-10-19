@@ -56,7 +56,7 @@
             <h2 class="lq-lead-name">{{ $lead->name }}</h2>
             <div class="lq-lead-meta">
                 <x-ui.lead-source :lead="$lead" />
-                <span title="{{ $lead->created_at?->format('j M Y, H:i') }}">Received {{ $lead->created_at?->diffForHumans() }}</span>
+                <span>Received <x-ui.received :at="$lead->created_at" inline /></span>
                 @if ($lead->last_activity_at && $lead->last_activity_at->gt($lead->created_at))
                     <span title="{{ $lead->last_activity_at->format('j M Y, H:i') }}">· Last activity {{ $lead->last_activity_at->diffForHumans() }}</span>
                 @endif
