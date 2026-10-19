@@ -14,6 +14,7 @@ use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sales\Support\ClientCare;
 use App\Modules\System\Support\SystemUpdater;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Sidebar menus by role, from the "Menus by role" table: nobody sees an item
@@ -61,19 +62,25 @@ final class Menu
     private static function brandMenu(User $user, Brand $brand, string $currentRoute): array
     {
         $agent = ! $user->isGlobalAdmin() && $user->isAgentIn($brand);
+        // An Agent on a front sales team sees the team's leads, not only their own.
+        $team = $agent && $user->frontDepartmentIds($brand) !== [];
         $isActive = fn (string ...$routes): bool => in_array($currentRoute, $routes, true);
         $params = ['brand' => $brand->slug];
 
-        $queueCount = function () use ($user, $agent): ?string {
-            $count = $agent
-                ? Lead::query()->visibleTo($user)->open()->count()
+        // Front sales counts the free leads waiting to be taken; another Agent their own open leads.
+        $queueCount = function () use ($user, $agent, $team): ?string {
+            $count = $agent && ! $team
+                ? Lead::query()->workedBy($user)->open()->count()
                 : Lead::query()->visibleTo($user)->unassigned()->count();
 
             return $count > 0 ? (string) $count : null;
         };
 
-        $unread = function () use ($user): ?string {
-            $count = (int) Conversation::query()->visibleTo($user)->sum('unread_count');
+        $unread = function () use ($user, $agent): ?string {
+            $count = (int) Conversation::query()->visibleTo($user)
+                // An Agent counts their own chats and the free ones, not a colleague's.
+                ->when($agent, fn (Builder $query): Builder => $query->whereHas('lead', fn (Builder $lead): Builder => $lead->where(fn (Builder $mine): Builder => $mine->where('assigned_to', $user->getKey())->orWhereNull('assigned_to'))))
+                ->sum('unread_count');
 
             return $count > 0 ? (string) $count : null;
         };
@@ -94,7 +101,7 @@ final class Menu
             ? [self::item($agent ? 'My clients' : 'Clients', 'heroicon-o-user-group', route('brand.clients.index', $params), $isActive(...$clientRoutes), $agent ? null : $waiting)]
             : [
                 self::item('Dashboard', 'heroicon-o-home', route('brand.dashboard', $params), $isActive('brand.dashboard')),
-                self::item($agent ? 'My leads' : 'Leads', 'heroicon-o-inbox-arrow-down', route('brand.leads.index', $params), $isActive('brand.leads.index', 'brand.leads.create', 'brand.leads.show'), $queueCount),
+                self::item($agent && ! $team ? 'My leads' : 'Leads', 'heroicon-o-inbox-arrow-down', route('brand.leads.index', $params), $isActive('brand.leads.index', 'brand.leads.create', 'brand.leads.show'), $queueCount),
                 self::item('Pipeline', 'heroicon-o-view-columns', route('brand.leads.pipeline', $params), $isActive('brand.leads.pipeline')),
                 self::item('Inbox', 'heroicon-o-chat-bubble-left-right', route('brand.inbox', $params), $isActive('brand.inbox'), $unread),
                 self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),

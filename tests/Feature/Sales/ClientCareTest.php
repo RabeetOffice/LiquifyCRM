@@ -461,7 +461,7 @@ it('makes the Clients screen the home of someone who works only on an Upsell tea
 
     // Front sales keeps its dashboard and its leads, and has no clients menu.
     $this->flushSession();
-    $this->actingAs($this->seller)->get('/b/ukph')->assertOk()->assertSee('My leads')->assertDontSee('My clients');
+    $this->actingAs($this->seller)->get('/b/ukph')->assertOk()->assertSee('Free leads')->assertDontSee('My clients');
 
     // Given a lead all the same, the upseller gets the lead screens back.
     Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'assigned_to' => $this->upseller->getKey()]);

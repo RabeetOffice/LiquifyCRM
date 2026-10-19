@@ -44,7 +44,11 @@ final class AssignLead
             $agent ? 'leads.assigned' : 'leads.unassigned',
             $lead,
             ['from' => $previous, 'to' => $agent?->getKey(), 'department_id' => $lead->department_id],
-            $agent ? "Assigned to {$agent->name}" : 'Returned to the queue',
+            match (true) {
+                $agent === null => 'Returned to the queue',
+                $agent->getKey() === $by?->getKey() => "Taken by {$agent->name}",
+                default => "Assigned to {$agent->name}",
+            },
             causer: $by,
             logName: 'leads',
         );

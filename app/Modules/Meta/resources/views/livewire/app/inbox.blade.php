@@ -205,7 +205,7 @@
 
         <x-ui.modal model="showAssign" title="Assign this chat" description="The lead and its chat go to this person." size="sm">
             <form wire:submit="assignFromDialog" class="lq-form" id="inbox-assign-form">
-                <x-ui.field label="Agent" name="assignTo">
+                <x-ui.field label="Person" name="assignTo">
                     <x-ui.select wire:model="assignTo" name="assignTo" placeholder="Nobody yet">
                         @foreach ($agentOptions as $id => $name)
                             <option value="{{ $id }}">{{ $name }}</option>

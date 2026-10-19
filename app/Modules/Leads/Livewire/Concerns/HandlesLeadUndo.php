@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 /**
- * The "Undo" button on the assign and status toasts (10 seconds) puts the
+ * The "Undo" button on the assign, take and status toasts (10 seconds) puts the
  * previous value back, through the same actions so it is logged too, and
  * under the same rules as doing it by hand: a lead is given only to somebody
  * the assign menu offers, and becomes Won only through a sale. Every screen
@@ -58,6 +58,9 @@ trait HandlesLeadUndo
             }
 
             app(AssignLead::class)->handle($record, $agent, $user);
+        } elseif ($kind === 'take' && $record->assigned_to === $user->getKey()) {
+            // Taken by mistake: back to the others, free again.
+            app(AssignLead::class)->handle($record, null, $user);
         } elseif ($kind === 'status' && $value !== null) {
             $status = LeadStatus::query()->find($value);
 

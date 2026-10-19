@@ -14,15 +14,16 @@
 >
     <x-ui.page-header title="Pipeline" subtitle="Drag a card to move a lead along. Click one to open it.">
         <x-slot:actions>
-            @unless ($agent)
+            @if (! $agent || $team)
                 <x-ui.select wire:model.live="owner" class="lq-input-sm" style="width: 12rem" aria-label="Show leads of">
-                    <option value="">Everyone's leads</option>
+                    <option value="">{{ $team ? 'The whole team' : 'Everyone\'s leads' }}</option>
                     <option value="none">Unassigned</option>
+                    <option value="mine">Mine</option>
                     @foreach ($agentOptions as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach
                 </x-ui.select>
-            @endunless
+            @endif
             <label class="lq-search">
                 <x-heroicon-o-magnifying-glass />
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search leads" aria-label="Search leads">
@@ -32,11 +33,11 @@
 
     <div class="lq-boardbar">
         <span class="lq-boardbar-item"><strong>{{ $summary['open'] }}</strong> open {{ str('lead')->plural($summary['open']) }}</span>
-        @unless ($agent)
+        @if (! $agent || $team)
             <a href="{{ route('brand.leads.index', ['brand' => $brand->slug, 'tab' => 'unassigned']) }}" @class(['lq-boardbar-item', 'lq-boardbar-warn' => $summary['unassigned'] > 0]) wire:navigate>
                 <x-heroicon-m-user /> <strong>{{ $summary['unassigned'] }}</strong> unassigned
             </a>
-        @endunless
+        @endif
         <a href="{{ route('brand.leads.index', ['brand' => $brand->slug, 'tab' => 'follow-ups']) }}" @class(['lq-boardbar-item', 'lq-boardbar-late' => $summary['overdue'] > 0]) wire:navigate>
             <x-heroicon-m-exclamation-circle /> <strong>{{ $summary['overdue'] }}</strong> {{ $summary['overdue'] === 1 ? 'follow-up' : 'follow-ups' }} overdue
         </a>
@@ -72,8 +73,12 @@
                             href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}"
                             class="lq-kcard"
                             :class="{ 'lq-kcard-dragging': dragging === {{ $lead->getKey() }} }"
-                            draggable="true"
-                            x-on:dragstart="dragging = {{ $lead->getKey() }}; $event.dataTransfer.effectAllowed = 'move'"
+                            @if (isset($movable[$lead->getKey()]))
+                                draggable="true"
+                                x-on:dragstart="dragging = {{ $lead->getKey() }}; $event.dataTransfer.effectAllowed = 'move'"
+                            @else
+                                draggable="false"
+                            @endif
                             x-on:dragend="dragging = null; over = null"
                             onclick="if (! (event.ctrlKey || event.metaKey || event.shiftKey)) event.preventDefault()"
                             x-on:click="if (! $event.ctrlKey && ! $event.metaKey && ! $event.shiftKey) { $wire.open = {{ $lead->getKey() }}; $wire.openLead({{ $lead->getKey() }}) }"

@@ -11,7 +11,7 @@ use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Core\Support\SetupChecklist;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Enums\LeadSource;
-use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
+use App\Modules\Leads\Livewire\Concerns\TakesLeads;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
@@ -35,7 +35,7 @@ use Livewire\Component;
 #[Title('Dashboard')]
 final class BrandDashboard extends Component
 {
-    use HandlesLeadUndo;
+    use TakesLeads;
 
     public Brand $brand;
 
@@ -70,38 +70,42 @@ final class BrandDashboard extends Component
     {
         $user = $this->user();
         $agent = ! $user->isGlobalAdmin() && $user->isAgentIn($this->brand);
+        // Front sales: the team's free leads are listed here to take.
+        $team = $agent && $user->frontDepartmentIds($this->brand) !== [];
         $visible = fn (): Builder => Lead::query()->visibleTo($user);
+        // The numbers are of the leads a person works: an Agent's stay their own, though they see the team's.
+        $worked = fn (): Builder => Lead::query()->workedBy($user);
 
         // The counts and chart numbers: cached per brand for 60 seconds, per person
         // for anyone who does not see the whole brand.
-        $stats = DashboardCache::remember((int) $this->brand->getKey(), $user->isGlobalAdmin() ? 'all' : 'user-'.$user->getKey(), function () use ($visible, $user, $agent): array {
+        $stats = DashboardCache::remember((int) $this->brand->getKey(), $user->isGlobalAdmin() ? 'all' : 'user-'.$user->getKey(), function () use ($visible, $worked, $user, $agent, $team): array {
             $today = now()->startOfDay();
 
             return [
-                'today' => $visible()->where('created_at', '>=', $today)->count(),
-                'yesterday' => $visible()->whereBetween('created_at', [$today->copy()->subDay(), $today])->count(),
-                'week' => $visible()->where('created_at', '>=', now()->subDays(7))->count(),
-                'previousWeek' => $visible()->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count(),
-                'unassigned' => $agent ? null : $visible()->unassigned()->count(),
-                'myOpen' => $agent ? $visible()->open()->count() : null,
+                'today' => $worked()->where('created_at', '>=', $today)->count(),
+                'yesterday' => $worked()->whereBetween('created_at', [$today->copy()->subDay(), $today])->count(),
+                'week' => $worked()->where('created_at', '>=', now()->subDays(7))->count(),
+                'previousWeek' => $worked()->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count(),
+                'unassigned' => $agent && ! $team ? null : $visible()->unassigned()->count(),
+                'myOpen' => $agent ? $worked()->open()->count() : null,
                 'overdue' => Task::query()->visibleTo($user)->overdue()->count(),
-                'total' => $visible()->count(),
+                'total' => $worked()->count(),
                 // By status id, so the count is answered from the index.
-                'won' => $visible()->whereIn('status_id', LeadStatus::query()->where('is_won', true)->pluck('id'))->count(),
-                'byDay' => $visible()
+                'won' => $worked()->whereIn('status_id', LeadStatus::query()->where('is_won', true)->pluck('id'))->count(),
+                'byDay' => $worked()
                     ->where('created_at', '>=', now()->subDays(29)->startOfDay())
                     ->selectRaw('date(created_at) as day, count(*) as total')
                     ->groupBy('day')
                     ->orderBy('day')
                     ->pluck('total', 'day')
                     ->all(),
-                'bySource' => $visible()
+                'bySource' => $worked()
                     ->where('created_at', '>=', now()->subDays(30))
                     ->groupBy('source_type')
                     ->toBase()
                     ->pluck(DB::raw('count(*) as total'), 'source_type')
                     ->all(),
-                'byStatus' => $visible()->groupBy('status_id')->pluck(DB::raw('count(*) as total'), 'status_id')->all(),
+                'byStatus' => $worked()->groupBy('status_id')->pluck(DB::raw('count(*) as total'), 'status_id')->all(),
             ];
         });
 
@@ -118,7 +122,7 @@ final class BrandDashboard extends Component
         $bySource = collect($stats['bySource']);
         $byStatus = $stats['byStatus'];
 
-        $queue = $agent
+        $queue = $agent && ! $team
             ? collect()
             : $visible()->queue()->with(['status', 'department'])->limit(8)->get();
 
@@ -142,6 +146,7 @@ final class BrandDashboard extends Component
         return view('core::livewire.brand-dashboard', [
             'user' => $user,
             'agent' => $agent,
+            'team' => $team,
             'checklist' => $user->isGlobalAdmin() ? SetupChecklist::for($this->brand) : null,
             'todayCount' => $todayCount,
             'todayDelta' => $this->delta($todayCount, $yesterdayCount),

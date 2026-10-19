@@ -120,11 +120,13 @@ it('assigns a lead with one click from the list and from the lead', function ():
     // Somebody who only looks after clients has no lead screens, so leads are not offered to them.
     $upseller = agentOf(department($this->brand, ['name' => 'Upsell', 'kind' => 'upsell']), ['name' => 'Una Upseller']);
 
-    // The menu offers every Agent who works leads, with the department each works in.
+    // The menu offers every Agent and Manager who works leads, with the department each works in.
     expect(collect(app(AssignableAgents::class)->people($this->admin, $this->brand))->pluck('team', 'name')->all())
-        ->toBe(['Omar Other' => 'Consultants', 'Vimal Agent' => 'Front Sales'])
-        // A Manager is offered their own people only.
-        ->and(array_column(app(AssignableAgents::class)->people($this->manager, $this->brand), 'name'))->toBe(['Vimal Agent']);
+        ->toEqual(['Omar Other' => 'Consultants', 'Vimal Agent' => 'Front Sales', $this->manager->name => 'Front Sales'])
+        // A Manager is offered their own people only, themselves first, so they can take a lead too.
+        ->and(array_column(app(AssignableAgents::class)->people($this->manager, $this->brand), 'name'))->toBe([$this->manager->name, 'Vimal Agent'])
+        ->and(app(AssignableAgents::class)->people($this->manager, $this->brand)[0]['me'])->toBeTrue()
+        ->and(app(AssignableAgents::class)->for($this->manager, $this->brand)[$this->manager->getKey()])->toBe($this->manager->name.' (you)');
 
     $list = Livewire::actingAs($this->admin)
         ->test(LeadsIndex::class, ['brand' => $this->brand])
@@ -210,12 +212,12 @@ it('makes two leads of one person one, and keeps everything of both', function (
         ->and(LeadMatcher::twins($chat, $this->admin)[0]['lead']->getKey())->toBe($form->getKey())
         ->and(LeadMatcher::twins($stranger, $this->admin))->toBe([]);
 
-    // An Agent is not offered a merge and cannot ask for one.
+    // An Agent is not offered a merge and cannot ask for one (they see the free form, but may not assign it).
     Livewire::actingAs($this->agent)
         ->test(LeadPanel::class, ['leadId' => $chat->getKey()])
         ->assertDontSee('This person has another lead')
         ->call('confirmMerge', $form->getKey())
-        ->assertStatus(404);
+        ->assertForbidden();
 
     Livewire::actingAs($this->admin)
         ->test(LeadPanel::class, ['leadId' => $form->getKey()])

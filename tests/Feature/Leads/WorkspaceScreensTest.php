@@ -57,7 +57,7 @@ it('shows the filters in use as chips and takes one away at a time', function ()
 
 it('opens a lead in the slide-over and quietly closes it when the lead is out of reach', function (): void {
     $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey(), 'name' => 'Sarah Lee']);
-    $other = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Someone Else']);
+    $other = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => department($this->brand, ['name' => 'Publishing'])->getKey(), 'name' => 'Someone Else']);
 
     Livewire::actingAs($this->agent)
         ->test(LeadsIndex::class, ['brand' => $this->brand])
@@ -70,7 +70,7 @@ it('opens a lead in the slide-over and quietly closes it when the lead is out of
         ->assertDontSee('sheet-lead-', false);
 
     // A link to a lead that no longer exists opens the list, not an error page.
-    $this->actingAs($this->agent)->get('/b/ukph/leads?open=999999')->assertOk()->assertSee('My leads');
+    $this->actingAs($this->agent)->get('/b/ukph/leads?open=999999')->assertOk()->assertSee("Your team's leads");
 });
 
 it('moves a lead with one click on the pipeline path and sends Won to the sale sheet', function (): void {

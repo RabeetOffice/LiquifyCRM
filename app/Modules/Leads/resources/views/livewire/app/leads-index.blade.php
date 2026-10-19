@@ -1,6 +1,21 @@
 <div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh
     x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team) })">
-    <x-ui.page-header :title="$agent ? 'My leads' : 'Leads'" :subtitle="$agent ? 'Leads assigned to you. Contact details stay masked until you reveal them.' : ($isAdmin ? 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.' : 'The leads of your departments in '.$brand->name.', and leads given to you.')">
+    @php
+        $subtitle = match (true) {
+            $team => 'Your team\'s leads in '.$brand->name.'. Take a free one and it is yours: its phone and email open when you do.',
+            $agent => 'Leads assigned to you. Contact details stay masked until you reveal them.',
+            $isAdmin => 'Every lead in '.$brand->name.'. New leads wait in the Unassigned queue.',
+            default => 'The leads of your departments in '.$brand->name.', and leads given to you.',
+        };
+        $emptyText = match (true) {
+            $search !== '' || $hasFilters => 'Try another search or clear the filters.',
+            $team => 'New leads of your team show here the moment they arrive, with a notification. Take one and it is yours.',
+            $agent => 'Your Manager assigns leads to you; they appear here with a notification.',
+            $isAdmin => 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.',
+            default => 'Leads sent to your departments appear here. You can also add one by hand.',
+        };
+    @endphp
+    <x-ui.page-header :title="$agent && ! $team ? 'My leads' : 'Leads'" :subtitle="$subtitle">
         <x-slot:actions>
             @if ($can['restoreAny'])
                 <x-ui.button variant="ghost" icon="heroicon-o-trash" :href="route('brand.leads.bin', ['brand' => $brand->slug])">Bin</x-ui.button>
@@ -106,7 +121,7 @@
         @endif
 
         @if ($leads->isEmpty())
-            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent ? 'No leads assigned to you yet' : 'No leads yet')" :description="$search !== '' || $hasFilters ? 'Try another search or clear the filters.' : ($agent ? 'Your Manager assigns leads to you; they appear here with a notification.' : ($isAdmin ? 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.' : 'Leads sent to your departments appear here. You can also add one by hand.'))" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
+            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent && ! $team ? 'No leads assigned to you yet' : 'No leads yet')" :description="$emptyText" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
                 <x-slot:actions>
                     @if ($search !== '' || $hasFilters)
                         <x-ui.button variant="secondary" wire:click="clearFilters">Clear search and filters</x-ui.button>
@@ -126,9 +141,9 @@
                             <x-ui.sort-th field="name" :sort="$sort" :direction="$direction" label="Lead" />
                             <x-ui.sort-th field="status_id" :sort="$sort" :direction="$direction" label="Status" />
                             <th>Source</th>
-                            @unless ($agent)
+                            @if (! $agent || $team)
                                 <th>Owner</th>
-                            @endunless
+                            @endif
                             <x-ui.sort-th field="next_follow_up_at" :sort="$sort" :direction="$direction" label="Follow up" />
                             <x-ui.sort-th field="created_at" :sort="$sort" :direction="$direction" label="Received" class="lq-col-wide" />
                         </tr>
@@ -151,9 +166,17 @@
                                 </td>
                                 <td><x-ui.status-pill :status="$lead->status" /></td>
                                 <td><x-ui.lead-source :lead="$lead" /></td>
-                                @unless ($agent)
+                                @if (! $agent || $team)
                                     <td>
-                                        @if ($canAssign[$lead->getKey()] ?? false)
+                                        @if ($team && $lead->assigned_to === null)
+                                            {{-- Front sales: one click and the lead is theirs (whoever clicks first). --}}
+                                            <span class="lq-person">
+                                                <button type="button" class="lq-btn lq-btn-secondary lq-btn-sm lq-take" x-on:click.stop wire:click="takeLead({{ $lead->getKey() }})" wire:loading.attr="disabled" wire:target="takeLead({{ $lead->getKey() }})" title="Take this lead: it becomes yours and nobody else can take it">
+                                                    <x-heroicon-o-hand-raised /> Take
+                                                </button>
+                                                <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No team yet' }}</span>
+                                            </span>
+                                        @elseif ($canAssign[$lead->getKey()] ?? false)
                                             {{-- One click opens the people, a second gives them the lead. The name shows at once, before the answer. --}}
                                             <button type="button" class="lq-owner" x-on:click.stop="openFor($el, { lead: {{ $lead->getKey() }}, dept: {{ $lead->department_id ?? 'null' }}, owner: {{ $lead->assigned_to ?? 'null' }} })" title="{{ $lead->assignee ? 'Give to someone else' : 'Assign this lead' }}" aria-haspopup="dialog">
                                                 @if ($lead->assignee)
@@ -181,7 +204,7 @@
                                             </span>
                                         @endif
                                     </td>
-                                @endunless
+                                @endif
                                 <td><x-ui.due :at="$lead->next_follow_up_at" /></td>
                                 <td class="lq-muted lq-num lq-col-wide" title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans(short: true) }}</td>
                             </tr>
@@ -222,8 +245,8 @@
     {{-- Bulk modals --}}
     <x-ui.modal model="showBulkAssign" :title="'Assign '.count($selected).' '.str('lead')->plural(count($selected))" size="sm">
         <form wire:submit="bulkAssign" class="lq-form" id="bulk-assign-form">
-            <x-ui.field label="Agent" name="bulkAssignTo" required>
-                <x-ui.select wire:model="bulkAssignTo" name="bulkAssignTo" placeholder="Choose an Agent…">
+            <x-ui.field label="Person" name="bulkAssignTo" required>
+                <x-ui.select wire:model="bulkAssignTo" name="bulkAssignTo" placeholder="Choose a person…">
                     @foreach ($agentOptions as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach

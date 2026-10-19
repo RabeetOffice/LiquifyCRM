@@ -69,77 +69,87 @@
     </div>
 
     <div class="lq-grid-main">
-        @if ($agent)
-            <x-ui.card title="Follow-ups due today" description="Oldest first" flush>
-                @if ($followUps->isEmpty())
-                    <x-ui.empty title="Nothing due today" description="Set a follow-up on a lead and it shows up here on the day." icon="heroicon-o-check-circle" />
-                @else
-                    <ul class="flex flex-col">
-                        @foreach ($followUps as $task)
-                            <li class="flex items-center gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-hairline)">
-                                <div class="min-w-0 flex-1">
-                                    <a href="{{ $task->lead ? route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $task->lead]) : '#' }}" class="lq-cell-title" wire:navigate>{{ $task->lead?->name ?? 'Task' }}</a>
-                                    <span class="lq-cell-sub">{{ $task->title }} · {{ $task->due_at->format('H:i') }}</span>
-                                </div>
-                                @if ($task->isOverdue())
-                                    <x-ui.badge color="danger">Overdue</x-ui.badge>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </x-ui.card>
-        @else
-            <x-ui.card title="New / Unassigned" description="Oldest first. Pick an Agent to assign in one click." flush>
-                <x-slot:actions>
-                    <x-ui.button size="sm" :href="route('brand.leads.index', ['brand' => $brand->slug, 'tab' => 'unassigned'])">All unassigned</x-ui.button>
-                </x-slot:actions>
+        <div class="flex min-w-0 flex-col gap-6">
+            @if (! $agent || $team)
+                <x-ui.card :title="$team ? 'Free leads' : 'New / Unassigned'" :description="$team ? 'Oldest first. Take one and it is yours: nobody else can take it then.' : 'Oldest first. Pick a person to assign in one click.'" flush :class="$agent ? '' : 'flex-1'">
+                    <x-slot:actions>
+                        <x-ui.button size="sm" :href="route('brand.leads.index', ['brand' => $brand->slug, 'tab' => 'unassigned'])">All unassigned</x-ui.button>
+                    </x-slot:actions>
 
-                @if ($queue->isEmpty())
-                    <x-ui.empty title="The queue is empty" description="Every lead has an owner. New leads land here first." icon="heroicon-o-check-circle" />
-                @else
-                    <div class="lq-table-wrap">
-                        <table class="lq-table">
-                            <thead>
-                                <tr>
-                                    <th>Lead</th>
-                                    <th>Source</th>
-                                    <th>Waiting</th>
-                                    <th class="lq-table-end">Assign to</th>
-                                </tr>
-                            </thead>
-                            <tbody class="lq-live">
-                                @foreach ($queue as $lead)
-                                    <tr wire:key="queue-{{ $lead->getKey() }}">
-                                        <td>
-                                            <span class="lq-person">
-                                                <x-ui.avatar :name="$lead->name" size="sm" tone />
-                                                <span class="min-w-0">
-                                                    <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}" class="lq-cell-title" wire:navigate>{{ $lead->name }}</a>
-                                                    <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
-                                                </span>
-                                            </span>
-                                        </td>
-                                        <td><x-ui.lead-source :lead="$lead" /></td>
-                                        <td class="lq-num">{{ $lead->created_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</td>
-                                        <td class="lq-table-end">
-                                            @can('assign', $lead)
-                                                <select class="lq-input lq-input-sm" style="width: 11rem" wire:change="assign({{ $lead->getKey() }}, $event.target.value)">
-                                                    <option value="">Choose an Agent…</option>
-                                                    @foreach ($agents as $id => $name)
-                                                        <option value="{{ $id }}">{{ $name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @endcan
-                                        </td>
+                    @if ($queue->isEmpty())
+                        <x-ui.empty :title="$team ? 'No free leads right now' : 'The queue is empty'" :description="$team ? 'Every lead of your team has someone on it. A new one shows here the moment it arrives.' : 'Every lead has an owner. New leads land here first.'" icon="heroicon-o-check-circle" />
+                    @else
+                        <div class="lq-table-wrap">
+                            <table class="lq-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lead</th>
+                                        <th>Source</th>
+                                        <th>Waiting</th>
+                                        <th class="lq-table-end">{{ $team ? 'Take' : 'Assign to' }}</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </x-ui.card>
-        @endif
+                                </thead>
+                                <tbody class="lq-live">
+                                    @foreach ($queue as $lead)
+                                        <tr wire:key="queue-{{ $lead->getKey() }}">
+                                            <td>
+                                                <span class="lq-person">
+                                                    <x-ui.avatar :name="$lead->name" size="sm" tone />
+                                                    <span class="min-w-0">
+                                                        <a href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $lead]) }}" class="lq-cell-title" wire:navigate>{{ $lead->name }}</a>
+                                                        <span class="lq-cell-sub">{{ $lead->department?->name ?? 'No department yet' }}</span>
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td><x-ui.lead-source :lead="$lead" /></td>
+                                            <td class="lq-num">{{ $lead->created_at?->diffForHumans(short: true, syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</td>
+                                            <td class="lq-table-end">
+                                                @if ($team)
+                                                    <button type="button" class="lq-btn lq-btn-secondary lq-btn-sm" wire:click="takeLead({{ $lead->getKey() }})" wire:loading.attr="disabled" wire:target="takeLead({{ $lead->getKey() }})" title="Take this lead: it becomes yours">
+                                                        <x-heroicon-o-hand-raised /> Take
+                                                    </button>
+                                                @else
+                                                    @can('assign', $lead)
+                                                        <select class="lq-input lq-input-sm" style="width: 11rem" wire:change="assign({{ $lead->getKey() }}, $event.target.value)">
+                                                            <option value="">Choose a person…</option>
+                                                            @foreach ($agents as $id => $name)
+                                                                <option value="{{ $id }}">{{ $name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    @endcan
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </x-ui.card>
+            @endif
+
+            @if ($agent)
+                <x-ui.card title="Follow-ups due today" description="Oldest first" flush class="flex-1">
+                    @if ($followUps->isEmpty())
+                        <x-ui.empty title="Nothing due today" description="Set a follow-up on a lead and it shows up here on the day." icon="heroicon-o-check-circle" />
+                    @else
+                        <ul class="flex flex-col">
+                            @foreach ($followUps as $task)
+                                <li class="flex items-center gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-hairline)">
+                                    <div class="min-w-0 flex-1">
+                                        <a href="{{ $task->lead ? route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $task->lead]) : '#' }}" class="lq-cell-title" wire:navigate>{{ $task->lead?->name ?? 'Task' }}</a>
+                                        <span class="lq-cell-sub">{{ $task->title }} · {{ $task->due_at->format('H:i') }}</span>
+                                    </div>
+                                    @if ($task->isOverdue())
+                                        <x-ui.badge color="danger">Overdue</x-ui.badge>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </x-ui.card>
+            @endif
+        </div>
 
         <x-ui.card title="Conversion" :description="$conversion !== null ? $won.' won of '.$total.' leads' : 'No leads yet'">
             <div class="flex items-baseline gap-2">

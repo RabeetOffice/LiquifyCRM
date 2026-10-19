@@ -169,5 +169,19 @@
                 <p class="lq-error">{{ $message }}</p>
             @enderror
         </form>
+    @elseif ($canTake)
+        <div class="lq-thread-foot">
+            <p class="lq-composer-locked lq-composer-free">
+                <x-heroicon-o-hand-raised />
+                <span class="flex-1">Nobody has this chat yet. Take it to reply.</span>
+                @if ($inbox)
+                    <x-ui.button size="sm" variant="primary" icon="heroicon-o-hand-raised" x-data x-on:click="$dispatch('inbox-take')">Take this chat</x-ui.button>
+                @endif
+            </p>
+        </div>
+    @elseif ($owner)
+        <div class="lq-thread-foot">
+            <p class="lq-composer-locked lq-composer-other"><x-heroicon-o-user /> {{ $owner }} is on this chat, so only they reply.</p>
+        </div>
     @endif
 </div>

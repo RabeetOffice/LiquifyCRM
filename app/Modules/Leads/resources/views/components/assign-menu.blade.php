@@ -19,7 +19,7 @@
                             <template x-if="! person.picture"><span x-text="initials(person.name)"></span></template>
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="lq-cell-name" x-text="person.name"></span>
+                            <span class="lq-cell-name" x-text="person.me ? person.name + ' (you)' : person.name"></span>
                             <span class="lq-cell-sub" x-show="person.team !== ''" x-text="person.team"></span>
                         </span>
                         <x-heroicon-m-check class="lq-assign-tick" x-show="person.id === owner" />

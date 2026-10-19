@@ -98,7 +98,12 @@ it('attaches a later purchase by the same email to the same client', function ()
 });
 
 it('lets only the right people record a sale and never sets Won without an amount', function (): void {
-    Livewire::actingAs($this->otherAgent)->test(LeadPanel::class, ['leadId' => $this->lead->getKey()])->assertForbidden();
+    // A teammate opens the lead (front sales sees its team's) but does not record its sale.
+    Livewire::actingAs($this->otherAgent)->test(LeadPanel::class, ['leadId' => $this->lead->getKey()])
+        ->assertDontSee('wire:click="openWon"', false)
+        ->call('openWon')
+        ->assertForbidden();
+    Livewire::actingAs(agentOf(department($this->brand, ['name' => 'Publishing'])))->test(LeadPanel::class, ['leadId' => $this->lead->getKey()])->assertForbidden();
 
     $won = LeadStatus::wonFor($this->brand);
 

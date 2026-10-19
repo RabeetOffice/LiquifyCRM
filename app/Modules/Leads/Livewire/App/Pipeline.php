@@ -45,7 +45,7 @@ final class Pipeline extends Component
     #[Url(except: '')]
     public string $search = '';
 
-    /** '' for everyone, 'none' for unassigned, or an Agent's id. */
+    /** '' for everyone, 'none' for unassigned, 'mine', or a person's id. */
     #[Url(except: '')]
     public string $owner = '';
 
@@ -57,8 +57,14 @@ final class Pipeline extends Component
 
     public function move(int $leadId, int $statusId): void
     {
-        $lead = Lead::query()->findOrFail($leadId);
-        $this->authorize('update', $lead);
+        $lead = Lead::query()->with('assignee')->findOrFail($leadId);
+        $this->authorize('view', $lead);
+
+        if (! $this->user()->can('update', $lead)) {
+            $this->toastWarning('Not your lead', $lead->assignee ? $lead->assignee->name.' is on '.$lead->name.'.' : 'Take '.$lead->name.' first: open it and click Take this lead.');
+
+            return;
+        }
 
         $status = LeadStatus::query()->findOrFail($statusId);
 
@@ -96,13 +102,15 @@ final class Pipeline extends Component
     {
         $user = $this->user();
         $agent = ! $user->isGlobalAdmin() && $user->isAgentIn($this->brand);
+        $team = $agent && $user->frontDepartmentIds($this->brand) !== [];
         $like = '%'.$this->search.'%';
         $statuses = LeadStatus::query()->ordered()->get();
 
         $leads = Lead::query()
             ->visibleTo($user)
             ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
-            ->when(! $agent && $this->owner === 'none', fn (Builder $q): Builder => $q->whereNull('assigned_to'))
+            ->when((! $agent || $team) && $this->owner === 'none', fn (Builder $q): Builder => $q->whereNull('assigned_to'))
+            ->when($this->owner === 'mine', fn (Builder $q): Builder => $q->where('assigned_to', $user->getKey()))
             ->when(! $agent && ctype_digit($this->owner), fn (Builder $q): Builder => $q->where('assigned_to', (int) $this->owner))
             ->with(['assignee', 'department'])
             ->orderByDesc('last_activity_at')
@@ -115,18 +123,27 @@ final class Pipeline extends Component
         $open = $leads->reject(fn (Lead $lead): bool => in_array($lead->status_id, $closed, true));
         $quietBefore = now()->subDays(self::QUIET_AFTER_DAYS);
         $won = $leads->whereIn('status_id', $statuses->where('is_won', true)->modelKeys());
-        $wonTotal = $won->isEmpty() ? 0.0 : (float) Sale::query()->whereIn('lead_id', $won->modelKeys())->sum('amount');
+        // Only the money this person may see: front sales does not add up each other's sales.
+        $wonTotal = $won->isEmpty() ? 0.0 : (float) Sale::query()->visibleTo($user)->whereIn('lead_id', $won->modelKeys())->sum('amount');
         $columns = $leads->groupBy('status_id');
+
+        // A card moves only for whoever works its lead; a colleague's card is looked at, not dragged.
+        $movable = array_flip($user->isGlobalAdmin() || $leads->isEmpty()
+            ? $leads->modelKeys()
+            : Lead::query()->workedBy($user)->whereKey($leads->modelKeys())->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
 
         return view('leads::livewire.app.pipeline', [
             'statuses' => $statuses,
             'columns' => $statuses->mapWithKeys(fn (LeadStatus $status): array => [$status->getKey() => $columns->get($status->getKey(), collect())]),
+            'movable' => $movable,
             'agent' => $agent,
+            'team' => $team,
             'agentOptions' => $agent ? [] : app(AssignableAgents::class)->for($user, $this->brand),
             'summary' => [
                 'open' => $open->count(),
                 'unassigned' => $open->whereNull('assigned_to')->count(),
-                'overdue' => $open->filter(fn (Lead $lead): bool => (bool) $lead->next_follow_up_at?->isPast())->count(),
+                // Overdue follow-ups are counted on the leads you work, as on the Follow-ups screen.
+                'overdue' => $open->filter(fn (Lead $lead): bool => isset($movable[$lead->getKey()]) && (bool) $lead->next_follow_up_at?->isPast())->count(),
             ],
             'quiet' => $open->filter(fn (Lead $lead): bool => $lead->last_activity_at !== null && $lead->last_activity_at->lt($quietBefore))->values()->modelKeys(),
             'wonTotal' => $wonTotal > 0 ? Money::format($wonTotal, $this->brand->currency) : null,

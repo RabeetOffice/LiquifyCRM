@@ -6,9 +6,9 @@ namespace App\Modules\Meta\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
-use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
+use App\Modules\Leads\Livewire\Concerns\TakesLeads;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
@@ -37,7 +37,7 @@ final class Inbox extends Component
 {
     use AuthorizesRequests;
     use EditsLeadDetails;
-    use WithToasts;
+    use TakesLeads;
 
     public Brand $brand;
 
@@ -101,6 +101,18 @@ final class Inbox extends Component
 
         $this->assignTo = (string) ($lead->assigned_to ?? '');
         $this->showAssign = true;
+    }
+
+    /** "Take this chat" under a free thread: the lead and its chat become the person's. */
+    #[On('inbox-take')]
+    public function takeChat(): void
+    {
+        $lead = $this->detailsLead();
+
+        if ($lead !== null) {
+            $this->takeLead((int) $lead->getKey());
+            $this->dispatch('conversation-updated');
+        }
     }
 
     public function assignFromDialog(): void

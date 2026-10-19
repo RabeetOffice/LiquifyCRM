@@ -70,20 +70,34 @@ it('adds a repeat enquiry to the existing open lead instead of creating a second
     $this->assertDatabaseHas('activity_log', ['event' => 'leads.repeat_enquiry', 'subject_id' => $first->lead->getKey()]);
 });
 
-it('shows Admins everything, Managers their department and Agents only their own leads', function (): void {
+it('shows Admins everything, Managers their department and front sales its team, each working only their own', function (): void {
     $queued = Lead::factory()->create(['brand_id' => $this->brand->getKey()]);
     $inDepartment = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey()]);
     $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey()]);
     $elsewhere = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => department($this->brand, ['name' => 'Publishing'])->getKey()]);
+    $upseller = agentOf(department($this->brand, ['name' => 'Upsell', 'kind' => 'upsell']));
+    $ids = fn ($query): array => $query->pluck('id')->sort()->values()->all();
 
+    // Seeing: front sales (Manager and Agent of a sales team) sees the team's leads and those no team has yet.
     expect(Lead::query()->visibleTo($this->admin)->count())->toBe(4)
-        ->and(Lead::query()->visibleTo($this->manager)->pluck('id')->sort()->values()->all())->toBe([$inDepartment->getKey(), $mine->getKey()])
-        ->and(Lead::query()->visibleTo($this->agent)->pluck('id')->all())->toBe([$mine->getKey()])
-        ->and($this->agent->can('view', $mine))->toBeTrue()
-        ->and($this->agent->can('view', $inDepartment))->toBeFalse()
-        ->and($this->manager->can('view', $queued))->toBeFalse()
+        ->and($ids(Lead::query()->visibleTo($this->manager)))->toBe([$queued->getKey(), $inDepartment->getKey(), $mine->getKey()])
+        ->and($ids(Lead::query()->visibleTo($this->agent)))->toBe([$queued->getKey(), $inDepartment->getKey(), $mine->getKey()])
+        ->and(Lead::query()->visibleTo($upseller)->count())->toBe(0)
+        ->and($this->agent->can('view', $inDepartment))->toBeTrue()
+        ->and($this->agent->can('view', $elsewhere))->toBeFalse()
+        ->and($this->manager->can('view', $queued))->toBeTrue()
         ->and($this->manager->can('view', $elsewhere))->toBeFalse()
+        ->and($upseller->can('view', $queued))->toBeFalse()
         ->and($this->admin->can('view', $elsewhere))->toBeTrue();
+
+    // Working: still only their own (and the Manager their department's), so their numbers stay theirs.
+    expect($ids(Lead::query()->workedBy($this->manager)))->toBe([$inDepartment->getKey(), $mine->getKey()])
+        ->and($ids(Lead::query()->workedBy($this->agent)))->toBe([$mine->getKey()])
+        ->and($this->agent->can('update', $mine))->toBeTrue()
+        ->and($this->agent->can('update', $inDepartment))->toBeFalse()
+        ->and($this->agent->can('reveal', $inDepartment))->toBeFalse()
+        ->and($this->agent->can('recordSale', $inDepartment))->toBeFalse()
+        ->and($this->agent->can('assign', $inDepartment))->toBeFalse();
 });
 
 it('sends a lead to a department and then to an Agent, logging and notifying each step', function (): void {

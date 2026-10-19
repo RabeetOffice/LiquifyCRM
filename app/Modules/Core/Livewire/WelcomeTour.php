@@ -61,14 +61,21 @@ final class WelcomeTour extends Component
             ]);
         }
 
+        // Front sales sees the team's leads and takes the free ones (19 Oct 2026).
+        $team = ! $manager && $user instanceof User && $brand !== null && $user->frontDepartmentIds($brand) !== [];
+
         return view('core::livewire.welcome-tour', [
             'tips' => [
-                $manager
-                    ? ['icon' => 'heroicon-o-inbox-arrow-down', 'title' => 'New leads wait in your queue', 'body' => 'Leads sent to your department appear at the top of your dashboard, oldest first. Assign each one to an Agent with one click.']
-                    : ['icon' => 'heroicon-o-inbox-arrow-down', 'title' => 'Your leads are under My leads', 'body' => 'You see a lead as soon as your Manager assigns it to you, and you get a notification. Open it to read the message and start working.'],
-                ['icon' => 'heroicon-o-eye', 'title' => 'Reveal shows the contact details', 'body' => $manager
-                    ? 'Agents see phone numbers and emails masked until they click Reveal on a lead. Every reveal is logged, with a limit per hour.'
-                    : 'Phone numbers and emails are masked until you click Reveal on a lead. Each reveal is logged, and there is a limit per hour.'],
+                match (true) {
+                    $manager => ['icon' => 'heroicon-o-inbox-arrow-down', 'title' => 'New leads wait in your queue', 'body' => 'Leads sent to your department appear at the top of your dashboard, oldest first. Assign each one with one click, or take it yourself.'],
+                    $team => ['icon' => 'heroicon-o-hand-raised', 'title' => 'Take a free lead', 'body' => 'Every new lead of your team shows under Leads and on your dashboard the moment it arrives, with a sound. Click Take on a free one and it is yours; the others see your name on it.'],
+                    default => ['icon' => 'heroicon-o-inbox-arrow-down', 'title' => 'Your leads are under My leads', 'body' => 'You see a lead as soon as your Manager assigns it to you, and you get a notification. Open it to read the message and start working.'],
+                },
+                ['icon' => 'heroicon-o-eye', 'title' => 'Reveal shows the contact details', 'body' => match (true) {
+                    $manager => 'Agents see phone numbers and emails masked until they take a lead or click Reveal on theirs. Every reveal is logged, with a limit per hour.',
+                    $team => 'Phone numbers and emails open when you take a lead; on a lead given to you, click Reveal. Each reveal is logged, and there is a limit per hour.',
+                    default => 'Phone numbers and emails are masked until you click Reveal on a lead. Each reveal is logged, and there is a limit per hour.',
+                }],
                 ['icon' => 'heroicon-o-calendar-days', 'title' => 'Follow-ups keep leads moving', 'body' => 'Click "Follow up on" to set a date and a short note. Everything due is listed under Follow-ups, with overdue ones first.'],
             ],
         ]);

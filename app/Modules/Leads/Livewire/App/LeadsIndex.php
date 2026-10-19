@@ -16,8 +16,8 @@ use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Exports\LeadsExport;
-use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Livewire\Concerns\PreviewsLead;
+use App\Modules\Leads\Livewire\Concerns\TakesLeads;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
@@ -47,8 +47,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 final class LeadsIndex extends Component
 {
     use AuthorizesRequests;
-    use HandlesLeadUndo;
     use PreviewsLead;
+    use TakesLeads;
     use WithConfirmation;
     use WithTableState;
 
@@ -309,6 +309,7 @@ final class LeadsIndex extends Component
     {
         $user = $this->user();
         $agent = $this->isAgent();
+        $team = $this->seesTeam();
         $visible = fn (): Builder => Lead::query()->visibleTo($user);
 
         $leads = $this->query()
@@ -326,8 +327,10 @@ final class LeadsIndex extends Component
         return view('leads::livewire.app.leads-index', [
             'leads' => $leads,
             'agent' => $agent,
+            // Front sales: the team's leads, with a Take button on the free ones.
+            'team' => $team,
             'isAdmin' => $user->isGlobalAdmin(),
-            'tabs' => $this->tabs($visible, $agent),
+            'tabs' => $this->tabs($visible, $agent, $team),
             'statuses' => $statuses,
             'sources' => LeadSource::cases(),
             'departmentOptions' => $departmentOptions,
@@ -392,8 +395,9 @@ final class LeadsIndex extends Component
         match ($this->tab) {
             'new' => $query->whereHas('status', fn (Builder $status): Builder => $status->where('is_default', true)),
             'unassigned' => $query->unassigned(),
-            'mine' => $this->isAgent() ? $query->open() : $query->assignedTo($user),
-            'follow-ups' => $query->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay()),
+            'mine' => $this->isAgent() ? $query->assignedTo($user)->open() : $query->assignedTo($user),
+            // Follow-ups are on the leads you work, not a colleague's.
+            'follow-ups' => $query->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay()),
             'won' => $query->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', true)),
             default => null,
         };
@@ -425,21 +429,23 @@ final class LeadsIndex extends Component
      * @param  callable(): Builder<Lead>  $visible
      * @return array<string, array{label: string, count: ?int, color: string}>
      */
-    private function tabs(callable $visible, bool $agent): array
+    private function tabs(callable $visible, bool $agent, bool $team): array
     {
         $count = fn (int $n): ?int => $n > 0 ? $n : null;
+        $user = $this->user();
 
         $tabs = [
             'all' => ['label' => 'All', 'count' => null, 'color' => 'gray'],
             'new' => ['label' => 'New', 'count' => $count($visible()->whereHas('status', fn (Builder $s): Builder => $s->where('is_default', true))->count()), 'color' => 'gray'],
         ];
 
-        if (! $agent) {
+        // Front sales sees the free leads too: they are the ones to take.
+        if (! $agent || $team) {
             $tabs['unassigned'] = ['label' => 'Unassigned', 'count' => $count($visible()->unassigned()->count()), 'color' => 'primary'];
         }
 
-        $tabs['mine'] = ['label' => $agent ? 'Open' : 'Mine', 'count' => null, 'color' => 'gray'];
-        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay())->count()), 'color' => 'danger'];
+        $tabs['mine'] = ['label' => $agent && ! $team ? 'Open' : 'Mine', 'count' => null, 'color' => 'gray'];
+        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay())->count()), 'color' => 'danger'];
         $tabs['won'] = ['label' => 'Won', 'count' => null, 'color' => 'gray'];
 
         return $tabs;
@@ -501,6 +507,12 @@ final class LeadsIndex extends Component
         $user = $this->user();
 
         return ! $user->isGlobalAdmin() && $user->isAgentIn($this->brand);
+    }
+
+    /** An Agent on a front sales team: sees the team's leads and takes the free ones. */
+    private function seesTeam(): bool
+    {
+        return $this->isAgent() && $this->user()->frontDepartmentIds($this->brand) !== [];
     }
 
     private function user(): User

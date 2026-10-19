@@ -12,6 +12,7 @@ use App\Modules\Meta\Models\Message;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -40,7 +41,19 @@ final class ConversationThread extends Component
         $conversation = $this->conversation();
         $this->authorize('view', $conversation);
 
-        if ($conversation->unread_count > 0) {
+        // Read only by whoever works the chat: a colleague looking in leaves it unread for its owner.
+        if ($conversation->unread_count > 0 && (bool) auth()->user()?->can('reply', $conversation)) {
+            $conversation->forceFill(['unread_count' => 0])->save();
+        }
+    }
+
+    /** Taken (or given) a moment ago: the reply box shows at once, and the chat counts as read by its new owner. */
+    #[On('lead-updated')]
+    public function leadChanged(): void
+    {
+        $conversation = $this->conversation();
+
+        if ($conversation->unread_count > 0 && (bool) auth()->user()?->can('reply', $conversation)) {
             $conversation->forceFill(['unread_count' => 0])->save();
         }
     }
@@ -79,6 +92,9 @@ final class ConversationThread extends Component
             // The newest 100, shown oldest first.
             'messages' => Message::query()->where('conversation_id', $conversation->getKey())->with('sender')->latest('id')->limit(100)->get()->reverse()->values(),
             'canReply' => (bool) auth()->user()?->can('reply', $conversation),
+            // Front sales: a free chat is taken before it is answered; a colleague's is only read.
+            'canTake' => $conversation->lead !== null && (bool) auth()->user()?->can('take', $conversation->lead),
+            'owner' => $conversation->lead?->assignee?->name,
             // The Inbox head's Assign button, for screens too narrow for the side pane: only for who may assign the lead.
             'canAssign' => $conversation->lead !== null && (bool) auth()->user()?->can('assign', $conversation->lead),
             'leadUrl' => $this->leadUrl($conversation),

@@ -240,6 +240,16 @@ in the document's weekly phases; never skip a phase or silently change the desig
   the panel's root), opened with `openFor($el, {lead, dept, owner})`; `quickAssign` / `quickSend` on `LeadsIndex` and
   `LeadPanel`. `AssignableAgents::people()` leaves out people who only work clients, and `find()` is the server's
   check. The menu is teleported and `position: fixed` (a table's scroll box or the slide-over would cut it).
+- Front sales sees its team (user request, 19 Oct 2026): `Lead::scopeVisibleTo` adds, for anyone on a front (non-Upsell)
+  team (`User::frontDepartmentIds()`), that team's leads and the leads with no department. `scopeWorkedBy` is the old
+  rule (own leads, a Manager's departments) and is what `LeadPolicy::update` / `reveal` / `recordSale`, `Task::visibleTo`,
+  an Agent's dashboard numbers and the Pipeline's draggable cards use: a colleague's lead is read-only (contact masked,
+  its money only through `Sale::visibleTo()`, its chat not marked read, only its owner replies). A free lead is taken
+  with `TakeLead` (row lock, `LeadAlreadyTaken` names who was first) through `TakesLeads::takeLead()` on the list,
+  panel, dashboard and Inbox (`inbox-take`): it logs "Taken by", opens the contact as a reveal and offers Undo (`take`).
+  Take is the one way to get a lead that skips `AssignableAgents`; `LeadPolicy::take` guards it. `AssignableAgents`
+  offers Managers too (the asker first, "(you)"); round robin stays Agents only. `LeadNotifier` gives a free lead's
+  front people a bell (sound, desktop, push) without email.
 - One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that
   Page (`LeadMatcher::messengerId()`). `ProcessMetaEvent` joins a form to the chat's open lead (`MergeLeads::join`)
   and a chat to the form's open lead (`LeadMatcher::byMessenger`). `LeadMatcher::twins()` finds existing pairs for

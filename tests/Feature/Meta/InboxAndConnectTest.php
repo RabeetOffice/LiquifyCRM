@@ -131,9 +131,19 @@ it('maps a Page to a brand and disconnects only after the password', function ()
 it('shows the Inbox only for leads a person may see', function (): void {
     $this->actingAs($this->agent)->get('/b/ukph/inbox')->assertOk()->assertSee('Amy Wong')->assertSee('How much is publishing?');
 
+    // A teammate in front sales reads the chat but does not answer it, and leaves it unread for its owner.
     $this->flushSession();
-    $this->actingAs($this->otherAgent)->get('/b/ukph/inbox')->assertOk()->assertDontSee('Amy Wong');
-    $this->actingAs($this->otherAgent)->get('/b/ukph/inbox?chat='.$this->conversation->getKey())->assertOk()->assertDontSee('How much is publishing?');
+    $this->conversation->forceFill(['unread_count' => 1])->save();
+    $this->actingAs($this->otherAgent)->get('/b/ukph/inbox?chat='.$this->conversation->getKey())->assertOk()
+        ->assertSee('How much is publishing?')
+        ->assertSee($this->agent->name.' is on this chat, so only they reply.')
+        ->assertDontSee('Write a reply');
+    expect($this->conversation->fresh()->unread_count)->toBe(1);
+
+    $this->flushSession();
+    $stranger = agentOf(department($this->brand, ['name' => 'Publishing']));
+    $this->actingAs($stranger)->get('/b/ukph/inbox')->assertOk()->assertDontSee('Amy Wong');
+    $this->actingAs($stranger)->get('/b/ukph/inbox?chat='.$this->conversation->getKey())->assertOk()->assertDontSee('How much is publishing?');
 
     $this->flushSession();
     $this->actingAs($this->manager)->get('/b/ukph/inbox?chat='.$this->conversation->getKey())->assertOk()->assertSee('Reply within');
@@ -202,12 +212,19 @@ it('marks a reply as failed when Facebook refuses it, and blocks people who cann
         ->and($message->error)->toContain('not available')
         ->and($this->lead->activities()->where('event', 'messages.reply_failed')->count())->toBe(1);
 
+    // A teammate sees the chat but may not answer it; somebody of another team does not even see it.
     $this->flushSession();
     $this->actingAs($this->otherAgent)
         ->postJson('/b/ukph/conversations/'.$this->conversation->getKey().'/messages', ['body' => 'Hi'])
         ->assertForbidden();
 
     Livewire::actingAs($this->otherAgent)
+        ->test(ConversationThread::class, ['conversationId' => $this->conversation->getKey()])
+        ->set('reply', 'Hi')
+        ->call('send')
+        ->assertForbidden();
+
+    Livewire::actingAs(agentOf(department($this->brand, ['name' => 'Publishing'])))
         ->test(ConversationThread::class, ['conversationId' => $this->conversation->getKey()])
         ->assertForbidden();
 });

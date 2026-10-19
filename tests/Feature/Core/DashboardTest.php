@@ -152,19 +152,24 @@ it('shows the brand dashboard with the setup checklist and the queue to a global
         ->assertSee('Leads per day');
 });
 
-it('gives an Agent their own numbers and follow-ups instead of the queue', function (): void {
+it('gives an Agent their own numbers and follow-ups, and their team\'s free leads to take', function (): void {
     $brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
     $department = department($brand, ['name' => 'Sales Team A']);
     $agent = agentOf($department);
     Lead::factory()->create(['brand_id' => $brand->getKey(), 'name' => 'Queued Lead']);
+    Lead::factory()->create(['brand_id' => $brand->getKey(), 'name' => 'Other Team Lead', 'department_id' => department($brand, ['name' => 'Publishing'])->getKey()]);
 
     $this->actingAs($agent)
         ->get('/b/ukph')
         ->assertOk()
         ->assertSee('My open leads')
         ->assertSee('Follow-ups due today')
-        ->assertDontSee('Set up UK Publishing House')
-        ->assertDontSee('Queued Lead');
+        ->assertSee('Free leads')
+        ->assertSee('Queued Lead')
+        ->assertSee('takeLead(', false)
+        ->assertDontSee('Other Team Lead')
+        ->assertDontSee('Choose a person')
+        ->assertDontSee('Set up UK Publishing House');
 });
 
 it('answers the questions of the cards under the brands table', function (): void {

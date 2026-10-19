@@ -24,6 +24,7 @@
 
     // One action is the obvious next step and is the only orange one.
     $next = match (true) {
+        $can['take'] => 'take',
         $can['assign'] && ! $lead->assigned_to => 'assign',
         $can['recordSale'] && ! $lead->status->is_won => 'won',
         default => null,
@@ -42,6 +43,7 @@
     x-on:keydown.window="
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes($event.target.tagName) || $event.metaKey || $event.ctrlKey || $event.altKey) return;
         if ($event.key === 'a') $refs.assign?.click();
+        if ($event.key === 't') $refs.take?.click();
         if ($event.key === 's' && @js($can['update'])) $wire.openStatus();
         if ($event.key === 'n' && @js($can['update'])) $wire.openNote();
         if ($event.key === 'f' && @js($can['update'])) $wire.openFollowUp();
@@ -87,8 +89,17 @@
         </nav>
 
         {{-- What you can do --}}
-        @if ($can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['delete'])
+        @if ($can['take'] || $can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['delete'])
             <div class="lq-actions">
+                @if ($can['take'])
+                    {{-- Front sales: "I am on it". Whoever clicks first gets it; the others see their name at once. --}}
+                    <button type="button" x-ref="take" @class(['lq-action', 'lq-action-primary' => $next === 'take']) wire:click="takeLead({{ $lead->getKey() }})" wire:loading.attr="disabled" wire:target="takeLead">
+                        <span class="lq-action-icon"><x-heroicon-o-hand-raised /></span>
+                        <span class="lq-action-label" wire:loading.remove wire:target="takeLead">Take this lead</span>
+                        <span class="lq-action-label" wire:loading wire:target="takeLead">Taking…</span>
+                        <kbd class="lq-kbd">T</kbd>
+                    </button>
+                @endif
                 @if ($can['assign'])
                     {{-- Opens the people right here: one more click and the lead is theirs. --}}
                     <button type="button" x-ref="assign" @class(['lq-action', 'lq-action-primary' => $next === 'assign']) x-on:click="openFor($el, { lead: {{ $lead->getKey() }}, dept: {{ $lead->department_id ?? 'null' }}, owner: {{ $lead->assigned_to ?? 'null' }} })" aria-haspopup="dialog" x-bind:aria-expanded="open.toString()">
@@ -318,6 +329,10 @@
                     <p>Contact details stay masked until you reveal them. Every reveal is logged, and an Admin sets how many you can do per hour.</p>
                     <x-ui.button size="sm" wire:click="reveal" icon="heroicon-o-eye">Reveal contact details</x-ui.button>
                 </div>
+            @elseif (! $canSeeFull && $can['take'])
+                <p class="lq-help mt-3">Take this lead and its phone and email open at once.</p>
+            @elseif (! $canSeeFull && ! $can['update'] && $lead->assignee)
+                <p class="lq-help mt-3">{{ $lead->assignee->name }} is on this lead, so the phone and email stay with them.</p>
             @endif
         </section>
 
@@ -344,6 +359,8 @@
                             </button>
                         @elseif ($lead->assignee)
                             <span class="lq-person"><x-ui.avatar :name="$lead->assignee->name" :src="$lead->assignee->avatarUrl()" size="xs" /> {{ $lead->assignee->name }}</span>
+                        @elseif ($can['take'])
+                            <span class="lq-unassigned">Unassigned</span> · <button type="button" class="lq-link" wire:click="takeLead({{ $lead->getKey() }})">Take it</button>
                         @else
                             <span class="lq-unassigned">Unassigned</span>
                         @endif

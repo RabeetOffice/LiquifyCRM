@@ -127,7 +127,7 @@ it('adds a brand in four steps with a check at the end', function (): void {
 });
 
 it('shows the welcome tour once to a new Manager or Agent, never to Admins', function (): void {
-    $this->actingAs($this->agent)->get('/b/ukph')->assertOk()->assertSee('Tip 1 of 3')->assertSee('Your leads are under My leads');
+    $this->actingAs($this->agent)->get('/b/ukph')->assertOk()->assertSee('Tip 1 of 3')->assertSee('Take a free lead');
 
     Livewire::actingAs($this->agent)->test(WelcomeTour::class)->assertSet('open', true)->call('done')->assertSet('open', false);
 

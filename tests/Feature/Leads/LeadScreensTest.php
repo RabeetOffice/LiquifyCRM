@@ -31,15 +31,20 @@ beforeEach(function (): void {
 
 it('lists only the leads a person may see, with masked contacts for Agents', function (): void {
     $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey(), 'name' => 'Sarah Lee', 'phone' => '+447700900123', 'email' => 'sarah@example.com']);
-    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Someone Else']);
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'name' => 'Free Lead', 'email' => 'free@example.com']);
+    Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => department($this->brand, ['name' => 'Publishing'])->getKey(), 'name' => 'Someone Else']);
 
+    // Front sales sees its team's leads, the free ones with a Take button, contacts masked.
     $this->actingAs($this->agent)
         ->get('/b/ukph/leads')
         ->assertOk()
-        ->assertSee('My leads')
+        ->assertSee("Your team's leads")
         ->assertSee('Sarah Lee')
         ->assertSee('s•••@example.com')
         ->assertDontSee('sarah@example.com')
+        ->assertSee('Free Lead')
+        ->assertDontSee('free@example.com')
+        ->assertSee('takeLead(', false)
         ->assertDontSee('Someone Else');
 
     $this->flushSession();
@@ -91,17 +96,25 @@ it('lets a Manager assign from the list in bulk and an Agent change status from 
 
 it('moves a lead along the pipeline by drag and drop and refuses leads a person may not touch', function (): void {
     $mine = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => $this->agent->getKey()]);
-    $other = Lead::factory()->create(['brand_id' => $this->brand->getKey()]);
+    $colleagues = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => $this->department->getKey(), 'assigned_to' => agentOf($this->department, ['name' => 'Bilal Khan'])->getKey(), 'name' => 'Their Lead']);
+    $other = Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'department_id' => department($this->brand, ['name' => 'Publishing'])->getKey()]);
     $qualified = LeadStatus::query()->forBrand($this->brand)->where('slug', 'qualified')->firstOrFail();
 
-    Livewire::actingAs($this->agent)
+    $board = Livewire::actingAs($this->agent)
         ->test(Pipeline::class, ['brand' => $this->brand])
+        ->assertSee('Their Lead')
         ->call('move', $mine->getKey(), $qualified->getKey())
-        ->assertHasNoErrors()
-        ->call('move', $other->getKey(), $qualified->getKey())
+        ->assertHasNoErrors();
+
+    // A colleague's card is on the board but stays where it is, with a word instead of an error.
+    $board->call('move', $colleagues->getKey(), $qualified->getKey())
+        ->assertDispatched('toast', title: 'Not your lead', body: 'Bilal Khan is on Their Lead.');
+
+    $board->call('move', $other->getKey(), $qualified->getKey())
         ->assertForbidden();
 
     expect($mine->fresh()->status->slug)->toBe('qualified')
+        ->and($colleagues->fresh()->status->slug)->toBe('new')
         ->and($other->fresh()->status->slug)->toBe('new');
 });
 

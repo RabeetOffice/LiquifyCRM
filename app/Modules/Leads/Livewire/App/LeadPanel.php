@@ -20,7 +20,7 @@ use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
 use App\Modules\Leads\Exceptions\RevealLimitReached;
 use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
-use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
+use App\Modules\Leads\Livewire\Concerns\TakesLeads;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
@@ -59,7 +59,7 @@ final class LeadPanel extends Component
 {
     use AuthorizesRequests;
     use EditsLeadDetails;
-    use HandlesLeadUndo;
+    use TakesLeads;
     use WithConfirmation;
     use WithFileUploads;
 
@@ -526,7 +526,10 @@ final class LeadPanel extends Component
         LeadSites::attach([$lead]);
 
         $statuses = LeadStatus::query()->ordered()->get();
-        $sales = Sale::query()->where('lead_id', $lead->getKey())->with('closer')->latest('closed_at')->get();
+        $canUpdate = $user->can('update', $lead);
+
+        // On a colleague's lead only the sales this person may see anyway: front sales does not see each other's money.
+        $sales = Sale::query()->where('lead_id', $lead->getKey())->when(! $canUpdate, fn ($query) => $query->visibleTo($user))->with('closer')->latest('closed_at')->get();
 
         // The client this lead became: where they are now, and the files front sales added for them.
         $client = $sales->isNotEmpty() ? $this->client() : null;
@@ -573,9 +576,10 @@ final class LeadPanel extends Component
             'teamChoices' => $canDistribute ? $this->teamChoices() : [],
             'departmentOptions' => $this->departmentOptions(),
             'can' => [
+                'take' => $user->can('take', $lead),
                 'assign' => $canAssign,
                 'distribute' => $canDistribute,
-                'update' => $user->can('update', $lead),
+                'update' => $canUpdate,
                 'recordSale' => $canRecordSale,
                 'handOver' => $client !== null && ! $client->isHandedOver() && ! $client->isClosed() && $user->can('handOver', $client),
                 'addFile' => $client !== null && $user->can('addFile', $client),

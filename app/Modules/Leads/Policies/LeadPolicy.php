@@ -12,7 +12,8 @@ use App\Modules\Leads\Models\Lead;
 /**
  * The Leads rows of the permission table. Super Admin and Admin see and do
  * everything in every brand; a Manager works their own departments; an Agent
- * works only the leads assigned to them.
+ * works only the leads assigned to them. Front sales also sees the rest of
+ * its team's leads and takes a free one for itself (Lead::scopeVisibleTo).
  */
 final class LeadPolicy
 {
@@ -31,13 +32,21 @@ final class LeadPolicy
             return false;
         }
 
-        if ($lead->assigned_to === $user->getKey()) {
-            return true;
-        }
+        return $this->works($user, $lead) || $this->inFrontTeam($user, $lead);
+    }
 
-        return $user->isManagerIn($lead->brand_id)
-            && $lead->department_id !== null
-            && in_array($lead->department_id, $user->managedDepartmentIds($lead->brand_id), true);
+    /**
+     * "I am on it": somebody on a front sales team takes a free lead of that
+     * team, or one no team has yet. Once it is theirs nobody else can take it;
+     * moving it on is for its Manager or an Admin (assign).
+     */
+    public function take(User $user, Lead $lead): bool
+    {
+        return $lead->assigned_to === null
+            && $this->inCurrentBrand($lead)
+            && $user->isMemberOf($lead->brand_id)
+            && $this->inFrontTeam($user, $lead)
+            && $user->can(Permission::LeadsUpdate->value);
     }
 
     /** Manual lead: Admin or Manager. */
@@ -52,10 +61,20 @@ final class LeadPolicy
         return $brand !== null && $user->isManagerIn($brand);
     }
 
-    /** Status, fields, notes and follow-ups: own department or own leads. */
+    /**
+     * Status, fields, notes, follow-ups, chat replies and the sale: own
+     * department or own leads. A colleague's lead is only looked at.
+     */
     public function update(User $user, Lead $lead): bool
     {
-        return $this->view($user, $lead) && ($user->isGlobalAdmin() || $user->can(Permission::LeadsUpdate->value));
+        if ($user->isGlobalAdmin()) {
+            return true;
+        }
+
+        return $this->inCurrentBrand($lead)
+            && $user->isMemberOf($lead->brand_id)
+            && $this->works($user, $lead)
+            && $user->can(Permission::LeadsUpdate->value);
     }
 
     public function delete(User $user, Lead $lead): bool
@@ -114,10 +133,13 @@ final class LeadPolicy
         return $this->update($user, $lead) && ($user->isGlobalAdmin() || $user->can(Permission::SalesRecord->value));
     }
 
-    /** Anyone who may see the lead may reveal its contact details (logged, limited for Agents). */
+    /**
+     * Whoever works the lead may reveal its contact details (logged, limited
+     * for Agents). A colleague's lead, or a free one not taken yet, stays masked.
+     */
     public function reveal(User $user, Lead $lead): bool
     {
-        return $this->view($user, $lead);
+        return $this->update($user, $lead);
     }
 
     public function export(User $user): bool
@@ -128,6 +150,26 @@ final class LeadPolicy
     public function import(User $user): bool
     {
         return $user->isGlobalAdmin();
+    }
+
+    /** The lead is theirs, or in a department they manage. */
+    private function works(User $user, Lead $lead): bool
+    {
+        if ($lead->assigned_to === $user->getKey()) {
+            return true;
+        }
+
+        return $user->isManagerIn($lead->brand_id)
+            && $lead->department_id !== null
+            && in_array($lead->department_id, $user->managedDepartmentIds($lead->brand_id), true);
+    }
+
+    /** The lead is in one of their front sales teams, or in no team yet while they are on one. */
+    private function inFrontTeam(User $user, Lead $lead): bool
+    {
+        $front = $user->frontDepartmentIds($lead->brand_id);
+
+        return $front !== [] && ($lead->department_id === null || in_array($lead->department_id, $front, true));
     }
 
     private function inCurrentBrand(Lead $lead): bool

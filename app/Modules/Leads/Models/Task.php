@@ -64,11 +64,11 @@ class Task extends Model
         return $query->open()->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
     }
 
-    /** Tasks on leads the user may see, plus tasks assigned to them. */
+    /** Tasks on leads the user works, plus tasks assigned to them: a colleague's follow-ups are not on their list. */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         return $query->where(function (Builder $query) use ($user): void {
-            $query->whereIn('lead_id', Lead::query()->visibleTo($user)->select('leads.id'))
+            $query->whereIn('lead_id', Lead::query()->workedBy($user)->select('leads.id'))
                 ->orWhere('user_id', $user->getKey());
         });
     }

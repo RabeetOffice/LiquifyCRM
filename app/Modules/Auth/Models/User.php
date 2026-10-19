@@ -274,6 +274,27 @@ class User extends Authenticatable
             ->all();
     }
 
+    /**
+     * Ids of the brand's front sales teams this user is on (managed or worked
+     * in): every department that works leads, not the Upsell ones. Front
+     * sales sees the whole team's leads, so whoever is free can take one.
+     *
+     * @return list<int>
+     */
+    public function frontDepartmentIds(Brand|int $brand): array
+    {
+        $brandId = $brand instanceof Brand ? $brand->getKey() : $brand;
+
+        return $this->departments()
+            ->acrossBrands()
+            ->where('departments.brand_id', $brandId)
+            ->get()
+            ->reject(fn (Department $department): bool => $department->isUpsell())
+            ->map(fn (Department $department): int => (int) $department->getKey())
+            ->values()
+            ->all();
+    }
+
     public function managesDepartment(Department|int $department): bool
     {
         $departmentId = $department instanceof Department ? $department->getKey() : $department;

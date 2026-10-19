@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.25.0',
+        'date' => '2026-10-19',
+        'title' => 'Front sales sees every lead of its team and takes one',
+        'changes' => [
+            ['new', 'Agents on a front sales team now see all of their team\'s leads, from the websites and Facebook, the moment they arrive: on Leads, the Pipeline, the Inbox and the dashboard. Leads that no team has yet show there too.'],
+            ['new', 'Take: a free lead has a Take button (in the list, on the lead, on the dashboard and under a free chat in the Inbox). One click and the lead is yours, its phone and email open, and everybody else sees your name on it. When two people click at the same moment, the first one gets it and the other is told who did. Undo on the message gives it back.'],
+            ['new', 'Managers can take a lead for themselves: with the same Take button, or by choosing themselves (marked "you") in the assign menu. Managers of the team are now in that menu too.'],
+            ['new', 'Every Agent of the team gets a bell, a sound and a desktop alert for a new free lead (no email; the Managers still get theirs). A lead that round robin gives away goes straight to its person, as before.'],
+            ['improved', 'A colleague\'s lead can be looked at, not changed: its phone, email and sale stay with whoever is on it, and only they reply in its chat. Looking at a colleague\'s chat leaves it unread for them.'],
+            ['improved', 'An Agent\'s own numbers, follow-ups and "Mine" view still show only their own leads.'],
+            ['improved', 'If you made front sellers Managers so that they could see the leads, you can make them Agents again in People.'],
+        ],
+    ],
+    [
         'version' => '1.24.1',
         'date' => '2026-10-16',
         'title' => 'liquify.php finds the database on more websites',

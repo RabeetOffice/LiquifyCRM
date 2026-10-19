@@ -151,14 +151,43 @@ class Lead extends Model
     // ------------------------------------------------------------------ scopes
 
     /**
-     * Layer 2 of brand isolation: Admins see every lead of the brand, a
-     * Manager the leads of the departments they lead, an Agent only the
-     * leads assigned to them.
+     * Layer 2 of brand isolation: the leads a person works (see workedBy),
+     * and for front sales also the rest of their team's leads and the leads
+     * no team has yet, so whoever is free sees a new lead at once and takes
+     * it (user request, 19 Oct 2026). Seeing a colleague's lead is all it
+     * gives: changing one takes owning it (LeadPolicy::update).
      *
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
     public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isGlobalAdmin()) {
+            return $query;
+        }
+
+        $brand = app(CurrentBrand::class)->get();
+        $front = $brand !== null ? $user->frontDepartmentIds($brand) : [];
+
+        if ($front === []) {
+            return $query->workedBy($user);
+        }
+
+        return $query->where(fn (Builder $query): Builder => $query
+            ->where(fn (Builder $own): Builder => $own->workedBy($user))
+            ->orWhereIn('department_id', $front)
+            ->orWhereNull('department_id'));
+    }
+
+    /**
+     * The leads a person works: Admins every lead of the brand, a Manager
+     * the leads of the departments they lead, an Agent only the leads
+     * assigned to them. Their own numbers and follow-ups come from here.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeWorkedBy(Builder $query, User $user): Builder
     {
         if ($user->isGlobalAdmin()) {
             return $query;

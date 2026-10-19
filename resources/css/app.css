@@ -7118,6 +7118,22 @@ a.lq-boardbar-item:hover {
     margin-top: 0.125rem;
 }
 
+/* A free chat is taken before it is answered, a colleague's is only read: said plainly, not as a warning. */
+.lq-composer-locked.lq-composer-free {
+    align-items: center;
+    background: var(--lq-orange-tint);
+    color: var(--lq-ink-soft);
+}
+
+.lq-composer-locked.lq-composer-free svg {
+    margin-top: 0;
+}
+
+.lq-composer-locked.lq-composer-other {
+    background: var(--lq-info-tint);
+    color: var(--lq-ink-soft);
+}
+
 /* ==========================================================================
    Clients, targets, websites and logs (12 October): the record screens.
    Small facts above each list, a hero and a side rail on a record's own page,
