@@ -5943,6 +5943,78 @@ a.lq-cell-title {
     color: var(--lq-ink-soft);
 }
 
+/* Part payments under a sale (19 Oct 2026): what is in, what is still owed, and each payment received. */
+.lq-paid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-success-tint);
+    font-size: 0.8125rem;
+}
+
+.lq-paid-due {
+    background: var(--lq-warning-tint);
+}
+
+.lq-paid-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.lq-paid-state {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    color: var(--lq-ink-soft);
+}
+
+.lq-paid-state svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.1rem;
+    color: var(--lq-warning);
+}
+
+.lq-paid-state strong {
+    color: var(--lq-ink);
+    font-weight: 600;
+}
+
+.lq-paid-full svg {
+    color: var(--lq-success);
+}
+
+.lq-paid-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.5rem 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--lq-ink) 8%, transparent);
+    list-style: none;
+}
+
+.lq-due-owed {
+    color: var(--lq-warning);
+    font-weight: 600;
+}
+
+.lq-paid-list li,
+.lq-sales .lq-paid-list li {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+}
+
 /* Timeline, message, notes and follow-ups. */
 .lq-lead-main {
     display: flex;

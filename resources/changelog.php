@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.27.0',
+        'date' => '2026-10-19',
+        'title' => 'Won stays Won, and part payments',
+        'changes' => [
+            ['fixed', 'A lead that is Won with a recorded sale now stays in Won. Moving it to another step and winning it again asked for the amount again and counted the sale twice. If a sale was a mistake, an Admin corrects or removes it on the client\'s page, and the lead is free to move again.'],
+            ['new', 'Part payments: Mark as Won now asks for the deal amount and, if the client paid only part of it up front, what they paid now. The whole deal counts towards the targets as before.'],
+            ['new', 'Record payment: under a sale that is not paid in full you see what is paid and what is still to collect. When more money comes in, record it there with its date and a note; every payment is listed, and "Paid in full" shows when it is all in. A payment is not a new sale, so nothing is counted twice.'],
+            ['new', 'The seller, their Manager, the people who look after the client and Admins can record a payment. An upsell can be part-paid in the same way.'],
+            ['new', '"Still to collect" on the Clients list (in total and for each client), on a client\'s page and on the Sales dashboard.'],
+            ['improved', 'Click "Update system" once after this update: part payments need it. Every sale recorded before counts as paid in full.'],
+        ],
+    ],
+    [
         'version' => '1.26.1',
         'date' => '2026-10-19',
         'title' => 'When a lead arrived, with the date and time',

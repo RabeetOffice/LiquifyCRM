@@ -29,7 +29,8 @@ use InvalidArgumentException;
  */
 final class RecordUpsell
 {
-    public function handle(Client $client, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?User $seller = null): Sale
+    /** @param  float|null  $paidNow  what the client paid with the upsell; null for all of it */
+    public function handle(Client $client, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?User $seller = null, ?float $paidNow = null): Sale
     {
         if ($client->isClosed()) {
             throw new InvalidArgumentException('This client is closed. Reopen them to record another sale.');
@@ -38,7 +39,7 @@ final class RecordUpsell
         $brand = Brand::query()->findOrFail($client->brand_id);
         $seller ??= $by;
 
-        $sale = DB::transaction(function () use ($client, $brand, $amount, $service, $closedAt, $by, $seller): Sale {
+        $sale = DB::transaction(function () use ($client, $brand, $amount, $service, $closedAt, $by, $seller, $paidNow): Sale {
             $sale = Sale::query()->create([
                 'brand_id' => $brand->getKey(),
                 // The upsell counts for the department that looks after the client.
@@ -55,6 +56,8 @@ final class RecordUpsell
                 'recorded_by' => $by->getKey(),
             ]);
 
+            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by);
+
             $client->recalculate();
 
             // Recorded in the name of a teammate who is not on the client yet: they sold to it, so they work on it
@@ -67,7 +70,7 @@ final class RecordUpsell
                 'sales.upsell_recorded',
                 $client,
                 ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'sold_by' => $seller->getKey()],
-                'Upsell recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : '').' · '.$seller->name,
+                'Upsell recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : '').' · '.$seller->name.($sale->due() > 0.0 ? ' · '.Money::format($sale->due(), $brand->currency).' to collect' : ''),
                 brand: $brand,
                 department: $sale->department_id,
                 causer: $by,

@@ -12,6 +12,9 @@
         'leads.routed' => 'heroicon-o-arrow-right-circle',
         'leads.client_handed_over' => 'heroicon-o-arrows-right-left',
         'sales.recorded' => 'heroicon-o-trophy',
+        'sales.payment_recorded' => 'heroicon-o-banknotes',
+        'leads.archived' => 'heroicon-o-archive-box',
+        'leads.unarchived' => 'heroicon-o-arrow-uturn-left',
         'leads.status_changed' => 'heroicon-o-arrow-path',
         'leads.note_added' => 'heroicon-o-pencil-square',
         'leads.contact_revealed' => 'heroicon-o-eye',
@@ -71,14 +74,14 @@
 
     <div class="lq-lead-col lq-lead-col-main">
         {{-- Where it stands: one click on a step moves the lead there. --}}
-        <nav class="lq-path" aria-label="Pipeline step" x-data x-init="$nextTick(() => { const step = $el.querySelector('[aria-current]'); if (step) $el.scrollLeft = step.offsetLeft - ($el.clientWidth - step.offsetWidth) / 2 })">
+        <nav class="lq-path" aria-label="Pipeline step" @if ($wonLocked) title="Won with a recorded sale: it stays in Won" @endif x-data x-init="$nextTick(() => { const step = $el.querySelector('[aria-current]'); if (step) $el.scrollLeft = step.offsetLeft - ($el.clientWidth - step.offsetWidth) / 2 })">
             @foreach ($path as $step)
                 <button
                     type="button"
                     @class(['lq-path-step', 'lq-path-'.$step['state']])
                     style="--pill-color: {{ $step['status']->color }}"
                     @if ($step['state'] === 'current') aria-current="step" @endif
-                    @if ($can['update'] && $step['state'] !== 'current')
+                    @if ($can['update'] && $step['state'] !== 'current' && ! $wonLocked)
                         wire:click="moveTo({{ $step['status']->getKey() }})"
                         title="Move to {{ $step['status']->name }}"
                     @else
@@ -453,6 +456,7 @@
                         <li>
                             <span class="lq-sales-amount">{{ \App\Modules\Sales\Support\Money::format($sale->amount, $sale->currency) }}</span>
                             <span class="lq-sales-meta">{{ $sale->service ? $sale->service.' · ' : '' }}{{ $sale->closed_at->format('j M Y') }}{{ $sale->closer ? ' · '.$sale->closer->name : '' }}</span>
+                            <x-sales::sale-payments :sale="$sale" :can-pay="auth()->user()?->can('recordPayment', $sale) ?? false" />
                         </li>
                     @endforeach
                 </ul>
@@ -540,14 +544,24 @@
         </x-slot:footer>
     </x-ui.modal>
 
+    @include('sales::partials.payment-sheet')
+
     <x-ui.modal model="showWon" title="Mark as Won" description="Record the sale. The person becomes a client of this brand and the sale counts towards this month's targets." size="sm">
         <form wire:submit="recordSale" class="lq-form" id="won-form">
-            <x-ui.field label="Amount" name="wonAmount" required>
+            <x-ui.field :label="$paymentsReady ? 'Deal amount' : 'Amount'" name="wonAmount" required :help="$paymentsReady ? 'The full price they agreed to. It counts towards the targets.' : null">
                 <div class="lq-input-group">
                     <span class="lq-input-prefix">{{ $brandCurrency }}</span>
                     <x-ui.input type="number" step="0.01" min="0" wire:model="wonAmount" name="wonAmount" inputmode="decimal" placeholder="1500" />
                 </div>
             </x-ui.field>
+            @if ($paymentsReady)
+                <x-ui.field label="Paid now" name="wonPaid" help="Only if they paid part of it up front. Leave it empty when they paid it all; the rest is recorded later with Record payment.">
+                    <div class="lq-input-group">
+                        <span class="lq-input-prefix">{{ $brandCurrency }}</span>
+                        <x-ui.input type="number" step="0.01" min="0" wire:model="wonPaid" name="wonPaid" inputmode="decimal" placeholder="All of it" />
+                    </div>
+                </x-ui.field>
+            @endif
             <x-ui.field label="Service or package" name="wonService">
                 <x-ui.input wire:model="wonService" name="wonService" placeholder="Publishing package" />
             </x-ui.field>

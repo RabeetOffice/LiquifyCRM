@@ -30,11 +30,12 @@ use Illuminate\Support\Facades\Notification;
  */
 final class RecordSale
 {
-    public function handle(Lead $lead, float $amount, ?string $service, CarbonInterface $closedAt, User $by): Sale
+    /** @param  float|null  $paidNow  what the client paid with the sale; null for all of it */
+    public function handle(Lead $lead, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?float $paidNow = null): Sale
     {
         $brand = Brand::query()->findOrFail($lead->brand_id);
 
-        $sale = DB::transaction(function () use ($lead, $brand, $amount, $service, $closedAt, $by): Sale {
+        $sale = DB::transaction(function () use ($lead, $brand, $amount, $service, $closedAt, $by, $paidNow): Sale {
             $client = ($lead->client_id !== null ? Client::query()->forBrand($brand)->find($lead->client_id) : null)
                 ?? Client::match($brand, $lead->email, $lead->phone)
                 ?? Client::query()->create(['brand_id' => $brand->getKey(), 'name' => $lead->name, 'email' => $lead->email, 'phone' => $lead->phone]);
@@ -56,6 +57,9 @@ final class RecordSale
                 'recorded_by' => $by->getKey(),
             ]);
 
+            // The whole deal counts; the payments say how much of it is in.
+            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by);
+
             $client->recalculate();
 
             $lead->forceFill([
@@ -75,7 +79,7 @@ final class RecordSale
                 'sales.recorded',
                 $lead,
                 ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'client_id' => $client->getKey()],
-                'Sale recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : ''),
+                'Sale recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : '').($sale->due() > 0.0 ? ' · '.Money::format($sale->paid(), $brand->currency).' paid, '.Money::format($sale->due(), $brand->currency).' to collect' : ''),
                 brand: $brand,
                 causer: $by,
                 logName: 'sales',

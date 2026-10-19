@@ -23,10 +23,11 @@ final class RecordSaleController
             'amount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
             'service' => ['nullable', 'string', 'max:190'],
             'closed_at' => ['nullable', 'date', 'before_or_equal:today'],
+            'paid' => ['nullable', 'numeric', 'min:0', 'lte:amount'],
         ]);
 
         $closedAt = isset($data['closed_at']) ? CarbonImmutable::parse($data['closed_at'])->setTimeFrom(now()) : now();
-        $sale = $action->handle($lead, (float) $data['amount'], $data['service'] ?? null, $closedAt, $request->user());
+        $sale = $action->handle($lead, (float) $data['amount'], $data['service'] ?? null, $closedAt, $request->user(), isset($data['paid']) ? (float) $data['paid'] : null);
 
         return response()->json([
             'id' => $sale->getKey(),

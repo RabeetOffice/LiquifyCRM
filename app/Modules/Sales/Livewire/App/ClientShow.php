@@ -16,6 +16,7 @@ use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordUpsell;
 use App\Modules\Sales\Actions\SaveClientNote;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ClientFile;
 use App\Modules\Sales\Models\ClientNote;
@@ -23,6 +24,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sales\Support\ClientCare;
 use App\Modules\Sales\Support\Money;
+use App\Modules\Sales\Support\SalePayments;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -45,6 +47,7 @@ use Livewire\WithFileUploads;
 final class ClientShow extends Component
 {
     use AuthorizesRequests;
+    use RecordsPayments;
     use WithConfirmation;
     use WithFileUploads;
     use WithToasts;
@@ -142,11 +145,15 @@ final class ClientShow extends Component
 
     public string $upsellSeller = '';
 
+    /** What the client paid with the upsell, when it is less than the deal (empty: all of it). */
+    public string $upsellPaid = '';
+
     public function openUpsell(): void
     {
         $this->authorize('recordUpsell', $this->client);
 
         $this->upsellAmount = '';
+        $this->upsellPaid = '';
         $this->upsellService = '';
         $this->upsellClosedAt = now()->toDateString();
         $this->upsellSeller = (string) $this->user()->getKey();
@@ -160,10 +167,11 @@ final class ClientShow extends Component
 
         $data = $this->validate([
             'upsellAmount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
+            'upsellPaid' => ['nullable', 'numeric', 'min:0', 'lte:upsellAmount'],
             'upsellService' => ['required', 'string', 'max:190'],
             'upsellClosedAt' => ['required', 'date', 'before_or_equal:today'],
             'upsellSeller' => ['nullable', 'integer'],
-        ], attributes: ['upsellAmount' => 'amount', 'upsellService' => 'what was sold', 'upsellClosedAt' => 'date', 'upsellSeller' => 'seller']);
+        ], attributes: ['upsellAmount' => 'amount', 'upsellPaid' => 'paid now', 'upsellService' => 'what was sold', 'upsellClosedAt' => 'date', 'upsellSeller' => 'seller']);
 
         // An upsell goes under the name of whoever enters it; only a Manager or an Admin may enter it for a colleague.
         $seller = $this->user();
@@ -172,7 +180,7 @@ final class ClientShow extends Component
             $seller = User::query()->findOrFail((int) $data['upsellSeller']);
         }
 
-        $sale = $action->handle($this->client, (float) $data['upsellAmount'], $data['upsellService'], CarbonImmutable::parse($data['upsellClosedAt'])->setTimeFrom(now()), $this->user(), $seller);
+        $sale = $action->handle($this->client, (float) $data['upsellAmount'], $data['upsellService'], CarbonImmutable::parse($data['upsellClosedAt'])->setTimeFrom(now()), $this->user(), $seller, filled($data['upsellPaid'] ?? null) ? (float) $data['upsellPaid'] : null);
 
         $this->showUpsell = false;
         $this->tab = 'story';
@@ -458,6 +466,11 @@ final class ClientShow extends Component
 
     // ----------------------------------------------------------------- render
 
+    protected function paymentRecorded(): void
+    {
+        $this->client->refresh();
+    }
+
     public function render(): View
     {
         $user = $this->user();
@@ -470,7 +483,7 @@ final class ClientShow extends Component
         $sales = Sale::query()
             ->where('client_id', $this->client->getKey())
             ->when(! $care, fn (Builder $query): Builder => $query->visibleTo($user))
-            ->with(['closer', 'department'])
+            ->with(['closer', 'department', ...(SalePayments::ready() ? ['payments.recorder'] : [])])
             ->oldest('closed_at')
             ->oldest('id')
             ->get();
@@ -505,7 +518,10 @@ final class ClientShow extends Component
                 'front' => (float) $sales->reject(fn (Sale $sale): bool => $sale->isUpsell())->sum('amount'),
                 'upsell' => (float) $upsells->sum('amount'),
                 'upsells' => $upsells->count(),
+                // Part payments: what this person sees of the deals that is not in yet.
+                'due' => (float) $sales->sum(fn (Sale $sale): float => $sale->due()),
             ],
+            'paymentsReady' => SalePayments::ready(),
             'leads' => $leads,
             'files' => $files,
             'notes' => $care ? ClientNote::query()->where('client_id', $this->client->getKey())->with('author')->latest('id')->get() : new Collection,

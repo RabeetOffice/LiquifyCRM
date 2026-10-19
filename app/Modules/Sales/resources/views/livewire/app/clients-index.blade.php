@@ -9,6 +9,9 @@
         <div class="lq-minis">
             <x-ui.mini :label="$tab === 'closed' ? 'Closed clients' : 'Clients'" :value="number_format($summary['clients'])" icon="heroicon-o-user-group" />
             <x-ui.mini label="Lifetime value" :value="Money::format($summary['value'], $brand->currency)" icon="heroicon-o-banknotes" />
+            @if ($paymentsReady)
+                <x-ui.mini label="Still to collect" :value="Money::format($summary['due'], $brand->currency)" icon="heroicon-o-clock" :tone="$summary['due'] > 0 ? 'warn' : null" hint="What clients still owe on deals they paid part of" />
+            @endif
             @if ($ready)
                 <x-ui.mini label="From upsells" :value="Money::format($summary['upsell'], $brand->currency)" icon="heroicon-o-arrow-trending-up" :tone="$summary['upsell'] > 0 ? 'ok' : null" :hint="$summary['value'] > 0 ? round($summary['upsell'] / $summary['value'] * 100).'% of the lifetime value came after the first sale' : null" />
             @else
@@ -140,6 +143,9 @@
                                             <span class="lq-worth-value lq-tabular">{{ Money::format($worth, $brand->currency) }}</span>
                                             <span class="lq-worth-bar"><span style="width: {{ $summary['top'] > 0 ? max(4, (int) round($worth / $summary['top'] * 100)) : 0 }}%"></span></span>
                                         </span>
+                                        @if (($dues[$client->getKey()] ?? 0) > 0)
+                                            <span class="lq-cell-sub lq-due-owed">{{ Money::format($dues[$client->getKey()], $brand->currency) }} to collect</span>
+                                        @endif
                                     </td>
                                     <td class="lq-muted whitespace-nowrap lq-col-wide">{{ $client->first_sale_at?->format('j M Y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap" title="{{ $client->last_sale_at?->format('j M Y') }}">{{ $client->last_sale_at?->diffForHumans() ?? '—' }}</td>

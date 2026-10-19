@@ -16,6 +16,7 @@ use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
 use App\Modules\Leads\Enums\LeadSource;
+use App\Modules\Leads\Exceptions\LeadIsWon;
 use App\Modules\Leads\Exports\LeadsExport;
 use App\Modules\Leads\Livewire\Concerns\PreviewsLead;
 use App\Modules\Leads\Livewire\Concerns\TakesLeads;
@@ -260,16 +261,23 @@ final class LeadsIndex extends Component
             return;
         }
 
+        $won = 0;
+
         foreach ($this->selectedLeads() as $lead) {
             if ($this->user()->can('update', $lead)) {
-                app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
-                $done++;
+                try {
+                    app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
+                    $done++;
+                } catch (LeadIsWon) {
+                    // Won with a sale: it stays in Won.
+                    $won++;
+                }
             }
         }
 
         $this->showBulkStatus = false;
         $this->selected = [];
-        $this->toastSuccess("{$done} ".str('lead')->plural($done).' moved to '.$status->name);
+        $this->toastSuccess("{$done} ".str('lead')->plural($done).' moved to '.$status->name, $won > 0 ? $won.' won '.str('lead')->plural($won).' with a sale stayed in Won.' : null);
     }
 
     public function confirmBulkDelete(): void

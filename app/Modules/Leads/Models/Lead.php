@@ -14,6 +14,7 @@ use App\Modules\Leads\Database\Factories\LeadFactory;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Support\ContactMask;
 use App\Modules\Leads\Support\LeadArchive;
+use App\Modules\Sales\Models\Sale;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -341,6 +342,18 @@ class Lead extends Model
     public function touchActivity(): void
     {
         $this->forceFill(['last_activity_at' => now()])->saveQuietly();
+    }
+
+    /** A sale was recorded on this lead: Won with an amount, so it stays in Won (ChangeLeadStatus). */
+    public function hasSale(): bool
+    {
+        return Sale::query()->acrossBrands()->where('lead_id', $this->getKey())->exists();
+    }
+
+    /** Won with a recorded sale: its pipeline step no longer moves. */
+    public function isLockedInWon(): bool
+    {
+        return $this->status->is_won && $this->hasSale();
     }
 
     public function isArchived(): bool

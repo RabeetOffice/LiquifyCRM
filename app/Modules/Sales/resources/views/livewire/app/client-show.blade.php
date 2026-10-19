@@ -251,6 +251,7 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        <x-sales::sale-payments :sale="$sale" :can-pay="auth()->user()?->can('recordPayment', $sale) ?? false" />
                                     </div>
                                 </li>
                             @elseif ($entry['type'] === 'handover')
@@ -397,6 +398,9 @@
                 <div class="lq-card-body">
                     <dl class="lq-kv">
                         <div><dt>Sales</dt><dd class="lq-tabular">{{ $sales->count() }}</dd></div>
+                        @if ($paymentsReady)
+                            <div><dt>Still to collect</dt><dd @class(['lq-tabular', 'lq-due-owed' => $totals['due'] > 0])>{{ $totals['due'] > 0 ? Money::format($totals['due'], $currency) : 'Nothing' }}</dd></div>
+                        @endif
                         <div><dt>Average sale</dt><dd class="lq-tabular">{{ $sales->count() > 0 ? Money::format(round($totals['all'] / $sales->count()), $currency) : '—' }}</dd></div>
                         <div><dt>First sale</dt><dd>{{ $sales->first()?->closed_at->format('j M Y') ?? '—' }}</dd></div>
                         <div><dt>Last sale</dt><dd title="{{ $sales->last()?->closed_at->format('j M Y') }}">{{ $sales->last()?->closed_at->diffForHumans() ?? '—' }}</dd></div>
@@ -450,6 +454,8 @@
 
     {{-- Dialogs --}}
     @if ($can['upsell'])
+        @include('sales::partials.payment-sheet')
+
         <x-ui.modal model="showUpsell" title="Record an upsell" description="Another sale to this client. It is added to their story and counts towards this month's targets." size="sm">
             <form wire:submit="recordUpsell" class="lq-form" id="upsell-form">
                 <x-ui.field label="What was sold" name="upsellService" required>
@@ -461,6 +467,14 @@
                         <x-ui.input type="number" step="0.01" min="0" wire:model="upsellAmount" name="upsellAmount" inputmode="decimal" placeholder="800" />
                     </div>
                 </x-ui.field>
+                @if ($paymentsReady)
+                    <x-ui.field label="Paid now" name="upsellPaid" help="Only if they paid part of it now. Leave it empty when they paid it all.">
+                        <div class="lq-input-group">
+                            <span class="lq-input-prefix">{{ $currency }}</span>
+                            <x-ui.input type="number" step="0.01" min="0" wire:model="upsellPaid" name="upsellPaid" inputmode="decimal" placeholder="All of it" />
+                        </div>
+                    </x-ui.field>
+                @endif
                 <x-ui.field label="Date" name="upsellClosedAt" required>
                     <x-ui.input type="date" wire:model="upsellClosedAt" name="upsellClosedAt" max="{{ now()->toDateString() }}" />
                 </x-ui.field>

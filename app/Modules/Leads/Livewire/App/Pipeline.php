@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\Permission;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
+use App\Modules\Leads\Exceptions\LeadIsWon;
 use App\Modules\Leads\Livewire\Concerns\HandlesLeadUndo;
 use App\Modules\Leads\Livewire\Concerns\PreviewsLead;
 use App\Modules\Leads\Models\Lead;
@@ -81,7 +82,13 @@ final class Pipeline extends Component
 
         $previous = $lead->status_id;
 
-        app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
+        try {
+            app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
+        } catch (LeadIsWon $exception) {
+            $this->toastWarning($lead->name.' stays in Won', $exception->getMessage());
+
+            return;
+        }
 
         $this->toast($lead->name.' → '.$status->name, null, 'success', $this->undoPayload($lead, 'status', $previous));
     }
@@ -132,6 +139,11 @@ final class Pipeline extends Component
         $movable = array_flip($user->isGlobalAdmin() || $leads->isEmpty()
             ? $leads->modelKeys()
             : Lead::query()->workedBy($user)->whereKey($leads->modelKeys())->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
+
+        // A won lead with a recorded sale stays in Won.
+        foreach ($won->isEmpty() ? [] : Sale::query()->whereIn('lead_id', $won->modelKeys())->distinct()->pluck('lead_id') as $leadId) {
+            unset($movable[(int) $leadId]);
+        }
 
         return view('leads::livewire.app.pipeline', [
             'statuses' => $statuses,

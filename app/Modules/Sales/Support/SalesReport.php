@@ -101,7 +101,7 @@ final class SalesReport
     // ------------------------------------------------------------------ cards
 
     /**
-     * @return array{revenue: float, count: int, upsell_revenue: float, upsells: int, previous_revenue: float, previous_count: int, change: ?int}
+     * @return array{revenue: float, count: int, upsell_revenue: float, upsells: int, previous_revenue: float, previous_count: int, change: ?int, due: float}
      */
     public function totals(): array
     {
@@ -118,6 +118,8 @@ final class SalesReport
             'previous_revenue' => $before['revenue'],
             'previous_count' => $before['count'],
             'change' => $before['revenue'] > 0 ? (int) round(($now['revenue'] - $before['revenue']) / $before['revenue'] * 100) : null,
+            // Part payments: what clients still owe on the scope's deals, whenever they were closed. One brand only (own currency).
+            'due' => SalePayments::ready() && ! $this->reporting ? (float) $this->sales(null)->toBase()->selectRaw('COALESCE(SUM(GREATEST(amount - COALESCE(amount_paid, amount), 0)), 0) as due')->value('due') : 0.0,
         ];
     }
 

@@ -10,6 +10,7 @@ use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
+use App\Modules\Leads\Exceptions\LeadIsWon;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
@@ -72,7 +73,12 @@ trait HandlesLeadUndo
                 return;
             }
 
-            app(ChangeLeadStatus::class)->handle($record, $status, $user);
+            try {
+                app(ChangeLeadStatus::class)->handle($record, $status, $user);
+            } catch (LeadIsWon) {
+                // Won with a sale since: it stays there.
+                return;
+            }
         } else {
             return;
         }

@@ -19,6 +19,7 @@ use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Actions\RevealLeadContact;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
+use App\Modules\Leads\Exceptions\LeadIsWon;
 use App\Modules\Leads\Exceptions\RevealLimitReached;
 use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
 use App\Modules\Leads\Livewire\Concerns\TakesLeads;
@@ -32,12 +33,14 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ClientFile;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sales\Support\ClientCare;
 use App\Modules\Sales\Support\Money;
+use App\Modules\Sales\Support\SalePayments;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -60,6 +63,7 @@ final class LeadPanel extends Component
 {
     use AuthorizesRequests;
     use EditsLeadDetails;
+    use RecordsPayments;
     use TakesLeads;
     use WithConfirmation;
     use WithFileUploads;
@@ -97,6 +101,9 @@ final class LeadPanel extends Component
     public string $wonService = '';
 
     public string $wonClosedAt = '';
+
+    /** What the client paid with the sale, when it is less than the deal (empty: all of it). */
+    public string $wonPaid = '';
 
     /** The signed contract or the invoice, added with the sale. */
     public mixed $wonContract = null;
@@ -216,6 +223,13 @@ final class LeadPanel extends Component
     {
         $lead = $this->lead();
         $this->authorize('update', $lead);
+
+        if ($lead->isLockedInWon()) {
+            $this->toastWarning('This lead stays in Won', LeadIsWon::withSale()->getMessage());
+
+            return;
+        }
+
         $this->statusTo = (string) $lead->status_id;
         $this->showStatus = true;
     }
@@ -254,7 +268,13 @@ final class LeadPanel extends Component
             return;
         }
 
-        app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
+        try {
+            app(ChangeLeadStatus::class)->handle($lead, $status, $this->user());
+        } catch (LeadIsWon $exception) {
+            $this->toastWarning('This lead stays in Won', $exception->getMessage());
+
+            return;
+        }
 
         $this->changed();
         $this->toast('Status: '.$status->name, null, 'success', $this->undoPayload($lead, 'status', $previous));
@@ -266,6 +286,7 @@ final class LeadPanel extends Component
         $this->authorize('recordSale', $lead);
 
         $this->wonAmount = '';
+        $this->wonPaid = '';
         $this->wonService = (string) ($lead->fields['service'] ?? '');
         $this->wonClosedAt = now()->toDateString();
         $this->wonContract = null;
@@ -281,11 +302,12 @@ final class LeadPanel extends Component
 
         $data = $this->validate([
             'wonAmount' => ['required', 'numeric', 'min:0.01', 'max:99999999'],
+            'wonPaid' => ['nullable', 'numeric', 'min:0', 'lte:wonAmount'],
             'wonService' => ['nullable', 'string', 'max:190'],
             'wonClosedAt' => ['required', 'date', 'before_or_equal:today'],
             'wonContract' => ['nullable', ...StoreClientFile::rules()],
             'wonHandTo' => ['nullable', 'string'],
-        ], ['wonContract.max' => 'The file may be up to '.(ClientFile::MAX_KB / 1024).' MB.'], ['wonAmount' => 'amount', 'wonService' => 'service or package', 'wonClosedAt' => 'close date', 'wonContract' => 'contract']);
+        ], ['wonContract.max' => 'The file may be up to '.(ClientFile::MAX_KB / 1024).' MB.'], ['wonAmount' => 'deal amount', 'wonPaid' => 'paid now', 'wonService' => 'service or package', 'wonClosedAt' => 'close date', 'wonContract' => 'contract']);
 
         $team = filled($data['wonHandTo'] ?? null) ? CareTeams::parse($this->brand(), (string) $data['wonHandTo']) : null;
 
@@ -295,7 +317,7 @@ final class LeadPanel extends Component
             return;
         }
 
-        $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user());
+        $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user(), filled($data['wonPaid'] ?? null) ? (float) $data['wonPaid'] : null);
         $client = ClientCare::ready() ? Client::query()->find($sale->client_id) : null;
         $told = 'It counts towards this month\'s targets.';
 
@@ -312,7 +334,7 @@ final class LeadPanel extends Component
         $this->wonContract = null;
         $this->showWon = false;
         $this->changed();
-        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), $told);
+        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), $sale->due() > 0.0 ? Money::format($sale->due(), $sale->currency).' still to collect: record it with Record payment when it comes. '.$told : $told);
     }
 
     /** After the sale: send the client to an Upsell team (or a person in it). */
@@ -553,7 +575,7 @@ final class LeadPanel extends Component
         $canUpdate = $user->can('update', $lead);
 
         // On a colleague's lead only the sales this person may see anyway: front sales does not see each other's money.
-        $sales = Sale::query()->where('lead_id', $lead->getKey())->when(! $canUpdate, fn ($query) => $query->visibleTo($user))->with('closer')->latest('closed_at')->get();
+        $sales = Sale::query()->where('lead_id', $lead->getKey())->when(! $canUpdate, fn ($query) => $query->visibleTo($user))->with(['closer', ...(SalePayments::ready() ? ['payments.recorder'] : [])])->latest('closed_at')->get();
 
         // The client this lead became: where they are now, and the files front sales added for them.
         $client = $sales->isNotEmpty() ? $this->client() : null;
@@ -587,6 +609,7 @@ final class LeadPanel extends Component
             'maxMb' => ClientFile::MAX_KB / 1024,
             'careReady' => ClientCare::ready(),
             'brandCurrency' => $this->brand()->currency,
+            'paymentsReady' => SalePayments::ready(),
             'conversationId' => $chat?->getKey(),
             'chatChannel' => $chat?->channelLabel() ?? 'Messenger',
             'statuses' => $statuses,
@@ -600,6 +623,8 @@ final class LeadPanel extends Component
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],
             'teamChoices' => $canDistribute ? $this->teamChoices() : [],
             'departmentOptions' => $this->departmentOptions(),
+            // Won with a sale: the pipeline path stands still (the sale is corrected on the client's page instead).
+            'wonLocked' => $lead->status->is_won && ($sales->isNotEmpty() || $lead->hasSale()),
             'archived' => $lead->isArchived() ? ['by' => $lead->archiver?->name, 'at' => $lead->archived_at] : null,
             'can' => [
                 'take' => $user->can('take', $lead),
@@ -655,6 +680,11 @@ final class LeadPanel extends Component
     protected function detailsLead(): Lead
     {
         return $this->lead();
+    }
+
+    protected function paymentRecorded(): void
+    {
+        $this->changed();
     }
 
     private function changed(): void

@@ -46,7 +46,7 @@
 
     <div class="lq-grid-stats">
         <x-ui.stat :label="$personal ? 'My revenue this month' : 'Revenue this month'" :value="Money::format($totals['revenue'], $currency)" icon="heroicon-o-banknotes" hero
-            :description="'Last month '.Money::format($totals['previous_revenue'], $currency)"
+            :description="'Last month '.Money::format($totals['previous_revenue'], $currency).($totals['due'] > 0 ? ' · '.Money::format($totals['due'], $currency).' still to collect' : '')"
             :delta="$totals['change'] !== null ? ($totals['change'] >= 0 ? '+' : '').$totals['change'].'%' : null" :up="$totals['change'] !== null ? $totals['change'] >= 0 : null" />
         <x-ui.stat :label="$personal ? 'My sales' : 'Sales closed'" :value="$totals['count']" icon="heroicon-o-trophy"
             :description="$totals['upsells'] > 0

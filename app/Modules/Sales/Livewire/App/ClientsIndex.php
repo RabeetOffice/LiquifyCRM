@@ -16,6 +16,7 @@ use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sales\Support\ClientCare;
+use App\Modules\Sales\Support\SalePayments;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -210,6 +211,33 @@ final class ClientsIndex extends Component
             }
         }
 
+        // Part payments: what is still to collect, by the same rule as the money above (all of it on a client this
+        // person is on, their own team's sales on the others).
+        $owed = 'COALESCE(SUM(GREATEST(amount - COALESCE(amount_paid, amount), 0)), 0)';
+        $dues = [];
+        $dueTotal = 0.0;
+
+        if (SalePayments::ready()) {
+            $pageIds = collect($clients->items())->map(fn (Client $client): int => (int) $client->getKey())->all();
+            $theirs = $careIds === null ? $pageIds : array_values(array_intersect($pageIds, $careIds));
+            $byClient = fn (Builder $sales): array => $sales->toBase()->selectRaw('client_id, '.$owed.' as due')->groupBy('client_id')->pluck('due', 'client_id')->all();
+
+            $others = array_values(array_diff($pageIds, $theirs));
+            // Keyed by client id; the two sets never share a client.
+            $rows = ($theirs === [] ? [] : $byClient(Sale::query()->whereIn('client_id', $theirs)))
+                + ($others === [] ? [] : $byClient(Sale::query()->visibleTo($user)->whereIn('client_id', $others)));
+
+            foreach ($rows as $clientId => $due) {
+                $dues[(int) $clientId] = (float) $due;
+            }
+
+            $sumOf = fn (Builder $sales): float => (float) $sales->toBase()->selectRaw($owed.' as due')->value('due');
+            $dueTotal = $careIds === null
+                ? $sumOf(Sale::query()->whereIn('client_id', $scope()->select('clients.id')))
+                : $sumOf(Sale::query()->whereIn('client_id', $careIds === [] ? [0] : $careIds))
+                    + $sumOf(Sale::query()->visibleTo($user)->whereIn('client_id', array_values(array_diff($scope()->toBase()->pluck('clients.id')->map(fn (mixed $id): int => (int) $id)->all(), $careIds)) ?: [0]));
+        }
+
         return view('sales::livewire.app.clients-index', [
             'ready' => $ready,
             'clients' => $clients,
@@ -220,8 +248,12 @@ final class ClientsIndex extends Component
                 'average' => $count > 0 ? (float) $totals->value / $count : 0.0,
                 'returning' => (int) ($totals->came_back ?? 0),
                 'top' => (float) ($totals->top ?? 0),
+                'due' => $dueTotal,
                 'upsell' => $ready ? (float) Sale::query()->where('kind', SaleKind::Upsell->value)->whereIn('client_id', $careIds === null ? $scope()->select('clients.id') : ($careIds === [] ? [0] : $careIds))->sum('amount') : 0.0,
             ],
+            // client id => what is still to collect on it, as this person sees it
+            'dues' => $dues,
+            'paymentsReady' => SalePayments::ready(),
             // client id => what this person may see of a client they are not on
             'shown' => $shown,
             'tabs' => $tabs,

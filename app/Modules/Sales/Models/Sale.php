@@ -10,10 +10,12 @@ use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Enums\SaleKind;
+use App\Modules\Sales\Support\SalePayments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One recorded sale with an amount in the brand's currency: the front sale
@@ -28,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $kind
  * @property int|null $user_id
  * @property string $amount
+ * @property string|null $amount_paid
  * @property string $currency
  * @property string|null $amount_reporting
  * @property string|null $service
@@ -52,6 +55,7 @@ class Sale extends Model
         return [
             'amount' => 'decimal:2',
             'amount_reporting' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
             'closed_at' => 'datetime',
         ];
     }
@@ -89,6 +93,29 @@ class Sale extends Model
     public function isUpsell(): bool
     {
         return $this->kind() === SaleKind::Upsell;
+    }
+
+    /** @return HasMany<SalePayment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class)->orderBy('paid_at')->orderBy('id');
+    }
+
+    /** What is in so far. A sale from before part payments counts as paid in full. */
+    public function paid(): float
+    {
+        return SalePayments::ready() && $this->amount_paid !== null ? (float) $this->amount_paid : (float) $this->amount;
+    }
+
+    /** What the client still owes on this deal. */
+    public function due(): float
+    {
+        return max(0.0, round((float) $this->amount - $this->paid(), 2));
+    }
+
+    public function isPaidInFull(): bool
+    {
+        return $this->due() <= 0.0;
     }
 
     /**

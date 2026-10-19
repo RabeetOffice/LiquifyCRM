@@ -261,6 +261,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - When a lead arrived (user request, 19 Oct 2026): `<x-ui.received :at>` (`inline` for one line) shows "6h ago" over
   the day and time for three days, then the date over the day and time, in the viewer's Profile time zone (else
   `liquify.default_timezone`). Most other times in the app are still shown in UTC.
+- Won stays Won (user request, 19 Oct 2026): `ChangeLeadStatus` throws `LeadIsWon` when a lead with a sale
+  (`Lead::hasSale()`) would leave Won; every caller catches it (panel, pipeline, bulk status, undo) and the path and
+  pipeline card stand still. A wrong Won is undone only by `CorrectSale::delete` (Admins), which frees the lead.
+- Part payments (user request, 19 Oct 2026; the user chose that the whole deal counts towards targets): `sales.amount`
+  is the deal, `sales.amount_paid` what is in, each payment a `sale_payments` row (behind `SalePayments::ready()`; the
+  update gives every older sale one payment of its full amount). `RecordPayment` (`handle` never takes more than is
+  owed; `opening` for "Paid now" in `RecordSale` / `RecordUpsell`), `SalePolicy::recordPayment` (seller, their
+  Manager, the client's care team, Admins), the `RecordsPayments` trait with `sales::partials.payment-sheet` and
+  `<x-sales::sale-payments>`. A payment is never a new sale: targets, lifetime value and lead value read `amount`.
 - Copy a lead (user request, 19 Oct 2026): `LeadEnquiry::copyText()` (name, phone, email, source, message and
   answers, contact masked as the viewer sees it) behind the copy button in the lead's hero.
 - One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that
