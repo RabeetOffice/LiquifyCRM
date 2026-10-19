@@ -108,6 +108,7 @@ final class Pipeline extends Component
 
         $leads = Lead::query()
             ->visibleTo($user)
+            ->unarchived()
             ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
             ->when((! $agent || $team) && $this->owner === 'none', fn (Builder $q): Builder => $q->whereNull('assigned_to'))
             ->when($this->owner === 'mine', fn (Builder $q): Builder => $q->where('assigned_to', $user->getKey()))

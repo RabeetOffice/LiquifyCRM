@@ -207,7 +207,10 @@ final class Inbox extends Component
         $channels = [Conversation::CHANNEL_MESSENGER, Conversation::CHANNEL_INSTAGRAM];
         $handles = Instagram::ready();
 
-        $conversations = $visible()
+        // The chat of an archived lead is out of the list too; a new message brings the lead back (Lead::heardFrom).
+        $listed = fn (): Builder => $visible()->whereHas('lead', fn (Builder $lead): Builder => $lead->unarchived());
+
+        $conversations = $listed()
             ->with(['lead.status', 'lead.assignee', 'lead.department', 'source'])
             ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $inner): Builder => $inner
                 ->where('contact_name', 'like', $like)
@@ -233,8 +236,8 @@ final class Inbox extends Component
         return view('meta::livewire.app.inbox', [
             'conversations' => $conversations,
             'selected' => $selected,
-            'total' => $visible()->count(),
-            'unread' => $visible()->where('unread_count', '>', 0)->count(),
+            'total' => $listed()->count(),
+            'unread' => $listed()->where('unread_count', '>', 0)->count(),
             // The channel choice shows once there is more than Messenger to choose from.
             'hasInstagram' => $this->channel !== '' || $visible()->where('channel', Conversation::CHANNEL_INSTAGRAM)->exists(),
             'fullContact' => $lead !== null && app(ContactVisibility::class)->canSeeFull($user, $lead),

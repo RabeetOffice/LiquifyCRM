@@ -9,9 +9,11 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Database\Factories\LeadFactory;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Support\ContactMask;
+use App\Modules\Leads\Support\LeadArchive;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -49,6 +51,8 @@ use Illuminate\Support\Str;
  * @property CarbonImmutable|null $next_follow_up_at
  * @property CarbonImmutable|null $last_activity_at
  * @property CarbonImmutable|null $first_contacted_at
+ * @property CarbonImmutable|null $archived_at
+ * @property int|null $archived_by
  * @property int|null $created_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $deleted_at
@@ -82,6 +86,7 @@ class Lead extends Model
             'next_follow_up_at' => 'datetime',
             'last_activity_at' => 'datetime',
             'first_contacted_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -116,6 +121,12 @@ class Lead extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function archiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -215,16 +226,47 @@ class Lead extends Model
         return $query->whereRaw('1 = 0');
     }
 
-    /** @param  Builder<static>  $query */
+    /**
+     * Waiting for an owner. An archived lead is not waiting for anybody.
+     *
+     * @param  Builder<static>  $query
+     */
     public function scopeUnassigned(Builder $query): Builder
     {
-        return $query->whereNull('assigned_to');
+        return $query->whereNull('assigned_to')->unarchived();
     }
 
-    /** The New / Unassigned queue: nobody owns the lead yet, oldest first. */
+    /**
+     * The New / Unassigned queue: nobody owns the lead yet, oldest first.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopeQueue(Builder $query): Builder
     {
-        return $query->whereNull('assigned_to')->oldest('id');
+        return $query->unassigned()->oldest('id');
+    }
+
+    /**
+     * The working lists: leads nobody put in the archive.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeUnarchived(Builder $query): Builder
+    {
+        return LeadArchive::ready() ? $query->whereNull($this->qualifyColumn('archived_at')) : $query;
+    }
+
+    /**
+     * The Archived view: leads a Manager put out of the way, newest first.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeArchived(Builder $query): Builder
+    {
+        return LeadArchive::ready() ? $query->whereNotNull($this->qualifyColumn('archived_at')) : $query->whereRaw('1 = 0');
     }
 
     /** @param  Builder<static>  $query */
@@ -299,5 +341,24 @@ class Lead extends Model
     public function touchActivity(): void
     {
         $this->forceFill(['last_activity_at' => now()])->saveQuietly();
+    }
+
+    public function isArchived(): bool
+    {
+        return LeadArchive::ready() && $this->archived_at !== null;
+    }
+
+    /**
+     * The person got in touch again (a repeat enquiry, a message, a form, an
+     * ad): the lead's activity moves, and an archived lead comes back to the
+     * lists, since they are interested after all.
+     */
+    public function heardFrom(): void
+    {
+        $this->touchActivity();
+
+        if ($this->isArchived()) {
+            app(ArchiveLead::class)->bringBack($this, null, 'Back from the archive: they got in touch again');
+        }
     }
 }

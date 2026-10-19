@@ -42,8 +42,9 @@ final class SpeedCheckCommand extends Command
 
             $results = app(CurrentBrand::class)->within($brand, fn (): array => [
                 'Lead list, first page (50 rows + count)' => $this->time(function (): void {
-                    Lead::query()->with(['status', 'department', 'assignee'])->latest('id')->limit(50)->get();
-                    Lead::query()->count();
+                    // As the list asks since 1.26.0: leads nobody archived, newest first.
+                    Lead::query()->unarchived()->with(['status', 'department', 'assignee'])->latest()->latest('id')->limit(50)->get();
+                    Lead::query()->unarchived()->count();
                 }),
                 'Lead list, Unassigned view' => $this->time(function (): void {
                     Lead::query()->unassigned()->with('status')->oldest('id')->limit(50)->get();

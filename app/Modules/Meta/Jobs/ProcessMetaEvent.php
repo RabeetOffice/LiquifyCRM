@@ -307,7 +307,7 @@ final class ProcessMetaEvent implements ShouldQueue
                 'unread_count' => $conversation->unread_count + 1,
             ])->save();
 
-            $lead->touchActivity();
+            $lead->heardFrom();
 
             // CreateLead already told the right people about a new lead.
             if (! $newLead && $lead->assigned_to !== null) {
@@ -417,7 +417,7 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         Audit::log('leads.ad_tapped', $lead, $ad, 'Tapped the ad "'.$ad['ad'].'" on '.$conversation->channelLabel(), brand: $brand, logName: 'leads');
-        $lead->touchActivity();
+        $lead->heardFrom();
 
         return $lead;
     }

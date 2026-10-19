@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.26.0',
+        'date' => '2026-10-19',
+        'title' => 'Copy a lead in one click, and archive the leads that lead nowhere',
+        'changes' => [
+            ['new', 'Copy: the button next to a lead\'s name copies its name, phone, email and everything they asked for in one go, ready to paste into a chat or a note. A phone or email you see masked is copied masked.'],
+            ['new', 'Archive: a Manager (or an Admin) can archive a lead that leads nowhere, such as spam or a wrong number, with the Archive button on the lead or for many ticked leads at once. It leaves Leads, the queue, the Pipeline, the Inbox, the counts and the follow-ups, and nothing is deleted.'],
+            ['new', 'Archived leads wait under Archived, at the top of Leads next to Bin, with Bring back. A lead also comes back by itself when the person gets in touch again (a new enquiry, a message or a form). Agents do not archive.'],
+            ['improved', 'Click "Update system" once after this update: archiving needs it. Until then everything works as before.'],
+        ],
+    ],
+    [
         'version' => '1.25.0',
         'date' => '2026-10-19',
         'title' => 'Front sales sees every lead of its team and takes one',

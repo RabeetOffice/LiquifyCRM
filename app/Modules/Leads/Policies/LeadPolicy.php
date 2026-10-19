@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\LeadArchive;
 
 /**
  * The Leads rows of the permission table. Super Admin and Admin see and do
@@ -43,6 +44,7 @@ final class LeadPolicy
     public function take(User $user, Lead $lead): bool
     {
         return $lead->assigned_to === null
+            && ! $lead->isArchived()
             && $this->inCurrentBrand($lead)
             && $user->isMemberOf($lead->brand_id)
             && $this->inFrontTeam($user, $lead)
@@ -125,6 +127,28 @@ final class LeadPolicy
         return $user->can(Permission::LeadsAssign->value)
             && $user->isManagerIn($lead->brand_id)
             && ($lead->department_id === null || in_array($lead->department_id, $user->managedDepartmentIds($lead->brand_id), true));
+    }
+
+    /**
+     * Archive a lead that leads nowhere, or bring it back (user request,
+     * 19 Oct 2026): whoever may assign it, an Admin or the Manager of its
+     * department. Agents do not.
+     */
+    public function archive(User $user, Lead $lead): bool
+    {
+        return LeadArchive::ready() && $this->assign($user, $lead);
+    }
+
+    /** The Archived view and the Archive button of the list. */
+    public function archiveAny(User $user): bool
+    {
+        if (! LeadArchive::ready()) {
+            return false;
+        }
+
+        $brand = app(CurrentBrand::class)->get();
+
+        return $user->isGlobalAdmin() || ($brand !== null && $user->isManagerIn($brand) && $user->can(Permission::LeadsAssign->value));
     }
 
     /** "Record a sale (mark Won)": Admins, a Manager in their department, an Agent on their own leads. */

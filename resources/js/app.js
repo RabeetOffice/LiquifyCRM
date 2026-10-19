@@ -370,10 +370,26 @@ Alpine.directive('count', (el) => {
 Alpine.data('copy', (value) => ({
     copied: false,
     copy() {
-        navigator.clipboard?.writeText(value).then(() => {
+        const done = () => {
             this.copied = true;
             setTimeout(() => { this.copied = false; }, 1600);
-        });
+        };
+
+        // Where the clipboard API says no (an older browser, a page that lost focus), the old way still copies.
+        const fallback = () => {
+            const box = Object.assign(document.createElement('textarea'), { value, readOnly: true });
+            box.style.cssText = 'position: fixed; top: 0; left: 0; opacity: 0;';
+            document.body.append(box);
+            box.select();
+
+            try {
+                if (document.execCommand('copy')) done();
+            } finally {
+                box.remove();
+            }
+        };
+
+        navigator.clipboard ? navigator.clipboard.writeText(value).then(done, fallback) : fallback();
     },
 }));
 

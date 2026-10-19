@@ -51,7 +51,12 @@ final class CreateLead
                     logName: 'leads',
                 );
 
-                $existing->touchActivity();
+                // They got in touch again: an archived lead comes back, unless this is a quiet import of old leads.
+                if ($data['silent'] ?? false) {
+                    $existing->touchActivity();
+                } else {
+                    $existing->heardFrom();
+                }
 
                 return new LeadCreation($existing, wasMerged: true);
             }

@@ -7,6 +7,7 @@ namespace App\Modules\Leads\Livewire\Concerns;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
+use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Models\Lead;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 /**
- * The "Undo" button on the assign, take and status toasts (10 seconds) puts the
+ * The "Undo" button on the assign, take, archive and status toasts (10 seconds) puts the
  * previous value back, through the same actions so it is logged too, and
  * under the same rules as doing it by hand: a lead is given only to somebody
  * the assign menu offers, and becomes Won only through a sale. Every screen
@@ -61,6 +62,8 @@ trait HandlesLeadUndo
         } elseif ($kind === 'take' && $record->assigned_to === $user->getKey()) {
             // Taken by mistake: back to the others, free again.
             app(AssignLead::class)->handle($record, null, $user);
+        } elseif ($kind === 'archive' && $user->can('archive', $record)) {
+            app(ArchiveLead::class)->bringBack($record, $user);
         } elseif ($kind === 'status' && $value !== null) {
             $status = LeadStatus::query()->find($value);
 

@@ -87,7 +87,7 @@ final class BrandDashboard extends Component
                 'week' => $worked()->where('created_at', '>=', now()->subDays(7))->count(),
                 'previousWeek' => $worked()->whereBetween('created_at', [now()->subDays(14), now()->subDays(7)])->count(),
                 'unassigned' => $agent && ! $team ? null : $visible()->unassigned()->count(),
-                'myOpen' => $agent ? $worked()->open()->count() : null,
+                'myOpen' => $agent ? $worked()->open()->unarchived()->count() : null,
                 'overdue' => Task::query()->visibleTo($user)->overdue()->count(),
                 'total' => $worked()->count(),
                 // By status id, so the count is answered from the index.

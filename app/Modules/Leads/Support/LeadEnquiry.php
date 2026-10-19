@@ -117,6 +117,49 @@ final class LeadEnquiry
         return preg_match('~^https://(business|www)\.facebook\.com/~i', $url) ? $url : null;
     }
 
+    /**
+     * The lead in one piece of text for the one-click copy (user request,
+     * 19 Oct 2026): name, phone, email and what they asked for, ready to paste
+     * into a chat or a note. Contact details go as the person sees them: a
+     * masked number stays masked.
+     */
+    public static function copyText(Lead $lead, bool $fullContact): string
+    {
+        $phone = $fullContact ? $lead->phone : $lead->maskedPhone();
+        $email = $fullContact ? $lead->email : $lead->maskedEmail();
+
+        $lines = [$lead->name];
+
+        if (filled($phone)) {
+            $lines[] = 'Phone: '.$phone;
+        }
+
+        if (filled($email)) {
+            $lines[] = 'Email: '.$email;
+        }
+
+        $lines[] = 'Source: '.$lead->source_type->getLabel();
+
+        $asked = [];
+
+        if (filled($lead->message)) {
+            $asked[] = 'Message: '.trim((string) $lead->message);
+        }
+
+        foreach (self::answers($lead) as $answer) {
+            // A question keeps its own question mark: "What stage is your book at? Ready to publish".
+            $asked[] = (str_ends_with($answer['label'], '?') ? $answer['label'].' ' : $answer['label'].': ').$answer['value'];
+        }
+
+        if ($asked !== []) {
+            $lines[] = '';
+            $lines[] = 'What they asked for';
+            array_push($lines, ...$asked);
+        }
+
+        return implode("\n", $lines);
+    }
+
     /** "what_stage_is_your_book_at_right_now" as "What stage is your book at right now?". */
     private static function question(string $key): string
     {

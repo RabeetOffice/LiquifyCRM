@@ -81,7 +81,7 @@ final class GlobalSearch extends Component
         if ($leads->isNotEmpty()) {
             $results['Leads'] = $leads->map(fn (Lead $lead): array => [
                 'label' => $lead->name,
-                'detail' => $lead->status->name.($lead->assignee ? ' · '.$lead->assignee->name : ''),
+                'detail' => $lead->status->name.($lead->assignee ? ' · '.$lead->assignee->name : '').($lead->isArchived() ? ' · Archived' : ''),
                 'url' => $brand->url('leads/'.$lead->getKey()),
                 'icon' => 'heroicon-o-user',
             ])->all();

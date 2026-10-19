@@ -12,6 +12,7 @@ use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\AddLeadNote;
+use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Actions\MergeLeads;
@@ -485,6 +486,29 @@ final class LeadPanel extends Component
         $this->toastSuccess('Contact details revealed', 'This reveal is recorded in the activity log.');
     }
 
+    /** Out of the working lists, nothing deleted: Undo on the message, or Bring back later. */
+    public function archive(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('archive', $lead);
+
+        app(ArchiveLead::class)->handle($lead, $this->user());
+
+        $this->changed();
+        $this->toast($lead->name.' archived', 'It is out of the lists. It comes back by itself if they get in touch again.', 'success', $this->undoPayload($lead, 'archive', null));
+    }
+
+    public function bringBack(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('archive', $lead);
+
+        app(ArchiveLead::class)->bringBack($lead, $this->user());
+
+        $this->changed();
+        $this->toastSuccess($lead->name.' is back in the lists');
+    }
+
     public function confirmDelete(): void
     {
         $lead = $this->lead();
@@ -568,6 +592,7 @@ final class LeadPanel extends Component
             'statuses' => $statuses,
             'path' => $this->path($statuses, $lead),
             'answers' => LeadEnquiry::answers($lead),
+            'copyText' => LeadEnquiry::copyText($lead, $canSeeFull),
             'sourceFacts' => LeadEnquiry::source($lead),
             'inboxUrl' => LeadEnquiry::inboxUrl($lead),
             // Other leads of the same person, offered for merging to whoever runs both.
@@ -575,8 +600,10 @@ final class LeadPanel extends Component
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],
             'teamChoices' => $canDistribute ? $this->teamChoices() : [],
             'departmentOptions' => $this->departmentOptions(),
+            'archived' => $lead->isArchived() ? ['by' => $lead->archiver?->name, 'at' => $lead->archived_at] : null,
             'can' => [
                 'take' => $user->can('take', $lead),
+                'archive' => $user->can('archive', $lead),
                 'assign' => $canAssign,
                 'distribute' => $canDistribute,
                 'update' => $canUpdate,

@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Models;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
+use App\Modules\Leads\Support\LeadArchive;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -64,13 +65,19 @@ class Task extends Model
         return $query->open()->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
     }
 
-    /** Tasks on leads the user works, plus tasks assigned to them: a colleague's follow-ups are not on their list. */
+    /**
+     * Tasks on leads the user works, plus tasks assigned to them: a
+     * colleague's follow-ups are not on their list, nor those of a lead
+     * somebody archived.
+     */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         return $query->where(function (Builder $query) use ($user): void {
             $query->whereIn('lead_id', Lead::query()->workedBy($user)->select('leads.id'))
                 ->orWhere('user_id', $user->getKey());
-        });
+        })->when(LeadArchive::ready(), fn (Builder $query): Builder => $query->where(fn (Builder $live): Builder => $live
+            ->whereNull('lead_id')
+            ->orWhereNotIn('lead_id', Lead::query()->acrossBrands()->archived()->select('leads.id'))));
     }
 
     public function isDone(): bool

@@ -70,7 +70,7 @@ final class Menu
         // Front sales counts the free leads waiting to be taken; another Agent their own open leads.
         $queueCount = function () use ($user, $agent, $team): ?string {
             $count = $agent && ! $team
-                ? Lead::query()->workedBy($user)->open()->count()
+                ? Lead::query()->workedBy($user)->open()->unarchived()->count()
                 : Lead::query()->visibleTo($user)->unassigned()->count();
 
             return $count > 0 ? (string) $count : null;

@@ -102,7 +102,7 @@ final class MergeLeads
 
             Audit::log($event, $lead, ['message' => $data['message'] ?? null, 'fields' => $data['fields'] ?? []], $description, causer: $by, logName: 'leads');
 
-            $lead->touchActivity();
+            $lead->heardFrom();
 
             return $lead;
         });

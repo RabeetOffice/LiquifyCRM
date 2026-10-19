@@ -250,6 +250,16 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Take is the one way to get a lead that skips `AssignableAgents`; `LeadPolicy::take` guards it. `AssignableAgents`
   offers Managers too (the asker first, "(you)"); round robin stays Agents only. `LeadNotifier` gives a free lead's
   front people a bell (sound, desktop, push) without email.
+- Archived leads (user request, 19 Oct 2026): `leads.archived_at` / `archived_by`, behind `LeadArchive::ready()`.
+  `ArchiveLead` (handle, `bringBack`) for whoever may `assign` the lead (`LeadPolicy::archive`; `archiveAny` for the
+  Archived view and the bulk buttons); Agents do not archive. An archived lead stays visible and openable but is out
+  of every working list: `unassigned()` / `queue()` leave it out by themselves, and the list's views, Pipeline,
+  Inbox list, `Task::visibleTo`, an Agent's counts and the menu badges use `unarchived()`. Arrival numbers (charts,
+  Overview, reports) still count it. Whatever means the person got in touch again calls `Lead::heardFrom()` instead
+  of `touchActivity()` (repeat enquiry unless `silent`, `MergeLeads::join`, an inbound message, a tapped ad), which
+  brings the lead back with a timeline line. A new working list of leads must use `unarchived()`.
+- Copy a lead (user request, 19 Oct 2026): `LeadEnquiry::copyText()` (name, phone, email, source, message and
+  answers, contact masked as the viewer sees it) behind the copy button in the lead's hero.
 - One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that
   Page (`LeadMatcher::messengerId()`). `ProcessMetaEvent` joins a form to the chat's open lead (`MergeLeads::join`)
   and a chat to the form's open lead (`LeadMatcher::byMessenger`). `LeadMatcher::twins()` finds existing pairs for

@@ -9,6 +9,7 @@
         };
         $emptyText = match (true) {
             $search !== '' || $hasFilters => 'Try another search or clear the filters.',
+            $archivedView => 'A lead that leads nowhere goes here with its Archive button. Nothing is deleted, and it comes back by itself if the person gets in touch again.',
             $team => 'New leads of your team show here the moment they arrive, with a notification. Take one and it is yours.',
             $agent => 'Your Manager assigns leads to you; they appear here with a notification.',
             $isAdmin => 'Add a lead by hand, import a CSV, or connect a website or Facebook so they arrive by themselves.',
@@ -17,6 +18,9 @@
     @endphp
     <x-ui.page-header :title="$agent && ! $team ? 'My leads' : 'Leads'" :subtitle="$subtitle">
         <x-slot:actions>
+            @if ($can['archiveAny'] && ! $archivedView)
+                <x-ui.button variant="ghost" icon="heroicon-o-archive-box" wire:click="$set('tab', 'archived')">Archived</x-ui.button>
+            @endif
             @if ($can['restoreAny'])
                 <x-ui.button variant="ghost" icon="heroicon-o-trash" :href="route('brand.leads.bin', ['brand' => $brand->slug])">Bin</x-ui.button>
             @endif
@@ -121,11 +125,11 @@
         @endif
 
         @if ($leads->isEmpty())
-            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($agent && ! $team ? 'No leads assigned to you yet' : 'No leads yet')" :description="$emptyText" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
+            <x-ui.empty :title="$search !== '' || $hasFilters ? 'No leads match' : ($archivedView ? 'Nothing archived' : ($agent && ! $team ? 'No leads assigned to you yet' : 'No leads yet'))" :description="$emptyText" :image="$search === '' && ! $hasFilters ? asset('images/brand/empty-leads.webp') : null" :icon="$search !== '' || $hasFilters ? 'heroicon-o-magnifying-glass' : null">
                 <x-slot:actions>
                     @if ($search !== '' || $hasFilters)
                         <x-ui.button variant="secondary" wire:click="clearFilters">Clear search and filters</x-ui.button>
-                    @elseif ($can['create'])
+                    @elseif ($can['create'] && ! $archivedView)
                         <x-ui.button variant="primary" :href="route('brand.leads.create', ['brand' => $brand->slug])">Add your first lead</x-ui.button>
                     @endif
                 </x-slot:actions>
@@ -228,6 +232,13 @@
                 <button type="button" class="lq-floatbar-btn" wire:click="$set('showBulkSend', true)"><x-heroicon-o-arrow-right-circle /> Send to team</button>
             @endif
             <button type="button" class="lq-floatbar-btn" wire:click="$set('showBulkStatus', true)"><x-heroicon-o-arrow-path /> Status</button>
+            @if ($can['archiveAny'])
+                @if ($archivedView)
+                    <button type="button" class="lq-floatbar-btn" wire:click="bulkBringBack"><x-heroicon-o-arrow-uturn-left /> Bring back</button>
+                @else
+                    <button type="button" class="lq-floatbar-btn" wire:click="bulkArchive" title="Out of the lists, nothing deleted"><x-heroicon-o-archive-box /> Archive</button>
+                @endif
+            @endif
             @if ($can['deleteAny'])
                 <button type="button" class="lq-floatbar-btn lq-floatbar-danger" wire:click="confirmBulkDelete"><x-heroicon-o-trash /> Delete</button>
             @endif

@@ -62,6 +62,11 @@
                 @endif
             </div>
         </div>
+        {{-- One click copies who they are and what they asked for, ready to paste anywhere. --}}
+        <button type="button" class="lq-btn lq-btn-secondary lq-btn-icon lq-lead-copy" x-data="copy(@js($copyText))" x-on:click="copy()" x-bind:title="copied ? 'Copied' : 'Copy name, phone, email and what they asked for'" x-bind:class="copied && 'lq-lead-copied'" aria-label="Copy name, phone, email and what they asked for">
+            <x-heroicon-o-clipboard-document-list x-show="! copied" />
+            <x-heroicon-o-check x-show="copied" x-cloak />
+        </button>
     </header>
 
     <div class="lq-lead-col lq-lead-col-main">
@@ -88,8 +93,20 @@
             @endforeach
         </nav>
 
+        {{-- Archived: out of the lists, nothing lost. --}}
+        @if ($archived)
+            <div class="lq-archived-note">
+                <span class="lq-archived-note-icon"><x-heroicon-o-archive-box /></span>
+                <p class="min-w-0 flex-1">
+                    <strong>Archived{{ $archived['by'] ? ' by '.$archived['by'] : '' }}</strong>
+                    <span title="{{ $archived['at']?->format('j M Y, H:i') }}">{{ $archived['at']?->diffForHumans() }}</span>.
+                    It is out of the lists, and comes back by itself if they get in touch again.
+                </p>
+            </div>
+        @endif
+
         {{-- What you can do --}}
-        @if ($can['take'] || $can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['delete'])
+        @if ($can['take'] || $can['assign'] || $can['update'] || $can['distribute'] || $can['recordSale'] || $can['archive'] || $can['delete'])
             <div class="lq-actions">
                 @if ($can['take'])
                     {{-- Front sales: "I am on it". Whoever clicks first gets it; the others see their name at once. --}}
@@ -131,6 +148,20 @@
                         <span class="lq-action-icon"><x-heroicon-o-trophy /></span>
                         <span class="lq-action-label">{{ $lead->status->is_won ? 'Add another sale' : 'Mark as Won' }}</span>
                     </button>
+                @endif
+                @if ($can['archive'])
+                    @if ($archived)
+                        <button type="button" class="lq-action" wire:click="bringBack" wire:loading.attr="disabled" wire:target="bringBack">
+                            <span class="lq-action-icon"><x-heroicon-o-arrow-uturn-left /></span>
+                            <span class="lq-action-label">Bring back</span>
+                        </button>
+                    @else
+                        {{-- Spam, a wrong number, nobody answering: out of the lists, nothing deleted. --}}
+                        <button type="button" class="lq-action" wire:click="archive" wire:loading.attr="disabled" wire:target="archive" title="Take it out of the lists. Nothing is deleted.">
+                            <span class="lq-action-icon"><x-heroicon-o-archive-box /></span>
+                            <span class="lq-action-label">Archive</span>
+                        </button>
+                    @endif
                 @endif
                 @if ($can['delete'])
                     <button type="button" class="lq-action lq-action-danger" wire:click="confirmDelete">

@@ -11,6 +11,7 @@ use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
@@ -294,6 +295,50 @@ final class LeadsIndex extends Component
         $this->toastSuccess($leads->count().' '.str('lead')->plural($leads->count()).' moved to the bin', 'Restore them from Bin, at the top of Leads.');
     }
 
+    /** The ticked leads out of the lists (only those this person may archive: their own departments). */
+    public function bulkArchive(): void
+    {
+        $this->authorize('archiveAny', Lead::class);
+
+        [$done, $skipped] = $this->eachArchivable(fn (Lead $lead) => app(ArchiveLead::class)->handle($lead, $this->user()));
+
+        $this->toastSuccess("{$done} ".str('lead')->plural($done).' archived', $skipped > 0 ? "{$skipped} left as they were: they are in a department you do not lead." : 'Find them under Archived. One comes back by itself if the person gets in touch again.');
+    }
+
+    public function bulkBringBack(): void
+    {
+        $this->authorize('archiveAny', Lead::class);
+
+        [$done] = $this->eachArchivable(fn (Lead $lead) => app(ArchiveLead::class)->bringBack($lead, $this->user()));
+
+        $this->toastSuccess("{$done} ".str('lead')->plural($done).' back in the lists');
+    }
+
+    /**
+     * @param  callable(Lead): mixed  $action
+     * @return array{0: int, 1: int} done, skipped
+     */
+    private function eachArchivable(callable $action): array
+    {
+        $done = 0;
+        $skipped = 0;
+
+        foreach ($this->selectedLeads() as $lead) {
+            if (! $this->user()->can('archive', $lead)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $action($lead);
+            $done++;
+        }
+
+        $this->selected = [];
+
+        return [$done, $skipped];
+    }
+
     public function export(): BinaryFileResponse
     {
         $this->authorize('export', Lead::class);
@@ -352,7 +397,9 @@ final class LeadsIndex extends Component
                 'distribute' => $user->can('distribute', Lead::class),
                 'deleteAny' => $user->can('deleteAny', Lead::class),
                 'restoreAny' => $user->can('restoreAny', Lead::class),
+                'archiveAny' => $user->can('archiveAny', Lead::class),
             ],
+            'archivedView' => $this->archivedView(),
             'hasFilters' => $chips !== [],
         ]);
     }
@@ -402,6 +449,13 @@ final class LeadsIndex extends Component
             default => null,
         };
 
+        // Archived leads are out of every view but their own, which is for those who may archive.
+        if ($this->archivedView()) {
+            $query->archived();
+        } else {
+            $query->unarchived();
+        }
+
         $query
             ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
             ->when($this->status !== '', fn (Builder $q): Builder => $q->where('status_id', (int) $this->status))
@@ -436,7 +490,7 @@ final class LeadsIndex extends Component
 
         $tabs = [
             'all' => ['label' => 'All', 'count' => null, 'color' => 'gray'],
-            'new' => ['label' => 'New', 'count' => $count($visible()->whereHas('status', fn (Builder $s): Builder => $s->where('is_default', true))->count()), 'color' => 'gray'],
+            'new' => ['label' => 'New', 'count' => $count($visible()->unarchived()->whereHas('status', fn (Builder $s): Builder => $s->where('is_default', true))->count()), 'color' => 'gray'],
         ];
 
         // Front sales sees the free leads too: they are the ones to take.
@@ -445,8 +499,13 @@ final class LeadsIndex extends Component
         }
 
         $tabs['mine'] = ['label' => $agent && ! $team ? 'Open' : 'Mine', 'count' => null, 'color' => 'gray'];
-        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay())->count()), 'color' => 'danger'];
+        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->unarchived()->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay())->count()), 'color' => 'danger'];
         $tabs['won'] = ['label' => 'Won', 'count' => null, 'color' => 'gray'];
+
+        // The Archived view opens from its button at the top, like the Bin, and shows here while it is open.
+        if ($this->archivedView()) {
+            $tabs['archived'] = ['label' => 'Archived', 'count' => null, 'color' => 'gray'];
+        }
 
         return $tabs;
     }
@@ -507,6 +566,11 @@ final class LeadsIndex extends Component
         $user = $this->user();
 
         return ! $user->isGlobalAdmin() && $user->isAgentIn($this->brand);
+    }
+
+    private function archivedView(): bool
+    {
+        return $this->tab === 'archived' && $this->user()->can('archiveAny', Lead::class);
     }
 
     /** An Agent on a front sales team: sees the team's leads and takes the free ones. */
