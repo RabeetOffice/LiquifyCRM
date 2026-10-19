@@ -276,8 +276,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   and Managers manage (`BrandResourcePolicy`). In every brand menu.
 - Invoices (user request, 19 Oct 2026; `spatie/laravel-pdf` with its DOMPDF driver, from the architecture document's
   package table, called with `->driver('dompdf')` so no config is needed): `CreateInvoice` numbers per brand and year
-  (`invoices`, behind `Invoices::ready()`, a snapshot of who, what, total and paid), renders `sales::invoices.pdf`
-  (tables and DejaVu Sans only: DOMPDF has no flex or grid) and keeps the PDF as a client file (category invoice, on
+  (`invoices`, behind `Invoices::ready()`, a snapshot of who, what, total and paid), renders it with `InvoicePdf`
+  (`sales::invoices.pdf`: tables and DejaVu Sans only, DOMPDF has no flex or grid; the mark from `InvoiceLogo`, which
+  passes raster logos, turns WebP/AVIF into PNG, keeps an SVG only when plain, else a 96 px+ favicon, else initials) and keeps the PDF as a client file (category invoice, on
   the lead for a front sale). `SalePolicy::invoice` = the people of `recordPayment`; the `CreatesInvoices` trait with
   `sales::partials.invoice-sheet` never fills in a contact the person sees masked. Number prefix, bank details, due
   days and note are `brands.settings.invoice` (`Brand::invoiceSettings()`), edited on the Admin brand form.

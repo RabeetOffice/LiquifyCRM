@@ -12,13 +12,13 @@ use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ClientFile;
 use App\Modules\Sales\Models\Invoice;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\InvoicePdf;
 use App\Modules\Sales\Support\Money;
 use App\Modules\Sales\Support\SalePayments;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Spatie\LaravelPdf\Facades\Pdf;
 
 /**
  * An invoice for a sale (user request, 19 Oct 2026): the next number of the
@@ -61,15 +61,7 @@ final class CreateInvoice
                 'created_by' => $by->getKey(),
             ]);
 
-            $pdf = Pdf::view('sales::invoices.pdf', [
-                'invoice' => $invoice,
-                'brand' => $brand,
-                'company' => $brand->company(),
-                'paymentDetails' => $settings['payment_details'],
-                'payments' => SalePayments::ready() ? $sale->payments()->get() : collect(),
-                'logo' => $this->logo($brand),
-                'accent' => $brand->primaryColor() ?? '#FF6B2C',
-            ])->driver('dompdf')->format('a4')->generatePdfContent();
+            $pdf = InvoicePdf::render($invoice, $brand, SalePayments::ready() ? $sale->payments()->get() : collect());
 
             $path = 'clients/'.$brand->getKey().'/'.$client->getKey().'/'.Str::lower((string) Str::ulid()).'.pdf';
             Storage::disk('local')->put($path, $pdf);
@@ -101,46 +93,5 @@ final class CreateInvoice
 
             return $invoice->setRelation('file', $file);
         });
-    }
-
-    /** The logo as a data address: the PDF reads no web address. */
-    private function logo(Brand $brand): ?string
-    {
-        $path = $brand->logoPath();
-
-        if ($path === null) {
-            return null;
-        }
-
-        $extension = mb_strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        $content = @file_get_contents($path);
-
-        if ($content === false) {
-            return null;
-        }
-
-        // A PDF does not draw WebP: it goes in as PNG (or not at all where the server cannot read it).
-        if ($extension === 'webp') {
-            $image = function_exists('imagecreatefromstring') ? @imagecreatefromstring($content) : false;
-
-            if ($image === false) {
-                return null;
-            }
-
-            imagesavealpha($image, true);
-            ob_start();
-            imagepng($image);
-            $content = (string) ob_get_clean();
-            $extension = 'png';
-        }
-
-        $type = match ($extension) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'svg' => 'image/svg+xml',
-            default => 'image/png',
-        };
-
-        return $content === '' ? null : 'data:'.$type.';base64,'.base64_encode($content);
     }
 }

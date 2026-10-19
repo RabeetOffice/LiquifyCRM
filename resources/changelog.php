@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.28.1',
+        'date' => '2026-10-19',
+        'title' => 'A clearer invoice with the brand\'s logo',
+        'changes' => [
+            ['improved', 'The invoice has a new design: the brand\'s logo and colour at the top, "From", "Bill to" and the dates side by side, the item with the day the deal was agreed, the total, what is paid and the balance due in a clear box, the payments received, how to pay with the payment reference, and the company number and VAT number at the bottom. A label says Paid, Part paid or Unpaid.'],
+            ['fixed', 'The brand\'s logo now shows on the invoice whether it is a PNG, JPG, WebP or SVG file. An SVG logo a PDF cannot draw correctly is replaced by the brand\'s icon, or by its initials in its colour.'],
+        ],
+    ],
+    [
         'version' => '1.28.0',
         'date' => '2026-10-19',
         'title' => 'Resources, and invoices from a sale',

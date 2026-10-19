@@ -204,18 +204,6 @@ class Brand extends Model
         return $prefix !== '' ? mb_substr($prefix, 0, 10) : 'INV';
     }
 
-    /** The logo as a file on this server, for a PDF (which cannot fetch a web address); only pictures a PDF can be given. */
-    public function logoPath(): ?string
-    {
-        if (! $this->logo_path || ! in_array(mb_strtolower(pathinfo($this->logo_path, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'], true)) {
-            return null;
-        }
-
-        $disk = Storage::disk('public');
-
-        return $disk->exists($this->logo_path) ? $disk->path($this->logo_path) : null;
-    }
-
     public function legalName(): string
     {
         return $this->company()['legal_name'] ?: $this->name;
