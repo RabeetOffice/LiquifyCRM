@@ -3,14 +3,16 @@
 @props(['sale', 'canPay' => false])
 @php
     $ready = \App\Modules\Sales\Support\SalePayments::ready();
-    $due = $sale->due();
+    // In the currency the client was charged in (the brand's, unless the sale was in another).
+    $due = $sale->due() > 0 ? $sale->dealDue() : 0.0;
+    $dealCurrency = $sale->dealCurrency();
     $payments = $ready && $sale->relationLoaded('payments') ? $sale->payments : collect();
 @endphp
 @if ($ready && ($due > 0 || $payments->count() > 1))
     <div {{ $attributes->class(['lq-paid', 'lq-paid-due' => $due > 0]) }}>
         <div class="lq-paid-line">
             @if ($due > 0)
-                <span class="lq-paid-state"><x-heroicon-m-clock /> <span>{{ \App\Modules\Sales\Support\Money::format($sale->paid(), $sale->currency) }} paid · <strong>{{ \App\Modules\Sales\Support\Money::format($due, $sale->currency) }} to collect</strong></span></span>
+                <span class="lq-paid-state"><x-heroicon-m-clock /> <span>{{ \App\Modules\Sales\Support\Money::format($sale->dealPaid(), $dealCurrency) }} paid · <strong>{{ \App\Modules\Sales\Support\Money::format($due, $dealCurrency) }} to collect</strong></span></span>
             @else
                 <span class="lq-paid-state lq-paid-full"><x-heroicon-m-check-circle /> <span>Paid in full</span></span>
             @endif
@@ -22,7 +24,7 @@
             <ul class="lq-paid-list">
                 @foreach ($payments as $payment)
                     <li wire:key="payment-{{ $payment->getKey() }}">
-                        <span class="lq-tabular">{{ \App\Modules\Sales\Support\Money::format($payment->amount, $sale->currency) }}</span>
+                        <span class="lq-tabular">{{ $sale->isForeign() && $payment->charged_amount !== null ? \App\Modules\Sales\Support\Money::format($payment->charged_amount, $dealCurrency).' ('.\App\Modules\Sales\Support\Money::format($payment->amount, $sale->currency).')' : \App\Modules\Sales\Support\Money::format($payment->amount, $sale->currency) }}</span>
                         <span class="lq-muted">{{ $payment->paid_at->format('j M Y') }}{{ $payment->recorder ? ' · '.$payment->recorder->name : '' }}{{ $payment->note ? ' · '.$payment->note : '' }}</span>
                     </li>
                 @endforeach

@@ -53,10 +53,11 @@ final class CreateInvoice
                 'issued_on' => $issuedOn->toDateString(),
                 'due_on' => $dueOn?->toDateString(),
                 'bill_to' => array_map(fn (?string $value): ?string => filled($value) ? trim((string) $value) : null, $billTo),
-                'items' => [['description' => trim($description), 'amount' => (float) $sale->amount]],
-                'total' => (float) $sale->amount,
-                'paid' => min($sale->paid(), (float) $sale->amount),
-                'currency' => $sale->currency,
+                // In the currency the client was charged in: a client who paid in pounds gets a pound invoice.
+                'items' => [['description' => trim($description), 'amount' => $sale->dealAmount()]],
+                'total' => $sale->dealAmount(),
+                'paid' => min($sale->dealPaid(), $sale->dealAmount()),
+                'currency' => $sale->dealCurrency(),
                 'note' => filled($note) ? trim((string) $note) : null,
                 'created_by' => $by->getKey(),
             ]);

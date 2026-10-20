@@ -14,6 +14,7 @@ use App\Modules\Sales\Enums\SaleKind;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\ExchangeRates;
 use App\Modules\Sales\Support\Money;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -29,8 +30,13 @@ use InvalidArgumentException;
  */
 final class RecordUpsell
 {
-    /** @param  float|null  $paidNow  what the client paid with the upsell; null for all of it */
-    public function handle(Client $client, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?User $seller = null, ?float $paidNow = null): Sale
+    /**
+     * @param  float|null  $paidNow  what the client paid with the upsell; null for all of it
+     * @param  string|null  $currency  the currency the client was charged in, when not the brand's: the amounts are in it
+     *
+     * @throws InvalidArgumentException when the client is closed or the charged currency's rate cannot be had
+     */
+    public function handle(Client $client, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?User $seller = null, ?float $paidNow = null, ?string $currency = null): Sale
     {
         if ($client->isClosed()) {
             throw new InvalidArgumentException('This client is closed. Reopen them to record another sale.');
@@ -39,7 +45,12 @@ final class RecordUpsell
         $brand = Brand::query()->findOrFail($client->brand_id);
         $seller ??= $by;
 
-        $sale = DB::transaction(function () use ($client, $brand, $amount, $service, $closedAt, $by, $seller, $paidNow): Sale {
+        // An upsell in another currency counts in the brand's, at that day's rate.
+        $deal = app(ExchangeRates::class)->deal($brand->currency, $currency, $amount, $paidNow, $closedAt);
+        $amount = $deal['amount'];
+        $paidNow = $deal['paidNow'];
+
+        $sale = DB::transaction(function () use ($client, $brand, $amount, $service, $closedAt, $by, $seller, $paidNow, $deal): Sale {
             $sale = Sale::query()->create([
                 'brand_id' => $brand->getKey(),
                 // The upsell counts for the department that looks after the client.
@@ -56,7 +67,11 @@ final class RecordUpsell
                 'recorded_by' => $by->getKey(),
             ]);
 
-            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by);
+            if ($deal['columns'] !== []) {
+                $sale->forceFill($deal['columns'])->save();
+            }
+
+            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by, $deal['chargedPaid']);
 
             $client->recalculate();
 
@@ -69,8 +84,8 @@ final class RecordUpsell
             Audit::log(
                 'sales.upsell_recorded',
                 $client,
-                ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'sold_by' => $seller->getKey()],
-                'Upsell recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : '').' · '.$seller->name.($sale->due() > 0.0 ? ' · '.Money::format($sale->due(), $brand->currency).' to collect' : ''),
+                ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, ...$deal['columns'], 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'sold_by' => $seller->getKey()],
+                'Upsell recorded: '.$sale->label().($sale->service ? ' · '.$sale->service : '').' · '.$seller->name.($sale->due() > 0.0 ? ' · '.Money::format($sale->dealDue(), $sale->dealCurrency()).' to collect' : ''),
                 brand: $brand,
                 department: $sale->department_id,
                 causer: $by,
@@ -103,7 +118,7 @@ final class RecordUpsell
         }
 
         Notification::send($people, new AppNotification(
-            'Upsell recorded: '.Money::format($sale->amount, $sale->currency),
+            'Upsell recorded: '.$sale->label(),
             $seller->name.' sold '.($sale->service ?? 'more').' to '.$client->name.'.',
             'success',
             $brand->url('clients/'.$client->getKey()),

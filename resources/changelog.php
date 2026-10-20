@@ -28,6 +28,7 @@ return [
             ['new', 'Add a lead asks when they got in touch: now, or an earlier day and time for an older enquiry. The lead is dated and counted on that day, and its timeline says it was added later.'],
             ['improved', 'Times are shown and typed in your own time zone: the one your computer uses, unless you choose one in your Profile ("Automatic" is the new default there). Follow-up times, "today" and "overdue" follow it, so a follow-up set for 10:00 is at 10:00 where you are.'],
             ['new', 'Clocks in the top bar: your own time, the brand\'s time, and with + the time where your other brands are (London, Sydney, Dublin…). The clocks you add are kept on this computer.'],
+            ['new', 'A sale in another currency: Mark as Won and Record upsell let you choose the currency the client paid in, such as pounds for a euro brand. The sale counts in the brand\'s currency at that day\'s European Central Bank rate, so targets add up, and the sale shows both, such as "£1,000 (€1,187.60)". Payments are taken, and invoices made, in the currency the client paid in.'],
             ['improved', 'Click "Update system" once after this update.'],
         ],
     ],

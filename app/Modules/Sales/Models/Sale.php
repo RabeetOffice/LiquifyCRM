@@ -10,6 +10,8 @@ use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Enums\SaleKind;
+use App\Modules\Sales\Support\ExchangeRates;
+use App\Modules\Sales\Support\Money;
 use App\Modules\Sales\Support\SalePayments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,6 +35,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $amount_paid
  * @property string $currency
  * @property string|null $amount_reporting
+ * @property string|null $charged_currency
+ * @property string|null $charged_amount
+ * @property string|null $charged_paid
+ * @property string|null $exchange_rate
  * @property string|null $service
  * @property CarbonImmutable $closed_at
  * @property int|null $recorded_by
@@ -56,6 +62,9 @@ class Sale extends Model
             'amount' => 'decimal:2',
             'amount_reporting' => 'decimal:2',
             'amount_paid' => 'decimal:2',
+            'charged_amount' => 'decimal:2',
+            'charged_paid' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
             'closed_at' => 'datetime',
         ];
     }
@@ -116,6 +125,52 @@ class Sale extends Model
     public function isPaidInFull(): bool
     {
         return $this->due() <= 0.0;
+    }
+
+    /**
+     * Sold in another currency than the brand's (20 Oct 2026): `amount` is the
+     * brand's currency at the day's rate; the charged_* columns are what the
+     * client really pays.
+     */
+    public function isForeign(): bool
+    {
+        return ExchangeRates::ready() && filled($this->charged_currency) && $this->charged_amount !== null;
+    }
+
+    /** The currency the client was charged in. */
+    public function dealCurrency(): string
+    {
+        return $this->isForeign() ? (string) $this->charged_currency : $this->currency;
+    }
+
+    /** The deal in the currency the client was charged in. */
+    public function dealAmount(): float
+    {
+        return $this->isForeign() ? (float) $this->charged_amount : (float) $this->amount;
+    }
+
+    /** What is in so far, in the currency the client was charged in. */
+    public function dealPaid(): float
+    {
+        if (! $this->isForeign()) {
+            return $this->paid();
+        }
+
+        return SalePayments::ready() && $this->charged_paid !== null ? (float) $this->charged_paid : (float) $this->charged_amount;
+    }
+
+    /** What the client still owes, in the currency they were charged in. */
+    public function dealDue(): float
+    {
+        return max(0.0, round($this->dealAmount() - $this->dealPaid(), 2));
+    }
+
+    /** "£1,000.00", or "£1,000.00 (€1,187.60)" for a sale in another currency than the brand's. */
+    public function label(): string
+    {
+        return $this->isForeign()
+            ? Money::format($this->charged_amount, (string) $this->charged_currency).' ('.Money::format($this->amount, $this->currency).')'
+            : Money::format($this->amount, $this->currency);
     }
 
     /**

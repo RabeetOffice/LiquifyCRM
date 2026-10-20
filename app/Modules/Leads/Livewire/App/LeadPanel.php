@@ -34,6 +34,7 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\ChoosesSaleCurrency;
 use App\Modules\Sales\Livewire\Concerns\CreatesInvoices;
 use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
@@ -64,6 +65,7 @@ use Livewire\WithFileUploads;
 final class LeadPanel extends Component
 {
     use AuthorizesRequests;
+    use ChoosesSaleCurrency;
     use CreatesInvoices;
     use EditsLeadDetails;
     use RecordsPayments;
@@ -100,6 +102,9 @@ final class LeadPanel extends Component
     public bool $showWon = false;
 
     public string $wonAmount = '';
+
+    /** The currency the sale was made in: the brand's unless the client paid in another. */
+    public string $wonCurrency = '';
 
     public string $wonService = '';
 
@@ -289,6 +294,9 @@ final class LeadPanel extends Component
         $this->authorize('recordSale', $lead);
 
         $this->wonAmount = '';
+        $this->wonCurrency = $this->brand()->currency;
+        $this->dealRate = null;
+        $this->dealRateMissing = false;
         $this->wonPaid = '';
         $this->wonService = (string) ($lead->fields['service'] ?? '');
         $this->wonClosedAt = now()->toDateString();
@@ -310,6 +318,7 @@ final class LeadPanel extends Component
             'wonClosedAt' => ['required', 'date', 'before_or_equal:today'],
             'wonContract' => ['nullable', ...StoreClientFile::rules()],
             'wonHandTo' => ['nullable', 'string'],
+            'wonCurrency' => ['nullable', 'string', 'size:3'],
         ], ['wonContract.max' => 'The file may be up to '.(ClientFile::MAX_KB / 1024).' MB.'], ['wonAmount' => 'deal amount', 'wonPaid' => 'paid now', 'wonService' => 'service or package', 'wonClosedAt' => 'close date', 'wonContract' => 'contract']);
 
         $team = filled($data['wonHandTo'] ?? null) ? CareTeams::parse($this->brand(), (string) $data['wonHandTo']) : null;
@@ -320,7 +329,14 @@ final class LeadPanel extends Component
             return;
         }
 
-        $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user(), filled($data['wonPaid'] ?? null) ? (float) $data['wonPaid'] : null);
+        try {
+            $sale = app(RecordSale::class)->handle($lead, (float) $data['wonAmount'], $data['wonService'], CarbonImmutable::parse($data['wonClosedAt'])->setTimeFrom(now()), $this->user(), filled($data['wonPaid'] ?? null) ? (float) $data['wonPaid'] : null, $data['wonCurrency'] ?? null);
+        } catch (InvalidArgumentException $exception) {
+            $this->addError('wonAmount', $exception->getMessage());
+
+            return;
+        }
+
         $client = ClientCare::ready() ? Client::query()->find($sale->client_id) : null;
         $told = 'It counts towards this month\'s targets.';
 
@@ -337,7 +353,12 @@ final class LeadPanel extends Component
         $this->wonContract = null;
         $this->showWon = false;
         $this->changed();
-        $this->toastSuccess('Sale recorded: '.Money::format($sale->amount, $sale->currency), $sale->due() > 0.0 ? Money::format($sale->due(), $sale->currency).' still to collect: record it with Record payment when it comes. '.$told : $told);
+        $this->toastSuccess('Sale recorded: '.$sale->label(), $sale->due() > 0.0 ? Money::format($sale->dealDue(), $sale->dealCurrency()).' still to collect: record it with Record payment when it comes. '.$told : $told);
+    }
+
+    public function updatedWonCurrency(): void
+    {
+        $this->lookUpDealRate($this->wonCurrency, $this->brand()->currency);
     }
 
     /** After the sale: send the client to an Upsell team (or a person in it). */
@@ -621,6 +642,7 @@ final class LeadPanel extends Component
             'maxMb' => ClientFile::MAX_KB / 1024,
             'careReady' => ClientCare::ready(),
             'brandCurrency' => $this->brand()->currency,
+            'currencyOptions' => $this->showWon ? $this->dealCurrencyOptions($this->brand()->currency) : [],
             'paymentsReady' => SalePayments::ready(),
             'conversationId' => $chat?->getKey(),
             'chatChannel' => $chat?->channelLabel() ?? 'Messenger',

@@ -209,7 +209,7 @@
                                 <td class="lq-cell-title">{{ $sale->client->name }}</td>
                                 <td class="lq-muted">{{ $sale->service ?? '—' }} @if ($sale->isUpsell()) <x-ui.badge color="success">Upsell</x-ui.badge> @endif</td>
                                 <td class="lq-muted">{{ $sale->closer?->name ?? '—' }}{{ $sale->department ? ' · '.$sale->department->name : '' }}</td>
-                                <td class="lq-table-end lq-num">{{ Money::format($sale->amount, $sale->currency) }}</td>
+                                <td class="lq-table-end lq-num" @if ($sale->isForeign()) title="Sold as {{ Money::format($sale->charged_amount, (string) $sale->charged_currency) }}" @endif>{{ Money::format($sale->amount, $sale->currency) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

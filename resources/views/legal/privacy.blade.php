@@ -72,6 +72,7 @@
         <li><strong>Companies that work for us:</strong> the hosting company whose servers store the data (Hostinger), and the email service each business uses to send its emails.</li>
         <li><strong>Meta,</strong> when a reply is sent in Messenger or Instagram: it travels through Facebook or Instagram, as every message there does.</li>
         <li><strong>The push service of a team member's browser</strong> (Google for Chrome, Microsoft for Edge, Mozilla for Firefox, Apple for Safari), when that team member has turned on desktop alerts: it carries each alert, such as the name of a new enquiry, to their computer. The alert is encrypted on our server, so that service cannot read it.</li>
+        <li><strong>Nobody at the exchange rate service:</strong> when a sale is made in another currency, {{ $name }} reads that day's rate of the European Central Bank from the free Frankfurter service. Only the two currencies and the date are sent, nothing about you.</li>
         <li><strong>Authorities,</strong> when the law requires it.</li>
     </ul>
 

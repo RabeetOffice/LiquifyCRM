@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $brand_id
  * @property int $sale_id
  * @property string $amount
+ * @property string|null $charged_amount the payment in the currency the client was charged in, for a sale in another currency
  * @property CarbonImmutable $paid_at
  * @property string|null $note
  * @property int|null $recorded_by
@@ -28,12 +29,13 @@ class SalePayment extends Model
 {
     use BelongsToBrand;
 
-    protected $fillable = ['brand_id', 'sale_id', 'amount', 'paid_at', 'note', 'recorded_by'];
+    protected $fillable = ['brand_id', 'sale_id', 'amount', 'charged_amount', 'paid_at', 'note', 'recorded_by'];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'charged_amount' => 'decimal:2',
             'paid_at' => 'datetime',
         ];
     }

@@ -455,7 +455,7 @@
                 <ul class="lq-sales">
                     @foreach ($sales as $sale)
                         <li>
-                            <span class="lq-sales-amount">{{ \App\Modules\Sales\Support\Money::format($sale->amount, $sale->currency) }}</span>
+                            <span class="lq-sales-amount">{{ $sale->label() }}</span>
                             <span class="lq-sales-meta">{{ $sale->service ? $sale->service.' · ' : '' }}{{ $sale->closed_at->format('j M Y') }}{{ $sale->closer ? ' · '.$sale->closer->name : '' }}</span>
                             <x-sales::sale-payments :sale="$sale" :can-pay="auth()->user()?->can('recordPayment', $sale) ?? false" />
                             @can('invoice', $sale)
@@ -555,16 +555,16 @@
 
     <x-ui.modal model="showWon" title="Mark as Won" description="Record the sale. The person becomes a client of this brand and the sale counts towards this month's targets." size="sm">
         <form wire:submit="recordSale" class="lq-form" id="won-form">
-            <x-ui.field :label="$paymentsReady ? 'Deal amount' : 'Amount'" name="wonAmount" required :help="$paymentsReady ? 'The full price they agreed to. It counts towards the targets.' : null">
-                <div class="lq-input-group">
-                    <span class="lq-input-prefix">{{ $brandCurrency }}</span>
-                    <x-ui.input type="number" step="0.01" min="0" wire:model="wonAmount" name="wonAmount" inputmode="decimal" placeholder="1500" />
-                </div>
-            </x-ui.field>
+            @include('sales::partials.deal-amount', [
+                'amountModel' => 'wonAmount',
+                'currencyModel' => 'wonCurrency',
+                'label' => $paymentsReady ? 'Deal amount' : 'Amount',
+                'help' => $paymentsReady ? 'The full price they agreed to, in the currency they paid in. It counts towards the targets.' : null,
+            ])
             @if ($paymentsReady)
                 <x-ui.field label="Paid now" name="wonPaid" help="Only if they paid part of it up front. Leave it empty when they paid it all; the rest is recorded later with Record payment.">
                     <div class="lq-input-group">
-                        <span class="lq-input-prefix">{{ $brandCurrency }}</span>
+                        <span class="lq-input-prefix" x-text="$wire.wonCurrency || @js($brandCurrency)">{{ $brandCurrency }}</span>
                         <x-ui.input type="number" step="0.01" min="0" wire:model="wonPaid" name="wonPaid" inputmode="decimal" placeholder="All of it" />
                     </div>
                 </x-ui.field>

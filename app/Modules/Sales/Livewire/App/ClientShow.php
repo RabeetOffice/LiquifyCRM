@@ -16,6 +16,7 @@ use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordUpsell;
 use App\Modules\Sales\Actions\SaveClientNote;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Livewire\Concerns\ChoosesSaleCurrency;
 use App\Modules\Sales\Livewire\Concerns\CreatesInvoices;
 use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
 use App\Modules\Sales\Models\Client;
@@ -48,6 +49,7 @@ use Livewire\WithFileUploads;
 final class ClientShow extends Component
 {
     use AuthorizesRequests;
+    use ChoosesSaleCurrency;
     use CreatesInvoices;
     use RecordsPayments;
     use WithConfirmation;
@@ -75,6 +77,9 @@ final class ClientShow extends Component
 
     public string $amount = '';
 
+    /** The currency of the sale being corrected, as the client was charged. */
+    public string $editCurrency = '';
+
     public string $service = '';
 
     public string $closedAt = '';
@@ -86,7 +91,9 @@ final class ClientShow extends Component
         $this->authorize('update', $sale);
 
         $this->editing = $saleId;
-        $this->amount = (string) (float) $sale->amount;
+        // In the currency the client was charged in; a sale in another currency keeps its rate.
+        $this->amount = (string) $sale->dealAmount();
+        $this->editCurrency = $sale->dealCurrency();
         $this->service = (string) $sale->service;
         $this->closedAt = $sale->closed_at->toDateString();
         $this->resetErrorBag();
@@ -150,11 +157,17 @@ final class ClientShow extends Component
     /** What the client paid with the upsell, when it is less than the deal (empty: all of it). */
     public string $upsellPaid = '';
 
+    /** The currency the upsell was sold in: the brand's unless the client paid in another. */
+    public string $upsellCurrency = '';
+
     public function openUpsell(): void
     {
         $this->authorize('recordUpsell', $this->client);
 
         $this->upsellAmount = '';
+        $this->upsellCurrency = $this->brand->currency;
+        $this->dealRate = null;
+        $this->dealRateMissing = false;
         $this->upsellPaid = '';
         $this->upsellService = '';
         $this->upsellClosedAt = now()->toDateString();
@@ -173,6 +186,7 @@ final class ClientShow extends Component
             'upsellService' => ['required', 'string', 'max:190'],
             'upsellClosedAt' => ['required', 'date', 'before_or_equal:today'],
             'upsellSeller' => ['nullable', 'integer'],
+            'upsellCurrency' => ['nullable', 'string', 'size:3'],
         ], attributes: ['upsellAmount' => 'amount', 'upsellPaid' => 'paid now', 'upsellService' => 'what was sold', 'upsellClosedAt' => 'date', 'upsellSeller' => 'seller']);
 
         // An upsell goes under the name of whoever enters it; only a Manager or an Admin may enter it for a colleague.
@@ -182,12 +196,23 @@ final class ClientShow extends Component
             $seller = User::query()->findOrFail((int) $data['upsellSeller']);
         }
 
-        $sale = $action->handle($this->client, (float) $data['upsellAmount'], $data['upsellService'], CarbonImmutable::parse($data['upsellClosedAt'])->setTimeFrom(now()), $this->user(), $seller, filled($data['upsellPaid'] ?? null) ? (float) $data['upsellPaid'] : null);
+        try {
+            $sale = $action->handle($this->client, (float) $data['upsellAmount'], $data['upsellService'], CarbonImmutable::parse($data['upsellClosedAt'])->setTimeFrom(now()), $this->user(), $seller, filled($data['upsellPaid'] ?? null) ? (float) $data['upsellPaid'] : null, $data['upsellCurrency'] ?? null);
+        } catch (InvalidArgumentException $exception) {
+            $this->addError('upsellAmount', $exception->getMessage());
+
+            return;
+        }
 
         $this->showUpsell = false;
         $this->tab = 'story';
         $this->client->refresh();
-        $this->toastSuccess('Upsell recorded: '.Money::format($sale->amount, $sale->currency), 'It is under '.($seller->is($this->user()) ? 'your name' : $seller->name).' and counts towards this month\'s targets.');
+        $this->toastSuccess('Upsell recorded: '.$sale->label(), 'It is under '.($seller->is($this->user()) ? 'your name' : $seller->name).' and counts towards this month\'s targets.');
+    }
+
+    public function updatedUpsellCurrency(): void
+    {
+        $this->lookUpDealRate($this->upsellCurrency, $this->brand->currency);
     }
 
     // ------------------------------------------------ hand-over and the team
@@ -529,6 +554,8 @@ final class ClientShow extends Component
                 'due' => (float) $sales->sum(fn (Sale $sale): float => $sale->due()),
             ],
             'paymentsReady' => SalePayments::ready(),
+            'brandCurrency' => $this->brand->currency,
+            'currencyOptions' => $this->showUpsell ? $this->dealCurrencyOptions($this->brand->currency) : [],
             'leads' => $leads,
             'files' => $files,
             'notes' => $care ? ClientNote::query()->where('client_id', $this->client->getKey())->with('author')->latest('id')->get() : new Collection,

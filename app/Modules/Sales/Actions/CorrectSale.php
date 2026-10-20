@@ -12,6 +12,7 @@ use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
+use App\Modules\Sales\Support\ExchangeRates;
 use App\Modules\Sales\Support\Money;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -25,16 +26,25 @@ use Illuminate\Support\Facades\DB;
  */
 final class CorrectSale
 {
+    /** @param  float  $amount  in the currency the client was charged in (the brand's, unless the sale was in another) */
     public function update(Sale $sale, float $amount, ?string $service, CarbonInterface $closedAt, User $by): Sale
     {
         return DB::transaction(function () use ($sale, $amount, $service, $closedAt, $by): Sale {
-            $before = ['amount' => (float) $sale->amount, 'service' => $sale->service, 'closed_at' => $sale->closed_at->toDateString()];
+            $before = ['amount' => $sale->dealAmount(), 'service' => $sale->service, 'closed_at' => $sale->closed_at->toDateString()];
+            $currency = $sale->dealCurrency();
+
+            // A sale in another currency keeps its rate: the brand's amount follows the corrected one.
+            if ($sale->isForeign()) {
+                $sale->forceFill(['charged_amount' => round($amount, 2)]);
+            }
+
+            $inBrand = $sale->isForeign() ? ExchangeRates::convert($amount, (float) $sale->exchange_rate) : $amount;
 
             $sale->update([
-                'amount' => $amount,
+                'amount' => $inBrand,
                 'service' => filled($service) ? trim((string) $service) : null,
                 'closed_at' => $closedAt,
-                'amount_reporting' => ExchangeRate::convert($amount, $sale->currency, $closedAt->format('Y-m')),
+                'amount_reporting' => ExchangeRate::convert($inBrand, $sale->currency, $closedAt->format('Y-m')),
             ]);
 
             $this->recount($sale);
@@ -43,7 +53,7 @@ final class CorrectSale
                 'sales.updated',
                 $this->lead($sale) ?? $this->client($sale) ?? $sale,
                 ['sale_id' => $sale->getKey(), 'before' => $before, 'after' => ['amount' => $amount, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString()]],
-                'Sale corrected: '.Money::format($before['amount'], $sale->currency).' → '.Money::format($amount, $sale->currency),
+                'Sale corrected: '.Money::format($before['amount'], $currency).' → '.Money::format($amount, $currency),
                 brand: $sale->brand_id,
                 causer: $by,
                 logName: 'sales',

@@ -38,11 +38,12 @@ trait RecordsPayments
         $sale = $this->payableSale($saleId);
 
         $this->paymentSale = $saleId;
-        $this->paymentAmount = number_format($sale->due(), 2, '.', '');
+        // In the currency the client was charged in (the brand's, unless the sale was in another).
+        $this->paymentAmount = number_format($sale->dealDue(), 2, '.', '');
         $this->paymentDate = now()->toDateString();
         $this->paymentNote = '';
-        $this->paymentCurrency = $sale->currency;
-        $this->paymentDue = Money::format($sale->due(), $sale->currency);
+        $this->paymentCurrency = $sale->dealCurrency();
+        $this->paymentDue = Money::format($sale->dealDue(), $sale->dealCurrency());
         $this->resetErrorBag();
         $this->showPayment = true;
     }
@@ -68,7 +69,7 @@ trait RecordsPayments
         $sale->refresh();
         $this->showPayment = false;
         $this->paymentRecorded();
-        $this->toastSuccess('Payment recorded: '.Money::format((float) $data['paymentAmount'], $sale->currency), $sale->due() > 0.0 ? Money::format($sale->due(), $sale->currency).' still to collect.' : 'This sale is paid in full now.');
+        $this->toastSuccess('Payment recorded: '.Money::format((float) $data['paymentAmount'], $sale->dealCurrency()), $sale->dealDue() > 0.0 ? Money::format($sale->dealDue(), $sale->dealCurrency()).' still to collect.' : 'This sale is paid in full now.');
     }
 
     /** After a payment: the screen redraws what depends on it. */

@@ -17,6 +17,7 @@ use App\Modules\Sales\Models\Client;
 use App\Modules\Sales\Models\ExchangeRate;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\ClientCare;
+use App\Modules\Sales\Support\ExchangeRates;
 use App\Modules\Sales\Support\Money;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -30,12 +31,22 @@ use Illuminate\Support\Facades\Notification;
  */
 final class RecordSale
 {
-    /** @param  float|null  $paidNow  what the client paid with the sale; null for all of it */
-    public function handle(Lead $lead, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?float $paidNow = null): Sale
+    /**
+     * @param  float|null  $paidNow  what the client paid with the sale; null for all of it
+     * @param  string|null  $currency  the currency the client was charged in, when not the brand's: the amounts are in it
+     *
+     * @throws \InvalidArgumentException when the charged currency's rate cannot be had
+     */
+    public function handle(Lead $lead, float $amount, ?string $service, CarbonInterface $closedAt, User $by, ?float $paidNow = null, ?string $currency = null): Sale
     {
         $brand = Brand::query()->findOrFail($lead->brand_id);
 
-        $sale = DB::transaction(function () use ($lead, $brand, $amount, $service, $closedAt, $by, $paidNow): Sale {
+        // A sale in another currency counts in the brand's, at that day's rate.
+        $deal = app(ExchangeRates::class)->deal($brand->currency, $currency, $amount, $paidNow, $closedAt);
+        $amount = $deal['amount'];
+        $paidNow = $deal['paidNow'];
+
+        $sale = DB::transaction(function () use ($lead, $brand, $amount, $service, $closedAt, $by, $paidNow, $deal): Sale {
             $client = ($lead->client_id !== null ? Client::query()->forBrand($brand)->find($lead->client_id) : null)
                 ?? Client::match($brand, $lead->email, $lead->phone)
                 ?? Client::query()->create(['brand_id' => $brand->getKey(), 'name' => $lead->name, 'email' => $lead->email, 'phone' => $lead->phone]);
@@ -57,8 +68,12 @@ final class RecordSale
                 'recorded_by' => $by->getKey(),
             ]);
 
+            if ($deal['columns'] !== []) {
+                $sale->forceFill($deal['columns'])->save();
+            }
+
             // The whole deal counts; the payments say how much of it is in.
-            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by);
+            app(RecordPayment::class)->opening($sale, $paidNow, $closedAt, $by, $deal['chargedPaid']);
 
             $client->recalculate();
 
@@ -78,8 +93,8 @@ final class RecordSale
             Audit::log(
                 'sales.recorded',
                 $lead,
-                ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'client_id' => $client->getKey()],
-                'Sale recorded: '.Money::format($amount, $brand->currency).($sale->service ? ' · '.$sale->service : '').($sale->due() > 0.0 ? ' · '.Money::format($sale->paid(), $brand->currency).' paid, '.Money::format($sale->due(), $brand->currency).' to collect' : ''),
+                ['sale_id' => $sale->getKey(), 'amount' => $amount, 'currency' => $brand->currency, ...$deal['columns'], 'service' => $sale->service, 'closed_at' => $closedAt->toDateString(), 'client_id' => $client->getKey()],
+                'Sale recorded: '.$sale->label().($sale->service ? ' · '.$sale->service : '').($sale->due() > 0.0 ? ' · '.Money::format($sale->dealPaid(), $sale->dealCurrency()).' paid, '.Money::format($sale->dealDue(), $sale->dealCurrency()).' to collect' : ''),
                 brand: $brand,
                 causer: $by,
                 logName: 'sales',
@@ -103,7 +118,7 @@ final class RecordSale
         }
 
         Notification::send($managers, new AppNotification(
-            'Sale recorded: '.Money::format($sale->amount, $sale->currency),
+            'Sale recorded: '.$sale->label(),
             $by->name.' closed '.$lead->name.($sale->service ? ' ('.$sale->service.')' : '').'.',
             'success',
             $brand->url('leads/'.$lead->getKey()),

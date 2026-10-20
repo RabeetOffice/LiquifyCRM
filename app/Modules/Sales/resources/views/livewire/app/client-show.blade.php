@@ -248,9 +248,9 @@
                                             <div class="lq-story-money">
                                                 {{-- The lead behind the sale opens only for someone who may see it (an Upsell team may not see front sales' lead). --}}
                                                 @if ($sale->lead_id && ! $upsell && $leads->contains('id', $sale->lead_id))
-                                                    <a class="lq-story-amount" href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $sale->lead_id]) }}" title="Open the lead this sale came from" wire:navigate>{{ Money::format($sale->amount, $sale->currency) }}</a>
+                                                    <a class="lq-story-amount" href="{{ route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $sale->lead_id]) }}" title="Open the lead this sale came from" wire:navigate>{{ $sale->label() }}</a>
                                                 @else
-                                                    <span class="lq-story-amount">{{ Money::format($sale->amount, $sale->currency) }}</span>
+                                                    <span class="lq-story-amount">{{ $sale->label() }}</span>
                                                 @endif
                                                 @if ($sales->count() > 1)
                                                     <span class="lq-story-running">{{ Money::format($entry['running'], $sale->currency) }} so far</span>
@@ -468,16 +468,16 @@
                 <x-ui.field label="What was sold" name="upsellService" required>
                     <x-ui.input wire:model="upsellService" name="upsellService" placeholder="Website, domain and hosting…" autofocus />
                 </x-ui.field>
-                <x-ui.field label="Amount" name="upsellAmount" required>
-                    <div class="lq-input-group">
-                        <span class="lq-input-prefix">{{ $currency }}</span>
-                        <x-ui.input type="number" step="0.01" min="0" wire:model="upsellAmount" name="upsellAmount" inputmode="decimal" placeholder="800" />
-                    </div>
-                </x-ui.field>
+                @include('sales::partials.deal-amount', [
+                    'amountModel' => 'upsellAmount',
+                    'currencyModel' => 'upsellCurrency',
+                    'label' => 'Amount',
+                    'help' => 'In the currency they paid in. It counts towards the targets in '.$currency.'.',
+                ])
                 @if ($paymentsReady)
                     <x-ui.field label="Paid now" name="upsellPaid" help="Only if they paid part of it now. Leave it empty when they paid it all.">
                         <div class="lq-input-group">
-                            <span class="lq-input-prefix">{{ $currency }}</span>
+                            <span class="lq-input-prefix" x-text="$wire.upsellCurrency || @js($currency)">{{ $currency }}</span>
                             <x-ui.input type="number" step="0.01" min="0" wire:model="upsellPaid" name="upsellPaid" inputmode="decimal" placeholder="All of it" />
                         </div>
                     </x-ui.field>
@@ -602,9 +602,9 @@
     @if ($can['correct'])
         <x-ui.modal model="showEdit" title="Correct this sale" description="Targets and this client's lifetime value are counted again. The change is written to the log." size="sm">
             <form wire:submit="update" class="lq-form" id="sale-edit-form">
-                <x-ui.field label="Amount" name="amount" required>
+                <x-ui.field label="Amount" name="amount" required :help="$editCurrency !== '' && $editCurrency !== $currency ? 'In '.$editCurrency.', as the client paid. It is counted in '.$currency.' at the rate of the day of the sale.' : null">
                     <div class="lq-input-group">
-                        <span class="lq-input-prefix">{{ $currency }}</span>
+                        <span class="lq-input-prefix">{{ $editCurrency !== '' ? $editCurrency : $currency }}</span>
                         <x-ui.input type="number" step="0.01" min="0" wire:model="amount" name="amount" inputmode="decimal" />
                     </div>
                 </x-ui.field>

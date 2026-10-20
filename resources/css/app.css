@@ -1162,6 +1162,63 @@ select.lq-input optgroup {
     white-space: nowrap;
 }
 
+/* The currency in front of a deal's amount, as a choice (sales::partials.deal-amount). */
+.lq-currency-pick {
+    appearance: none;
+    min-width: 4.75rem;
+    padding-inline-end: 1.6rem;
+    background: var(--lq-raised) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2378716c'%3E%3Cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat right 0.4rem center / 0.9rem;
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.lq-currency-pick:focus {
+    outline: none;
+    border-color: var(--lq-orange);
+}
+
+.lq-currency-pick option {
+    background: var(--lq-panel);
+    color: var(--lq-ink);
+}
+
+/* "≈ €1,187.60 in EUR for the targets": under a deal typed in another currency. */
+.lq-deal-convert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: -0.25rem 0 0;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--lq-radius-inner);
+    background: color-mix(in srgb, var(--lq-orange) 8%, transparent);
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.lq-deal-convert svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.1rem;
+    color: var(--lq-orange-deep);
+}
+
+.lq-deal-convert strong {
+    color: var(--lq-ink);
+}
+
+.lq-deal-convert-warn {
+    background: color-mix(in srgb, var(--lq-danger) 10%, transparent);
+}
+
+.lq-deal-convert-warn svg {
+    color: var(--lq-danger);
+}
+
 /* ------------------------------------------------------------------- cards */
 
 .lq-card {
