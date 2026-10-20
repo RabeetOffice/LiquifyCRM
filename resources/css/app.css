@@ -263,7 +263,7 @@ html {
     .lq-collapsed .lq-side-label,
     .lq-collapsed .lq-side-badge,
     .lq-collapsed .lq-side-group-label,
-    .lq-collapsed .lq-logo-text,
+    .lq-collapsed .lq-side-logo-full,
     .lq-collapsed .lq-side-user-text,
     .lq-collapsed .lq-side-brand-text,
     .lq-collapsed .lq-side-brand-chevron {
@@ -273,6 +273,10 @@ html {
     .lq-collapsed .lq-side-header {
         justify-content: center;
         padding: 0;
+    }
+
+    .lq-collapsed .lq-side-logo-mark {
+        display: block;
     }
 
     .lq-collapsed .lq-side-brand,
@@ -299,26 +303,45 @@ html {
     padding: 0 1.25rem;
 }
 
-.lq-side-logo {
+/* LiquifyCRM's logo (<x-ui.logo>): two pictures, one shown per mode. */
+.lq-logo {
     display: inline-flex;
     align-items: center;
-    gap: 0.625rem;
-    min-width: 0;
-    color: var(--lq-ink);
-    font-weight: 700;
-    font-size: 1.125rem;
-    letter-spacing: -0.02em;
-    text-decoration: none;
-}
-
-.lq-side-logo-mark {
-    height: 1.5rem;
-    width: auto;
     flex: none;
 }
 
-.lq-logo-accent {
-    color: var(--lq-orange);
+.lq-logo img {
+    display: block;
+    width: auto;
+    height: 1.75rem;
+}
+
+.lq-logo .lq-logo-dark,
+.dark .lq-logo .lq-logo-light {
+    display: none;
+}
+
+.dark .lq-logo .lq-logo-dark {
+    display: block;
+}
+
+.lq-side-logo {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.lq-side-logo .lq-logo img {
+    height: 1.875rem;
+}
+
+/* The bars alone, for the narrow sidebar. */
+.lq-side-logo-mark {
+    display: none;
+    height: 1.875rem;
+    width: auto;
+    flex: none;
 }
 
 .lq-side-close {
@@ -1262,7 +1285,7 @@ a.lq-stat:hover .lq-stat-link svg {
     bottom: -1.5rem;
     width: 9rem;
     height: 5.75rem;
-    background: url('/images/liquify-mark.svg') no-repeat center / contain;
+    background: url('/images/brand/liquify-mark.webp') no-repeat center / contain;
     filter: brightness(0) invert(1);
     opacity: 0.22;
     pointer-events: none;
@@ -2574,21 +2597,11 @@ a.lq-stat:hover .lq-stat-link svg {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.625rem;
-    color: var(--lq-ink);
-    font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: -0.02em;
     text-decoration: none;
 }
 
-.lq-wordmark-mark {
-    height: 1.75rem;
-    width: auto;
-}
-
-.lq-wordmark-accent {
-    color: var(--lq-orange);
+.lq-wordmark .lq-logo img {
+    height: 2.25rem;
 }
 
 .lq-glass {

@@ -164,7 +164,7 @@ it('can be installed from Chrome: a service worker that opens pages and keeps an
         ->and((string) file_get_contents(public_path('offline.html')))->toContain('You are offline');
 
     // The desktop notification's icon is the app icon of the manifest.
-    expect($worker)->toContain("const ICON = '/images/brand/apple-touch-icon.png'");
+    expect($worker)->toContain("const ICON = '/images/brand/icon-192.png'");
 
     // The account menu holds "Install app" for when Chrome offers it.
     $this->actingAs($this->admin)->get('/b/ukph')->assertOk()->assertSee('$store.install.run()', false);

@@ -11,7 +11,7 @@ const CACHE = 'lq-offline-v1';
 const PREFS = 'lq-prefs-v1';
 const PREFS_KEY = '/__lq-prefs';
 const OFFLINE = '/offline.html';
-const ICON = '/images/brand/apple-touch-icon.png';
+const ICON = '/images/brand/icon-192.png';
 const HOME = '/b';
 
 const show = (item, silent) => self.registration.showNotification(String(item.title ?? 'LiquifyCRM'), {

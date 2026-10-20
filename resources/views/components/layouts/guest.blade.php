@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Sign in' }} · LiquifyCRM</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brand/apple-touch-icon.png') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
+    <link rel="icon" href="{{ asset('images/brand/favicon-96.png') }}" type="image/png" sizes="96x96">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brand/icon-180.png') }}">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="LiquifyCRM">
@@ -29,8 +30,7 @@
         <div class="lq-auth-side">
             <header class="lq-auth-top">
                 <a href="{{ url('/') }}" class="lq-wordmark" aria-label="LiquifyCRM">
-                    <img src="{{ asset('images/liquify-mark.svg') }}" alt="" class="lq-wordmark-mark">
-                    <span>Liquify<span class="lq-wordmark-accent">CRM</span></span>
+                    <x-ui.logo />
                 </a>
 
                 <button

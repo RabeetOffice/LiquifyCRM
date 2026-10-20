@@ -141,6 +141,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   kept in localStorage and the `lq_theme` cookie, which the layout reads so the mode survives `wire:navigate`.
   One corner scale: 16 px cards (`--lq-radius-card`), 12 px inner panes and menus (`--lq-radius-inner`), 10 px
   controls. Cards use `--lq-card` (translucent in dark mode); only the sidebar, top bar, menus and dialogs blur.
+- LiquifyCRM's logo (user request, 20 Oct 2026): rising bars with an arrow. `<x-ui.logo>` shows `liquify-logo.webp` (dark
+  lettering) or `liquify-logo-dark.webp` (white lettering) by mode; `liquify-mark.webp` is the bars alone (narrow sidebar).
+  The browser tab is the orange tile (`favicon.ico`, `favicon-96.png`); the installed app, home screen and desktop alerts
+  are the dark tile (`icon-180/192/512.png`, `icon-maskable-512.png`), all in `public/images/brand`. The offline page
+  carries its icon inline (no server there). Show the logo through the component, not as text beside a mark.
 - Working screens (12 Oct 2026): list screens put their views (`lq-views`), search (`lq-search`) and filters on the
   list card; filters in use are chips (`LeadsIndex::chips()`, `removeFilter()`). `LeadPanel` is the lead everywhere:
   slide-over on the list and the pipeline (`PreviewsLead` trait plus the `lead-sheet` partial) and two columns on its

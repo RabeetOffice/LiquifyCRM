@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.28.2',
+        'date' => '2026-10-20',
+        'title' => 'A new LiquifyCRM logo',
+        'changes' => [
+            ['improved', 'LiquifyCRM has a new logo: rising bars with an arrow. It is at the top of the menu (the bars alone when the menu is narrow), on the sign-in pages, the error pages and the privacy pages, with white lettering in dark mode.'],
+            ['improved', 'The browser tab shows the new orange icon, and the installed app, a phone\'s home screen and desktop alerts show the new dark icon. An installed app may take a day to pick up its new icon.'],
+        ],
+    ],
+    [
         'version' => '1.28.1',
         'date' => '2026-10-19',
         'title' => 'A clearer invoice with the brand\'s logo',

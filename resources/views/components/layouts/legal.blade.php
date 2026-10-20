@@ -6,7 +6,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} · LiquifyCRM</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
+    <link rel="icon" href="{{ asset('images/brand/favicon-96.png') }}" type="image/png" sizes="96x96">
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f2">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0a09">
     <script>
@@ -23,8 +24,7 @@
 <body class="lq-guest-body lq-legal-page">
     <main class="lq-legal-main">
         <a href="{{ url('/') }}" class="lq-wordmark" aria-label="LiquifyCRM">
-            <img src="{{ asset('images/liquify-mark.svg') }}" alt="" class="lq-wordmark-mark">
-            <span>Liquify<span class="lq-wordmark-accent">CRM</span></span>
+            <x-ui.logo />
         </a>
 
         <article class="lq-glass lq-legal">
