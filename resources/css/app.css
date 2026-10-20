@@ -11178,4 +11178,395 @@ a.lq-ov-row:hover {
     color: var(--lq-orange-deep);
 }
 
+/* --------------------------------------------------------- follow-up calendar
+   Follow-ups as a diary (20 Oct 2026): a week with the hours down the side, or a month. In the person's own time zone. */
+.lq-cal-card {
+    overflow: hidden;
+}
+
+.lq-cal-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--lq-card-border);
+}
+
+.lq-cal-title {
+    min-width: 11.5rem;
+}
+
+.lq-cal-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+}
+
+.lq-cal-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--lq-raised);
+    color: var(--lq-ink-soft);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.lq-cal-count svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--lq-muted);
+}
+
+.lq-cal-count-late {
+    background: var(--lq-danger-tint);
+    color: var(--lq-danger);
+    cursor: pointer;
+}
+
+.lq-cal-count-late svg {
+    color: var(--lq-danger);
+}
+
+/* The week: a column of hours, then a column per day. Wide enough to read on a phone by scrolling sideways. */
+.lq-week {
+    overflow-x: auto;
+}
+
+.lq-week-head,
+.lq-week-body {
+    display: grid;
+    grid-template-columns: 3.75rem repeat(7, minmax(6.5rem, 1fr));
+    min-width: 52rem;
+}
+
+.lq-week-head {
+    border-bottom: 1px solid var(--lq-card-border);
+}
+
+.lq-week-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.625rem 0 0.5rem;
+    border-inline-start: 1px solid var(--lq-card-border);
+}
+
+.lq-week-day-name {
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.lq-week-day-num {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    color: var(--lq-ink);
+    font-size: 1.0625rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-week-day-past .lq-week-day-num {
+    color: var(--lq-muted);
+}
+
+.lq-week-day-today .lq-week-day-name {
+    color: var(--lq-orange-deep);
+}
+
+.lq-week-day-today .lq-week-day-num {
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+}
+
+.lq-week-body {
+    padding-block: 0.75rem;
+}
+
+.lq-week-hours {
+    position: relative;
+}
+
+.lq-week-hours span {
+    position: absolute;
+    inset-inline-end: 0.5rem;
+    transform: translateY(-50%);
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-week-col {
+    position: relative;
+    border-inline-start: 1px solid var(--lq-card-border);
+    transition: background-color 120ms var(--lq-ease);
+}
+
+.lq-week-col-today {
+    background: color-mix(in srgb, var(--lq-orange) 5%, transparent);
+}
+
+.lq-week-col-over {
+    background: color-mix(in srgb, var(--lq-orange) 12%, transparent);
+}
+
+.lq-week-line {
+    position: absolute;
+    inset-inline: 0;
+    border-top: 1px solid color-mix(in srgb, var(--lq-card-border) 70%, transparent);
+    pointer-events: none;
+}
+
+.lq-week-now {
+    position: absolute;
+    z-index: 1;
+    inset-inline: 0;
+    height: 2px;
+    background: var(--lq-danger);
+    pointer-events: none;
+}
+
+.lq-week-now::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: var(--lq-danger);
+}
+
+/* One follow-up in the week: half an hour tall, coloured by how it stands. */
+.lq-event {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    min-height: 1.5rem;
+    padding: 0.25rem 0.4rem;
+    overflow: hidden;
+    border-inline-start: 3px solid var(--lq-orange);
+    border-radius: 6px;
+    background: var(--lq-orange-tint);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    color: var(--lq-ink);
+    font-size: 0.75rem;
+    line-height: 1.2;
+    animation: lq-pop 180ms var(--lq-ease);
+}
+
+.lq-event[draggable="true"] {
+    cursor: grab;
+}
+
+.lq-event-open {
+    cursor: pointer;
+}
+
+.lq-event.lq-event-open:hover {
+    z-index: 3;
+    height: auto !important;
+    box-shadow: var(--lq-shadow-float);
+}
+
+.lq-event-line,
+.lq-event-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-event-time {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-event-title {
+    font-weight: 600;
+}
+
+.lq-event-sub {
+    color: var(--lq-muted);
+}
+
+.lq-event-late {
+    border-inline-start-color: var(--lq-danger);
+    background: var(--lq-danger-tint);
+}
+
+.lq-event-late .lq-event-time {
+    color: var(--lq-danger);
+}
+
+.lq-event-done {
+    border-inline-start-color: var(--lq-muted);
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+    text-decoration: line-through;
+}
+
+/* The month: seven columns of days, up to three follow-ups each, then "N more". */
+.lq-monthgrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.lq-monthgrid-name {
+    padding: 0.625rem 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--lq-card-border);
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.lq-monthcell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    min-height: 7.5rem;
+    padding: 0.375rem 0.5rem 0.5rem;
+    border-bottom: 1px solid var(--lq-card-border);
+    border-inline-start: 1px solid var(--lq-card-border);
+    transition: background-color 120ms var(--lq-ease);
+}
+
+.lq-monthcell:nth-child(7n + 8) {
+    border-inline-start: 0;
+}
+
+.lq-monthcell-out {
+    background: color-mix(in srgb, var(--lq-raised) 55%, transparent);
+}
+
+.lq-monthcell-out .lq-monthcell-num {
+    color: var(--lq-muted);
+}
+
+.lq-monthcell-today {
+    background: color-mix(in srgb, var(--lq-orange) 5%, transparent);
+}
+
+.lq-monthcell-over {
+    background: color-mix(in srgb, var(--lq-orange) 12%, transparent);
+}
+
+.lq-monthcell-num {
+    align-self: flex-start;
+    display: grid;
+    place-items: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.25rem;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.lq-monthcell-num:hover {
+    background: var(--lq-raised);
+}
+
+.lq-monthcell-today .lq-monthcell-num {
+    background: var(--lq-orange);
+    color: var(--lq-on-orange);
+}
+
+.lq-mevent {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    border-radius: 5px;
+    color: var(--lq-ink);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.lq-mevent[draggable="true"] {
+    cursor: grab;
+}
+
+.lq-mevent.lq-event-open:hover {
+    background: var(--lq-raised);
+}
+
+.lq-mevent-dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--lq-orange);
+}
+
+.lq-mevent-time {
+    flex: none;
+    color: var(--lq-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-mevent-title {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-mevent-late .lq-mevent-dot {
+    background: var(--lq-danger);
+}
+
+.lq-mevent-late .lq-mevent-time {
+    color: var(--lq-danger);
+}
+
+.lq-mevent-done {
+    color: var(--lq-muted);
+    text-decoration: line-through;
+}
+
+.lq-mevent-done .lq-mevent-dot {
+    background: var(--lq-muted);
+}
+
+.lq-monthcell-more {
+    align-self: flex-start;
+    padding: 0.0625rem 0.375rem;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--lq-orange-deep);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.lq-monthcell-more:hover {
+    background: var(--lq-orange-tint);
+}
+
 } /* @layer components */

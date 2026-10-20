@@ -30,6 +30,8 @@ return [
             ['new', 'Clocks in the top bar: your own time, the brand\'s time, and with + the time where your other brands are (London, Sydney, Dublin…). The clocks you add are kept on this computer.'],
             ['new', 'A sale in another currency: Mark as Won and Record upsell let you choose the currency the client paid in, such as pounds for a euro brand. The sale counts in the brand\'s currency at that day\'s European Central Bank rate, so targets add up, and the sale shows both, such as "£1,000 (€1,187.60)". Payments are taken, and invoices made, in the currency the client paid in.'],
             ['improved', 'Targets are easier to read: headings say what each box is (the value of sales in the brand\'s currency, and the number of sales, which is optional), each line says how the month is going ("£6,574 to go · 3 sales so far") or what was sold where there is no target, and a team or brand without its own target shows what its people\'s targets add up to.'],
+            ['new', 'Follow-ups as a calendar, like a diary: Week shows each day with its hours, Month shows the whole month, List keeps the lists you had. Everything is in your own time. Click one to open its lead beside the calendar; drag one to another day or time to move it.'],
+            ['new', 'Reminders before a follow-up: 10 minutes, 5 minutes and 1 minute before, its owner gets a notification in the bell, with the sound, a desktop alert and a phone notification where those are on.'],
             ['improved', 'Click "Update system" once after this update.'],
         ],
     ],

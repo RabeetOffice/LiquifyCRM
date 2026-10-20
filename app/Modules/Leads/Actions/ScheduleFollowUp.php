@@ -30,6 +30,20 @@ final class ScheduleFollowUp
         return $task;
     }
 
+    /** Moved to another day or time (dragged on the calendar): its reminders follow the new time. */
+    public function reschedule(Task $task, CarbonInterface $dueAt, ?User $by = null): Task
+    {
+        $before = $task->due_at;
+        $task->forceFill(['due_at' => $dueAt])->save();
+
+        if ($task->lead !== null) {
+            $this->syncNextFollowUp($task->lead);
+            Audit::log('leads.follow_up_moved', $task->lead, ['task_id' => $task->getKey(), 'from' => $before->toIso8601String(), 'to' => $dueAt->toIso8601String()], 'Follow-up moved: '.$task->title, causer: $by, logName: 'leads');
+        }
+
+        return $task;
+    }
+
     public function complete(Task $task, ?User $by = null): Task
     {
         $task->forceFill(['done_at' => now()])->save();

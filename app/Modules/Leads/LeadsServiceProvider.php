@@ -8,6 +8,7 @@ use App\Modules\Brands\Events\MemberRemoved;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Leads\Console\EmptyBinCommand;
+use App\Modules\Leads\Console\RemindFollowUpsCommand;
 use App\Modules\Leads\Listeners\ReturnLeadsToQueue;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
@@ -22,6 +23,7 @@ final class LeadsServiceProvider extends ModuleServiceProvider
 
     protected array $commands = [
         EmptyBinCommand::class,
+        RemindFollowUpsCommand::class,
     ];
 
     protected array $policies = [
