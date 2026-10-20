@@ -31,10 +31,12 @@
                     <x-ui.textarea wire:model="message" name="message" rows="6" />
                 </x-ui.field>
             </x-ui.card>
+        </div>
 
+        <aside class="lq-split-side">
             {{-- Now by default; an older enquiry keeps the day it really came in, and is counted on that day. --}}
-            <x-ui.card title="When they got in touch" description="Leave it as it is for a call or message from today. For an older enquiry, choose the day and time it came in.">
-                <div class="lq-form-grid lq-form-grid-2">
+            <x-ui.card title="When they got in touch" description="Now, for a call or message from today. For an older enquiry, the day and time it came in.">
+                <div class="lq-form">
                     <x-ui.field label="Date and time" name="receivedAt" :help="'Your time ('.$zoneCity.').'">
                         <x-ui.input type="datetime-local" wire:model="receivedAt" name="receivedAt" :max="$nowField" />
                     </x-ui.field>
@@ -48,9 +50,7 @@
                     </div>
                 </div>
             </x-ui.card>
-        </div>
 
-        <aside class="lq-split-side">
             @if ($canRoute)
                 <x-ui.card title="Who gets it" description="Leave empty to put the lead in the New / Unassigned queue.">
                     <div class="lq-form">

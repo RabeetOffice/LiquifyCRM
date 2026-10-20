@@ -27,6 +27,7 @@ return [
             ['improved', 'The newest leads are on top of the Leads list in every view, Unassigned too, and on the Pipeline. A Sort choice beside the search changes it: Newest first, Oldest first, Recently added, Recent activity or Next follow-up. The Pipeline has Newest first, Recently added and Recent activity.'],
             ['new', 'Add a lead asks when they got in touch: now, or an earlier day and time for an older enquiry. The lead is dated and counted on that day, and its timeline says it was added later.'],
             ['improved', 'Times are shown and typed in your own time zone: the one your computer uses, unless you choose one in your Profile ("Automatic" is the new default there). Follow-up times, "today" and "overdue" follow it, so a follow-up set for 10:00 is at 10:00 where you are.'],
+            ['new', 'Clocks in the top bar: your own time, the brand\'s time, and with + the time where your other brands are (London, Sydney, Dublin…). The clocks you add are kept on this computer.'],
             ['improved', 'Click "Update system" once after this update.'],
         ],
     ],

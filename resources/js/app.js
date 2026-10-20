@@ -120,6 +120,94 @@ Alpine.data('dropdown', () => ({
     close() { this.open = false; },
 }));
 
+// Clocks in the top bar: this computer's time, the brand's, and the brand time zones this person added.
+// The added ones are a choice of this computer, like sound and desktop alerts. Ticks on the minute.
+Alpine.data('clocks', ({ brand, choices }) => ({
+    open: false,
+    now: new Date(),
+    own: 'UTC',
+    extra: [],
+    brand,
+    choices,
+    timer: null,
+
+    init() {
+        try {
+            this.own = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        } catch (error) {
+            this.own = 'UTC';
+        }
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('lq_clocks') || '[]');
+            this.extra = Array.isArray(saved) ? saved.filter((zone) => choices.some((choice) => choice.zone === zone)).slice(0, 3) : [];
+        } catch (error) {
+            this.extra = [];
+        }
+
+        const tick = () => {
+            this.now = new Date();
+            this.timer = setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
+        };
+        tick();
+    },
+
+    destroy() {
+        clearTimeout(this.timer);
+    },
+
+    get clocks() {
+        const list = [{ zone: this.own, label: 'You · ' + this.city(this.own), title: 'Your time (this computer)', mine: true }];
+
+        if (this.brand && this.brand.zone !== this.own) {
+            list.push({ zone: this.brand.zone, label: this.city(this.brand.zone) + ' · brand', title: this.brand.name + ': ' + this.city(this.brand.zone) + ' time' });
+        }
+
+        this.extra
+            .filter((zone) => zone !== this.own && zone !== this.brand?.zone)
+            .forEach((zone) => list.push({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone) }));
+
+        return list;
+    },
+
+    time(zone) {
+        try {
+            return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone }).format(this.now);
+        } catch (error) {
+            return '--:--';
+        }
+    },
+
+    // "Tue" when it is already (or still) another day there.
+    day(zone) {
+        try {
+            const weekday = (where) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: where }).format(this.now);
+
+            return weekday(zone) !== weekday(this.own) ? weekday(zone) : '';
+        } catch (error) {
+            return '';
+        }
+    },
+
+    city(zone) {
+        return String(zone).split('/').pop().replace(/_/g, ' ');
+    },
+
+    chosen(zone) {
+        return this.extra.includes(zone);
+    },
+
+    toggle(zone) {
+        this.extra = this.chosen(zone) ? this.extra.filter((item) => item !== zone) : [...this.extra, zone].slice(-3);
+
+        try {
+            localStorage.setItem('lq_clocks', JSON.stringify(this.extra));
+        } catch (error) {
+            // Private window: the clocks still change for this page.
+        }
+    },
+}));
+
 // A choice from a long list with a search box (<x-ui.picker>). The list stays out of Alpine's
 // reactive data: four hundred time zones need no watching, only filtering.
 Alpine.data('picker', ({ model, options, pinned }) => ({
