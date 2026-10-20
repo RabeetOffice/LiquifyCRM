@@ -146,6 +146,8 @@ final class OverviewCards
     {
         $rows = Conversation::query()->acrossBrands()->toBase()
             ->whereIn('brand_id', $this->brands->keys())
+            // Only chats the Inbox lists: not of an archived lead, nor of one in the bin.
+            ->whereIn('lead_id', Lead::query()->acrossBrands()->unarchived()->select('leads.id'))
             ->where('last_inbound_at', '>', $this->now->subHours(Conversation::REPLY_WINDOW_HOURS))
             ->where(fn ($query) => $query->whereNull('last_message_at')->orWhereColumn('last_inbound_at', '>=', 'last_message_at'))
             ->groupBy('brand_id', 'channel')

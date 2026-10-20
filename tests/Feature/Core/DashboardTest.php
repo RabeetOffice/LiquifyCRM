@@ -192,9 +192,12 @@ it('answers the questions of the cards under the brands table', function (): voi
     Sale::query()->create(['brand_id' => $uk->getKey(), 'client_id' => $client->getKey(), 'lead_id' => $quick->getKey(), 'user_id' => $agent->getKey(), 'kind' => 'front', 'amount' => 1000, 'currency' => 'GBP', 'closed_at' => '2026-10-14 15:00:00']);
     Sale::query()->create(['brand_id' => $uk->getKey(), 'client_id' => $client->getKey(), 'user_id' => $agent->getKey(), 'kind' => 'upsell', 'amount' => 500, 'currency' => 'GBP', 'closed_at' => '2026-10-15 10:00:00']);
 
-    Conversation::query()->create(['brand_id' => $uk->getKey(), 'contact_external_id' => '1', 'last_inbound_at' => '2026-10-15 10:00:00', 'last_message_at' => '2026-10-15 10:00:00']);
-    Conversation::query()->create(['brand_id' => $uk->getKey(), 'contact_external_id' => '2', 'last_inbound_at' => '2026-10-15 09:00:00', 'last_message_at' => '2026-10-15 09:30:00']);
-    Conversation::query()->create(['brand_id' => $au->getKey(), 'contact_external_id' => '3', 'channel' => 'instagram', 'last_inbound_at' => '2026-10-14 05:00:00', 'last_message_at' => '2026-10-14 05:00:00']);
+    // Every chat has its lead; a chat of an archived lead is not in the Inbox, so it waits for nobody here either.
+    $chatLead = fn (Brand $brand, array $attributes = []): int => (int) Lead::factory()->create(['brand_id' => $brand->getKey(), 'created_at' => '2026-09-01 10:00:00', ...$attributes])->getKey();
+    Conversation::query()->create(['brand_id' => $uk->getKey(), 'lead_id' => $chatLead($uk), 'contact_external_id' => '1', 'last_inbound_at' => '2026-10-15 10:00:00', 'last_message_at' => '2026-10-15 10:00:00']);
+    Conversation::query()->create(['brand_id' => $uk->getKey(), 'lead_id' => $chatLead($uk), 'contact_external_id' => '2', 'last_inbound_at' => '2026-10-15 09:00:00', 'last_message_at' => '2026-10-15 09:30:00']);
+    Conversation::query()->create(['brand_id' => $au->getKey(), 'lead_id' => $chatLead($au), 'contact_external_id' => '3', 'channel' => 'instagram', 'last_inbound_at' => '2026-10-14 05:00:00', 'last_message_at' => '2026-10-14 05:00:00']);
+    Conversation::query()->create(['brand_id' => $au->getKey(), 'lead_id' => $chatLead($au, ['archived_at' => '2026-10-15 08:00:00']), 'contact_external_id' => '4', 'last_inbound_at' => '2026-10-15 07:00:00', 'last_message_at' => '2026-10-15 07:00:00']);
 
     Site::factory()->create(['brand_id' => $uk->getKey(), 'url' => 'https://quiet.example', 'last_lead_at' => '2026-10-12 09:00:00']);
     Site::factory()->create(['brand_id' => $uk->getKey(), 'url' => 'https://paused.example', 'last_lead_at' => '2026-10-01 09:00:00', 'is_active' => false]);

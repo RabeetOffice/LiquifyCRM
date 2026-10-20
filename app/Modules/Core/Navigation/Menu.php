@@ -78,7 +78,8 @@ final class Menu
         };
 
         $unread = function () use ($user, $agent): ?string {
-            $count = (int) Conversation::query()->visibleTo($user)
+            // The chats the Inbox lists (none of an archived lead), so the count always matches what is there.
+            $count = (int) Conversation::query()->listedFor($user)
                 // An Agent counts their own chats and the free ones, not a colleague's.
                 ->when($agent, fn (Builder $query): Builder => $query->whereHas('lead', fn (Builder $lead): Builder => $lead->where(fn (Builder $mine): Builder => $mine->where('assigned_to', $user->getKey())->orWhereNull('assigned_to'))))
                 ->sum('unread_count');

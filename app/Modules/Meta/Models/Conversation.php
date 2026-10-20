@@ -172,6 +172,20 @@ class Conversation extends Model
         return $query->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user));
     }
 
+    /**
+     * The chats the Inbox lists for a person: those they may see, not of an
+     * archived lead (a new message brings the lead back, Lead::heardFrom).
+     * The menu's unread count uses the same rule, so it never counts a chat
+     * the Inbox does not show (20 Oct 2026).
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeListedFor(Builder $query, User $user): Builder
+    {
+        return $query->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user)->unarchived());
+    }
+
     public function replyWindowEndsAt(): ?CarbonImmutable
     {
         return $this->last_inbound_at?->addHours(self::REPLY_WINDOW_HOURS);

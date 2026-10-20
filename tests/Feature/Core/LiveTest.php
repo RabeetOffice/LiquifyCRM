@@ -183,6 +183,14 @@ it('gives the menu\'s counts as they are now, for the menu the person has', func
 
     $this->actingAs($manager)->get('/b/ukph/leads')->assertSee('data-menu-badges="'.route('brand.menu-badges', ['brand' => 'ukph']).'"', false)->assertSee('data-badge-for=', false);
 
+    // Unread chats count as the Inbox lists them: a chat of an archived lead is not there, so it is not counted.
+    $open = Lead::factory()->create(['brand_id' => $brand->getKey(), 'department_id' => $department->getKey()]);
+    $archived = Lead::factory()->create(['brand_id' => $brand->getKey(), 'department_id' => $department->getKey(), 'archived_at' => now()]);
+    Conversation::query()->create(['brand_id' => $brand->getKey(), 'lead_id' => $open->getKey(), 'contact_external_id' => 'a', 'unread_count' => 2]);
+    Conversation::query()->create(['brand_id' => $brand->getKey(), 'lead_id' => $archived->getKey(), 'contact_external_id' => 'b', 'unread_count' => 1]);
+
+    $this->actingAs($manager)->getJson('/b/ukph/menu-badges')->assertJson([route('brand.inbox', ['brand' => 'ukph']) => '2']);
+
     // Somebody of another brand gets nothing of this one.
     $stranger = managerOf(department(brand(['slug' => 'anz'])));
     $this->actingAs($stranger)->getJson('/b/ukph/menu-badges')->assertNotFound();

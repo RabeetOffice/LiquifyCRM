@@ -26,6 +26,7 @@ return [
         'changes' => [
             ['improved', 'A button in a "Are you sure?" box shows "Working…" with a spinner while it runs. Update system backs up first and takes some seconds, which before looked as if nothing happened.'],
             ['fixed', 'A clean-up the scheduler ran every night at midnight failed with an error in the log; it now runs with the other clean-ups at 00:55.'],
+            ['fixed', 'The Inbox count in the menu no longer counts unread messages of a chat whose lead was archived: that chat is not in the Inbox, so the count stayed at 1 with every chat read. The Overview\'s "Chats waiting for a reply" leaves them out too.'],
         ],
     ],
     [

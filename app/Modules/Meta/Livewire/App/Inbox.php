@@ -208,7 +208,7 @@ final class Inbox extends Component
         $handles = Instagram::ready();
 
         // The chat of an archived lead is out of the list too; a new message brings the lead back (Lead::heardFrom).
-        $listed = fn (): Builder => $visible()->whereHas('lead', fn (Builder $lead): Builder => $lead->unarchived());
+        $listed = fn (): Builder => Conversation::query()->listedFor($user);
 
         $conversations = $listed()
             ->with(['lead.status', 'lead.assignee', 'lead.department', 'source'])
