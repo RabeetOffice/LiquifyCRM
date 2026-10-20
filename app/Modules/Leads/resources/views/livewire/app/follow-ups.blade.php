@@ -14,7 +14,8 @@
     </x-ui.page-header>
 
     @if ($calendar !== null)
-        <x-ui.card flush class="lq-cal-card">
+        {{-- Dimmed while the next week or month is on its way: a click always shows it was taken. --}}
+        <x-ui.card flush class="lq-cal-card" wire:loading.class="lq-busy" wire:target="go, today, showWeek, showList, view, move">
             <div class="lq-cal-bar">
                 <div class="lq-month lq-month-pill">
                     <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="go(-1)" title="{{ $view === 'month' ? 'Previous month' : 'Previous week' }}"><x-heroicon-o-chevron-left class="h-5 w-5" /></button>
@@ -162,7 +163,7 @@
             @endif
         </x-ui.card>
     @else
-        <x-ui.card flush class="lq-list">
+        <x-ui.card flush class="lq-list" wire:loading.class="lq-busy" wire:target="tab, view, gotoPage, nextPage, previousPage">
             <div class="lq-viewbar">
                 <div class="lq-views" role="tablist" aria-label="Follow-ups by date">
                     <button type="button" @class(['lq-view', 'lq-view-active' => $tab === 'overdue']) wire:click="$set('tab', 'overdue')" role="tab">Overdue @if ($counts['overdue'] > 0)<span class="lq-view-count lq-view-count-danger">{{ $counts['overdue'] }}</span>@endif</button>

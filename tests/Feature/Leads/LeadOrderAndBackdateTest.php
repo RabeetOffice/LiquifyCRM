@@ -96,6 +96,15 @@ it('keeps a lead added "now" at the present moment and refuses a date still to c
 
     expect(Lead::query()->where('name', 'Caller Today')->firstOrFail()->created_at->toDateTimeString())->toBe('2026-10-20 12:00:00');
 
+    // A form that took ten minutes to fill in, its date untouched, is still "now", not ten minutes ago.
+    $slow = Livewire::actingAs($this->manager)->test(LeadForm::class, ['brand' => $this->brand])->set('name', 'Slow Typist');
+    $this->travel(10)->minutes();
+    $slow->call('save')->assertHasNoErrors();
+
+    $lead = Lead::query()->where('name', 'Slow Typist')->firstOrFail();
+    expect($lead->created_at->toDateTimeString())->toBe('2026-10-20 12:10:00');
+    $this->assertDatabaseHas('activity_log', ['event' => 'leads.created', 'subject_id' => $lead->getKey(), 'description' => 'Lead created from Added by hand']);
+
     Livewire::actingAs($this->manager)
         ->test(LeadForm::class, ['brand' => $this->brand])
         ->set('name', 'From The Future')

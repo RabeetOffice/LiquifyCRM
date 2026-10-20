@@ -25,5 +25,10 @@ final class RunSoon
         }
 
         dispatch($job)->afterResponse();
+
+        // The open screens hear about what the job changed. The request's own flush (CoreServiceProvider) was
+        // registered first and so runs before the job: a change the job made within a second of another one
+        // waited for a flush that never came, and a new message stayed off the screen (20 Oct 2026).
+        app()->terminating(fn () => Live::flush());
     }
 }

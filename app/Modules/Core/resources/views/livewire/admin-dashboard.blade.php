@@ -3,7 +3,8 @@
     use App\Modules\Leads\Enums\LeadSource;
     use App\Modules\Sales\Support\Money;
 @endphp
-<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh>
+{{-- data-live-refresh="chat": the chats waiting for a reply are counted here too, so a message reloads it as well. --}}
+<div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh="chat">
     <x-ui.page-header title="Overview" subtitle="Every brand at a glance: this month's leads and sales, and what is waiting for somebody.">
         <x-slot:actions>
             @can('create', \App\Modules\Brands\Models\Brand::class)

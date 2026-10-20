@@ -41,6 +41,9 @@ class Conversation extends Model
 {
     use BelongsToBrand;
 
+    /** A chat's changes (unread count, last message, the contact's name) reach only the screens that show chats (Live::touchChat). */
+    public const LIVE_CHAT = true;
+
     public const CHANNEL_MESSENGER = 'messenger';
 
     public const CHANNEL_INSTAGRAM = 'instagram';

@@ -33,6 +33,22 @@ final class Live
         }
     }
 
+    /**
+     * A chat of this brand changed: a message came in or went out, Facebook
+     * confirmed it was delivered or read, a chat's unread count moved. Only the
+     * screens that show chats reload for it (the Inbox, a chat, a lead's
+     * Messenger tab, the menu's counts), not every screen of the brand: a busy
+     * Page sends several of these a second (20 Oct 2026).
+     */
+    public static function touchChat(?int $brandId): void
+    {
+        if ($brandId !== null) {
+            self::mark('live:chat:'.$brandId);
+            // The admin area's Overview counts the chats waiting for a reply in every brand.
+            self::mark('live:chat:all');
+        }
+    }
+
     /** Something for this person arrived: a notification. */
     public static function touchUser(int $userId): void
     {
@@ -40,16 +56,18 @@ final class Live
     }
 
     /**
-     * @return array{b: int, u: int} the stamp of the brand (or of all brands) and of the person
+     * @return array{b: int, c: int, u: int} the stamp of the brand (or of all brands), of its chats and of the person
      */
     public static function stamps(?int $brandId, int $userId, bool $everyBrand = false): array
     {
         $brandKey = $brandId !== null ? 'live:brand:'.$brandId : ($everyBrand ? 'live:all' : null);
+        $chatKey = $brandId !== null ? 'live:chat:'.$brandId : ($everyBrand ? 'live:chat:all' : null);
         $userKey = 'live:user:'.$userId;
-        $found = Cache::many(array_values(array_filter([$brandKey, $userKey])));
+        $found = Cache::many(array_values(array_filter([$brandKey, $chatKey, $userKey])));
 
         return [
             'b' => $brandKey !== null ? (int) ($found[$brandKey] ?? 0) : 0,
+            'c' => $chatKey !== null ? (int) ($found[$chatKey] ?? 0) : 0,
             'u' => (int) ($found[$userKey] ?? 0),
         ];
     }
@@ -68,7 +86,7 @@ final class Live
     }
 
     /**
-     * @return array{b: int, u: int}|null null for a token that is forged, damaged or too old
+     * @return array{b: int, c: int, u: int}|null null for a token that is forged, damaged or too old
      */
     public static function read(string $token): ?array
     {

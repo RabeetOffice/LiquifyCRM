@@ -27,11 +27,13 @@ trait BelongsToBrand
             }
         });
 
-        // Open screens of the brand hear about every change (see Live).
+        // Open screens of the brand hear about every change (see Live); a model that says it is part of a chat
+        // (`LIVE_CHAT`) only reaches the screens that show chats.
         $changed = function (Model $model): void {
             $brandId = $model->getAttribute('brand_id');
+            $brandId = $brandId !== null ? (int) $brandId : null;
 
-            Live::touch($brandId !== null ? (int) $brandId : null);
+            defined($model::class.'::LIVE_CHAT') ? Live::touchChat($brandId) : Live::touch($brandId);
         };
 
         static::saved($changed);

@@ -1,6 +1,6 @@
 {{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one.
      `bytes` counts the reply as Instagram does (an emoji is four), against `limit` (0: no count shown). --}}
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }} }">
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }} }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();

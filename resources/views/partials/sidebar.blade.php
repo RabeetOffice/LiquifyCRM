@@ -5,7 +5,7 @@
     $showSwitcher = $brand !== null || ($isAdmin && $brands->isNotEmpty());
 @endphp
 
-<aside class="lq-sidebar" id="main-sidebar" aria-label="Main navigation">
+<aside class="lq-sidebar" id="main-sidebar" aria-label="Main navigation" @if ($user) data-menu-badges="{{ $brand ? route('brand.menu-badges', ['brand' => $brand->slug]) : route('menu-badges') }}" @endif>
     <div class="lq-side-header">
         <a href="{{ $brand ? $brand->url() : ($isAdmin ? route('admin.dashboard') : url('/')) }}" class="lq-side-logo" aria-label="LiquifyCRM" wire:navigate>
             <x-ui.logo class="lq-side-logo-full" />
@@ -80,9 +80,8 @@
                             <a href="{{ $item['url'] }}" class="lq-side-link" @if ($item['active']) aria-current="page" @endif title="{{ $item['label'] }}" x-on:click="$store.sidebar.closeMobile()" wire:navigate.hover>
                                 @svg($item['icon'], 'lq-side-icon')
                                 <span class="lq-side-label">{{ $item['label'] }}</span>
-                                @if ($item['badge'])
-                                    <span class="lq-side-badge" @if ($item['badge'] === 'New') data-update-flag @endif><span class="lq-badge lq-badge-primary">{{ $item['badge'] }}</span></span>
-                                @endif
+                                {{-- Kept up to date by app.js from the menu-badges address when something changes. --}}
+                                <span @class(['lq-side-badge', 'lq-side-badge-none' => ! $item['badge']]) data-badge-for="{{ $item['url'] }}" @if ($item['badge'] === 'New') data-update-flag @endif><span class="lq-badge lq-badge-primary">{{ $item['badge'] }}</span></span>
                             </a>
                         </li>
                     @endforeach

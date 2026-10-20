@@ -4,12 +4,27 @@ declare(strict_types=1);
 
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Notifications\AppNotification;
+use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Core\Support\Live;
 use App\Modules\Core\Support\RunSoon;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Meta\Models\Conversation;
+use App\Modules\Meta\Models\Message;
 use App\Modules\Sites\Jobs\IngestLead;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+
+/** A job that changes a brand a moment after the request did (as ProcessMetaEvent saving a message). */
+final class TouchBrandAgain
+{
+    public function __construct(public int $brandId) {}
+
+    public function handle(): void
+    {
+        usleep(3000);
+        Live::touch($this->brandId);
+    }
+}
 
 /*
  * Live updates without websockets: every brand and person has a stamp that
@@ -102,6 +117,79 @@ it('queues work from the command line and runs it after the answer during a web 
     RunSoon::dispatch(new IngestLead(1));
 
     Queue::assertPushed(IngestLead::class, 1);
+});
+
+it('moves only the chat stamp for a message or a chat, so the other screens of the brand stay still', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+    $user = admin();
+    inBrand($brand);
+    $lead = Lead::factory()->create(['brand_id' => $brand->getKey()]);
+    Live::forget();
+    Live::flush();
+
+    $before = Live::stamps($brand->getKey(), $user->getKey());
+    usleep(2000);
+
+    $conversation = Conversation::query()->create(['brand_id' => $brand->getKey(), 'lead_id' => $lead->getKey(), 'contact_external_id' => 'u1']);
+    Message::query()->create(['conversation_id' => $conversation->getKey(), 'external_id' => 'm1', 'direction' => Message::IN, 'body' => 'Hello', 'status' => 'delivered']);
+    Live::flush();
+
+    $after = Live::stamps($brand->getKey(), $user->getKey());
+
+    expect($after['c'])->toBeGreaterThan($before['c'])
+        ->and($after['b'])->toBe($before['b']);
+
+    // A lead still moves the brand's stamp.
+    Live::forget();
+    usleep(2000);
+    $lead->forceFill(['name' => 'Renamed'])->save();
+    Live::flush();
+
+    expect(Live::stamps($brand->getKey(), $user->getKey())['b'])->toBeGreaterThan($after['b'])
+        ->and($this->getJson('/api/live?t='.urlencode(Live::token($user->getKey(), $brand->getKey())))->assertOk()->json('c'))->toBe($after['c']);
+});
+
+it('tells the screens about what a job run after the answer changed, even right after another change', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+    $user = admin();
+    $console = new ReflectionProperty($this->app, 'isRunningInConsole');
+    $console->setValue($this->app, false);
+
+    try {
+        Live::forget();
+        Live::touch($brand->getKey());
+        $first = Live::stamps($brand->getKey(), $user->getKey())['b'];
+
+        // The job touches the brand again within the same second: that change used to wait for a flush that had already run.
+        RunSoon::dispatch(new TouchBrandAgain((int) $brand->getKey()));
+        $this->app->terminate();
+
+        expect(Live::stamps($brand->getKey(), $user->getKey())['b'])->toBeGreaterThan($first);
+    } finally {
+        $console->setValue($this->app, true);
+    }
+});
+
+it('gives the menu\'s counts as they are now, for the menu the person has', function (): void {
+    $brand = brand(['slug' => 'ukph']);
+    inBrand($brand);
+    $department = department($brand);
+    $manager = managerOf($department);
+    Lead::factory()->count(3)->create(['brand_id' => $brand->getKey(), 'department_id' => $department->getKey()]);
+
+    $this->actingAs($manager)->getJson('/b/ukph/menu-badges')
+        ->assertOk()
+        ->assertJson([route('brand.leads.index', ['brand' => 'ukph']) => '3', route('brand.dashboard', ['brand' => 'ukph']) => null]);
+
+    $this->actingAs($manager)->get('/b/ukph/leads')->assertSee('data-menu-badges="'.route('brand.menu-badges', ['brand' => 'ukph']).'"', false)->assertSee('data-badge-for=', false);
+
+    // Somebody of another brand gets nothing of this one.
+    $stranger = managerOf(department(brand(['slug' => 'anz'])));
+    $this->actingAs($stranger)->getJson('/b/ukph/menu-badges')->assertNotFound();
+
+    // Outside a brand an Admin gets the admin menu's.
+    app(CurrentBrand::class)->clear();
+    $this->actingAs(admin())->getJson('/menu-badges')->assertOk()->assertJsonStructure([route('admin.dashboard')]);
 });
 
 it('shows a brand in its second colour when the main one says nothing', function (): void {

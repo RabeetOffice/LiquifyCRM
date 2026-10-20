@@ -43,7 +43,7 @@
 <div
     @class(['lq-lead', 'lq-lead-page' => $page])
     x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(person), send: (lead, team) => $wire.quickSend(team) })"
-    data-live-refresh
+    data-live-refresh="chat"
     x-on:keydown.window="
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes($event.target.tagName) || $event.metaKey || $event.ctrlKey || $event.altKey) return;
         if ($event.key === 'a') $refs.assign?.click();

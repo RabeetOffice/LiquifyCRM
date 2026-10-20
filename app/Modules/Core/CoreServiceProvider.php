@@ -98,11 +98,13 @@ final class CoreServiceProvider extends ModuleServiceProvider
             $current = app(CurrentBrand::class);
             $brand = $current->get();
             $route = (string) Route::currentRouteName();
+            // Only the sidebar draws the menu: the top bar would count its badges a second time.
+            $drawsMenu = $view->name() === 'partials.sidebar';
 
             // Outside any brand (the profile), a Manager or Agent keeps the menu of the brand they work in,
             // counted within that brand; Admins get the admin area's menu.
             if ($brand === null && $user instanceof User && ($home = Menu::homeBrand($user)) !== null) {
-                $view->with(['user' => $user, 'brand' => $home, 'menu' => $current->within($home, fn (): array => Menu::for($user, $home, $route))]);
+                $view->with(['user' => $user, 'brand' => $home, 'menu' => $drawsMenu ? $current->within($home, fn (): array => Menu::for($user, $home, $route)) : []]);
 
                 return;
             }
@@ -110,7 +112,7 @@ final class CoreServiceProvider extends ModuleServiceProvider
             $view->with([
                 'user' => $user instanceof User ? $user : null,
                 'brand' => $brand,
-                'menu' => $user instanceof User ? Menu::for($user, $brand, $route) : [],
+                'menu' => $user instanceof User && $drawsMenu ? Menu::for($user, $brand, $route) : [],
             ]);
         });
 

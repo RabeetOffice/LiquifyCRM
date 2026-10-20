@@ -25,8 +25,24 @@
             x-on:click.outside="open = false"
             x-on:keydown.escape="open = false"
         >
-            <template x-for="clock in clocks" :key="clock.zone">
-                <div class="lq-clock" :class="{ 'lq-clock-mine': clock.mine, 'lq-clock-extra': clock.extra }" :title="clock.title">
+            @php
+                // Your own and the brand's clock come drawn from the server, so they stand still when a page opens;
+                // app.js keeps them ticking (and corrects your own if this computer's zone is not known yet).
+                $ownZone = \App\Modules\Core\Support\ViewerTime::computerZone() ?? \App\Modules\Core\Support\ViewerTime::zone($user);
+                $brandCity = $brand ? \App\Modules\Core\Support\ViewerTime::city($brand->timezone) : null;
+            @endphp
+            <div class="lq-clock lq-clock-mine" title="Your time (this computer)">
+                <span class="lq-clock-time"><span x-text="time(own)">{{ now($ownZone)->format('H:i') }}</span></span>
+                <span class="lq-clock-label" x-text="'You · ' + city(own)">You · {{ \App\Modules\Core\Support\ViewerTime::city($ownZone) }}</span>
+            </div>
+            @if ($brand)
+                <div class="lq-clock" x-show="brand.zone !== own" @if ($brand->timezone === $ownZone) style="display: none" @endif title="{{ $brand->name }}: {{ $brandCity }} time">
+                    <span class="lq-clock-time"><span x-text="time(brand.zone)">{{ now($brand->timezone)->format('H:i') }}</span><span class="lq-clock-day" x-show="day(brand.zone)" x-text="day(brand.zone)" style="display: none"></span></span>
+                    <span class="lq-clock-label">{{ $brandCity }} · brand</span>
+                </div>
+            @endif
+            <template x-for="clock in extras" :key="clock.zone">
+                <div class="lq-clock lq-clock-extra" :title="clock.title">
                     <span class="lq-clock-time"><span x-text="time(clock.zone)"></span><span class="lq-clock-day" x-show="day(clock.zone)" x-text="day(clock.zone)"></span></span>
                     <span class="lq-clock-label" x-text="clock.label"></span>
                 </div>

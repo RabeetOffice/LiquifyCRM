@@ -1,4 +1,4 @@
-<div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh>
+<div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh="chat">
     <x-ui.page-header title="Inbox" subtitle="Messenger and Instagram chats of your leads. Reply here or from the lead page." />
 
     @if ($total === 0)

@@ -16,6 +16,7 @@ use App\Modules\Leads\Support\AssignableAgents;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -46,11 +47,15 @@ final class LeadForm extends Component
     /** When they got in touch, in the person's own time zone: now, or an earlier date for an older enquiry. */
     public string $receivedAt = '';
 
+    /** What the field showed when the form opened: left as it is, the lead is simply dated when it is saved. */
+    #[Locked]
+    public string $receivedDefault = '';
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
         $this->authorize('create', Lead::class);
-        $this->receivedAt = ViewerTime::now()->format('Y-m-d\TH:i');
+        $this->receivedAt = $this->receivedDefault = ViewerTime::now()->format('Y-m-d\TH:i');
     }
 
     public function save(): void
@@ -69,9 +74,11 @@ final class LeadForm extends Component
         ]);
 
         $user = $this->user();
-        $receivedAt = ViewerTime::parse($data['receivedAt'] ?? null);
+        // Untouched (still the time the form opened), however long the form took to fill in: now.
+        $untouched = ($data['receivedAt'] ?? '') === $this->receivedDefault;
+        $receivedAt = $untouched ? null : ViewerTime::parse($data['receivedAt'] ?? null);
 
-        if (filled($data['receivedAt'] ?? null) && $receivedAt === null) {
+        if (! $untouched && filled($data['receivedAt'] ?? null) && $receivedAt === null) {
             $this->addError('receivedAt', 'Choose a date and time.');
 
             return;

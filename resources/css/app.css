@@ -500,6 +500,16 @@ html {
     margin-inline-start: auto;
 }
 
+/* A count of nothing: kept in the menu, so app.js can fill it in when something arrives. */
+.lq-side-badge.lq-side-badge-none {
+    display: none;
+}
+
+/* A count that just changed by itself: a short glow. */
+.lq-side-badge-moved .lq-badge {
+    animation: lq-pop 320ms var(--lq-ease);
+}
+
 /* Active item: a solid Liquify Orange pill with ink text, like the primary button. */
 .lq-side-item.lq-active > .lq-side-link {
     background: var(--lq-orange);
@@ -632,7 +642,6 @@ html {
     padding: 0.25rem 0.625rem;
     border-radius: var(--lq-radius-control);
     line-height: 1.15;
-    animation: lq-pop 180ms var(--lq-ease);
 }
 
 .lq-clock-mine {
@@ -11182,6 +11191,43 @@ a.lq-ov-row:hover {
    Follow-ups as a diary (20 Oct 2026): a week with the hours down the side, or a month. In the person's own time zone. */
 .lq-cal-card {
     overflow: hidden;
+}
+
+/* On its way (wire:loading): the content dims at once and a thin bar runs along the top. */
+.lq-busy {
+    position: relative;
+    overflow: hidden;
+}
+
+.lq-busy .lq-week,
+.lq-busy .lq-monthgrid,
+.lq-busy .lq-tasks,
+.lq-busy .lq-empty {
+    opacity: 0.5;
+    transition: opacity 120ms var(--lq-ease);
+}
+
+.lq-busy::after {
+    content: "";
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    left: 0;
+    width: 35%;
+    height: 2px;
+    border-radius: 9999px;
+    background: var(--lq-orange);
+    animation: lq-busy-run 900ms var(--lq-ease) infinite;
+}
+
+@keyframes lq-busy-run {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(300%);
+    }
 }
 
 .lq-cal-bar {

@@ -47,13 +47,14 @@ class Message extends Model
 
     protected static function booted(): void
     {
-        // A message that arrives, is sent or fails shows in the open chat at once (see Live).
+        // A message that arrives, is sent, delivered, read or fails shows in the open chat at once (see Live).
+        // Only the screens that show chats reload for it: receipts alone come several a second on a busy Page.
         static::saved(function (self $message): void {
             $brandId = $message->relationLoaded('conversation')
                 ? $message->conversation->brand_id
                 : Conversation::query()->withoutGlobalScopes()->whereKey($message->conversation_id)->value('brand_id');
 
-            Live::touch($brandId !== null ? (int) $brandId : null);
+            Live::touchChat($brandId !== null ? (int) $brandId : null);
         });
     }
 

@@ -41,18 +41,19 @@ final class ConversationThread extends Component
         $conversation = $this->conversation();
         $this->authorize('view', $conversation);
 
-        // Read only by whoever works the chat: a colleague looking in leaves it unread for its owner.
-        if ($conversation->unread_count > 0 && (bool) auth()->user()?->can('reply', $conversation)) {
-            $conversation->forceFill(['unread_count' => 0])->save();
-        }
+        $this->markRead($conversation);
     }
 
     /** Taken (or given) a moment ago: the reply box shows at once, and the chat counts as read by its new owner. */
     #[On('lead-updated')]
     public function leadChanged(): void
     {
-        $conversation = $this->conversation();
+        $this->markRead($this->conversation());
+    }
 
+    /** Read only by whoever works the chat: a colleague looking in leaves it unread for its owner. */
+    private function markRead(Conversation $conversation): void
+    {
         if ($conversation->unread_count > 0 && (bool) auth()->user()?->can('reply', $conversation)) {
             $conversation->forceFill(['unread_count' => 0])->save();
         }
@@ -86,6 +87,8 @@ final class ConversationThread extends Component
     public function render(): View
     {
         $conversation = $this->conversation();
+        // Open on the screen when new messages come in (the live reload, the poll): they are read (20 Oct 2026).
+        $this->markRead($conversation);
 
         return view('meta::livewire.app.conversation-thread', [
             'conversation' => $conversation,

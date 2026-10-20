@@ -125,19 +125,20 @@ Alpine.data('dropdown', () => ({
 Alpine.data('clocks', ({ brand, choices }) => ({
     open: false,
     now: new Date(),
-    own: 'UTC',
+    // Known before the first paint, so your clock never shows UTC for a moment.
+    own: (() => {
+        try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        } catch (error) {
+            return 'UTC';
+        }
+    })(),
     extra: [],
     brand,
     choices,
     timer: null,
 
     init() {
-        try {
-            this.own = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        } catch (error) {
-            this.own = 'UTC';
-        }
-
         try {
             const saved = JSON.parse(localStorage.getItem('lq_clocks') || '[]');
             this.extra = Array.isArray(saved) ? saved.filter((zone) => choices.some((choice) => choice.zone === zone)).slice(0, 3) : [];
@@ -156,18 +157,11 @@ Alpine.data('clocks', ({ brand, choices }) => ({
         clearTimeout(this.timer);
     },
 
-    get clocks() {
-        const list = [{ zone: this.own, label: 'You · ' + this.city(this.own), title: 'Your time (this computer)', mine: true }];
-
-        if (this.brand && this.brand.zone !== this.own) {
-            list.push({ zone: this.brand.zone, label: this.city(this.brand.zone) + ' · brand', title: this.brand.name + ': ' + this.city(this.brand.zone) + ' time' });
-        }
-
-        this.extra
+    // Your own and the brand's clock are in the page already (topbar); these are the ones added with +.
+    get extras() {
+        return this.extra
             .filter((zone) => zone !== this.own && zone !== this.brand?.zone)
-            .forEach((zone) => list.push({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone), extra: true }));
-
-        return list;
+            .map((zone) => ({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone) }));
     },
 
     time(zone) {
@@ -790,20 +784,88 @@ if (worker) {
 // and whoever listens for `lq-changed` (the board) or `lq-notified` (the bell).
 // A tab in the background keeps asking, more slowly, while its alerts are on (sound or desktop), so a new
 // lead is heard while the person works elsewhere; its screens reload only once it is looked at again.
-const live = { token: null, brand: null, user: null, timer: null, busy: false, own: false, refreshed: 0, owed: false, input: Date.now() };
+// Chats have their own stamp (20 Oct 2026): a message, or Facebook saying one was delivered or read, reloads only
+// the roots marked data-live-refresh="chat" (the Inbox, a chat, a lead's panel) and the menu's counts, not every
+// screen of the brand.
+const live = { token: null, brand: null, chat: null, user: null, timer: null, busy: false, own: false, refreshed: 0, chatRefreshed: 0, owed: false, owedChat: false, input: Date.now() };
 
 const LIVE_EVERY = 4000;
 const LIVE_IDLE_EVERY = 12000;
 const LIVE_HIDDEN_EVERY = 15000;
 const LIVE_IDLE_AFTER = 180000;
 const LIVE_REFRESH_GAP = 6000;
+const LIVE_CHAT_GAP = 1500;
+
+// The menu's counts (Leads waiting, unread chats, clients waiting) are drawn with the page; when something
+// changed they are read again, so they move without opening a screen (MenuBadgesController).
+const badges = { busy: false, again: false };
+
+const refreshBadges = async () => {
+    const url = document.querySelector('[data-menu-badges]')?.dataset.menuBadges;
+
+    if (! url) return;
+    if (badges.busy) {
+        badges.again = true;
+
+        return;
+    }
+
+    badges.busy = true;
+
+    try {
+        const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' });
+
+        if (response.ok) {
+            const counts = await response.json();
+
+            document.querySelectorAll('[data-badge-for]').forEach((badge) => {
+                if (! (badge.dataset.badgeFor in counts)) return;
+
+                const value = counts[badge.dataset.badgeFor] ?? '';
+                const inner = badge.querySelector('.lq-badge');
+
+                if (inner && inner.textContent !== value) {
+                    inner.textContent = value;
+                    badge.classList.remove('lq-side-badge-moved');
+                    void badge.offsetWidth;
+                    badge.classList.toggle('lq-side-badge-moved', value !== '');
+                }
+
+                badge.classList.toggle('lq-side-badge-none', value === '');
+            });
+        }
+    } catch (error) {
+        // Offline for a moment: the next change reads them again.
+    }
+
+    badges.busy = false;
+
+    if (badges.again) {
+        badges.again = false;
+        refreshBadges();
+    }
+};
+
+// The colon of wire:id is escaped for CSS, and the backslash once more for JavaScript: '[wire:id]' is not a selector.
+const refreshRoots = (selector) => document.querySelectorAll(selector).forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
 
 const refreshLive = () => {
-    live.refreshed = Date.now();
-    live.owed = false;
-    window.dispatchEvent(new CustomEvent('lq-changed'));
-    // The colon of wire:id is escaped for CSS, and the backslash once more for JavaScript: '[wire:id]' is not a selector.
-    document.querySelectorAll('[wire\\:id][data-live-refresh]').forEach((root) => Livewire.find(root.getAttribute('wire:id'))?.$refresh());
+    const now = Date.now();
+
+    if (live.owed) {
+        live.refreshed = now;
+        live.chatRefreshed = now;
+        live.owed = false;
+        live.owedChat = false;
+        window.dispatchEvent(new CustomEvent('lq-changed'));
+        refreshRoots('[wire\\:id][data-live-refresh]');
+    } else if (live.owedChat) {
+        live.chatRefreshed = now;
+        live.owedChat = false;
+        refreshRoots('[wire\\:id][data-live-refresh="chat"]');
+    }
+
+    refreshBadges();
 };
 
 const askLive = async () => {
@@ -821,8 +883,9 @@ const askLive = async () => {
         // then reloads its data at once when anything changed in between.
         if (token !== live.token) {
             const drawn = Number(page.dataset.liveAt);
+            const drawnChat = Number(page.dataset.liveChatAt);
 
-            Object.assign(live, { token, brand: Number.isFinite(drawn) ? drawn : null, user: null, owed: false, refreshed: 0 });
+            Object.assign(live, { token, brand: Number.isFinite(drawn) ? drawn : null, chat: Number.isFinite(drawnChat) ? drawnChat : null, user: null, owed: false, owedChat: false, refreshed: 0, chatRefreshed: 0 });
         }
 
         // What this person just did is on their screen already: that change only moves the starting point.
@@ -835,13 +898,16 @@ const askLive = async () => {
             if (response.ok && token === live.token) {
                 const stamps = await response.json();
                 const brandMoved = live.brand !== null && stamps.b !== live.brand;
+                const chatMoved = live.chat !== null && stamps.c !== undefined && stamps.c !== live.chat;
                 const userMoved = live.user !== null && stamps.u !== live.user;
 
                 live.brand = stamps.b;
+                live.chat = stamps.c ?? live.chat;
                 live.user = stamps.u;
 
                 if (userMoved) window.dispatchEvent(new CustomEvent('lq-notified'));
                 if (brandMoved && ! own) live.owed = true;
+                if (chatMoved && ! own) live.owedChat = true;
             }
         } catch (error) {
             // Offline for a moment: the next round asks again.
@@ -849,7 +915,10 @@ const askLive = async () => {
 
         // A screen that fails to reload must never stop the rounds (and the bell with them).
         try {
-            if (! document.hidden && live.owed && Date.now() - live.refreshed >= LIVE_REFRESH_GAP) refreshLive();
+            const now = Date.now();
+            const due = (live.owed && now - live.refreshed >= LIVE_REFRESH_GAP) || (! live.owed && live.owedChat && now - live.chatRefreshed >= LIVE_CHAT_GAP);
+
+            if (! document.hidden && due) refreshLive();
         } catch (error) {
             console.error(error);
         }
@@ -873,6 +942,8 @@ Livewire.hook('commit', ({ commit, succeed }) => {
         setTimeout(() => {
             live.own = true;
             askLive();
+            // What this person did may change a count in the menu (a lead taken, a chat read).
+            refreshBadges();
         }, 150);
     });
 });

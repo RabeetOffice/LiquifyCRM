@@ -43,7 +43,7 @@
                     <div class="lq-backdate-quick">
                         <span class="lq-muted text-sm">Quick pick</span>
                         <div class="flex flex-wrap gap-2">
-                            <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js($nowField))">Now</button>
+                            <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js($receivedDefault))">Now</button>
                             <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js(\App\Modules\Core\Support\ViewerTime::now()->subDay()->setTime(10, 0)->format('Y-m-d\TH:i')))">Yesterday</button>
                             <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js(\App\Modules\Core\Support\ViewerTime::now()->subWeek()->setTime(10, 0)->format('Y-m-d\TH:i')))">A week ago</button>
                         </div>

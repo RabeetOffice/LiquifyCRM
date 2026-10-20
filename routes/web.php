@@ -16,6 +16,7 @@ use App\Modules\Brands\Livewire\Admin\BrandWizard;
 use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
+use App\Modules\Core\Http\Controllers\MenuBadgesController;
 use App\Modules\Core\Http\Controllers\PushSubscriptionController;
 use App\Modules\Core\Livewire\AdminDashboard;
 use App\Modules\Core\Livewire\BrandDashboard;
@@ -59,6 +60,8 @@ Route::view('/data-deletion', 'legal.data-deletion')->name('legal.data-deletion'
 Route::middleware(['auth', 'two-factor'])->group(function (): void {
     Route::get('/profile', Profile::class)->name('profile');
     Route::get('/profile/security', ProfileSecurity::class)->name('profile.security');
+    // The sidebar's counts outside a brand (the admin area, the profile).
+    Route::get('/menu-badges', MenuBadgesController::class)->name('menu-badges');
 
     // This browser's address for desktop alerts with LiquifyCRM closed (Web Push).
     Route::post('/push/subscription', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1')->name('push.subscribe');
@@ -100,6 +103,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
 
     Route::middleware('brand.member')->prefix('b/{brand}')->name('brand.')->group(function (): void {
         Route::get('/', BrandDashboard::class)->name('dashboard');
+        // The sidebar's counts as they are now, asked for by app.js when something changed.
+        Route::get('/menu-badges', MenuBadgesController::class)->name('menu-badges');
 
         Route::get('/leads', LeadsIndex::class)->name('leads.index');
         Route::get('/leads/create', LeadForm::class)->name('leads.create');

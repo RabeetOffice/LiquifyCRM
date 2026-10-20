@@ -48,14 +48,15 @@
         @include('partials.update-bar')
 
         {{-- data-live: what this page shows to GET /api/live, which app.js asks every few seconds.
-             data-live-at: the brand stamp this page was drawn with. A page fetched earlier (hovered
-             link, back button) is reloaded at once when something changed since. --}}
+             data-live-at / data-live-chat-at: the brand's and its chats' stamps this page was drawn with. A page
+             fetched earlier (hovered link, back button) is reloaded at once when something changed since. --}}
         @php
             $liveUser = auth()->user();
             $liveBrand = app(\App\Modules\Core\Support\CurrentBrand::class)->id();
             $liveEvery = $liveUser instanceof \App\Modules\Auth\Models\User && $liveBrand === null && $liveUser->isGlobalAdmin();
+            $liveStamps = $liveUser instanceof \App\Modules\Auth\Models\User ? \App\Modules\Core\Support\Live::stamps($liveBrand, (int) $liveUser->getKey(), $liveEvery) : null;
         @endphp
-        <main class="lq-content" id="main-content" @if ($liveUser instanceof \App\Modules\Auth\Models\User) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveEvery) }}" data-live-at="{{ \App\Modules\Core\Support\Live::stamps($liveBrand, (int) $liveUser->getKey(), $liveEvery)['b'] }}" @endif>
+        <main class="lq-content" id="main-content" @if ($liveStamps !== null) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveEvery) }}" data-live-at="{{ $liveStamps['b'] }}" data-live-chat-at="{{ $liveStamps['c'] }}" @endif>
             {{ $slot }}
         </main>
     </div>
