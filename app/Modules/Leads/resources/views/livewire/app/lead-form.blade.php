@@ -31,6 +31,23 @@
                     <x-ui.textarea wire:model="message" name="message" rows="6" />
                 </x-ui.field>
             </x-ui.card>
+
+            {{-- Now by default; an older enquiry keeps the day it really came in, and is counted on that day. --}}
+            <x-ui.card title="When they got in touch" description="Leave it as it is for a call or message from today. For an older enquiry, choose the day and time it came in.">
+                <div class="lq-form-grid lq-form-grid-2">
+                    <x-ui.field label="Date and time" name="receivedAt" :help="'Your time ('.$zoneCity.').'">
+                        <x-ui.input type="datetime-local" wire:model="receivedAt" name="receivedAt" :max="$nowField" />
+                    </x-ui.field>
+                    <div class="lq-backdate-quick">
+                        <span class="lq-muted text-sm">Quick pick</span>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js($nowField))">Now</button>
+                            <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js(\App\Modules\Core\Support\ViewerTime::now()->subDay()->setTime(10, 0)->format('Y-m-d\TH:i')))">Yesterday</button>
+                            <button type="button" class="lq-pickpill" x-on:click="$wire.set('receivedAt', @js(\App\Modules\Core\Support\ViewerTime::now()->subWeek()->setTime(10, 0)->format('Y-m-d\TH:i')))">A week ago</button>
+                        </div>
+                    </div>
+                </div>
+            </x-ui.card>
         </div>
 
         <aside class="lq-split-side">
@@ -62,7 +79,7 @@
                     <div>
                         <h2 class="lq-lead-heading">What happens next</h2>
                         <ul class="lq-ticks">
-                            <li><x-heroicon-m-check-circle /> The lead is saved as "Added by hand" with today's date.</li>
+                            <li><x-heroicon-m-check-circle /> The lead is saved as "Added by hand", dated when they got in touch (now, unless you chose an earlier day).</li>
                             <li><x-heroicon-m-check-circle /> If this email or phone is already an open lead here, the enquiry goes to that lead instead of making a second one.</li>
                             <li><x-heroicon-m-check-circle /> The person you assign it to gets a notification.</li>
                         </ul>

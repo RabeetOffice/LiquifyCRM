@@ -50,6 +50,16 @@ final class Pipeline extends Component
     #[Url(except: '')]
     public string $owner = '';
 
+    /** How the cards in each column are ordered: column and direction for each choice. */
+    public const ORDERS = [
+        'newest' => ['Newest first', 'created_at', 'desc'],
+        'added' => ['Recently added', 'id', 'desc'],
+        'activity' => ['Recent activity', 'last_activity_at', 'desc'],
+    ];
+
+    #[Url(except: 'newest')]
+    public string $order = 'newest';
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
@@ -121,7 +131,8 @@ final class Pipeline extends Component
             ->when($this->owner === 'mine', fn (Builder $q): Builder => $q->where('assigned_to', $user->getKey()))
             ->when(! $agent && ctype_digit($this->owner), fn (Builder $q): Builder => $q->where('assigned_to', (int) $this->owner))
             ->with(['assignee', 'department'])
-            ->orderByDesc('last_activity_at')
+            ->orderBy(self::ORDERS[$this->order][1] ?? 'created_at', self::ORDERS[$this->order][2] ?? 'desc')
+            ->orderByDesc('id')
             ->limit(400)
             ->get();
 

@@ -9,6 +9,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Membership;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Support\Progress;
@@ -54,7 +55,8 @@ final class Profile extends Component
         $this->designation = (string) $user->designation;
         $this->email = $user->email;
         $this->phone = (string) $user->phone;
-        $this->timezone = (string) ($user->timezone ?? config('liquify.default_timezone'));
+        // Empty is "Automatic": this computer's time zone (ViewerTime).
+        $this->timezone = (string) $user->timezone;
     }
 
     public function save(): void
@@ -66,7 +68,7 @@ final class Profile extends Component
             'designation' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->getKey())],
             'phone' => ['nullable', 'string', 'max:40'],
-            'timezone' => ['required', 'string', 'timezone:all'],
+            'timezone' => ['nullable', 'string', 'timezone:all'],
         ]);
 
         $user->forceFill([
@@ -74,7 +76,7 @@ final class Profile extends Component
             'designation' => $data['designation'] ?: null,
             'email' => mb_strtolower(trim($data['email'])),
             'phone' => $data['phone'] ?: null,
-            'timezone' => $data['timezone'],
+            'timezone' => $data['timezone'] ?: null,
         ])->save();
 
         Audit::log('members.profile_updated', $user, [], 'Profile updated', causer: $user, logName: 'members');
@@ -113,6 +115,7 @@ final class Profile extends Component
             'departments' => $user->isGlobalAdmin() ? collect() : $user->departments()->acrossBrands()->orderBy('name')->get(),
             'facts' => $this->facts($user),
             'timezones' => DateTimeZone::listIdentifiers(),
+            'computerZone' => ViewerTime::computerZone(),
             'targets' => $this->targets(),
         ]);
     }

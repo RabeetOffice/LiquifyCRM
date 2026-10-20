@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Machine endpoints are token or signature authenticated, never session based.
         $middleware->validateCsrfTokens(except: ['hooks/deploy/*', 'webhooks/*', 'api/*']);
+        // Set by the browser (app.js): this computer's time zone, read by ViewerTime.
+        $middleware->encryptCookies(except: ['lq_tz']);
 
         $middleware->alias([
             'global-admin' => EnsureGlobalAdmin::class,

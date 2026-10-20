@@ -10,6 +10,7 @@ use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithTableState;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
@@ -52,9 +53,24 @@ final class LeadsIndex extends Component
     use PreviewsLead;
     use TakesLeads;
     use WithConfirmation;
-    use WithTableState;
+    use WithTableState {
+        sortBy as private sortByColumn;
+    }
 
     private const FILTERS = ['status', 'source', 'department', 'owner', 'assigned', 'from', 'until'];
+
+    /** The Sort choice above the list: column and direction for each. */
+    public const ORDERS = [
+        'newest' => ['Newest first', 'created_at', 'desc'],
+        'oldest' => ['Oldest first', 'created_at', 'asc'],
+        'added' => ['Recently added', 'id', 'desc'],
+        'activity' => ['Recent activity', 'last_activity_at', 'desc'],
+        'follow-up' => ['Next follow-up', 'next_follow_up_at', 'asc'],
+    ];
+
+    /** The Sort choice; empty is the view's own (newest first, or the next follow-up on Follow-ups). */
+    #[Url(except: '')]
+    public string $order = '';
 
     public Brand $brand;
 
@@ -117,6 +133,25 @@ final class LeadsIndex extends Component
             $this->resetPage();
             $this->selected = [];
         }
+    }
+
+    /** A column heading takes over from the Sort choice; dates start with the newest. */
+    public function sortBy(string $field): void
+    {
+        $fresh = $this->sort !== $field;
+        $this->sortByColumn($field);
+        $this->order = '';
+
+        if ($fresh && in_array($field, ['created_at', 'next_follow_up_at', 'last_activity_at'], true)) {
+            $this->direction = $field === 'next_follow_up_at' ? 'asc' : 'desc';
+        }
+    }
+
+    public function updatedOrder(): void
+    {
+        $this->order = array_key_exists($this->order, self::ORDERS) ? $this->order : '';
+        $this->reset('sort', 'direction');
+        $this->resetPage();
     }
 
     public function clearFilters(): void
@@ -390,6 +425,7 @@ final class LeadsIndex extends Component
             'sendOptions' => $this->sendOptions(),
             'agentOptions' => $agentOptions,
             'chips' => $chips,
+            'currentOrder' => $this->sort !== '' ? '' : $this->currentOrder(),
             'previewLead' => $this->previewLead($user),
             'fullContact' => $leads->mapWithKeys(fn (Lead $lead): array => [$lead->getKey() => $visibility->canSeeFull($user, $lead)])->all(),
             // The Owner cell opens the assign menu for whoever may assign that lead.
@@ -452,7 +488,7 @@ final class LeadsIndex extends Component
             'unassigned' => $query->unassigned(),
             'mine' => $this->isAgent() ? $query->assignedTo($user)->open() : $query->assignedTo($user),
             // Follow-ups are on the leads you work, not a colleague's.
-            'follow-ups' => $query->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay()),
+            'follow-ups' => $query->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', ViewerTime::endOfToday()),
             'won' => $query->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', true)),
             default => null,
         };
@@ -475,16 +511,25 @@ final class LeadsIndex extends Component
             ->when($this->from !== '', fn (Builder $q): Builder => $q->where('created_at', '>=', $this->from))
             ->when($this->until !== '', fn (Builder $q): Builder => $q->where('created_at', '<=', $this->until.' 23:59:59'));
 
-        $defaultSort = match ($this->tab) {
-            'unassigned' => ['created_at', 'asc'],
-            'follow-ups' => ['next_follow_up_at', 'asc'],
-            default => ['created_at', 'desc'],
-        };
+        [, $column, $direction] = self::ORDERS[$this->currentOrder()];
 
-        $column = $this->sortColumn(['name', 'created_at', 'next_follow_up_at', 'last_activity_at', 'status_id'], $defaultSort[0]);
-        $direction = $this->sort === '' ? $defaultSort[1] : $this->sortDirection();
+        // A column heading, when one was clicked, decides instead.
+        if ($this->sort !== '') {
+            $column = $this->sortColumn(['name', 'created_at', 'next_follow_up_at', 'last_activity_at', 'status_id'], $column);
+            $direction = $this->sortDirection();
+        }
 
         return $query->orderBy($column, $direction)->orderBy('id', 'desc');
+    }
+
+    /** The Sort choice in force: the one picked, else newest first (the next follow-up on Follow-ups). */
+    private function currentOrder(): string
+    {
+        if (array_key_exists($this->order, self::ORDERS)) {
+            return $this->order;
+        }
+
+        return $this->tab === 'follow-ups' ? 'follow-up' : 'newest';
     }
 
     /**
@@ -507,7 +552,7 @@ final class LeadsIndex extends Component
         }
 
         $tabs['mine'] = ['label' => $agent && ! $team ? 'Open' : 'Mine', 'count' => null, 'color' => 'gray'];
-        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->unarchived()->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', now()->endOfDay())->count()), 'color' => 'danger'];
+        $tabs['follow-ups'] = ['label' => 'Follow-ups today', 'count' => $count($visible()->unarchived()->workedBy($user)->open()->whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', ViewerTime::endOfToday())->count()), 'color' => 'danger'];
         $tabs['won'] = ['label' => 'Won', 'count' => null, 'color' => 'gray'];
 
         // The Archived view opens from its button at the top, like the Bin, and shows here while it is open.

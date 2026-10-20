@@ -5130,6 +5130,82 @@ a.lq-cell-title {
     width: 100%;
 }
 
+/* Quick choices under a field ("Now", "Yesterday"): small quiet pills. */
+.lq-backdate-quick {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-bottom: 0.25rem;
+}
+
+.lq-pickpill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.875rem;
+    padding: 0 0.8rem;
+    border: 1px solid var(--lq-card-border);
+    border-radius: 9999px;
+    background: var(--lq-field);
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 150ms var(--lq-ease), background-color 150ms var(--lq-ease);
+}
+
+.lq-pickpill:hover {
+    border-color: color-mix(in srgb, var(--lq-orange) 45%, var(--lq-card-border));
+    background: var(--lq-orange-tint);
+}
+
+/* "Sort": a compact choice beside the search, the same height and border. */
+.lq-sortpick {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    min-height: 2.25rem;
+    border: 1px solid var(--lq-field-border);
+    border-radius: var(--lq-radius-control);
+    background: var(--lq-field);
+    color: var(--lq-muted);
+    transition: border-color 150ms var(--lq-ease), box-shadow 150ms var(--lq-ease);
+}
+
+.lq-sortpick:focus-within {
+    border-color: var(--lq-orange);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--lq-orange) 20%, transparent);
+}
+
+.lq-sortpick > svg {
+    position: absolute;
+    left: 0.7rem;
+    width: 1rem;
+    height: 1rem;
+    pointer-events: none;
+}
+
+.lq-sortpick select {
+    appearance: none;
+    min-height: 2.25rem;
+    padding: 0 2rem 0 2.15rem;
+    border: 0;
+    border-radius: inherit;
+    outline: none;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2378716c'%3E%3Cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat right 0.6rem center / 1rem;
+    color: var(--lq-ink);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.lq-sortpick select option {
+    background: var(--lq-panel);
+    color: var(--lq-ink);
+}
+
 /* The bar on top of a list: views on the left, search and filters on the right. */
 .lq-viewbar {
     display: flex;

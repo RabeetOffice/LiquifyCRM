@@ -7,6 +7,7 @@ namespace App\Modules\Leads\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Models\Task;
 use Illuminate\Contracts\View\View;
@@ -79,12 +80,12 @@ final class FollowUps extends Component
         $counts = [
             'overdue' => $base()->overdue()->count(),
             'today' => $base()->dueToday()->count(),
-            'upcoming' => $base()->open()->where('due_at', '>', now()->endOfDay())->count(),
+            'upcoming' => $base()->open()->where('due_at', '>', ViewerTime::endOfToday())->count(),
         ];
 
         $tasks = match ($this->tab) {
             'overdue' => $base()->overdue()->orderBy('due_at'),
-            'upcoming' => $base()->open()->where('due_at', '>', now()->endOfDay())->orderBy('due_at'),
+            'upcoming' => $base()->open()->where('due_at', '>', ViewerTime::endOfToday())->orderBy('due_at'),
             'done' => $base()->whereNotNull('done_at')->orderByDesc('done_at'),
             default => $base()->dueToday()->orderBy('due_at'),
         };

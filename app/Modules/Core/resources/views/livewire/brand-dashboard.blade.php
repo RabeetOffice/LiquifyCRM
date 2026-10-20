@@ -138,7 +138,7 @@
                                 <li class="flex items-center gap-3 px-6 py-3" style="border-top: 1px solid var(--lq-hairline)">
                                     <div class="min-w-0 flex-1">
                                         <a href="{{ $task->lead ? route('brand.leads.show', ['brand' => $brand->slug, 'lead' => $task->lead]) : '#' }}" class="lq-cell-title" wire:navigate>{{ $task->lead?->name ?? 'Task' }}</a>
-                                        <span class="lq-cell-sub">{{ $task->title }} · {{ $task->due_at->format('H:i') }}</span>
+                                        <span class="lq-cell-sub">{{ $task->title }} · {{ \App\Modules\Core\Support\ViewerTime::local($task->due_at)->format('H:i') }}</span>
                                     </div>
                                     @if ($task->isOverdue())
                                         <x-ui.badge color="danger">Overdue</x-ui.badge>

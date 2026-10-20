@@ -54,6 +54,20 @@ Alpine.store('theme', {
     },
 });
 
+// --------------------------------------------------------- time zone
+// This computer's time zone, for the server (ViewerTime): unless the Profile names one, times are shown and
+// typed in it. Set on every page, the sign-in page too, so the first screen after signing in is already right.
+try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const cookie = 'lq_tz=' + encodeURIComponent(zone);
+
+    if (zone && ! document.cookie.split('; ').includes(cookie)) {
+        document.cookie = cookie + '; path=/; max-age=31536000; samesite=lax';
+    }
+} catch (error) {
+    // An old browser without Intl: LiquifyCRM's default time zone is used.
+}
+
 // --------------------------------------------------------------- sidebar
 Alpine.store('sidebar', {
     open: true,

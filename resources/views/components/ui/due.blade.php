@@ -1,6 +1,8 @@
-{{-- When something is due, in words: "Today, 14:00", "Tomorrow", "Overdue · 3 Oct". Red once it is late. --}}
+{{-- When something is due, in words: "Today, 14:00", "Tomorrow", "Overdue · 3 Oct", in the viewer's own time zone
+     (ViewerTime). Red once it is late. --}}
 @props(['at' => null, 'done' => false, 'time' => true, 'empty' => '—'])
 @php
+    $at = $at !== null ? \App\Modules\Core\Support\ViewerTime::local($at) : null;
     $late = $at !== null && ! $done && $at->isPast();
     $clock = $time ? ', '.$at?->format('H:i') : '';
 
@@ -15,7 +17,7 @@
 @if ($at === null)
     <span {{ $attributes->class(['lq-due', 'lq-due-none']) }}>{{ $empty }}</span>
 @else
-    <span {{ $attributes->class(['lq-due', 'lq-due-late' => $late, 'lq-due-today' => ! $late && ! $done && $at->isToday(), 'lq-due-done' => $done]) }} title="{{ $at->format('j M Y, H:i') }}">
+    <span {{ $attributes->class(['lq-due', 'lq-due-late' => $late, 'lq-due-today' => ! $late && ! $done && $at->isToday(), 'lq-due-done' => $done]) }} title="{{ $at->format('j M Y, H:i (T)') }}">
         @if ($late)
             <x-heroicon-m-exclamation-circle />
         @else

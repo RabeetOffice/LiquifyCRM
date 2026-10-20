@@ -9,6 +9,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Core\Support\SetupChecklist;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Livewire\Concerns\TakesLeads;
@@ -129,7 +130,7 @@ final class BrandDashboard extends Component
         LeadSites::attach($queue);
 
         $followUps = $agent
-            ? Task::query()->visibleTo($user)->open()->where('due_at', '<=', now()->endOfDay())->with('lead')->orderBy('due_at')->limit(8)->get()
+            ? Task::query()->visibleTo($user)->open()->where('due_at', '<=', ViewerTime::endOfToday())->with('lead')->orderBy('due_at')->limit(8)->get()
             : collect();
 
         $days = collect(range(29, 0))->map(fn (int $i): string => now()->subDays($i)->toDateString());

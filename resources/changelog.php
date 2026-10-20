@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.29.0',
+        'date' => '2026-10-20',
+        'title' => 'Newest leads first, older enquiries by hand, your own time',
+        'changes' => [
+            ['improved', 'The newest leads are on top of the Leads list in every view, Unassigned too, and on the Pipeline. A Sort choice beside the search changes it: Newest first, Oldest first, Recently added, Recent activity or Next follow-up. The Pipeline has Newest first, Recently added and Recent activity.'],
+            ['new', 'Add a lead asks when they got in touch: now, or an earlier day and time for an older enquiry. The lead is dated and counted on that day, and its timeline says it was added later.'],
+            ['improved', 'Times are shown and typed in your own time zone: the one your computer uses, unless you choose one in your Profile ("Automatic" is the new default there). Follow-up times, "today" and "overdue" follow it, so a follow-up set for 10:00 is at 10:00 where you are.'],
+            ['improved', 'Click "Update system" once after this update.'],
+        ],
+    ],
+    [
         'version' => '1.28.2',
         'date' => '2026-10-20',
         'title' => 'A new LiquifyCRM logo',

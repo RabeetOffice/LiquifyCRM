@@ -1,8 +1,8 @@
-{{-- When a lead arrived (user request, 19 Oct 2026), in the viewer's own time zone (Profile): for the first three days
+{{-- When a lead arrived (user request, 19 Oct 2026), in the viewer's own time zone (ViewerTime): for the first three days
      "6h ago" with the day and time under it, after that the date and time. `inline` puts it on one line. --}}
 @props(['at' => null, 'inline' => false])
 @php
-    $local = $at !== null ? \Carbon\CarbonImmutable::instance($at)->setTimezone(auth()->user()?->timezone ?: config('liquify.default_timezone')) : null;
+    $local = $at !== null ? \App\Modules\Core\Support\ViewerTime::local($at) : null;
     $recent = $local !== null && $local->gt(now()->subDays(3));
     $clock = $local?->format('H:i');
 

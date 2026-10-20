@@ -86,8 +86,9 @@
                     <x-ui.field label="Phone" name="phone">
                         <x-ui.input type="tel" wire:model="phone" name="phone" autocomplete="tel" />
                     </x-ui.field>
-                    <x-ui.field label="Timezone" name="timezone" help="Dates and follow-up times are shown in this timezone." class="lq-col-full">
+                    <x-ui.field label="Time zone" name="timezone" help="Dates and follow-up times are shown, and typed, in this time zone. Automatic follows the computer you are using." class="lq-col-full">
                         <x-ui.select wire:model="timezone" name="timezone">
+                            <option value="">Automatic: this computer's time zone{{ $computerZone ? ' ('.str_replace('_', ' ', $computerZone).')' : '' }}</option>
                             @foreach ($timezones as $zone)
                                 <option value="{{ $zone }}">{{ $zone }}</option>
                             @endforeach

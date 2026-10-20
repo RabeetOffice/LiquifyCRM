@@ -24,6 +24,14 @@
                     @endforeach
                 </x-ui.select>
             @endif
+            <label class="lq-sortpick" title="Order of the cards in each column">
+                <x-heroicon-o-arrows-up-down />
+                <select wire:model.live="order" aria-label="Sort cards">
+                    @foreach (\App\Modules\Leads\Livewire\App\Pipeline::ORDERS as $key => [$label])
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
             <label class="lq-search">
                 <x-heroicon-o-magnifying-glass />
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search leads" aria-label="Search leads">

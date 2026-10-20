@@ -7,6 +7,7 @@ namespace App\Modules\Leads\Actions;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Events\LeadCreated;
 use App\Modules\Leads\Models\Lead;
@@ -102,11 +103,14 @@ final class CreateLead
 
             $lead->save();
 
+            // A lead added by hand for an older enquiry says on its timeline when they really got in touch.
+            $backDated = $source === LeadSource::Manual && isset($data['created_at']) && $lead->created_at->isBefore(now()->subMinutes(2));
+
             Audit::log(
                 'leads.created',
                 $lead,
-                ['source' => $source->value, 'department_id' => $lead->department_id, 'assigned_to' => $lead->assigned_to],
-                'Lead created from '.$source->getLabel(),
+                ['source' => $source->value, 'department_id' => $lead->department_id, 'assigned_to' => $lead->assigned_to, ...($backDated ? ['received_at' => $lead->created_at->toIso8601String()] : [])],
+                'Lead created from '.$source->getLabel().($backDated ? ', for an enquiry from '.ViewerTime::local($lead->created_at, $by)->format('j M Y, H:i') : ''),
                 brand: $brand,
                 causer: $by,
                 logName: 'leads',

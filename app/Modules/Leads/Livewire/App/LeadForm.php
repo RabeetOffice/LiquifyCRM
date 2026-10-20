@@ -7,6 +7,7 @@ namespace App\Modules\Leads\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Enums\LeadSource;
@@ -42,10 +43,14 @@ final class LeadForm extends Component
 
     public string $assignTo = '';
 
+    /** When they got in touch, in the person's own time zone: now, or an earlier date for an older enquiry. */
+    public string $receivedAt = '';
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
         $this->authorize('create', Lead::class);
+        $this->receivedAt = ViewerTime::now()->format('Y-m-d\TH:i');
     }
 
     public function save(): void
@@ -60,9 +65,32 @@ final class LeadForm extends Component
             'message' => ['nullable', 'string', 'max:5000'],
             'department' => ['nullable', 'integer'],
             'assignTo' => ['nullable', 'integer'],
+            'receivedAt' => ['nullable', 'string', 'max:20'],
         ]);
 
         $user = $this->user();
+        $receivedAt = ViewerTime::parse($data['receivedAt'] ?? null);
+
+        if (filled($data['receivedAt'] ?? null) && $receivedAt === null) {
+            $this->addError('receivedAt', 'Choose a date and time.');
+
+            return;
+        }
+
+        if ($receivedAt !== null && $receivedAt->isAfter(now()->addMinutes(5))) {
+            $this->addError('receivedAt', 'That is still to come. Choose now or an earlier date.');
+
+            return;
+        }
+
+        if ($receivedAt !== null && $receivedAt->isBefore(now()->subYears(10))) {
+            $this->addError('receivedAt', 'Choose a date in the last ten years.');
+
+            return;
+        }
+
+        // An older enquiry keeps its own date; anything from the last couple of minutes is simply now.
+        $backDated = $receivedAt !== null && $receivedAt->isBefore(now()->subMinutes(2)) ? $receivedAt : null;
         $departmentId = filled($data['department']) && $user->isGlobalAdmin() ? (int) $data['department'] : null;
         $assignTo = filled($data['assignTo']) ? (int) $data['assignTo'] : null;
 
@@ -87,6 +115,7 @@ final class LeadForm extends Component
             'department_id' => $departmentId ?? $this->departmentFor($user, $assignTo),
             'assigned_to' => $assignTo,
             'source_type' => LeadSource::Manual,
+            'created_at' => $backDated,
         ], $user);
 
         // The enquiry may have joined a lead this person cannot open (another team's): say so without its name, and stay on the list.
@@ -134,6 +163,8 @@ final class LeadForm extends Component
             // Upsell teams look after clients: a new lead goes to a sales department.
             'departmentOptions' => Department::query()->orderBy('name')->get()->reject(fn (Department $department): bool => $department->isUpsell())->pluck('name', 'id')->all(),
             'agentOptions' => $this->agentOptions($this->department !== '' ? (int) $this->department : null),
+            'nowField' => ViewerTime::now()->format('Y-m-d\TH:i'),
+            'zoneCity' => ViewerTime::city(ViewerTime::zone()),
         ]);
     }
 

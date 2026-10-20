@@ -1,7 +1,6 @@
 {{-- Top bar over the content: menu toggle, greeting, status, search, bell, theme. The account menu lives in the sidebar. --}}
 @php
-    $timezone = $user?->timezone ?: config('app.timezone');
-    $now = now($timezone);
+    $now = \App\Modules\Core\Support\ViewerTime::now();
     $hour = (int) $now->format('G');
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $firstName = $user ? str($user->name)->before(' ')->toString() : '';

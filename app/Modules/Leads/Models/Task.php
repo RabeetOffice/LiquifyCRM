@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Models;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Support\LeadArchive;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -56,13 +57,13 @@ class Task extends Model
     /** @param  Builder<static>  $query */
     public function scopeOverdue(Builder $query): Builder
     {
-        return $query->open()->where('due_at', '<', now()->startOfDay());
+        return $query->open()->where('due_at', '<', ViewerTime::startOfToday());
     }
 
     /** @param  Builder<static>  $query */
     public function scopeDueToday(Builder $query): Builder
     {
-        return $query->open()->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
+        return $query->open()->whereBetween('due_at', [ViewerTime::startOfToday(), ViewerTime::endOfToday()]);
     }
 
     /**
@@ -87,6 +88,6 @@ class Task extends Model
 
     public function isOverdue(): bool
     {
-        return ! $this->isDone() && $this->due_at->lt(now()->startOfDay());
+        return ! $this->isDone() && $this->due_at->lt(ViewerTime::startOfToday());
     }
 }

@@ -51,6 +51,18 @@
             </div>
 
             <div class="lq-viewbar-end">
+                {{-- Newest first unless somebody picks another order (or clicks a column heading). --}}
+                <label class="lq-sortpick" title="Sort the list">
+                    <x-heroicon-o-arrows-up-down />
+                    <select wire:change="$set('order', $event.target.value)" aria-label="Sort leads">
+                        @if ($currentOrder === '')
+                            <option value="" selected>By column</option>
+                        @endif
+                        @foreach (\App\Modules\Leads\Livewire\App\LeadsIndex::ORDERS as $key => [$label])
+                            <option value="{{ $key }}" @selected($currentOrder === $key)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </label>
                 <label class="lq-search">
                     <x-heroicon-o-magnifying-glass />
                     <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, email or phone" aria-label="Search leads">

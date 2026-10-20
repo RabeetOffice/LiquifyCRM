@@ -10,6 +10,7 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\AddLeadNote;
 use App\Modules\Leads\Actions\ArchiveLead;
@@ -463,7 +464,8 @@ final class LeadPanel extends Component
     public function openFollowUp(): void
     {
         $this->authorize('update', $this->lead());
-        $this->followUpAt = CarbonImmutable::tomorrow()->setTime(10, 0)->format('Y-m-d\TH:i');
+        // Tomorrow at 10:00 where this person is: the form is in their own time zone.
+        $this->followUpAt = ViewerTime::now()->addDay()->setTime(10, 0)->format('Y-m-d\TH:i');
         $this->followUpTitle = 'Follow up';
         $this->showFollowUp = true;
     }
@@ -474,7 +476,15 @@ final class LeadPanel extends Component
         $this->authorize('update', $lead);
         $this->validate(['followUpAt' => ['required', 'date'], 'followUpTitle' => ['required', 'string', 'max:160']]);
 
-        app(ScheduleFollowUp::class)->handle($lead, CarbonImmutable::parse($this->followUpAt), $this->followUpTitle, $this->user());
+        $dueAt = ViewerTime::parse($this->followUpAt);
+
+        if ($dueAt === null) {
+            $this->addError('followUpAt', 'Choose a date and time.');
+
+            return;
+        }
+
+        app(ScheduleFollowUp::class)->handle($lead, $dueAt, $this->followUpTitle, $this->user());
 
         $this->showFollowUp = false;
         $this->changed();
