@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Sites\Models\InboundEvent;
 use Illuminate\Support\Facades\Schedule;
+use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,8 +47,9 @@ Schedule::command('backup:run')->dailyAt('02:00')->graceTimeInMinutes(60);
 // Logs: archive yesterday to a compressed file, then apply the retention settings.
 Schedule::command('logs:archive')->dailyAt('00:40')->graceTimeInMinutes(60);
 
-// Raw copies of received leads: done ones go after 14 days, failed ones after 30.
-Schedule::command('model:prune', ['--model' => [InboundEvent::class]])->dailyAt('00:55')->doNotMonitor();
+// Raw copies of received leads: done ones go after 14 days, failed ones after 30. The schedule monitor's own log
+// goes after its configured days too (version 4 of the package has no clean-log command any more).
+Schedule::command('model:prune', ['--model' => [InboundEvent::class, MonitoredScheduledTaskLogItem::class]])->dailyAt('00:55')->doNotMonitor();
 
 // Follow-ups: the owner hears 10, 5 and 1 minutes before (bell, chime, desktop alert, push).
 Schedule::command('followups:remind')->everyMinute()->withoutOverlapping(5)->runInBackground()->doNotMonitor();
@@ -56,6 +58,5 @@ Schedule::command('followups:remind')->everyMinute()->withoutOverlapping(5)->run
 Schedule::command('leads:empty-bin')->dailyAt('00:50')->doNotMonitor();
 
 // Housekeeping.
-Schedule::command('schedule-monitor:clean-log')->daily();
 Schedule::command('queue:prune-failed --hours=720')->daily();
 Schedule::command('queue:prune-batches --hours=48')->daily();

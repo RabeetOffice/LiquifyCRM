@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.29.1',
+        'date' => '2026-10-20',
+        'title' => 'Clearer while working, a quiet night shift',
+        'changes' => [
+            ['improved', 'A button in a "Are you sure?" box shows "Working…" with a spinner while it runs. Update system backs up first and takes some seconds, which before looked as if nothing happened.'],
+            ['fixed', 'A clean-up the scheduler ran every night at midnight failed with an error in the log; it now runs with the other clean-ups at 00:55.'],
+        ],
+    ],
+    [
         'version' => '1.29.0',
         'date' => '2026-10-20',
         'title' => 'Newest leads first, older enquiries by hand, your own time',

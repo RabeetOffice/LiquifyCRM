@@ -21,8 +21,12 @@
                 @endif
 
                 <footer class="lq-modal-footer">
-                    <x-ui.button variant="ghost" wire:click="cancelConfirm">Cancel</x-ui.button>
-                    <x-ui.button :variant="$confirm['tone']" wire:click="runConfirmed" wire:loading.attr="disabled">{{ $confirm['label'] }}</x-ui.button>
+                    <x-ui.button variant="ghost" wire:click="cancelConfirm" wire:loading.attr="disabled" wire:target="runConfirmed">Cancel</x-ui.button>
+                    {{-- Some of these take a while (Update system backs up first): the button says it is working. --}}
+                    <x-ui.button :variant="$confirm['tone']" wire:click="runConfirmed" wire:loading.attr="disabled" wire:target="runConfirmed">
+                        <span wire:loading.remove wire:target="runConfirmed">{{ $confirm['label'] }}</span>
+                        <span wire:loading.flex wire:target="runConfirmed" class="items-center gap-2"><x-heroicon-o-arrow-path class="h-4 w-4 animate-spin" /> Working…</span>
+                    </x-ui.button>
                 </footer>
             </div>
         </div>
