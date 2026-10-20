@@ -58,6 +58,16 @@
         </div>
 
         <form wire:submit="save" class="flex flex-col gap-5">
+            {{-- What each column is: the two fields are the month's targets, the bar is how it is going. --}}
+            <div class="lq-thead" aria-hidden="true">
+                <span>Brand, team or person</span>
+                <span class="lq-thead-fields">
+                    <span class="lq-trow-value">Value of sales ({{ $brand->currency }})</span>
+                    <span class="lq-trow-count">Number of sales</span>
+                </span>
+                <span>{{ $month->format('F') }} so far</span>
+            </div>
+
             @foreach ($groups as $group)
                 <section class="lq-tgroup" wire:key="group-{{ $group['head']['key'] }}">
                     @include('sales::livewire.app.partials.target-row', ['row' => $group['head']])
@@ -88,6 +98,10 @@
             @endif
         </form>
 
-        <p class="lq-help">A target can be revenue, a number of sales, or both. Leave a field empty for no target. When both are filled, the bar follows revenue. Above 100% the bar becomes an Over-achieved badge and the person moves up the leaderboard.</p>
+        <div class="lq-help lq-thelp">
+            <p><strong>Value of sales</strong> is how much the person (or team, or brand) should sell this month, in {{ $brand->currency }}: the total of the deals they mark as Won and the upsells they record. Sales made in another currency count in {{ $brand->currency }} at that day's rate.</p>
+            <p><strong>Number of sales</strong> is optional: fill it in only if you also count how many deals are closed. When both are filled, the bar follows the value.</p>
+            <p>Progress moves by itself as sales are recorded. A team or the brand without its own target is measured against what its people's targets add up to. Above 100% the bar becomes an Over-achieved badge.</p>
+        </div>
     @endif
 </div>

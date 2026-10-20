@@ -140,7 +140,10 @@ final class TargetsPage extends Component
                 $target?->sales_count_target,
                 $this->brand->currency,
             );
+            $rows[$index]['implied'] = null;
         }
+
+        $rows = $this->withImpliedTargets($rows);
 
         return view('sales::livewire.app.targets-page', [
             'rows' => $rows,
@@ -150,6 +153,57 @@ final class TargetsPage extends Component
     }
 
     // -------------------------------------------------------------- internals
+
+    /**
+     * A department, or the brand, with no target of its own measures against
+     * what its people's targets add up to (a department's people; for the
+     * brand, its departments as they stand), so its line is never just "No
+     * target" while its people have one.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withImpliedTargets(array $rows): array
+    {
+        $sum = fn (array $progresses): array => [
+            'revenue' => array_sum(array_map(fn (Progress $p): float => (float) ($p->targetRevenue ?? 0), $progresses)),
+            'count' => array_sum(array_map(fn (Progress $p): int => (int) ($p->targetCount ?? 0), $progresses)),
+        ];
+
+        $implied = function (Progress $own, array $total): ?Progress {
+            if ($own->hasTarget() || ($total['revenue'] <= 0 && $total['count'] <= 0)) {
+                return null;
+            }
+
+            return new Progress($own->revenue, $own->count, $total['revenue'] > 0 ? $total['revenue'] : null, $total['count'] > 0 ? $total['count'] : null, $own->currency);
+        };
+
+        $departments = [];
+        $current = null;
+        $people = [];
+
+        foreach ($rows as $index => $row) {
+            if ($row['level'] === 1) {
+                $current = $index;
+                $people[$index] = [];
+            } elseif ($row['level'] === 2 && $current !== null) {
+                $people[$current][] = $row['progress'];
+            }
+        }
+
+        foreach ($people as $index => $progresses) {
+            $rows[$index]['implied'] = $implied($rows[$index]['progress'], $sum($progresses));
+            $departments[] = $rows[$index]['implied'] ?? $rows[$index]['progress'];
+        }
+
+        foreach ($rows as $index => $row) {
+            if ($row['level'] === 0) {
+                $rows[$index]['implied'] = $implied($row['progress'], $sum($departments));
+            }
+        }
+
+        return $rows;
+    }
 
     private function currentPeriod(): string
     {

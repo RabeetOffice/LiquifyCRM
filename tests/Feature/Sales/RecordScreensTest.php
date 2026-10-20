@@ -106,14 +106,18 @@ it('lays the targets out in a block per department with what is left of the mont
         ->assertSee('1 of 2')
         ->assertSeeInOrder(['Whole brand', 'Sales Team A', 'Aisha Agent'])
         ->assertSee('150%, £500 over target')
-        ->assertSee('Targets changed, not saved yet');
+        ->assertSee('Targets changed, not saved yet')
+        // The columns say what they are, and a team without its own target shows what its people's add up to.
+        ->assertSeeInOrder(['Value of sales (GBP)', 'Number of sales', now()->format('F').' so far'])
+        ->assertSee('Its people&#039;s targets add up to £1,000', false)
+        ->assertSee('No target for this month');
 
     // A Manager sets only their own Agents: the department's own line is read-only and there is no brand line.
     Livewire::actingAs($this->manager)
         ->test(TargetsPage::class, ['brand' => $this->brand])
         ->assertDontSee('Whole brand')
         ->assertDontSee('Revenue this month')
-        ->assertSee('No revenue target')
+        ->assertSee('Its people&#039;s targets add up to £1,000', false)
         ->assertSee('Aisha Agent');
 });
 

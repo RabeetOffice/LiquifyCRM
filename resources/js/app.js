@@ -165,7 +165,7 @@ Alpine.data('clocks', ({ brand, choices }) => ({
 
         this.extra
             .filter((zone) => zone !== this.own && zone !== this.brand?.zone)
-            .forEach((zone) => list.push({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone) }));
+            .forEach((zone) => list.push({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone), extra: true }));
 
         return list;
     },

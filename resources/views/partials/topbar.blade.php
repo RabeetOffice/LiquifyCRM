@@ -26,7 +26,7 @@
             x-on:keydown.escape="open = false"
         >
             <template x-for="clock in clocks" :key="clock.zone">
-                <div class="lq-clock" :class="clock.mine && 'lq-clock-mine'" :title="clock.title">
+                <div class="lq-clock" :class="{ 'lq-clock-mine': clock.mine, 'lq-clock-extra': clock.extra }" :title="clock.title">
                     <span class="lq-clock-time"><span x-text="time(clock.zone)"></span><span class="lq-clock-day" x-show="day(clock.zone)" x-text="day(clock.zone)"></span></span>
                     <span class="lq-clock-label" x-text="clock.label"></span>
                 </div>

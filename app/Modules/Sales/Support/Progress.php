@@ -62,6 +62,28 @@ final class Progress
         return 'No target set';
     }
 
+    /** The line under the bar: "£6,574 to go · 3 sales so far", or "3 of 5 sales" when the number of sales is a target too. */
+    public function summary(): string
+    {
+        $parts = [];
+
+        if ($this->targetRevenue !== null && $this->targetRevenue > 0 && $this->revenue < $this->targetRevenue) {
+            $parts[] = Money::format($this->targetRevenue - $this->revenue, $this->currency).' to go';
+        }
+
+        $parts[] = $this->targetCount !== null && $this->targetCount > 0
+            ? $this->count.' of '.$this->targetCount.' '.str('sale')->plural($this->targetCount)
+            : $this->count.' '.str('sale')->plural($this->count).' so far';
+
+        return implode(' · ', $parts);
+    }
+
+    /** What was sold, for a line with no target: "£5,926 sold · 3 sales". */
+    public function achieved(): string
+    {
+        return $this->count === 0 ? 'Nothing sold yet' : Money::format($this->revenue, $this->currency).' sold · '.$this->count.' '.str('sale')->plural($this->count);
+    }
+
     /** "132%, £4,800 over target". */
     public function overLabel(): string
     {
