@@ -264,8 +264,31 @@ in the document's weekly phases; never skip a phase or silently change the desig
   of `touchActivity()` (repeat enquiry unless `silent`, `MergeLeads::join`, an inbound message, a tapped ad), which
   brings the lead back with a timeline line. A new working list of leads must use `unarchived()`.
 - When a lead arrived (user request, 19 Oct 2026): `<x-ui.received :at>` (`inline` for one line) shows "6h ago" over
-  the day and time for three days, then the date over the day and time, in the viewer's Profile time zone (else
-  `liquify.default_timezone`). Most other times in the app are still shown in UTC.
+  the day and time for three days, then the date over the day and time, in the viewer's time zone. Most other times in
+  the app are still shown in UTC.
+- The viewer's time zone (user request, 20 Oct 2026): `ViewerTime::zone()` is the Profile's (empty = "Automatic"), else
+  the computer's (`lq_tz` cookie set by app.js on every page, excluded from cookie encryption), else
+  `liquify.default_timezone`. `<x-ui.due>`, `<x-ui.received>`, the greeting and follow-ups use it. A date or time a person
+  types is read with `ViewerTime::parse()` (stored UTC) and shown back with `ViewerTime::field()`; "today" in a query is
+  `ViewerTime::startOfToday()` / `endOfToday()` (UTC moments), never `now()->startOfDay()`. A Carbon in another zone must
+  be turned to UTC before it goes into a query. The top bar's clocks (`clocks` in app.js, `BrandClocks::choices()`) show
+  the computer's time, the brand's and up to three brand zones kept in localStorage `lq_clocks`.
+- Leads list and Pipeline are newest first by default (`LeadsIndex::ORDERS` / `Pipeline::ORDERS`, the Sort choice); a
+  column heading still takes over on the list. Add a lead takes "When they got in touch" (`receivedAt`, viewer's zone):
+  an older enquiry is created with that `created_at` and its timeline says so.
+- A sale in another currency (user request, 20 Oct 2026; rates of the ECB from api.frankfurter.dev, named on the privacy
+  page): `sales.amount` / `amount_paid` stay in the brand's currency, so targets and reports never convert;
+  `charged_currency`, `charged_amount`, `charged_paid`, `exchange_rate` and `sale_payments.charged_amount` (behind
+  `ExchangeRates::ready()`) keep what the client was charged. `ExchangeRates::deal()` converts at the close date's rate in
+  `RecordSale` / `RecordUpsell`; payments are typed in the charged currency and converted at the sale's own rate (the last
+  one settles exactly); `CorrectSale` keeps the rate; invoices use `dealAmount()` / `dealCurrency()`. Show a sale with
+  `Sale::label()` ("£1,000 (€1,187.60)"). The sheets use `ChoosesSaleCurrency` and `sales::partials.deal-amount`.
+- Targets: headings over the groups say what the fields are; a department or the brand without its own target is shown
+  against what its people's (teams') targets add up to (`TargetsPage::withImpliedTargets`, `Progress::summary()`).
+- Follow-ups (user request, 20 Oct 2026) open on a week calendar (Month and List beside it) in the viewer's zone, with the
+  lead slide-over and drag to move (`ScheduleFollowUp::reschedule`). `followups:remind` (every minute, in the background)
+  sends the owner a bell entry, no email, 10, 5 and 1 minutes before (`RemindFollowUpsCommand::STEPS`), once per follow-up
+  and time (cache key), catching up a missed minute.
 - Won stays Won (user request, 19 Oct 2026): `ChangeLeadStatus` throws `LeadIsWon` when a lead with a sale
   (`Lead::hasSale()`) would leave Won; every caller catches it (panel, pipeline, bulk status, undo) and the path and
   pipeline card stand still. A wrong Won is undone only by `CorrectSale::delete` (Admins), which frees the lead.
