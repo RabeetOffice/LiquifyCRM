@@ -237,6 +237,8 @@ final class FollowUps extends Component
                 'id' => (int) $task->getKey(),
                 'title' => $task->title,
                 'time' => $local->format('H:i'),
+                // Set in the client's time ("5 PM UK time"): said that way in the block's tooltip.
+                'theirs' => $task->theirTime(),
                 'minutes' => $minutes,
                 'lead' => $task->lead,
                 'owner' => $task->assignee?->name,

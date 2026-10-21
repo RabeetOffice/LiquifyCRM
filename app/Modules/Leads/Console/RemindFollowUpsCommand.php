@@ -60,10 +60,12 @@ final class RemindFollowUpsCommand extends Command
                     $left = max(1, (int) ceil($now->diffInSeconds($task->due_at) / 60));
                     $brand = $brands[$task->brand_id] ??= Brand::query()->find($task->brand_id);
                     $lead = $task->lead;
+                    // Set in the client's time ("5 PM UK time"): the reminder says it that way too.
+                    $said = ($there = $task->theirTime($person)) !== null ? ' At '.$there.'.' : '';
 
                     $person->notify(new AppNotification(
                         'Follow-up in '.$left.' '.str('minute')->plural($left).': '.$task->title,
-                        $lead instanceof Lead ? $lead->name.($brand !== null ? ' · '.$brand->name : '').'. Have a look before it starts.' : 'Have a look before it starts.',
+                        trim(($lead instanceof Lead ? $lead->name.($brand !== null ? ' · '.$brand->name : '').'.' : '').$said.' Have a look before it starts.'),
                         $left <= 1 ? 'warning' : 'info',
                         $lead instanceof Lead && $brand !== null ? $brand->url('leads/'.$lead->getKey()) : ($brand?->url('follow-ups')),
                         icon: 'heroicon-o-bell-alert',

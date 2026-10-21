@@ -280,7 +280,12 @@
                                     @else
                                         <span class="lq-task-check"></span>
                                     @endif
-                                    <span class="lq-task-title">{{ $task->title }}</span>
+                                    <span class="lq-task-title">
+                                        {{ $task->title }}
+                                        @if (! $task->isDone() && ($there = $task->theirTime()) !== null)
+                                            <span class="lq-task-zone" title="The time as it was agreed">{{ $there }}</span>
+                                        @endif
+                                    </span>
                                     <x-ui.due :at="$task->due_at" :done="$task->isDone()" />
                                 </li>
                             @endforeach
@@ -659,6 +664,14 @@
             <x-ui.field label="When" name="followUpAt" required>
                 <x-ui.input type="datetime-local" wire:model="followUpAt" name="followUpAt" step="900" />
             </x-ui.field>
+            {{-- The client said "5 PM UK time": the time above is read in this zone, and the reminders come at that moment
+                 wherever the owner is. Shown once the dialog is open, so the picker starts with this lead's choices. --}}
+            @if ($followUpZones !== null)
+                <x-ui.field label="In whose time" name="followUpZone">
+                    <x-ui.picker model="followUpZone" name="followUpZone" :options="$followUpZones" :pinned="array_column($followUpZones, 'value')" remote placeholder="Search a city or a country…" more="Type a city or a country to see every time zone." />
+                    <p class="lq-help" x-data="zoneHint({ own: @js(\App\Modules\Core\Support\ViewerTime::zone()) })" x-text="text"></p>
+                </x-ui.field>
+            @endif
             <x-ui.field label="What" name="followUpTitle" required>
                 <x-ui.input wire:model="followUpTitle" name="followUpTitle" />
             </x-ui.field>

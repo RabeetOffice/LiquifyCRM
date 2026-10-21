@@ -6,26 +6,39 @@ namespace App\Modules\Leads\Actions;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\Task;
+use App\Modules\Leads\Support\FollowUpZones;
 use Carbon\CarbonInterface;
 
-/** "Follow up on": a task on the lead, owned by its Agent (or whoever set it). */
+/**
+ * "Follow up on": a task on the lead, owned by its Agent (or whoever set it).
+ * A time said in another time zone ("5 PM UK time") keeps that zone, so the
+ * follow-up shows it beside the viewer's own time; the reminders come at
+ * that moment wherever the owner is.
+ */
 final class ScheduleFollowUp
 {
-    public function handle(Lead $lead, CarbonInterface $dueAt, string $title = 'Follow up', ?User $by = null, ?User $owner = null): Task
+    /** @param  string|null  $timezone  the zone the time was said in, when not the setter's own */
+    public function handle(Lead $lead, CarbonInterface $dueAt, string $title = 'Follow up', ?User $by = null, ?User $owner = null, ?string $timezone = null): Task
     {
+        $timezone = FollowUpZones::ready() && ViewerTime::valid($timezone) ? $timezone : null;
+
         $task = $lead->tasks()->create([
             'brand_id' => $lead->brand_id,
             'user_id' => $owner?->getKey() ?? $lead->assigned_to ?? $by?->getKey(),
             'created_by' => $by?->getKey(),
             'title' => trim($title) ?: 'Follow up',
             'due_at' => $dueAt,
+            ...($timezone !== null ? ['timezone' => $timezone] : []),
         ]);
 
         $this->syncNextFollowUp($lead);
 
-        Audit::log('leads.follow_up_scheduled', $lead, ['task_id' => $task->getKey(), 'due_at' => $dueAt->toIso8601String()], 'Follow-up set for '.$dueAt->format('j M, H:i'), causer: $by, logName: 'leads');
+        $said = $timezone !== null ? ' ('.$dueAt->setTimezone($timezone)->format('g:i A').' '.ViewerTime::city($timezone).' time)' : '';
+
+        Audit::log('leads.follow_up_scheduled', $lead, ['task_id' => $task->getKey(), 'due_at' => $dueAt->toIso8601String(), 'timezone' => $timezone], 'Follow-up set for '.$dueAt->format('j M, H:i').$said, causer: $by, logName: 'leads');
 
         return $task;
     }

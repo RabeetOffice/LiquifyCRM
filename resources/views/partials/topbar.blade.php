@@ -17,8 +17,9 @@
             <span class="lq-top-greeting-date">{{ $now->translatedFormat('l, j F Y') }}</span>
         </div>
 
-        {{-- Clocks (user request, 20 Oct 2026): this computer's time, the brand's, and the brand time zones this person added
-             with "+". The added ones are a choice of this computer (localStorage lq_clocks), see `clocks` in app.js. --}}
+        {{-- Clocks (user requests, 20 and 21 Oct 2026): this computer's time, the brand's, and the time zones this person added
+             with "+" (a brand's, or any other by search), four clocks at most, 12-hour with AM/PM. The added ones are a choice
+             of this computer (localStorage lq_clocks), see `clocks` in app.js. --}}
         <div
             class="lq-clocks"
             x-data="clocks(@js(['brand' => $brand ? ['zone' => $brand->timezone, 'name' => $brand->name] : null, 'choices' => \App\Modules\Brands\Support\BrandClocks::choices($user)]))"
@@ -32,12 +33,12 @@
                 $brandCity = $brand ? \App\Modules\Core\Support\ViewerTime::city($brand->timezone) : null;
             @endphp
             <div class="lq-clock lq-clock-mine" title="Your time (this computer)">
-                <span class="lq-clock-time"><span x-text="time(own)">{{ now($ownZone)->format('H:i') }}</span></span>
+                <span class="lq-clock-time"><span x-text="time(own)">{{ now($ownZone)->format('g:i A') }}</span></span>
                 <span class="lq-clock-label" x-text="'You · ' + city(own)">You · {{ \App\Modules\Core\Support\ViewerTime::city($ownZone) }}</span>
             </div>
             @if ($brand)
                 <div class="lq-clock" x-show="brand.zone !== own" @if ($brand->timezone === $ownZone) style="display: none" @endif title="{{ $brand->name }}: {{ $brandCity }} time">
-                    <span class="lq-clock-time"><span x-text="time(brand.zone)">{{ now($brand->timezone)->format('H:i') }}</span><span class="lq-clock-day" x-show="day(brand.zone)" x-text="day(brand.zone)" style="display: none"></span></span>
+                    <span class="lq-clock-time"><span x-text="time(brand.zone)">{{ now($brand->timezone)->format('g:i A') }}</span><span class="lq-clock-day" x-show="day(brand.zone)" x-text="day(brand.zone)" style="display: none"></span></span>
                     <span class="lq-clock-label">{{ $brandCity }} · brand</span>
                 </div>
             @endif
@@ -48,23 +49,32 @@
                 </div>
             </template>
 
-            <button type="button" class="lq-clock-add" x-on:click="open = ! open" title="Add the time of another brand" aria-haspopup="menu" x-bind:aria-expanded="open">
+            <button type="button" class="lq-clock-add" x-on:click="show()" title="Add a clock" aria-haspopup="menu" x-bind:aria-expanded="open">
                 <x-heroicon-m-plus />
             </button>
 
             <div class="lq-menu lq-clock-menu" x-show="open" x-cloak x-transition.opacity.duration.150ms role="menu">
-                <div class="lq-menu-header">Show the time where your brands are</div>
-                <template x-for="choice in choices" :key="choice.zone">
-                    <button type="button" class="lq-menu-item" role="menuitemcheckbox" x-bind:aria-checked="chosen(choice.zone)" x-on:click="toggle(choice.zone)">
-                        <span class="lq-clock-check" :class="chosen(choice.zone) && 'lq-clock-check-on'"><x-heroicon-m-check /></span>
-                        <span class="lq-clock-choice">
-                            <span x-text="choice.city"></span>
-                            <span class="lq-clock-choice-sub" x-show="choice.brands" x-text="choice.brands"></span>
-                        </span>
-                        <span class="lq-clock-choice-time lq-tabular" x-text="time(choice.zone)"></span>
-                    </button>
-                </template>
-                <p class="lq-clock-note">Saved on this computer. Your own time comes from it too.</p>
+                <div class="lq-clock-search">
+                    <x-heroicon-o-magnifying-glass />
+                    <input type="text" x-ref="search" x-model="query" placeholder="Search a city or a country…" aria-label="Search a city or a country" autocomplete="off" spellcheck="false"
+                        x-on:keydown.enter.prevent="results[0] && toggle(results[0].zone)">
+                </div>
+                <div class="lq-menu-header" x-text="query.trim() === '' ? 'Where your brands are' : 'Time zones'"></div>
+                <div class="lq-clock-list">
+                    <template x-for="choice in results" :key="choice.zone">
+                        <button type="button" class="lq-menu-item" role="menuitemcheckbox" x-bind:aria-checked="chosen(choice.zone)" x-on:click="toggle(choice.zone)">
+                            <span class="lq-clock-check" :class="chosen(choice.zone) && 'lq-clock-check-on'"><x-heroicon-m-check /></span>
+                            <span class="lq-clock-choice">
+                                <span x-text="choice.city"></span>
+                                <span class="lq-clock-choice-sub" x-show="choice.sub" x-text="choice.sub"></span>
+                            </span>
+                            <span class="lq-clock-choice-time lq-tabular" x-text="time(choice.zone)"></span>
+                        </button>
+                    </template>
+                    <p class="lq-clock-note" x-show="query.trim() !== '' && results.length === 0" x-text="loading ? 'Loading the time zones…' : 'Nothing matches. Try a city or a country.'"></p>
+                </div>
+                <p class="lq-clock-note lq-clock-full" x-show="full" x-cloak>Four clocks at most. Untick one to add another.</p>
+                <p class="lq-clock-note">Up to four clocks, saved on this computer. Your own time comes from it too.</p>
             </div>
         </div>
     @endif

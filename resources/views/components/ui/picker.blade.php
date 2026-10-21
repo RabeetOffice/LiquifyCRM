@@ -1,8 +1,9 @@
 {{-- A choice from a long list, with a search box (time zones). `model` is the Livewire property it reads and writes;
      each of `options` is {value, label, hint, search}; the `pinned` values are offered before anything is typed.
-     Everything happens in the browser: a choice travels with the next request, like wire:model. --}}
-@props(['model', 'options' => [], 'pinned' => [], 'name' => null, 'placeholder' => 'Search…', 'more' => null])
-<div class="lq-picker" wire:ignore x-data="picker({ model: @js($model), options: @js($options), pinned: @js($pinned) })" @keydown.escape.stop="close(true)" @click.outside="close()">
+     Everything happens in the browser: a choice travels with the next request, like wire:model. With `remote` the
+     options are only the first ones (and the current one); every time zone is fetched the first time it opens. --}}
+@props(['model', 'options' => [], 'pinned' => [], 'name' => null, 'placeholder' => 'Search…', 'more' => null, 'remote' => false])
+<div class="lq-picker" wire:ignore x-data="picker({ model: @js($model), options: @js($options), pinned: @js($pinned), remote: @js((bool) $remote) })" @keydown.escape.stop="close(true)" @click.outside="close()">
     <button type="button" class="lq-input lq-picker-btn" x-ref="button" @if ($name) id="{{ $name }}" @endif @click="toggle()" @keydown.arrow-down.prevent="show()" aria-haspopup="listbox" :aria-expanded="open.toString()">
         <span class="lq-picker-value">
             <span class="truncate" x-text="current ? current.label : value"></span>

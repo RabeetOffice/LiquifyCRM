@@ -52,6 +52,20 @@ final class Timezones
         return self::$options = $options;
     }
 
+    /**
+     * The choices for these zones only, in this order: what a picker shows
+     * before the whole list is fetched (`<x-ui.picker remote>`).
+     *
+     * @param  list<string>  $zones
+     * @return list<array{value: string, label: string, hint: string, search: string}>
+     */
+    public static function only(array $zones): array
+    {
+        $all = collect(self::options())->keyBy('value');
+
+        return collect(array_unique($zones))->map(fn (string $zone): ?array => $all->get($zone))->filter()->values()->all();
+    }
+
     /** "GMT+1", "GMT-3:30", "GMT". */
     private static function offset(int $seconds): string
     {

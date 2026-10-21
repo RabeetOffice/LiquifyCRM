@@ -23,13 +23,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $created_by
  * @property string $title
  * @property CarbonImmutable $due_at
+ * @property string|null $timezone the time zone it was set in, when not the setter's own (FollowUpZones)
  * @property CarbonImmutable|null $done_at
  */
 class Task extends Model
 {
     use BelongsToBrand;
 
-    protected $fillable = ['brand_id', 'lead_id', 'user_id', 'created_by', 'title', 'due_at', 'done_at'];
+    protected $fillable = ['brand_id', 'lead_id', 'user_id', 'created_by', 'title', 'due_at', 'timezone', 'done_at'];
 
     protected function casts(): array
     {
@@ -84,6 +85,27 @@ class Task extends Model
     public function isDone(): bool
     {
         return $this->done_at !== null;
+    }
+
+    /**
+     * "5:00 PM London time" for a follow-up set in another time zone than the
+     * viewer's (the client said UK time); null when there is nothing to add.
+     */
+    public function theirTime(?User $viewer = null): ?string
+    {
+        $zone = $this->getAttributes()['timezone'] ?? null;
+
+        if (! is_string($zone) || ! ViewerTime::valid($zone)) {
+            return null;
+        }
+
+        $there = $this->due_at->setTimezone($zone);
+
+        if ($there->getOffset() === ViewerTime::local($this->due_at, $viewer)->getOffset()) {
+            return null;
+        }
+
+        return $there->format('g:i A').' '.ViewerTime::city($zone).' time'.($there->isSameDay(ViewerTime::local($this->due_at, $viewer)) ? '' : ', '.$there->format('D j M'));
     }
 
     public function isOverdue(): bool

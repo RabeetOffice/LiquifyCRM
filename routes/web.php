@@ -18,6 +18,7 @@ use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
 use App\Modules\Core\Http\Controllers\MenuBadgesController;
 use App\Modules\Core\Http\Controllers\PushSubscriptionController;
+use App\Modules\Core\Http\Controllers\TimezonesController;
 use App\Modules\Core\Livewire\AdminDashboard;
 use App\Modules\Core\Livewire\BrandDashboard;
 use App\Modules\Departments\Livewire\App\DepartmentForm;
@@ -62,6 +63,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
     Route::get('/profile/security', ProfileSecurity::class)->name('profile.security');
     // The sidebar's counts outside a brand (the admin area, the profile).
     Route::get('/menu-badges', MenuBadgesController::class)->name('menu-badges');
+    // Every time zone, for the searches of the clocks and the follow-ups.
+    Route::get('/time-zones', TimezonesController::class)->name('time-zones');
 
     // This browser's address for desktop alerts with LiquifyCRM closed (Web Push).
     Route::post('/push/subscription', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1')->name('push.subscribe');

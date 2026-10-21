@@ -9,7 +9,9 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\Countries;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Core\Support\Timezones;
 use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\AddLeadNote;
@@ -28,6 +30,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Leads\Support\FollowUpZones;
 use App\Modules\Leads\Support\LeadEnquiry;
 use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Meta\Models\Conversation;
@@ -98,6 +101,9 @@ final class LeadPanel extends Component
     public string $followUpAt = '';
 
     public string $followUpTitle = 'Follow up';
+
+    /** The time zone the follow-up's time is in: the viewer's own, or the client's ("5 PM UK time"). */
+    public string $followUpZone = '';
 
     public bool $showWon = false;
 
@@ -488,6 +494,7 @@ final class LeadPanel extends Component
         // Tomorrow at 10:00 where this person is: the form is in their own time zone.
         $this->followUpAt = ViewerTime::now()->addDay()->setTime(10, 0)->format('Y-m-d\TH:i');
         $this->followUpTitle = 'Follow up';
+        $this->followUpZone = ViewerTime::zone();
         $this->showFollowUp = true;
     }
 
@@ -497,7 +504,9 @@ final class LeadPanel extends Component
         $this->authorize('update', $lead);
         $this->validate(['followUpAt' => ['required', 'date'], 'followUpTitle' => ['required', 'string', 'max:160']]);
 
-        $dueAt = ViewerTime::parse($this->followUpAt);
+        $own = ViewerTime::zone();
+        $zone = FollowUpZones::ready() && ViewerTime::valid($this->followUpZone) ? $this->followUpZone : $own;
+        $dueAt = ViewerTime::parseIn($this->followUpAt, $zone);
 
         if ($dueAt === null) {
             $this->addError('followUpAt', 'Choose a date and time.');
@@ -505,11 +514,27 @@ final class LeadPanel extends Component
             return;
         }
 
-        app(ScheduleFollowUp::class)->handle($lead, $dueAt, $this->followUpTitle, $this->user());
+        $task = app(ScheduleFollowUp::class)->handle($lead, $dueAt, $this->followUpTitle, $this->user(), timezone: $zone !== $own ? $zone : null);
 
         $this->showFollowUp = false;
         $this->changed();
-        $this->toastSuccess('Follow-up set');
+        $this->toastSuccess('Follow-up set', ($there = $task->theirTime()) !== null ? $there.', '.ViewerTime::local($dueAt)->format('g:i A').' your time.' : null);
+    }
+
+    /**
+     * The time zones offered first for a follow-up: the viewer's, the brand's, where the lead's phone is dialled,
+     * then the usual ones. The rest is searched (the picker fetches the whole list).
+     *
+     * @return list<array{value: string, label: string, hint: string, search: string}>
+     */
+    private function followUpZoneChoices(Lead $lead): array
+    {
+        return Timezones::only(array_values(array_filter([
+            ViewerTime::zone(),
+            $this->brand()->timezone,
+            Countries::timezone(Countries::fromPhone($lead->phone)),
+            ...Timezones::COMMON,
+        ], fn (?string $zone): bool => ViewerTime::valid($zone))));
     }
 
     public function completeTask(int $taskId): void
@@ -630,6 +655,7 @@ final class LeadPanel extends Component
 
         return view('leads::livewire.app.lead-panel', [
             'lead' => $lead,
+            'followUpZones' => $this->showFollowUp && FollowUpZones::ready() ? $this->followUpZoneChoices($lead) : null,
             'canSeeFull' => $canSeeFull,
             'timeline' => $timeline,
             'openTasks' => $lead->tasks->whereNull('done_at'),

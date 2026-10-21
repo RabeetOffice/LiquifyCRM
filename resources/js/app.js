@@ -120,8 +120,30 @@ Alpine.data('dropdown', () => ({
     close() { this.open = false; },
 }));
 
-// Clocks in the top bar: this computer's time, the brand's, and the brand time zones this person added.
-// The added ones are a choice of this computer, like sound and desktop alerts. Ticks on the minute.
+// Every time zone ({value, label, hint, search}), fetched once per page the first time a search needs it
+// (the clocks' +, a follow-up's time zone) instead of riding along with every page.
+let timeZones = null;
+const loadTimeZones = () => {
+    timeZones ??= fetch('/time-zones', { headers: { Accept: 'application/json' } })
+        .then((response) => (response.ok ? response.json() : []))
+        .catch(() => []);
+
+    return timeZones;
+};
+
+// Words typed into a time zone search, matched against a city, its country and other names ("uk", "pakistan").
+// A whole word ("uk" for the United Kingdom) comes before a part of one (Auckland), then a city that starts with it.
+const zoneRank = (zone, first) => (zone.search.split(/\s+/).includes(first) ? 2 : 0) + (zone.label.toLowerCase().startsWith(first) ? 1 : 0);
+
+const searchZones = (zones, query, limit = 30) => {
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+    return zones.filter((zone) => words.every((word) => zone.search.includes(word))).sort((a, b) => zoneRank(b, words[0] ?? '') - zoneRank(a, words[0] ?? '')).slice(0, limit);
+};
+
+// Clocks in the top bar: this computer's time, the brand's, and the time zones this person added (a brand's from
+// the list, any other by search). Four clocks at most. The added ones are a choice of this computer, like sound
+// and desktop alerts. Times are 12-hour with AM/PM. Ticks on the minute.
 Alpine.data('clocks', ({ brand, choices }) => ({
     open: false,
     now: new Date(),
@@ -136,15 +158,21 @@ Alpine.data('clocks', ({ brand, choices }) => ({
     extra: [],
     brand,
     choices,
+    query: '',
+    zones: [],
+    loading: false,
+    full: false,
     timer: null,
 
     init() {
         try {
             const saved = JSON.parse(localStorage.getItem('lq_clocks') || '[]');
-            this.extra = Array.isArray(saved) ? saved.filter((zone) => choices.some((choice) => choice.zone === zone)).slice(0, 3) : [];
+            this.extra = Array.isArray(saved) ? saved.filter((zone) => typeof zone === 'string' && this.valid(zone)) : [];
         } catch (error) {
             this.extra = [];
         }
+
+        this.extra = this.extra.filter((zone) => zone !== this.own && zone !== this.brand?.zone).slice(0, this.room);
 
         const tick = () => {
             this.now = new Date();
@@ -157,6 +185,11 @@ Alpine.data('clocks', ({ brand, choices }) => ({
         clearTimeout(this.timer);
     },
 
+    // Your clock, the brand's when it is another time zone, then the added ones: four in all.
+    get room() {
+        return 4 - 1 - (this.brand && this.brand.zone !== this.own ? 1 : 0);
+    },
+
     // Your own and the brand's clock are in the page already (topbar); these are the ones added with +.
     get extras() {
         return this.extra
@@ -164,9 +197,47 @@ Alpine.data('clocks', ({ brand, choices }) => ({
             .map((zone) => ({ zone, label: this.city(zone), title: this.choices.find((choice) => choice.zone === zone)?.brands || this.city(zone) }));
     },
 
+    // Nothing typed: the brands' time zones and the clocks already added. Typed: every time zone that matches.
+    get results() {
+        const brands = (zone) => this.choices.find((choice) => choice.zone === zone)?.brands ?? '';
+
+        if (this.query.trim() === '') {
+            const added = this.extra.filter((zone) => ! this.choices.some((choice) => choice.zone === zone)).map((zone) => ({ zone, city: this.city(zone), sub: '' }));
+
+            return [...this.choices.map((choice) => ({ zone: choice.zone, city: choice.city, sub: choice.brands })), ...added];
+        }
+
+        return searchZones(this.zones, this.query).map((zone) => ({ zone: zone.value, city: zone.label, sub: [brands(zone.value), zone.hint].filter(Boolean).join(' · ') }));
+    },
+
+    async show() {
+        this.open = ! this.open;
+        this.full = false;
+
+        if (this.open) {
+            this.$nextTick(() => this.$refs.search?.focus());
+
+            if (this.zones.length === 0) {
+                this.loading = true;
+                this.zones = await loadTimeZones();
+                this.loading = false;
+            }
+        }
+    },
+
+    valid(zone) {
+        try {
+            new Intl.DateTimeFormat('en-US', { timeZone: zone });
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    },
+
     time(zone) {
         try {
-            return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone }).format(this.now);
+            return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: zone }).format(this.now);
         } catch (error) {
             return '--:--';
         }
@@ -188,11 +259,24 @@ Alpine.data('clocks', ({ brand, choices }) => ({
     },
 
     chosen(zone) {
-        return this.extra.includes(zone);
+        return this.extra.includes(zone) || zone === this.own || zone === this.brand?.zone;
     },
 
+    // Your own and the brand's clock are always there; the others come and go, four clocks at most.
     toggle(zone) {
-        this.extra = this.chosen(zone) ? this.extra.filter((item) => item !== zone) : [...this.extra, zone].slice(-3);
+        if (zone === this.own || zone === this.brand?.zone) return;
+
+        if (this.extra.includes(zone)) {
+            this.extra = this.extra.filter((item) => item !== zone);
+        } else if (this.extra.length >= this.room) {
+            this.full = true;
+
+            return;
+        } else {
+            this.extra = [...this.extra, zone];
+        }
+
+        this.full = false;
 
         try {
             localStorage.setItem('lq_clocks', JSON.stringify(this.extra));
@@ -202,22 +286,58 @@ Alpine.data('clocks', ({ brand, choices }) => ({
     },
 }));
 
+// Under a follow-up's time zone: the time typed, read in that zone, as it falls in the viewer's own ("5:00 PM in
+// London is 9:00 PM your time"). Reads $wire.followUpAt and $wire.followUpZone as they change in the browser.
+Alpine.data('zoneHint', ({ own }) => ({
+    get text() {
+        const typed = String(this.$wire.followUpAt ?? '');
+        const zone = String(this.$wire.followUpZone ?? '');
+        const match = typed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+
+        if (! match || zone === '' || zone === own) return 'Your own time. Choose the client\'s if they said a time where they are.';
+
+        try {
+            // How far a zone's clock is from UTC at a moment, in milliseconds.
+            const offset = (moment, where) => {
+                const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: where, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+                    .formatToParts(new Date(moment)).map((part) => [part.type, Number(part.value)]));
+
+                return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) - moment;
+            };
+            const wall = Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5]);
+            const moment = wall - offset(wall - offset(wall, zone), zone);
+            const format = (where, withDay) => new Intl.DateTimeFormat('en-US', { timeZone: where, hour: 'numeric', minute: '2-digit', hour12: true, ...(withDay ? { weekday: 'short', day: 'numeric', month: 'short' } : {}) }).format(new Date(moment));
+            const sameDay = new Intl.DateTimeFormat('en-GB', { timeZone: zone, dateStyle: 'short' }).format(new Date(moment)) === new Intl.DateTimeFormat('en-GB', { timeZone: own, dateStyle: 'short' }).format(new Date(moment));
+            const city = (where) => where.split('/').pop().replace(/_/g, ' ');
+
+            return `${format(zone, false)} in ${city(zone)} is ${format(own, ! sameDay)} your time. The reminders come 10, 5 and 1 minutes before.`;
+        } catch (error) {
+            return '';
+        }
+    },
+}));
+
 // A choice from a long list with a search box (<x-ui.picker>). The list stays out of Alpine's
 // reactive data: four hundred time zones need no watching, only filtering.
-Alpine.data('picker', ({ model, options, pinned }) => ({
+Alpine.data('picker', ({ model, options, pinned, remote = false }) => ({
     open: false,
     query: '',
     active: 0,
+    // Moves when the whole list of a `remote` picker arrives, so what is shown is worked out again.
+    loaded: 0,
 
     get value() {
         return this.$wire[model];
     },
 
     get current() {
+        this.loaded;
+
         return options.find((option) => option.value === this.value) ?? null;
     },
 
     get shown() {
+        this.loaded;
         const words = this.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
         // Nothing typed: the usual choices and the current one, not the whole list.
@@ -225,11 +345,9 @@ Alpine.data('picker', ({ model, options, pinned }) => ({
             return options.filter((option) => pinned.includes(option.value) || option.value === this.value);
         }
 
-        const starts = (option) => Number(option.label.toLowerCase().startsWith(words[0]));
-
         return options
             .filter((option) => words.every((word) => option.search.includes(word)))
-            .sort((a, b) => starts(b) - starts(a))
+            .sort((a, b) => zoneRank(b, words[0]) - zoneRank(a, words[0]))
             .slice(0, 40);
     },
 
@@ -238,6 +356,14 @@ Alpine.data('picker', ({ model, options, pinned }) => ({
     },
 
     show() {
+        if (remote && this.loaded === 0) {
+            this.loaded = -1;
+            loadTimeZones().then((zones) => {
+                if (zones.length > 0) options = zones;
+                this.loaded = 1;
+            });
+        }
+
         this.query = '';
         this.open = true;
         this.active = Math.max(0, this.shown.findIndex((option) => option.value === this.value));

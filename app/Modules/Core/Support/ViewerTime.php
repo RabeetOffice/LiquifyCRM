@@ -39,6 +39,23 @@ final class ViewerTime
         return (string) config('liquify.default_timezone');
     }
 
+    /**
+     * A date and time typed for another time zone ("5 PM UK time"), turned
+     * into the stored (UTC) moment. Null when it is not a date.
+     */
+    public static function parseIn(?string $typed, string $zone): ?CarbonImmutable
+    {
+        if ($typed === null || trim($typed) === '' || ! self::valid($zone)) {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($typed, $zone)->setTimezone((string) config('app.timezone'));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     /** The time zone of the computer this request came from, when the browser has said. */
     public static function computerZone(): ?string
     {

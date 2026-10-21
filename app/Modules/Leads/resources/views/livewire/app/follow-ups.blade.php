@@ -99,7 +99,7 @@
                                         wire:key="event-{{ $event['id'] }}"
                                         @if ($event['canMove']) draggable="true" x-on:dragstart="dragging = {{ $event['id'] }}; $event.dataTransfer.effectAllowed = 'move'" x-on:dragend="dragging = null; over = null" @endif
                                         @if ($event['canOpen']) x-on:click="$wire.open = {{ $event['lead']->getKey() }}; $wire.openLead({{ $event['lead']->getKey() }})" role="button" tabindex="0" @endif
-                                        title="{{ $event['time'] }} · {{ $event['title'] }}{{ $event['lead'] ? ' · '.$event['lead']->name : '' }}{{ $event['owner'] ? ' · '.$event['owner'] : '' }}"
+                                        title="{{ $event['time'] }}{{ $event['theirs'] ? ' ('.$event['theirs'].')' : '' }} · {{ $event['title'] }}{{ $event['lead'] ? ' · '.$event['lead']->name : '' }}{{ $event['owner'] ? ' · '.$event['owner'] : '' }}"
                                     >
                                         <span class="lq-event-line"><span class="lq-event-time">{{ $event['time'] }}</span> <span class="lq-event-title">{{ $event['lead']?->name ?? $event['title'] }}</span></span>
                                         @if ($event['lead'])
@@ -146,7 +146,7 @@
                                     wire:key="mevent-{{ $event['id'] }}"
                                     @if ($event['canMove']) draggable="true" x-on:dragstart="dragging = {{ $event['id'] }}; $event.dataTransfer.effectAllowed = 'move'" x-on:dragend="dragging = null; over = null" @endif
                                     @if ($event['canOpen']) x-on:click="$wire.open = {{ $event['lead']->getKey() }}; $wire.openLead({{ $event['lead']->getKey() }})" role="button" tabindex="0" @endif
-                                    title="{{ $event['time'] }} · {{ $event['title'] }}{{ $event['lead'] ? ' · '.$event['lead']->name : '' }}"
+                                    title="{{ $event['time'] }}{{ $event['theirs'] ? ' ('.$event['theirs'].')' : '' }} · {{ $event['title'] }}{{ $event['lead'] ? ' · '.$event['lead']->name : '' }}"
                                 >
                                     <span class="lq-mevent-dot"></span>
                                     <span class="lq-mevent-time">{{ $event['time'] }}</span>
@@ -186,7 +186,12 @@
                             @endif
 
                             <span class="lq-task-main">
-                                <span class="lq-task-title">{{ $task->title }}</span>
+                                <span class="lq-task-title">
+                                    {{ $task->title }}
+                                    @if (! $task->isDone() && ($there = $task->theirTime()) !== null)
+                                        <span class="lq-task-zone" title="The time as it was agreed">{{ $there }}</span>
+                                    @endif
+                                </span>
                                 @if ($task->lead)
                                     <span class="lq-task-lead">
                                         <x-ui.avatar :name="$task->lead->name" size="xs" tone />

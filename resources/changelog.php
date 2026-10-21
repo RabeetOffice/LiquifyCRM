@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.31.0',
+        'date' => '2026-10-21',
+        'title' => 'Clocks you search for, follow-ups in the client\'s time',
+        'changes' => [
+            ['improved', 'The clocks in the top bar show AM and PM. With + you can search any city or country ("Dubai", "UK", "Pakistan") and add its clock, not only where your brands are. Four clocks at most, your own and the brand\'s included.'],
+            ['new', 'Follow up on asks "In whose time": your own, or the client\'s. If a client says "call me at 5 PM UK time", choose London and 5:00 PM; the box shows what that is in your time, and the reminders come 10, 5 and 1 minutes before that moment.'],
+            ['improved', 'A follow-up set in the client\'s time says so on the lead, on Follow-ups and in its reminder ("5:00 PM London time"). Apply with Update system.'],
+        ],
+    ],
+    [
         'version' => '1.30.0',
         'date' => '2026-10-21',
         'title' => 'Every tab of a workbook, and clients from a sheet',
