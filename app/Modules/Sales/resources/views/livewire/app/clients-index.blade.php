@@ -3,7 +3,13 @@
     use App\Modules\Sales\Support\Money;
 @endphp
 <div class="flex flex-col gap-6" data-live-refresh>
-    <x-ui.page-header :title="$mineOnly ? 'My clients' : 'Clients'" :subtitle="$mineOnly ? 'The clients you look after. Record every upsell on the client, under your name.' : 'Everyone who has bought from this brand, and who looks after them after the first sale.'" />
+    <x-ui.page-header :title="$mineOnly ? 'My clients' : 'Clients'" :subtitle="$mineOnly ? 'The clients you look after. Record every upsell on the client, under your name.' : 'Everyone who has bought from this brand, and who looks after them after the first sale.'">
+        @if ($canImport)
+            <x-slot:actions>
+                <x-ui.button variant="secondary" onclick="window.dispatchEvent(new CustomEvent('lq-open-import'))" icon="heroicon-o-arrow-up-tray">Import clients</x-ui.button>
+            </x-slot:actions>
+        @endif
+    </x-ui.page-header>
 
     @if ($any)
         <div class="lq-minis">
@@ -27,6 +33,9 @@
                 @unless ($mineOnly)
                     <x-slot:actions>
                         <x-ui.button variant="secondary" :href="route('brand.leads.index', ['brand' => $brand->slug])">Open Leads</x-ui.button>
+                        @if ($canImport)
+                            <x-ui.button variant="secondary" onclick="window.dispatchEvent(new CustomEvent('lq-open-import'))" icon="heroicon-o-arrow-up-tray">Import clients</x-ui.button>
+                        @endif
                     </x-slot:actions>
                 @endunless
             </x-ui.empty>
@@ -200,5 +209,9 @@
                 @endif
             </x-slot:footer>
         </x-ui.modal>
+    @endif
+
+    @if ($canImport)
+        @livewire(\App\Modules\Sales\Livewire\App\ClientImport::class, ['brand' => $brand], key('client-import'))
     @endif
 </div>

@@ -47,6 +47,12 @@ final class ClientPolicy
         return $this->inCurrentBrand($client) && Client::query()->visibleTo($user)->whereKey($client->getKey())->exists();
     }
 
+    /** Bring clients in from a CSV or Excel file: Admins. */
+    public function import(User $user): bool
+    {
+        return $user->isGlobalAdmin();
+    }
+
     /** The whole client: upsells, files, saved text. */
     public function care(User $user, Client $client): bool
     {

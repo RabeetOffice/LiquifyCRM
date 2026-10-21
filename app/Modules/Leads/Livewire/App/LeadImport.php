@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Livewire\Concerns\WithSpreadsheetImport;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Departments\Models\Department;
@@ -17,21 +18,20 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use Maatwebsite\Excel\Excel as ExcelFormat;
-use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 /**
- * CSV / Excel import with column mapping: pick the file, match its columns
- * to lead fields (guessed from the headings), import. Duplicates inside the
- * brand are merged by email or phone; original dates are kept.
+ * CSV / Excel import with column mapping, one tab of the workbook at a time:
+ * pick the file, open a tab, match its columns to lead fields (guessed from
+ * the headings), import, then the next tab. Duplicates inside the brand are
+ * merged by email or phone; original dates are kept.
  */
 final class LeadImport extends Component
 {
     use AuthorizesRequests;
     use WithFileUploads;
+    use WithSpreadsheetImport;
     use WithToasts;
 
     public const FIELDS = [
@@ -49,58 +49,18 @@ final class LeadImport extends Component
 
     public Brand $brand;
 
-    public ?TemporaryUploadedFile $file = null;
-
-    /** @var list<string> */
-    public array $headers = [];
-
-    /** @var list<list<mixed>> */
-    public array $rows = [];
-
-    /** @var array<string, string> field => column index */
-    public array $map = [];
-
-    /** @var array{created: int, merged: int, failed: int, errors: list<string>}|null */
-    public ?array $result = null;
-
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
         $this->authorize('import', Lead::class);
     }
 
-    public function updatedFile(): void
-    {
-        $this->validate(['file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240']]);
-
-        try {
-            $sheets = Excel::toArray(new RawRows, $this->file->getRealPath(), null, $this->readerType());
-        } catch (Throwable $exception) {
-            $this->addError('file', 'That file could not be read: '.$exception->getMessage());
-
-            return;
-        }
-
-        $rows = array_values(array_filter($sheets[0] ?? [], fn (array $row): bool => array_filter($row, fn ($cell): bool => $cell !== null && $cell !== '') !== []));
-
-        if ($rows === []) {
-            $this->addError('file', 'The file is empty.');
-
-            return;
-        }
-
-        $this->headers = array_map(fn ($cell): string => trim((string) $cell), array_shift($rows));
-        $this->rows = $rows;
-        $this->result = null;
-        $this->guessMapping();
-    }
-
     public function import(): void
     {
         $this->authorize('import', Lead::class);
 
-        if (($this->map['name'] ?? '') === '') {
-            $this->addError('map.name', 'Choose the column that holds the name.');
+        if (! $this->mapped('name')) {
+            $this->addError('maps.'.$this->tab.'.name', 'Choose the column that holds the name.');
 
             return;
         }
@@ -114,13 +74,13 @@ final class LeadImport extends Component
         $statuses = LeadStatus::query()->forBrand($this->brand)->get()->keyBy(fn (LeadStatus $status): string => mb_strtolower($status->name));
         $departments = Department::query()->forBrand($this->brand)->get()->keyBy(fn (Department $department): string => mb_strtolower($department->name));
 
-        foreach ($this->rows as $index => $row) {
+        foreach ($this->tabRows() as $index => $row) {
             try {
                 $data = [
-                    'name' => $this->cell($row, 'name'),
-                    'email' => $this->cell($row, 'email'),
-                    'phone' => $this->cell($row, 'phone'),
-                    'message' => $this->cell($row, 'message'),
+                    'name' => $this->cellFor($row, 'name'),
+                    'email' => $this->cellFor($row, 'email'),
+                    'phone' => $this->cellFor($row, 'phone'),
+                    'message' => $this->cellFor($row, 'message'),
                     'source_type' => LeadSource::Import,
                     'imported_at' => now(),
                 ];
@@ -129,19 +89,19 @@ final class LeadImport extends Component
                     continue;
                 }
 
-                if ($service = $this->cell($row, 'service')) {
+                if ($service = $this->cellFor($row, 'service')) {
                     $data['fields'] = ['service' => $service];
                 }
 
-                if ($status = $this->cell($row, 'status')) {
+                if ($status = $this->cellFor($row, 'status')) {
                     $data['status_id'] = $statuses[mb_strtolower($status)]?->getKey();
                 }
 
-                if ($department = $this->cell($row, 'department')) {
+                if ($department = $this->cellFor($row, 'department')) {
                     $data['department_id'] = $departments[mb_strtolower($department)]?->getKey();
                 }
 
-                if ($agentEmail = $this->cell($row, 'assigned_to')) {
+                if ($agentEmail = $this->cellFor($row, 'assigned_to')) {
                     $agent = User::query()->where('email', mb_strtolower($agentEmail))->first();
 
                     if ($agent !== null && $agent->isMemberOf($this->brand)) {
@@ -150,13 +110,13 @@ final class LeadImport extends Component
                     }
                 }
 
-                if ($date = $this->cell($row, 'created_at')) {
+                if ($date = $this->cellFor($row, 'created_at')) {
                     $data['created_at'] = is_numeric($date) && (float) $date > 20000
                         ? CarbonImmutable::createFromTimestampUTC(((float) $date - 25569) * 86400)
                         : CarbonImmutable::parse($date);
                 }
 
-                if (($value = $this->cell($row, 'value')) !== null && is_numeric($value)) {
+                if (($value = $this->cellFor($row, 'value')) !== null && is_numeric($value)) {
                     $data['value'] = $value;
                     $data['currency'] = $this->brand->currency;
                 }
@@ -173,36 +133,35 @@ final class LeadImport extends Component
             }
         }
 
-        Audit::log('leads.imported', null, ['created' => $created, 'merged' => $merged, 'failed' => $failed, 'file' => $this->file?->getClientOriginalName()], "Imported {$created} leads ({$merged} merged, {$failed} failed)", brand: $this->brand, logName: 'leads');
+        $tab = $this->tabName();
 
-        $this->result = compact('created', 'merged', 'failed', 'errors');
-        $this->rows = [];
-        $this->headers = [];
-        $this->file = null;
+        Audit::log('leads.imported', null, ['created' => $created, 'merged' => $merged, 'failed' => $failed, 'file' => $this->fileName(), 'tab' => $tab ?: null], "Imported {$created} leads ({$merged} merged, {$failed} failed)".($tab !== '' ? " from the tab {$tab}" : ''), brand: $this->brand, logName: 'leads');
+
+        $this->finishTab(compact('created', 'merged', 'failed', 'errors'));
 
         $this->toastSuccess("{$created} ".str('lead')->plural($created).' imported', $merged > 0 ? "{$merged} matched existing leads." : null);
         $this->dispatch('leads-imported');
     }
 
-    public function reset_(): void
-    {
-        $this->reset('file', 'headers', 'rows', 'map', 'result');
-    }
-
     public function render(): View
     {
-        return view('leads::livewire.app.lead-import', [
+        return view('core::livewire.spreadsheet-import', [
+            'title' => 'Import leads from a CSV or Excel file',
+            'description' => 'Every tab of a workbook can be imported, one after the other. Original dates are kept and every row is tagged Imported.',
             'fields' => self::FIELDS,
-            'preview' => array_slice($this->rows, 0, 3),
+            'required' => ['name'],
+            'noun' => 'lead',
+            'help' => 'Name is required. Duplicates inside this brand are merged by email or phone.',
         ]);
     }
 
-    private function guessMapping(): void
+    /** @return array<string, list<string>> */
+    protected function aliases(): array
     {
-        $aliases = [
-            'name' => ['name', 'full name', 'contact', 'lead'],
+        return [
+            'name' => ['name', 'full name', 'contact', 'lead', 'client', 'customer'],
             'email' => ['email', 'e-mail', 'email address'],
-            'phone' => ['phone', 'telephone', 'mobile', 'number'],
+            'phone' => ['phone', 'telephone', 'mobile', 'number', 'phone number', 'contact number'],
             'message' => ['message', 'notes', 'enquiry', 'comment'],
             'service' => ['service', 'package', 'interest'],
             'status' => ['status', 'stage'],
@@ -211,42 +170,6 @@ final class LeadImport extends Component
             'created_at' => ['date', 'created', 'received', 'submitted'],
             'value' => ['value', 'amount', 'budget'],
         ];
-
-        $this->map = [];
-
-        foreach ($aliases as $field => $names) {
-            foreach ($this->headers as $index => $header) {
-                if (in_array(mb_strtolower($header), $names, true)) {
-                    $this->map[$field] = (string) $index;
-                    break;
-                }
-            }
-        }
-    }
-
-    /** @param  list<mixed>  $row */
-    private function cell(array $row, string $field): ?string
-    {
-        $index = $this->map[$field] ?? '';
-
-        if ($index === '') {
-            return null;
-        }
-
-        $value = $row[(int) $index] ?? null;
-
-        return $value === null ? null : (trim((string) $value) ?: null);
-    }
-
-    private function readerType(): string
-    {
-        $extension = mb_strtolower((string) $this->file?->getClientOriginalExtension());
-
-        return match ($extension) {
-            'xlsx' => ExcelFormat::XLSX,
-            'xls' => ExcelFormat::XLS,
-            default => ExcelFormat::CSV,
-        };
     }
 
     private function user(): User

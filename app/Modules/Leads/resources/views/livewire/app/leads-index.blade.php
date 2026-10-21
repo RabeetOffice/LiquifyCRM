@@ -28,7 +28,7 @@
                 <x-ui.button variant="ghost" wire:click="export" icon="heroicon-o-arrow-down-tray">Export</x-ui.button>
             @endif
             @if ($can['import'])
-                <x-ui.button variant="secondary" wire:click="$set('showImport', true)" icon="heroicon-o-arrow-up-tray">Import CSV</x-ui.button>
+                <x-ui.button variant="secondary" onclick="window.dispatchEvent(new CustomEvent('lq-open-import'))" icon="heroicon-o-arrow-up-tray">Import</x-ui.button>
             @endif
             @if ($can['create'])
                 <x-ui.button variant="primary" icon="heroicon-o-plus" :href="route('brand.leads.create', ['brand' => $brand->slug])">Add lead</x-ui.button>
@@ -315,9 +315,7 @@
     </x-ui.modal>
 
     @if ($can['import'])
-        <x-ui.modal model="showImport" title="Import leads from a CSV or Excel file" description="Original dates are kept, duplicates inside this brand are merged by email or phone, and every row is tagged Imported." size="lg">
-            @livewire(\App\Modules\Leads\Livewire\App\LeadImport::class, ['brand' => $brand], key('lead-import'))
-        </x-ui.modal>
+        @livewire(\App\Modules\Leads\Livewire\App\LeadImport::class, ['brand' => $brand], key('lead-import'))
     @endif
 
     <x-ui.confirm :confirm="$confirm" />

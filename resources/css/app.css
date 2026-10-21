@@ -11615,4 +11615,137 @@ a.lq-ov-row:hover {
     background: var(--lq-orange-tint);
 }
 
+/* An import's workbook: the open tab's rows as a grid, every tab along the bottom like in Excel. */
+.lq-modal-xl {
+    max-width: 68rem;
+}
+
+.lq-xls {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-surface);
+    box-shadow: 0 0 0 1px var(--lq-card-border);
+    overflow: hidden;
+}
+
+.lq-xls-grid {
+    max-height: 18rem;
+    overflow: auto;
+}
+
+.lq-xls-grid table {
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.75rem;
+}
+
+.lq-xls-grid th,
+.lq-xls-grid td {
+    padding: 0.4375rem 0.75rem;
+    border-right: 1px solid var(--lq-hairline);
+    border-bottom: 1px solid var(--lq-hairline);
+    white-space: nowrap;
+    text-align: start;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lq-xls-grid thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--lq-raised);
+    color: var(--lq-ink-soft);
+    font-weight: 600;
+}
+
+.lq-xls-grid th.lq-xls-num,
+.lq-xls-grid td.lq-xls-num {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    background: var(--lq-raised);
+    color: var(--lq-muted);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.lq-xls-grid thead th.lq-xls-num {
+    z-index: 2;
+}
+
+.lq-xls-grid th.lq-xls-used {
+    color: var(--lq-orange-deep);
+    box-shadow: inset 0 -2px 0 var(--lq-orange);
+}
+
+.lq-xls-grid tbody tr:hover td:not(.lq-xls-num) {
+    background: var(--lq-orange-tint);
+}
+
+.lq-xls-more {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--lq-hairline);
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+}
+
+.lq-xls-empty {
+    padding: 2rem 1rem;
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+.lq-xls-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding: 0 0.375rem;
+    border-top: 1px solid var(--lq-card-border);
+    background: var(--lq-raised);
+    scrollbar-width: thin;
+}
+
+.lq-xls-tab {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4375rem;
+    padding: 0.5rem 0.875rem;
+    border-right: 1px solid var(--lq-hairline);
+    color: var(--lq-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: background-color 150ms var(--lq-ease), color 150ms var(--lq-ease);
+}
+
+.lq-xls-tab:hover {
+    background: var(--lq-surface);
+    color: var(--lq-ink);
+}
+
+.lq-xls-tab-active,
+.lq-xls-tab-active:hover {
+    background: var(--lq-surface);
+    color: var(--lq-ink);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--lq-orange);
+}
+
+.lq-xls-tab-done svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--lq-success);
+}
+
+.lq-xls-tab-empty {
+    opacity: 0.55;
+}
+
 } /* @layer components */

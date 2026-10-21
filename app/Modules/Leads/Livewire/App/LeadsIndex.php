@@ -115,8 +115,6 @@ final class LeadsIndex extends Component
 
     public string $bulkStatusTo = '';
 
-    public bool $showImport = false;
-
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
@@ -185,10 +183,11 @@ final class LeadsIndex extends Component
         $this->selected = [];
     }
 
+    /** The list behind redraws with the new leads; the import stays open for the workbook's next tab. */
     #[On('leads-imported')]
     public function leadsImported(): void
     {
-        $this->showImport = false;
+        $this->resetPage();
     }
 
     // ---------------------------------------------------- assign from the list

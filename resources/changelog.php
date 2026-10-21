@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.30.0',
+        'date' => '2026-10-21',
+        'title' => 'Every tab of a workbook, and clients from a sheet',
+        'changes' => [
+            ['improved', 'Importing an Excel file reads every tab, not only the first. The tabs are along the bottom like in Excel with how many rows each has; click one to see its rows, match its columns and import it, then go on to the next. An imported tab gets a tick and the window stays open.'],
+            ['new', 'Import clients (Admins, on Clients): name, email, phone, amount spent, what they bought, the date, and optionally the care team and who looks after them. Each row is recorded as a sale of that day, nobody is notified, and importing the same sheet again adds nothing.'],
+            ['fixed', 'On some database servers a sale\'s date moved to today when a payment was recorded on it, and a follow-up\'s time moved when it was changed. Dates now stay as they were set. Apply with Update system.'],
+        ],
+    ],
+    [
         'version' => '1.29.1',
         'date' => '2026-10-20',
         'title' => 'Clearer while working, a quiet night shift',

@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use InvalidArgumentException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -65,6 +66,13 @@ final class ClientsIndex extends Component
     {
         $this->brand = $brand;
         $this->authorize('viewAny', Client::class);
+    }
+
+    /** The list behind redraws with the new clients; the import stays open for the workbook's next tab. */
+    #[On('clients-imported')]
+    public function clientsImported(): void
+    {
+        $this->resetPage();
     }
 
     public function updatedTab(): void
@@ -262,6 +270,7 @@ final class ClientsIndex extends Component
                 'waiting' => array_key_exists('waiting', $tabs) ? $visible()->inStage(ClientStage::Waiting)->count() : 0,
                 'front' => array_key_exists('front', $tabs) ? $visible()->inStage(ClientStage::Front)->count() : 0,
             ] : ['waiting' => 0, 'front' => 0],
+            'canImport' => $user->can('import', Client::class),
             'orders' => self::ORDERS,
             'order' => collect(self::ORDERS)->search(fn (array $order): bool => $order[0] === $column && $order[1] === $direction) ?: null,
             'canGive' => $ready && $this->canGive(),
