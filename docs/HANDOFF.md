@@ -11,7 +11,8 @@ looks and how obvious each screen is.
 
 - LiquifyCRM (Laravel 13, PHP 8.4, Livewire 4, Fortify, Tailwind 4, Pest 5) is built through all six
   weekly phases of the architecture document and is **live** at
-  https://slategrey-leopard-774735.hostingersite.com (Hostinger shared hosting).
+  https://luminocrm.online (the company's Hostinger account since 22 Oct 2026; it was
+  https://slategrey-leopard-774735.hostingersite.com before).
 - The code is at **version 1.6.1** (`resources/changelog.php`), commit `b727689` on `main`, pushed.
   This file and `tests/tools/shots.mjs` were added after that push; see section 9 for their state.
 - 187 Pest tests pass; Pint and Larastan level 6 are clean.

@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.31.1',
+        'date' => '2026-10-22',
+        'title' => 'New address: luminocrm.online',
+        'changes' => [
+            ['improved', 'LiquifyCRM now runs at luminocrm.online, on the company\'s own hosting. Every lead, client, chat and file came across. Bookmark the new address; if you installed the app or turned on desktop alerts, do it again from the new address.'],
+        ],
+    ],
+    [
         'version' => '1.31.0',
         'date' => '2026-10-21',
         'title' => 'Clocks you search for, follow-ups in the client\'s time',
