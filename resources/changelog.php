@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.31.2',
+        'date' => '2026-10-22',
+        'title' => 'Emails in LiquifyCRM\'s look',
+        'changes' => [
+            ['improved', 'Invitations, password resets and email alerts now carry the LiquifyCRM logo, the orange button and a card like the app\'s screens, and end with "The LiquifyCRM team".'],
+            ['fixed', 'An invitation to an Agent or Admin says "as an Agent", not "as a Agent".'],
+        ],
+    ],
+    [
         'version' => '1.31.1',
         'date' => '2026-10-22',
         'title' => 'New address: luminocrm.online',

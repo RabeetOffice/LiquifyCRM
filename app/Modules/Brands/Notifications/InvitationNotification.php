@@ -27,11 +27,13 @@ final class InvitationNotification extends Notification implements ShouldQueue
         $invitation = $this->invitation->loadMissing(['brand', 'department', 'inviter']);
         $brand = $invitation->brand;
         $inviter = $invitation->inviter->name ?? 'Your team';
+        $role = $invitation->role->getLabel();
+        $article = preg_match('/^[AEIOU]/i', $role) === 1 ? 'an' : 'a';
 
         $message = (new MailMessage)
             ->subject("You're invited to {$brand->name} on LiquifyCRM")
             ->greeting('Hello'.($invitation->name ? ' '.$invitation->name : '').',')
-            ->line("{$inviter} has invited you to join {$brand->name} as a {$invitation->role->getLabel()}.");
+            ->line("{$inviter} has invited you to join {$brand->name} as {$article} {$role}.");
 
         if ($invitation->department !== null) {
             $message->line("You will work in the {$invitation->department->name} department.");
