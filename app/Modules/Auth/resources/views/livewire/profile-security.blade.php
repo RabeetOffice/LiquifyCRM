@@ -29,14 +29,42 @@
                         </div>
                     @endif
 
+                    @if ($replacement !== null)
+                        <div class="flex flex-col gap-4 rounded-xl p-4" style="background: var(--lq-raised)">
+                            <div>
+                                <p class="lq-label">Move to a new authenticator app</p>
+                                <p class="lq-help">Scan this QR code with the new app, then type the 6-digit code it shows. Until then your current app keeps working.</p>
+                            </div>
+
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+                                <div class="rounded-xl bg-white p-3" style="box-shadow: 0 0 0 1px var(--lq-hairline)">{!! $replacementQr !!}</div>
+                                <div class="flex-1">
+                                    <p class="lq-help">Cannot scan? Enter this key by hand:</p>
+                                    <code class="lq-code break-all">{{ $replacement }}</code>
+                                </div>
+                            </div>
+
+                            <form wire:submit="confirmNewAuthenticator" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                <x-ui.field label="6-digit code from the new app" name="newCode" class="flex-1">
+                                    <x-ui.input wire:model="newCode" name="newCode" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus />
+                                </x-ui.field>
+                                <div class="flex gap-2">
+                                    <x-ui.button type="submit" variant="primary">Confirm new app</x-ui.button>
+                                    <x-ui.button variant="ghost" wire:click="cancelNewAuthenticator">Cancel</x-ui.button>
+                                </div>
+                            </form>
+                        </div>
+                    @endif
+
                     <div class="flex flex-wrap gap-2">
+                        @if ($replacement === null)
+                            <x-ui.button size="sm" wire:click="changeAuthenticator" icon="heroicon-o-arrow-path">Change app</x-ui.button>
+                        @endif
                         @if ($recoveryCodes === [])
-                            <x-ui.button size="sm" wire:click="$set('showRecoveryCodes', true)">Show recovery codes</x-ui.button>
+                            <x-ui.button size="sm" wire:click="showCodes">Show recovery codes</x-ui.button>
                         @endif
                         <x-ui.button size="sm" wire:click="regenerateRecoveryCodes">New recovery codes</x-ui.button>
-                        @unless ($required)
-                            <x-ui.button size="sm" variant="danger" wire:click="disableTwoFactor">Turn off</x-ui.button>
-                        @endunless
+                        <x-ui.button size="sm" variant="danger" wire:click="disableTwoFactor">{{ $required ? 'Remove' : 'Turn off' }}</x-ui.button>
                     </div>
                 </div>
             @elseif ($pending)

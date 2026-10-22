@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.32.0',
+        'date' => '2026-10-22',
+        'title' => 'Change or remove your authenticator app',
+        'changes' => [
+            ['new', 'Password and 2FA › Change app moves two-factor to a new phone or app: scan the new QR code and type a code from it. Your old app keeps working until the new one is confirmed.'],
+            ['new', 'Admins can now remove their authenticator app too. Because Admins must use one, they set up a new one straight away.'],
+            ['fixed', 'Show recovery codes works again; it asks for your password first.'],
+        ],
+    ],
+    [
         'version' => '1.31.2',
         'date' => '2026-10-22',
         'title' => 'Emails in LiquifyCRM\'s look',
