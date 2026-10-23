@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.32.1',
+        'date' => '2026-10-23',
+        'title' => 'Removing a brand from a person works again',
+        'changes' => [
+            ['fixed', 'People › Edit › Brands: Remove no longer stops at "This page has expired". The person is taken out of that brand and keeps their other brands.'],
+        ],
+    ],
+    [
         'version' => '1.32.0',
         'date' => '2026-10-22',
         'title' => 'Change or remove your authenticator app',

@@ -6,6 +6,7 @@ namespace App\Modules\Core\Livewire\Concerns;
 
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Locked;
+use Livewire\ImplicitlyBoundMethod;
 
 /**
  * A confirm dialog before anything hard to undo, optionally re-asking the
@@ -75,7 +76,9 @@ trait WithConfirmation
         $this->runningConfirmed = true;
 
         try {
-            $this->{$confirm['method']}(...$confirm['params']);
+            // Through Livewire's own binder, as a click would: a method that also takes an
+            // action (`removeBrand(int $id, RemoveMemberFromBrand $remove)`) gets it injected.
+            ImplicitlyBoundMethod::call(app(), [$this, $confirm['method']], $confirm['params']);
         } finally {
             $this->runningConfirmed = false;
         }

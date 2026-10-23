@@ -121,7 +121,10 @@ it('removes one brand and keeps the rest', function (): void {
         ->test(PersonForm::class, ['userId' => $this->suhaib->getKey()])
         ->call('confirmRemoveBrand', $anz->getKey())
         ->assertSet('confirm.method', 'removeBrand')
-        ->call('removeBrand', $anz->getKey());
+        // The dialog's Remove button, as in the browser.
+        ->call('runConfirmed')
+        ->assertHasNoErrors()
+        ->assertSet('confirm', null);
 
     $suhaib = $this->suhaib->fresh();
 
