@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => 405, 'title' => 'This address is not a page', 'text' => 'LiquifyCRM uses it in the background, so it cannot be opened on its own. Go to the start and carry on from there.'])

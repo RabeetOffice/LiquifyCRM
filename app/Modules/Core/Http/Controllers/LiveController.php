@@ -23,6 +23,7 @@ final class LiveController
             return response()->json(['message' => 'Reload the page.'], 403);
         }
 
-        return response()->json($stamps)->header('Cache-Control', 'no-store');
+        // v: the code on the server, so a page drawn before a deploy knows to load again.
+        return response()->json([...$stamps, 'v' => Live::build()])->header('Cache-Control', 'no-store');
     }
 }

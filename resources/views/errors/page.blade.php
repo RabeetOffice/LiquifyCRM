@@ -32,7 +32,13 @@
 
             <div class="lq-errorcard-actions">
                 @if ($retry ?? false)
-                    <a href="{{ url()->current() }}" class="lq-btn lq-btn-primary lq-btn-block">Try again</a>
+                    @php
+                        // A form or a screen's own request (Livewire posts to /livewire-…/update) has an address that
+                        // is no page: opened again it only answers 405. Try again on the page the person was on.
+                        $from = request()->headers->get('referer');
+                        $again = request()->isMethod('GET') ? url()->full() : (is_string($from) && parse_url($from, PHP_URL_HOST) === request()->getHost() ? $from : url('/'));
+                    @endphp
+                    <a href="{{ $again }}" class="lq-btn lq-btn-primary lq-btn-block" target="_top">Try again</a>
                 @else
                     <a href="{{ url('/') }}" class="lq-btn lq-btn-primary lq-btn-block">Go to the start</a>
                 @endif

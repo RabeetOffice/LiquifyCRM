@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.32.2',
+        'date' => '2026-10-26',
+        'title' => 'Open tabs keep working after an update',
+        'changes' => [
+            ['fixed', '"Try again" on an error opens the page you were on again. Before, it could open an address that only said "405 Method Not Allowed", for example while the site was being updated.'],
+            ['improved', 'A tab left open while LiquifyCRM was updated now notices it: a bar offers Reload, the next link you click opens the new version, and a tab in the background reloads by itself unless something is typed in it. Nobody has to refresh by hand any more.'],
+            ['fixed', 'An address that cannot be opened as a page now shows a LiquifyCRM page with a way back instead of a bare error.'],
+        ],
+    ],
+    [
         'version' => '1.32.1',
         'date' => '2026-10-23',
         'title' => 'Removing a brand from a person works again',

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Support;
 
+use App\Modules\System\Support\Changelog;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Vite;
 
 /**
  * Live updates without websockets (the hosting runs no daemons). Every brand
@@ -70,6 +72,18 @@ final class Live
             'c' => $chatKey !== null ? (int) ($found[$chatKey] ?? 0) : 0,
             'u' => (int) ($found[$userKey] ?? 0),
         ];
+    }
+
+    /**
+     * Which code is on the server: the version on top of the changelog and the
+     * CSS and JavaScript it was built with. A page keeps the one it was drawn
+     * with; when GET /live names another, the site has deployed since and
+     * app.js loads the page again (26 Oct 2026: tabs left open over a deploy
+     * failed until people refreshed them by hand).
+     */
+    public static function build(): string
+    {
+        return substr(md5(Changelog::latestVersion().'|'.(Vite::manifestHash() ?? '')), 0, 12);
     }
 
     /**

@@ -175,6 +175,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   app.js from `brand.menu-badges` / `menu-badges` (`MenuBadgesController`, keyed by item URL, `data-badge-for`) when a
   stamp moves and after the person's own actions. `RunSoon` adds its own `Live::flush()` after the job: the request's
   flush runs before after-response jobs, and a change made within the quiet second was otherwise never published.
+- Tabs open over a deploy (26 Oct 2026): `/api/live` also returns `v` = `Live::build()` (changelog version + Vite
+  manifest hash) and `<main data-live-build>` is the build a page was drawn with. When they differ, app.js shows the
+  `data-new-version` bar, turns the next `wire:navigate` into a full load, reloads a background tab with no typed text,
+  and reloads instead of Livewire's error dialog when a request fails. The error page's "Try again" goes to the
+  Referer for anything but a GET: `url()->current()` inside a Livewire request is `/livewire-…/update` (a 405 as a page).
 - Alerts and the installed app (user request, 14 Oct 2026): `NotificationBell::tick()` dispatches `lq-alert` with up to three
   new entries; `app.js` plays a chime made with Web Audio (no file) and asks `public/sw.js` for desktop notifications, which it
   shows only while no LiquifyCRM window is focused. Sound and desktop alerts are choices of the computer (localStorage

@@ -994,6 +994,53 @@ const refreshLive = () => {
     refreshBadges();
 };
 
+// A new version (26 Oct 2026). The site deploys itself when new code is pushed, and a page opened before that
+// still runs the old code: its next click could fail (the error's "Try again" then opened Livewire's own address,
+// a 405) and new screens could miss their styles, until people refreshed by hand. /api/live names the code on the
+// server (Live::build, `v`); when it is not the code this page was drawn with, the page loads again as soon as
+// nobody loses work: at once while the tab is in the background and nothing is typed, as a full load on the next
+// link instead of wire:navigate, or when a request of the old page fails. Until then a bar offers Reload.
+const outdated = { known: false };
+
+// Something typed and not saved yet: text in a field that no longer holds what the page was drawn with, or a
+// file chosen. A choice in a list or a tick is quick to make again and does not hold the page back.
+const typedSomething = () => [...document.querySelectorAll('input, textarea')].some((field) => {
+    if (field.type === 'file') return field.files.length > 0;
+    if (['hidden', 'checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color'].includes(field.type)) return false;
+
+    return field.value !== '' && field.value !== field.defaultValue;
+});
+
+const reloadIfUnseen = () => {
+    if (outdated.known && document.hidden && ! typedSomething()) location.reload();
+};
+
+const markOutdated = () => {
+    if (outdated.known) return;
+
+    outdated.known = true;
+    document.querySelector('[data-new-version]')?.removeAttribute('hidden');
+    reloadIfUnseen();
+};
+
+document.addEventListener('visibilitychange', reloadIfUnseen);
+
+document.addEventListener('livewire:navigate', (event) => {
+    if (! outdated.known) return;
+
+    event.preventDefault();
+    location.href = event.detail.url.href;
+});
+
+Livewire.interceptRequest(({ onError }) => {
+    onError(({ preventDefault }) => {
+        if (! outdated.known) return;
+
+        preventDefault();
+        location.reload();
+    });
+});
+
 const askLive = async () => {
     if (live.busy) return;
 
@@ -1031,6 +1078,7 @@ const askLive = async () => {
                 live.chat = stamps.c ?? live.chat;
                 live.user = stamps.u;
 
+                if (stamps.v !== undefined && page.dataset.liveBuild && stamps.v !== page.dataset.liveBuild) markOutdated();
                 if (userMoved) window.dispatchEvent(new CustomEvent('lq-notified'));
                 if (brandMoved && ! own) live.owed = true;
                 if (chatMoved && ! own) live.owedChat = true;
