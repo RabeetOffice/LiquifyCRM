@@ -180,6 +180,41 @@
             </x-ui.card>
         @endif
 
+        @if ($signIn !== null)
+            {{-- Their own sign-in rules; empty follows the rule for everybody on Sign-in security. --}}
+            @php
+                $everybody = $signIn['rules'];
+                $phoneCounts = $signIn['devices'];
+            @endphp
+            <x-ui.card title="Where they can sign in" description="Leave a choice on “As for everybody” to follow the rules on Sign-in security. A change counts from their next click.">
+                <div class="lq-form-grid lq-form-grid-2">
+                    <x-ui.field label="Network" name="signInNetwork" help="“Office network only” refuses them anywhere else, at home too.">
+                        <x-ui.select wire:model="signInNetwork" name="signInNetwork">
+                            <option value="">As for everybody ({{ mb_strtolower($everybody->network->getLabel()) }})</option>
+                            @foreach ($signIn['networks'] as $rule)
+                                <option value="{{ $rule->value }}">{{ $rule->getLabel() }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                    <x-ui.field label="Phones and tablets" name="signInPhones" help="“Only phones you approve”: each phone they use waits for an Admin on Sign-in security.">
+                        <x-ui.select wire:model="signInPhones" name="signInPhones">
+                            <option value="">As for everybody ({{ mb_strtolower($everybody->phones->getLabel()) }})</option>
+                            @foreach ($signIn['phones'] as $rule)
+                                <option value="{{ $rule->value }}">{{ $rule->getLabel() }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                </div>
+                @if ($phoneCounts !== [])
+                    <p class="lq-help mt-3">
+                        <x-heroicon-o-device-phone-mobile class="inline h-4 w-4 align-text-bottom" />
+                        Their phones: {{ collect(['approved' => 'approved', 'waiting' => 'waiting for approval', 'blocked' => 'blocked', 'seen' => 'used'])->filter(fn ($label, $status) => ($phoneCounts[$status] ?? 0) > 0)->map(fn ($label, $status) => $phoneCounts[$status].' '.$label)->implode(', ') }}.
+                        <a class="lq-link" href="{{ route('admin.sign-in') }}" wire:navigate>Manage on Sign-in security</a>
+                    </p>
+                @endif
+            </x-ui.card>
+        @endif
+
         <div class="flex items-center justify-end gap-2">
             <x-ui.button variant="ghost" :href="route('admin.people.index')">Cancel</x-ui.button>
             <x-ui.button type="submit" variant="primary" wire:loading.attr="disabled">{{ $account ? 'Save changes' : 'Add person' }}</x-ui.button>

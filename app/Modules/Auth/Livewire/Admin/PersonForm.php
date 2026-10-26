@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Livewire\Admin;
 
+use App\Modules\Auth\Actions\ChangeSignInRules;
+use App\Modules\Auth\Enums\NetworkRule;
+use App\Modules\Auth\Enums\PhoneRule;
+use App\Modules\Auth\Models\SignInDevice;
 use App\Modules\Auth\Models\User;
+use App\Modules\Auth\Support\SignInGate;
+use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Actions\AddMemberToBrand;
 use App\Modules\Brands\Actions\ChangeBrandAccess;
 use App\Modules\Brands\Actions\RemoveMemberFromBrand;
@@ -74,6 +80,11 @@ final class PersonForm extends Component
 
     public string $newDepartmentId = '';
 
+    /** Their own sign-in rules ('' = as for everybody): NetworkRule and PhoneRule values. */
+    public string $signInNetwork = '';
+
+    public string $signInPhones = '';
+
     public function mount(?int $userId = null): void
     {
         if ($userId === null) {
@@ -93,6 +104,11 @@ final class PersonForm extends Component
         $this->phone = (string) $this->account->phone;
         $this->status = $this->account->status->value;
         $this->kind = $this->account->role->value ?? 'member';
+
+        if (SignInRules::ready()) {
+            $this->signInNetwork = (string) $this->account->getAttribute('sign_in_network');
+            $this->signInPhones = (string) $this->account->getAttribute('sign_in_phones');
+        }
     }
 
     public function updatedBrandId(): void
@@ -212,7 +228,52 @@ final class PersonForm extends Component
                 ? Brand::query()->where('is_active', true)->whereNotIn('id', array_map(fn (array $row): int => (int) $row['brand']->getKey(), $shared))->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'newDepartments' => $newBrand !== null ? Department::query()->forBrand($newBrand)->orderBy('name')->pluck('name', 'id')->all() : [],
+            'signIn' => SignInRules::ready() ? $this->signInFacts() : null,
         ])->title($title);
+    }
+
+    /**
+     * The rule for everybody, the choices and the person's phones, for the Sign-in card.
+     *
+     * @return array{rules: SignInRules, networks: list<NetworkRule>, phones: list<PhoneRule>, devices: array<string, int>}
+     */
+    private function signInFacts(): array
+    {
+        $devices = $this->account === null ? [] : SignInDevice::query()->where('user_id', $this->account->getKey())
+            ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status')->map(fn ($total): int => (int) $total)->all();
+
+        return ['rules' => SignInRules::current(), 'networks' => NetworkRule::cases(), 'phones' => PhoneRule::cases(), 'devices' => $devices];
+    }
+
+    /**
+     * The person's own sign-in rules as chosen on the form, refused when the
+     * Admin is changing their own and it would sign them out.
+     *
+     * @return array{0: NetworkRule|null, 1: PhoneRule|null}
+     */
+    private function chosenSignInRules(): array
+    {
+        $this->validate([
+            'signInNetwork' => ['nullable', Rule::enum(NetworkRule::class)],
+            'signInPhones' => ['nullable', Rule::enum(PhoneRule::class)],
+        ], attributes: ['signInNetwork' => 'where they can sign in from', 'signInPhones' => 'phones and tablets']);
+
+        $network = NetworkRule::tryFrom($this->signInNetwork);
+        $phones = PhoneRule::tryFrom($this->signInPhones);
+
+        if ($this->account !== null && $this->account->is(auth()->user())) {
+            $me = (clone $this->account)->forceFill(['sign_in_network' => $network?->value, 'sign_in_phones' => $phones?->value]);
+
+            if (app(SignInGate::class)->refusal($me, request()->ip(), SignInGate::deviceOf(request()), SignInGate::tokenOf(request())) !== null) {
+                throw ValidationException::withMessages(['signInNetwork' => 'That would sign you out from where you are now. Choose a rule that lets you in here.']);
+            }
+        }
+
+        if ($network === NetworkRule::Office && SignInRules::current()->office === []) {
+            throw ValidationException::withMessages(['signInNetwork' => 'Add the office\'s internet address on Sign-in security first.']);
+        }
+
+        return [$network, $phones];
     }
 
     private function create(): void
@@ -234,6 +295,7 @@ final class PersonForm extends Component
             'targetCount' => ['nullable', 'integer', 'min:0', 'max:100000'],
         ], attributes: ['brandId' => 'brand', 'departmentId' => 'department', 'targetRevenue' => 'revenue target', 'targetCount' => 'sales target']);
 
+        [$network, $phones] = SignInRules::ready() ? $this->chosenSignInRules() : [null, null];
         $email = mb_strtolower(trim($data['email']));
         $existing = User::query()->where('email', $email)->first();
 
@@ -251,6 +313,10 @@ final class PersonForm extends Component
             ]);
             $person->forceFill(['email_verified_at' => now()])->save();
 
+            if (SignInRules::ready()) {
+                app(ChangeSignInRules::class)->forPerson($person, $network, $phones);
+            }
+
             Audit::log('members.admin_created', $person, ['email' => $person->email, 'role' => GlobalRole::Admin->value], 'Admin account created', logName: 'members');
             $this->toastSuccess($person->name.' added as Admin', 'They will be asked to set up an authenticator app on first sign-in.');
             $this->redirectRoute('admin.people.index', navigate: true);
@@ -266,7 +332,7 @@ final class PersonForm extends Component
         $department = filled($data['departmentId']) ? Department::query()->forBrand($brand)->findOrFail((int) $data['departmentId']) : null;
         $role = BrandRole::from($data['kind']);
 
-        $person = DB::transaction(function () use ($data, $email, $existing, $brand, $department, $role, $actor): User {
+        $person = DB::transaction(function () use ($data, $email, $existing, $brand, $department, $role, $actor, $network, $phones): User {
             $person = $existing ?? User::query()->create([
                 'name' => $data['name'], 'email' => $email, 'password' => $data['password'],
                 'designation' => $data['designation'] ?: null, 'phone' => $data['phone'] ?: null,
@@ -275,6 +341,11 @@ final class PersonForm extends Component
 
             if ($existing === null) {
                 $person->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            // An existing account keeps the rules it has unless some were chosen here.
+            if (SignInRules::ready() && ($existing === null || $network !== null || $phones !== null)) {
+                app(ChangeSignInRules::class)->forPerson($person, $network, $phones);
             }
 
             app(AddMemberToBrand::class)->handle(
@@ -342,7 +413,13 @@ final class PersonForm extends Component
             $attributes['password'] = $data['password'];
         }
 
+        [$network, $phones] = SignInRules::ready() ? $this->chosenSignInRules() : [null, null];
+
         $account->forceFill($attributes)->save();
+
+        if (SignInRules::ready()) {
+            app(ChangeSignInRules::class)->forPerson($account, $network, $phones);
+        }
 
         Audit::log($account->isGlobalAdmin() ? 'members.admin_updated' : 'members.profile_updated', $account, ['email' => $account->email], 'Account updated', logName: 'members');
         $this->toastSuccess('Account saved');

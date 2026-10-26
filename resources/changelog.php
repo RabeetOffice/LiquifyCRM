@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.36.0',
+        'date' => '2026-10-26',
+        'title' => 'Sign-in security: office network, phones and blocked addresses',
+        'changes' => [
+            ['new', 'Settings › Sign-in security (Admins). Choose where everybody may sign in from: anywhere, or only from the office network. Add the office\'s internet address with one click ("Add my address") while you are in the office.'],
+            ['new', 'Phones and tablets: allow any phone, only the phones you approve, or none. With "Only phones you approve", the first sign-in on a phone waits for an Admin: you get a bell, and you approve or block that phone on Sign-in security. A blocked phone is refused to everybody who used it.'],
+            ['new', 'Rules per person on People › Edit › Where they can sign in: for example one person may use a phone while nobody else can, or a few people may sign in only from the office while others work from anywhere.'],
+            ['new', 'Block an internet address: nobody can open LiquifyCRM from it. Block one straight from the list of sign-ins.'],
+            ['new', '"Who tried to sign in" lists every refused sign-in and every sign-in on a phone, with the person, the phone, the address and the reason.'],
+            ['improved', 'Rules count from the next click: somebody who leaves the office or whose phone is blocked is signed out and the sign-in page tells them why. Nothing can be saved that would sign out the Admin saving it.'],
+        ],
+    ],
+    [
         'version' => '1.35.0',
         'date' => '2026-10-26',
         'title' => 'Front sales merges leads',

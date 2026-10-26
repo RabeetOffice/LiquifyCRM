@@ -38,6 +38,10 @@ return [
     // env key to false locally to sign in without an authenticator app.
     'require_two_factor' => (bool) env('LIQUIFY_REQUIRE_TWO_FACTOR', true),
 
+    // Sign-in security (office network, phones, blocked addresses). Set the env key to false
+    // when an Admin has locked everybody out, sign in, fix the rules, then remove the line.
+    'sign_in_rules' => (bool) env('LIQUIFY_SIGN_IN_RULES', true),
+
     // Behind a tunnel or proxy (ngrok, Cloudflare) the visitor's https address
     // arrives in forwarded headers. Empty on Hostinger; "*" on a local machine
     // behind a tunnel; or a comma-separated list of proxy addresses.
@@ -92,7 +96,7 @@ return [
         'name' => env('LIQUIFY_LEGAL_NAME', 'LiquifyCRM'),
         'email' => env('LIQUIFY_LEGAL_EMAIL', 'rabeet0846551@gmail.com'),
         'facebook_app' => env('LIQUIFY_LEGAL_FACEBOOK_APP', 'LiquifyCRM Leads'),
-        'updated' => '2026-10-20',
+        'updated' => '2026-10-26',
     ],
 
     /*

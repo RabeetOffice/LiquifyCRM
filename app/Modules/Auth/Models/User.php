@@ -40,6 +40,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $phone
  * @property string|null $avatar_path
  * @property string|null $timezone
+ * @property string|null $sign_in_network NetworkRule value, null = the rule for everybody
+ * @property string|null $sign_in_phones PhoneRule value, null = the rule for everybody
  * @property CarbonImmutable|null $last_login_at
  * @property string|null $last_login_ip
  * @property string|null $two_factor_secret

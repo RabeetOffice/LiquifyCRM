@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Auth\Http\Middleware\EnforceSignInRules;
 use App\Modules\Auth\Http\Middleware\EnsureGlobalAdmin;
 use App\Modules\Auth\Http\Middleware\EnsureGlobalAdminHasTwoFactor;
 use App\Modules\Auth\Http\Middleware\EnsureSuperAdmin;
@@ -22,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['hooks/deploy/*', 'webhooks/*', 'api/*']);
         // Set by the browser (app.js): this computer's time zone, read by ViewerTime.
         $middleware->encryptCookies(except: ['lq_tz']);
+        // Sign-in security: blocked addresses, the office network and phones, on every page and screen request.
+        $middleware->web(append: [EnforceSignInRules::class]);
 
         $middleware->alias([
             'global-admin' => EnsureGlobalAdmin::class,

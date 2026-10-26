@@ -67,6 +67,18 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `x-layouts.legal`, linked under every guest card). No sign-in; the Meta app's settings point at both. The name and
   contact address come from `config('liquify.legal')`. They state what the app stores and for how long, so when
   that changes (a new source, a retention setting, a new outside service) change the pages and their `updated` date.
+- Sign-in security (user request, 26 Oct 2026; `/admin/sign-in`, `SignInSecurity`): the rule for everybody (`SignInSettings`:
+  `NetworkRule` anywhere | office, `PhoneRule` any | approved | none), a person's own rule (`users.sign_in_network` /
+  `sign_in_phones`, null = everybody's, set on People › Edit), office and blocked addresses (`sign_in_addresses`, IP or
+  CIDR) and phones (`sign_in_devices`, one row per browser cookie `lq_device` hash and person: seen, waiting, approved,
+  blocked; blocking covers every person on that phone). `SignInGate::refusal()` decides; Fortify's `authenticateUsing`
+  calls `enforce()` once the password is right, and `EnforceSignInRules` (web group) on every request, signing out with
+  the reason kept in the session until the next sign-in. `Device::of()` reads the user agent plus the sign-in form's
+  `device` field (touch points, screen) so a "desktop site" phone stays a phone; it can be faked, the office rule cannot.
+  Rules are cached as one entry (`SignInRules::forget()` on every change, through `ChangeSignInRules` / `DecideDevice`).
+  Never save a change that refuses the Admin making it (`refuseIfLockedOut`); `LIQUIFY_SIGN_IN_RULES=false` in .env
+  switches everything off. Hostinger gives the visitor's real address in `REMOTE_ADDR` (checked on live logs 26 Oct):
+  keep `TRUSTED_PROXIES` empty there, or a forwarded header could fake the office address. Behind `SignInRules::ready()`.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Auth;
 
 use App\Modules\Auth\Console\InstallCommand;
+use App\Modules\Auth\Models\SignInDevice;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Policies\UserPolicy;
+use App\Modules\Auth\Support\SignInGate;
+use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Core\Support\Audit;
 use Illuminate\Auth\Events\Failed;
@@ -42,7 +45,22 @@ final class AuthServiceProvider extends ModuleServiceProvider
                 'last_login_ip' => request()->ip(),
             ])->saveQuietly();
 
-            Audit::log('auth.login', $user, [], 'Signed in', causer: $user, logName: 'auth');
+            // What they signed in on, so Sign-in security lists the sign-ins on phones.
+            $device = SignInGate::deviceOf(request());
+
+            if (request()->hasSession()) {
+                request()->session()->put(SignInGate::SESSION_DEVICE, $device->kind->value);
+                request()->session()->forget(SignInGate::SESSION_REFUSED);
+            }
+
+            Audit::log('auth.login', $user, ['device' => $device->kind->value, 'device_name' => $device->name], $device->kind->isMobile() ? 'Signed in on a '.mb_strtolower($device->kind->getLabel()) : 'Signed in', causer: $user, logName: 'auth');
+        });
+
+        // A removed person's phones leave the Sign-in security list with them (the privacy page says so).
+        User::deleted(function (User $user): void {
+            if (SignInRules::ready()) {
+                SignInDevice::query()->where('user_id', $user->getKey())->delete();
+            }
         });
 
         Event::listen(Logout::class, function (Logout $event): void {

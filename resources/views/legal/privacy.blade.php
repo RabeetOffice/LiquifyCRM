@@ -50,10 +50,11 @@
         <li>When, and from which IP address, you last signed in.</li>
         <li>A record of what you do in {{ $name }}, such as changing the status of an enquiry, with the time, your IP address and your browser type.</li>
         <li>If you turn on desktop alerts: for each browser where you did, the address its push service gave it and the keys that encrypt alerts for it (stored encrypted).</li>
+        <li>If you sign in, or try to, on a phone or tablet: a description of it (for example "iPhone · Safari"), its browser type, the IP addresses it came from and when it was last used, so an Admin can approve or block that phone. Refused sign-ins are recorded with the reason, the time, the IP address and the browser type.</li>
     </ul>
 
     <h3>Cookies</h3>
-    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Keep me signed in", and one that remembers light or dark mode. There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us.</p>
+    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Keep me signed in", one that remembers light or dark mode, and one random code that lets {{ $name }} recognise the same browser again, so an Admin can approve or block a phone (only a scrambled copy of it is stored). There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us.</p>
 
     <h2>4. What we use it for</h2>
     <ul>
@@ -84,6 +85,7 @@
         <li><strong>Activity records:</strong> between 7 and 90 days in the live system, then in archive files for up to one year. The history shown on an enquiry stays with that enquiry.</li>
         <li><strong>Facebook access tokens:</strong> until Facebook is disconnected in {{ $name }}; they are removed at that moment.</li>
         <li><strong>A browser's address for desktop alerts:</strong> until desktop alerts are turned off there, the person signs out there, or the browser stops taking them; an alert the browser has not received within four hours is dropped by its push service.</li>
+        <li><strong>A phone or tablet you signed in on:</strong> until an Admin removes it from the list or your account is deleted. Refused sign-ins are activity records (above).</li>
         <li><strong>Backups:</strong> made daily and removed automatically as they age. The oldest backup we keep can be up to two years old.</li>
     </ul>
 

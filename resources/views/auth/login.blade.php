@@ -11,8 +11,18 @@
         </div>
     @endif
 
+    {{-- Signed out by sign-in security (left the office network, a phone not allowed): the reason stays until they sign in. --}}
+    @if (filled($refused ?? null) && ! $errors->any())
+        <div class="lq-alert lq-alert-warning" role="alert">
+            <x-heroicon-o-shield-exclamation />
+            <span>{{ $refused }}</span>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('login') }}" class="lq-form" x-data="{ busy: false, shown: false, caps: false }" x-on:submit="busy = true">
         @csrf
+        {{-- What this page sees of the screen, so a phone asking for the desktop site is still known as a phone (Device::of). --}}
+        <input type="hidden" name="device" x-init="$el.value = JSON.stringify({ touch: navigator.maxTouchPoints || 0, w: screen.width, h: screen.height, mobile: navigator.userAgentData ? navigator.userAgentData.mobile : null })">
 
         <x-ui.field label="Email address" name="email">
             <div class="lq-input-icon">

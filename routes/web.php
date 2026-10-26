@@ -6,6 +6,7 @@ use App\Modules\Activity\Http\Controllers\LogDownloadController;
 use App\Modules\Activity\Livewire\LogsPage;
 use App\Modules\Auth\Livewire\Admin\PeopleIndex;
 use App\Modules\Auth\Livewire\Admin\PersonForm;
+use App\Modules\Auth\Livewire\Admin\SignInSecurity;
 use App\Modules\Auth\Livewire\Profile;
 use App\Modules\Auth\Livewire\ProfileSecurity;
 use App\Modules\Brands\Http\Controllers\BrandRedirectController;
@@ -88,6 +89,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/people/create', PersonForm::class)->name('people.create');
         Route::get('/people/{userId}/edit', PersonForm::class)->whereNumber('userId')->name('people.edit');
         Route::redirect('/admins', '/admin/people');
+        // Where people may sign in from: the office network, phones, blocked addresses.
+        Route::get('/sign-in', SignInSecurity::class)->name('sign-in');
         Route::get('/system', SystemPage::class)->name('system');
         Route::get('/updates', UpdatesPage::class)->name('updates');
     });

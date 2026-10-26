@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Navigation;
 
+use App\Modules\Auth\Enums\DeviceStatus;
+use App\Modules\Auth\Models\SignInDevice;
 use App\Modules\Auth\Models\User;
+use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\Conversation;
@@ -164,6 +167,17 @@ final class Menu
     {
         $isActive = fn (string ...$routes): bool => in_array($currentRoute, $routes, true);
 
+        $settings = [self::item('Integrations', 'heroicon-o-puzzle-piece', route('admin.integrations'), $isActive('admin.integrations'))];
+
+        // Where people may sign in from; the count is the phones waiting for an Admin's approval.
+        if (SignInRules::ready()) {
+            $settings[] = self::item('Sign-in security', 'heroicon-o-finger-print', route('admin.sign-in'), $isActive('admin.sign-in'), function (): ?string {
+                $waiting = SignInDevice::query()->withStatus(DeviceStatus::Waiting)->count();
+
+                return $waiting > 0 ? (string) $waiting : null;
+            });
+        }
+
         // Admins and Super Admins see the same menu: the only difference between
         // them is that a Super Admin cannot be edited or removed by anyone else.
         return [
@@ -174,7 +188,7 @@ final class Menu
                 self::item('People', 'heroicon-o-users', route('admin.people.index'), $isActive('admin.people.index', 'admin.people.create', 'admin.people.edit')),
             ]],
             ['label' => 'Settings', 'items' => [
-                self::item('Integrations', 'heroicon-o-puzzle-piece', route('admin.integrations'), $isActive('admin.integrations')),
+                ...$settings,
                 self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
                 self::item('Updates', 'heroicon-o-arrow-up-circle', route('admin.updates'), $isActive('admin.updates'), fn (): ?string => SystemUpdater::flag()['available'] ? 'New' : null),
                 self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
