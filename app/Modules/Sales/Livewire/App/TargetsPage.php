@@ -14,6 +14,7 @@ use App\Modules\Departments\Models\Department;
 use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\Target;
 use App\Modules\Sales\Support\Progress;
+use App\Modules\Sales\Support\SalePayments;
 use App\Modules\Sales\Support\SalesReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -121,8 +122,15 @@ final class TargetsPage extends Component
         $sales = [Target::BRAND => [], Target::DEPARTMENT => [], Target::USER => []];
 
         foreach ([Target::BRAND => 'brand_id', Target::DEPARTMENT => 'department_id', Target::USER => 'user_id'] as $type => $column) {
-            foreach (Sale::query()->inPeriod($period)->whereNotNull($column)->groupBy($column)->toBase()->selectRaw($column.' as k, COUNT(*) as sales, COALESCE(SUM(amount), 0) as revenue')->get() as $row) {
-                $sales[$type][(int) $row->k] = ['revenue' => (float) $row->revenue, 'count' => (int) $row->sales];
+            // Achieved is the money received in the month; the number of sales is the deals closed in it.
+            $received = SalePayments::received(Sale::query(), $period, $column);
+
+            foreach (Sale::query()->inPeriod($period)->whereNotNull($column)->groupBy($column)->toBase()->selectRaw($column.' as k, COUNT(*) as sales')->get() as $row) {
+                $sales[$type][(int) $row->k] = ['revenue' => $received[(int) $row->k] ?? 0.0, 'count' => (int) $row->sales];
+            }
+
+            foreach (array_diff_key($received, $sales[$type]) as $id => $amount) {
+                $sales[$type][$id] = ['revenue' => $amount, 'count' => 0];
             }
         }
 

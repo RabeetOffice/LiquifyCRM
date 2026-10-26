@@ -167,7 +167,7 @@ it('shows the sales dashboard by role', function (): void {
         ->assertSee('One brand at a time')
         ->assertSee('UK Publishing House')
         ->assertSee('£1,500')
-        ->assertSee('Average sale')
+        ->assertSee('Still to collect')
         ->assertSee('The last six months')
         ->assertSee('Leaderboard');
 

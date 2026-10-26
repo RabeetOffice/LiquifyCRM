@@ -12,6 +12,7 @@ use App\Modules\Sales\Models\Sale;
 use App\Modules\Sales\Models\Target;
 use App\Modules\Sales\Support\ClientCare;
 use App\Modules\Sales\Support\Progress;
+use App\Modules\Sales\Support\SalePayments;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -197,13 +198,19 @@ final class BrandsOverview
             ->where('closed_at', '>=', $start)
             ->where('closed_at', '<', $start->addMonth())
             ->groupBy('brand_id')
-            ->selectRaw('brand_id, COUNT(*) as sales, '.$upsells.' as upsells, COALESCE(SUM(amount), 0) as revenue', ClientCare::ready() ? [SaleKind::Upsell->value] : [])
+            ->selectRaw('brand_id, COUNT(*) as sales, '.$upsells.' as upsells', ClientCare::ready() ? [SaleKind::Upsell->value] : [])
             ->get();
 
         $sales = [];
+        // Achieved is the money received in the month (SalePayments::received); the counts are the deals closed in it.
+        $received = SalePayments::received(Sale::query()->acrossBrands()->whereIn('brand_id', $this->brands->keys()), $start->format('Y-m'), 'brand_id');
 
         foreach ($rows as $row) {
-            $sales[(int) $row->brand_id] = ['count' => (int) $row->sales, 'upsells' => (int) $row->upsells, 'revenue' => (float) $row->revenue];
+            $sales[(int) $row->brand_id] = ['count' => (int) $row->sales, 'upsells' => (int) $row->upsells, 'revenue' => $received[(int) $row->brand_id] ?? 0.0];
+        }
+
+        foreach (array_diff_key($received, $sales) as $brandId => $amount) {
+            $sales[$brandId] = ['count' => 0, 'upsells' => 0, 'revenue' => $amount];
         }
 
         return $sales;

@@ -45,14 +45,20 @@
     @endif
 
     <div class="lq-grid-stats">
+        {{-- Revenue is the money received this month (the achieved figure, user decision 26 Oct 2026); what a client
+             still owes is "Still to collect" until it is paid, and counts in the month it comes in. --}}
         <x-ui.stat :label="$personal ? 'My revenue this month' : 'Revenue this month'" :value="Money::format($totals['revenue'], $currency)" icon="heroicon-o-banknotes" hero
-            :description="'Last month '.Money::format($totals['previous_revenue'], $currency).($totals['due'] > 0 ? ' · '.Money::format($totals['due'], $currency).' still to collect' : '')"
+            :description="'Money received · last month '.Money::format($totals['previous_revenue'], $currency)"
             :delta="$totals['change'] !== null ? ($totals['change'] >= 0 ? '+' : '').$totals['change'].'%' : null" :up="$totals['change'] !== null ? $totals['change'] >= 0 : null" />
         <x-ui.stat :label="$personal ? 'My sales' : 'Sales closed'" :value="$totals['count']" icon="heroicon-o-trophy"
-            :description="$totals['upsells'] > 0
-                ? ($totals['count'] - $totals['upsells']).' front, '.$totals['upsells'].' '.str('upsell')->plural($totals['upsells']).' ('.Money::format($totals['upsell_revenue'], $currency).')'
-                : 'Last month '.$totals['previous_count']" />
-        <x-ui.stat label="Average sale" :value="$average !== null ? Money::format(round($average), $currency) : null" icon="heroicon-o-calculator" description="Revenue divided by sales" />
+            :description="$totals['count'] === 0
+                ? 'Last month '.$totals['previous_count']
+                : Money::format($totals['sold'], $currency).' in deals'.($totals['upsells'] > 0
+                    ? ' · '.($totals['count'] - $totals['upsells']).' front, '.$totals['upsells'].' '.str('upsell')->plural($totals['upsells'])
+                    : ($totals['count'] > 1 ? ', '.Money::format(round($totals['sold'] / $totals['count']), $currency).' each on average' : ''))" />
+        <x-ui.stat label="Still to collect" :value="Money::format($totals['due'], $currency)" icon="heroicon-o-clock"
+            :description="$totals['owing'] > 0 ? 'Not paid yet on '.$totals['owing'].' '.str('sale')->plural($totals['owing']) : 'Every sale is paid in full'"
+            :description-color="$totals['owing'] > 0 ? 'warning' : 'success'" />
         <div class="lq-stat">
             <div class="lq-stat-head">
                 <span class="lq-stat-icon"><x-heroicon-o-flag /></span>
@@ -209,7 +215,12 @@
                                 <td class="lq-cell-title">{{ $sale->client->name }}</td>
                                 <td class="lq-muted">{{ $sale->service ?? '—' }} @if ($sale->isUpsell()) <x-ui.badge color="success">Upsell</x-ui.badge> @endif</td>
                                 <td class="lq-muted">{{ $sale->closer?->name ?? '—' }}{{ $sale->department ? ' · '.$sale->department->name : '' }}</td>
-                                <td class="lq-table-end lq-num" @if ($sale->isForeign()) title="Sold as {{ Money::format($sale->charged_amount, (string) $sale->charged_currency) }}" @endif>{{ Money::format($sale->amount, $sale->currency) }}</td>
+                                <td class="lq-table-end lq-num" @if ($sale->isForeign()) title="Sold as {{ Money::format($sale->charged_amount, (string) $sale->charged_currency) }}" @endif>
+                                    {{ Money::format($sale->amount, $sale->currency) }}
+                                    @unless ($sale->isPaidInFull())
+                                        <span class="lq-cell-sub whitespace-nowrap">{{ Money::format($sale->paid(), $sale->currency) }} paid · {{ Money::format($sale->due(), $sale->currency) }} to collect</span>
+                                    @endunless
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -307,12 +307,16 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - Won stays Won (user request, 19 Oct 2026): `ChangeLeadStatus` throws `LeadIsWon` when a lead with a sale
   (`Lead::hasSale()`) would leave Won; every caller catches it (panel, pipeline, bulk status, undo) and the path and
   pipeline card stand still. A wrong Won is undone only by `CorrectSale::delete` (Admins), which frees the lead.
-- Part payments (user request, 19 Oct 2026; the user chose that the whole deal counts towards targets): `sales.amount`
+- Part payments (user request, 19 Oct 2026): `sales.amount`
   is the deal, `sales.amount_paid` what is in, each payment a `sale_payments` row (behind `SalePayments::ready()`; the
   update gives every older sale one payment of its full amount). `RecordPayment` (`handle` never takes more than is
   owed; `opening` for "Paid now" in `RecordSale` / `RecordUpsell`), `SalePolicy::recordPayment` (seller, their
   Manager, the client's care team, Admins), the `RecordsPayments` trait with `sales::partials.payment-sheet` and
-  `<x-sales::sale-payments>`. A payment is never a new sale: targets, lifetime value and lead value read `amount`.
+  `<x-sales::sale-payments>`. A payment is never a new sale: the count of sales, lifetime value and lead value read `amount`.
+- What counts as achieved (user decision, 26 Oct 2026, replacing "the whole deal counts" of 19 Oct): revenue on the
+  dashboards, targets, the leaderboard, the Targets screen and the admin Overview is the money received in the month,
+  whenever the sale was closed (`SalePayments::received()`; a sale with no `amount_paid` counts in full on its day).
+  The rest of a deal is "Still to collect" (`SalesReport::totals()` `due` / `owing`) and counts in the month it is paid.
 - Resources (user request, 19 Oct 2026; module `app/Modules/Resources`): `BrandResource` (table `resources`, behind
   `BrandResources::ready()`) is a brand's template or material, a file (a `files` row, fileable the resource, saved by
   `SaveResource`, served only by `ResourceFileController`) or a link. Everyone in the brand sees and downloads; Admins

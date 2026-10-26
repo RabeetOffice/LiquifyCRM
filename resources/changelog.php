@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.33.0',
+        'date' => '2026-10-26',
+        'title' => 'Targets count the money that came in',
+        'changes' => [
+            ['improved', 'Revenue, targets, the leaderboard, the Targets screen and the Overview now count what clients have paid, not the whole deal. A sale of A$429 with A$195 paid counts A$195 now; the other A$234 counts in the month it is paid.'],
+            ['new', 'The sales dashboard shows "Still to collect": what clients still owe, and on how many sales. Each sale of the month shows what is paid and what is left.'],
+            ['improved', 'The sales card shows what the month\'s deals are worth, with the average sale.'],
+        ],
+    ],
+    [
         'version' => '1.32.2',
         'date' => '2026-10-26',
         'title' => 'Open tabs keep working after an update',

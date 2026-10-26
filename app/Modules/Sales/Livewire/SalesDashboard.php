@@ -94,7 +94,6 @@ final class SalesDashboard extends Component
             'month' => $report->start(),
             'isCurrent' => $period === SalesReport::currentPeriod(),
             'totals' => $totals,
-            'average' => $totals['count'] > 0 ? $totals['revenue'] / $totals['count'] : null,
             'progress' => $report->progress(),
             'trend' => $report->trend(),
             'brandCards' => $brandChoices->map(fn (Brand $item): array => [

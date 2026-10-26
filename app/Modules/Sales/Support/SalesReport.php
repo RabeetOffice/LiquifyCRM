@@ -101,32 +101,41 @@ final class SalesReport
     // ------------------------------------------------------------------ cards
 
     /**
-     * @return array{revenue: float, count: int, upsell_revenue: float, upsells: int, previous_revenue: float, previous_count: int, change: ?int, due: float}
+     * revenue is what clients paid in the month (the achieved figure); sold is the deals closed in it.
+     *
+     * @return array{revenue: float, sold: float, count: int, upsell_revenue: float, upsells: int, previous_revenue: float, previous_count: int, change: ?int, due: float, owing: int}
      */
     public function totals(): array
     {
+        $previous = $this->start()->subMonth()->format('Y-m');
         $now = $this->sum($this->sales());
-        $before = $this->sum($this->sales($this->start()->subMonth()->format('Y-m')));
+        $received = $this->received()[0] ?? 0.0;
+        $before = $this->received($previous)[0] ?? 0.0;
         // How much of the month came from clients buying again.
         $upsells = ClientCare::ready() ? $this->sum($this->sales()->where('kind', SaleKind::Upsell->value)) : ['revenue' => 0.0, 'count' => 0];
+        // Part payments: what clients still owe on the scope's deals, whenever they were closed. One brand only (own currency).
+        $owed = SalePayments::ready() && ! $this->reporting
+            ? $this->sales(null)->toBase()->selectRaw('COALESCE(SUM(GREATEST(amount - COALESCE(amount_paid, amount), 0)), 0) as due, COALESCE(SUM(CASE WHEN amount > COALESCE(amount_paid, amount) THEN 1 ELSE 0 END), 0) as owing')->first()
+            : null;
 
         return [
-            'revenue' => $now['revenue'],
+            'revenue' => $received,
+            'sold' => $now['revenue'],
             'count' => $now['count'],
-            'upsell_revenue' => $upsells['revenue'],
+            'upsell_revenue' => $upsells['count'] > 0 ? ($this->received(null, null, SaleKind::Upsell)[0] ?? 0.0) : 0.0,
             'upsells' => $upsells['count'],
-            'previous_revenue' => $before['revenue'],
-            'previous_count' => $before['count'],
-            'change' => $before['revenue'] > 0 ? (int) round(($now['revenue'] - $before['revenue']) / $before['revenue'] * 100) : null,
-            // Part payments: what clients still owe on the scope's deals, whenever they were closed. One brand only (own currency).
-            'due' => SalePayments::ready() && ! $this->reporting ? (float) $this->sales(null)->toBase()->selectRaw('COALESCE(SUM(GREATEST(amount - COALESCE(amount_paid, amount), 0)), 0) as due')->value('due') : 0.0,
+            'previous_revenue' => $before,
+            'previous_count' => $this->sum($this->sales($previous))['count'],
+            'change' => $before > 0 ? (int) round(($received - $before) / $before * 100) : null,
+            'due' => (float) ($owed->due ?? 0),
+            'owing' => (int) ($owed->owing ?? 0),
         ];
     }
 
     /** The whole scope against its target: the brand, the department(s) or the person. */
     public function progress(): Progress
     {
-        $totals = $this->sum($this->sales());
+        $totals = ['revenue' => $this->received()[0] ?? 0.0, 'count' => $this->sum($this->sales())['count']];
 
         if ($this->userId !== null) {
             $target = $this->target(Target::USER, $this->userId);
@@ -168,7 +177,7 @@ final class SalesReport
             $sum = $this->sum($this->sales($month->format('Y-m')));
 
             $labels[] = $month->format('M');
-            $revenue[] = round($sum['revenue'], 2);
+            $revenue[] = round($this->received($month->format('Y-m'))[0] ?? 0.0, 2);
             $count[] = $sum['count'];
         }
 
@@ -183,9 +192,10 @@ final class SalesReport
     public function brandRows(): array
     {
         $sales = $this->grouped($this->sales(), 'brand_id');
+        $received = $this->received(null, 'brand_id');
         $leads = $this->leadCounts('brand_id');
 
-        return $this->brands->map(function (Brand $brand) use ($sales, $leads): array {
+        return $this->brands->map(function (Brand $brand) use ($sales, $received, $leads): array {
             $id = (int) $brand->getKey();
             $target = $this->target(Target::BRAND, $id);
 
@@ -194,7 +204,7 @@ final class SalesReport
                 'leads' => $leads[$id]['leads'] ?? 0,
                 'won' => $leads[$id]['won'] ?? 0,
                 'conversion' => $this->rate($leads[$id]['won'] ?? 0, $leads[$id]['leads'] ?? 0),
-                'progress' => new Progress($sales[$id]['revenue'] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
+                'progress' => new Progress($received[$id] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
             ];
         })->sortByDesc(fn (array $row): float => $row['progress']->revenue)->values()->all();
     }
@@ -207,20 +217,21 @@ final class SalesReport
     public function departmentRows(): array
     {
         $sales = $this->grouped($this->sales(), 'department_id');
+        $received = $this->received(null, 'department_id');
 
         return Department::query()->acrossBrands()
             ->whereIn('brand_id', $this->brands->keys())
             ->when($this->departmentIds !== null, fn (Builder $query): Builder => $query->whereIn('id', $this->departmentIds ?? []))
             ->orderBy('name')
             ->get()
-            ->map(function (Department $department) use ($sales): array {
+            ->map(function (Department $department) use ($sales, $received): array {
                 $id = (int) $department->getKey();
                 $target = $this->target(Target::DEPARTMENT, $id);
 
                 return [
                     'department' => $department,
                     'brand' => $this->brands->get($department->brand_id),
-                    'progress' => new Progress($sales[$id]['revenue'] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
+                    'progress' => new Progress($received[$id] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
                 ];
             })
             ->sortByDesc(fn (array $row): float => $row['progress']->revenue)
@@ -236,11 +247,12 @@ final class SalesReport
     public function agentRows(int $limit = 50): array
     {
         $sales = $this->grouped($this->sales(), 'user_id');
+        $received = $this->received(null, 'user_id');
         $leads = $this->leadCounts('assigned_to');
         $speed = $this->speedBy('assigned_to');
 
         $targeted = array_keys($this->targets()[Target::USER] ?? []);
-        $ids = array_values(array_unique(array_filter([...array_keys($sales), ...$targeted])));
+        $ids = array_values(array_unique(array_filter([...array_keys($sales), ...array_keys($received), ...$targeted])));
 
         if ($this->userId !== null) {
             $ids = [$this->userId];
@@ -252,7 +264,7 @@ final class SalesReport
         }
 
         return User::query()->whereIn('id', $ids)->get()
-            ->map(function (User $user) use ($sales, $leads, $speed): array {
+            ->map(function (User $user) use ($sales, $received, $leads, $speed): array {
                 $id = (int) $user->getKey();
                 $target = $this->target(Target::USER, $id);
 
@@ -260,7 +272,7 @@ final class SalesReport
                     'user' => $user,
                     'leads' => $leads[$id]['leads'] ?? 0,
                     'speed' => $speed[$id] ?? null,
-                    'progress' => new Progress($sales[$id]['revenue'] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
+                    'progress' => new Progress($received[$id] ?? 0.0, $sales[$id]['count'] ?? 0, $target['revenue'], $target['count'], $this->currency()),
                 ];
             })
             ->sort(fn (array $a, array $b): int => [$b['progress']->percent() ?? -1, $b['progress']->revenue] <=> [$a['progress']->percent() ?? -1, $a['progress']->revenue])
@@ -390,6 +402,19 @@ final class SalesReport
             ->where($lead->qualifyColumn('created_at'), '<', $this->start()->addMonth())
             ->when($this->departmentIds !== null, fn (Builder $query): Builder => $query->whereIn($lead->qualifyColumn('department_id'), $this->departmentIds ?? []))
             ->when($this->userId !== null, fn (Builder $query): Builder => $query->where($lead->qualifyColumn('assigned_to'), $this->userId));
+    }
+
+    /**
+     * What clients paid in the month (this one, or $period) on the scope's sales:
+     * the achieved figure. See SalePayments::received.
+     *
+     * @return array<int, float> by $by, or the total under 0
+     */
+    private function received(?string $period = null, ?string $by = null, ?SaleKind $kind = null): array
+    {
+        $sales = $this->sales(null)->when($kind !== null, fn (Builder $query): Builder => $query->where('kind', $kind?->value));
+
+        return SalePayments::received($sales, $period ?? $this->period, $by, $this->reporting);
     }
 
     private function amount(): string
