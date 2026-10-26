@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6" wire:poll.60s.visible data-live-refresh
-    x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team) })">
+    x-data="assignMenu({ people: @js($people), teams: @js($teamChoices), assign: (lead, person) => $wire.quickAssign(lead, person), send: (lead, team) => $wire.quickSend(lead, team), unassign: (lead) => $wire.quickUnassign(lead) })">
     @php
         $subtitle = match (true) {
             $team => 'Your team\'s leads in '.$brand->name.'. Take a free one and it is yours: its phone and email open when you do.',
@@ -273,6 +273,7 @@
                     @foreach ($agentOptions as $id => $name)
                         <option value="{{ $id }}">{{ $name }}</option>
                     @endforeach
+                    <option value="0">Nobody: unassign, back to the queue</option>
                 </x-ui.select>
             </x-ui.field>
         </form>

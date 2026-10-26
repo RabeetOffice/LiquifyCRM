@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.34.0',
+        'date' => '2026-10-26',
+        'title' => 'Unassign a lead',
+        'changes' => [
+            ['new', 'Admins and the lead\'s Manager can take a lead off the person who has it: open the Owner menu (or Reassign on the lead) and choose Unassign. The lead goes back to its team\'s queue, and Undo puts it back.'],
+            ['new', 'Leads › select several › Assign › "Nobody" unassigns them all at once.'],
+            ['fixed', 'Follow-ups of an unassigned lead go to whoever gets the lead next.'],
+        ],
+    ],
+    [
         'version' => '1.33.0',
         'date' => '2026-10-26',
         'title' => 'Targets count the money that came in',

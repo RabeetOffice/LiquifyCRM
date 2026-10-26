@@ -17,7 +17,8 @@ use InvalidArgumentException;
  * Give a lead to an Agent (or take it back with null). The lead inherits the
  * Agent's department when it has none, so department counts stay right (a
  * sales department: an Upsell team looks after clients, not leads). Open
- * follow-ups the previous owner had on the lead go with it.
+ * follow-ups the previous owner had on the lead go with it; taken back with
+ * null, they wait with nobody until the lead's next owner.
  */
 final class AssignLead
 {
@@ -56,6 +57,11 @@ final class AssignLead
         // The previous owner's open follow-ups on this lead move with it: they can no longer open the lead.
         if ($previous !== null && $previous !== $agent?->getKey()) {
             Task::query()->acrossBrands()->where('lead_id', $lead->getKey())->where('user_id', $previous)->whereNull('done_at')->update(['user_id' => $agent?->getKey()]);
+        }
+
+        // Follow-ups left with nobody while the lead waited unassigned go to whoever gets it next.
+        if ($agent !== null) {
+            Task::query()->acrossBrands()->where('lead_id', $lead->getKey())->whereNull('user_id')->whereNull('done_at')->update(['user_id' => $agent->getKey()]);
         }
 
         LeadAssigned::dispatch($lead);

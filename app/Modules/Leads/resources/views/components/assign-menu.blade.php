@@ -1,5 +1,5 @@
 {{-- The people a lead can be given to, as a menu that opens beside whatever asked for it. Place it inside an
-     element with x-data="assignMenu({ people, teams, assign, send })" and open it with openFor($el, { lead, dept, owner }).
+     element with x-data="assignMenu({ people, teams, assign, send, unassign })" and open it with openFor($el, { lead, dept, owner }).
      It is drawn at the end of <body>: a table's scroll box or a slide-over would cut it otherwise. --}}
 <template x-teleport="body">
     <div class="lq-menu lq-assign" x-ref="menu" x-show="open" x-cloak x-bind:style="place" x-on:click.outside="close()" x-on:keydown.escape.window="open && close()" x-on:resize.window="close()" role="dialog" aria-label="Assign this lead">
@@ -29,6 +29,20 @@
         </ul>
 
         <p class="lq-picker-note" x-show="shown.length === 0" x-text="query.trim() !== '' ? 'Nobody matches.' : (dept === null ? 'No Agents in this brand yet. Add them under Members.' : 'Nobody works in this lead\'s department yet.')"></p>
+
+        {{-- Off its owner, back to the queue of its team: for Admins and the lead's Manager (the menu is theirs). --}}
+        <template x-if="canUnassign && owner !== null">
+            <div>
+                <div class="lq-menu-divider"></div>
+                <button type="button" class="lq-menu-item" x-on:click="release()">
+                    <x-heroicon-o-user-minus />
+                    <span class="min-w-0 flex-1">
+                        <span class="lq-cell-name">Unassign</span>
+                        <span class="lq-cell-sub">Back to the queue, nobody owns it</span>
+                    </span>
+                </button>
+            </div>
+        </template>
 
         <template x-if="teams.length > 0">
             <div>

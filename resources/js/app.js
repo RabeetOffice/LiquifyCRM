@@ -396,7 +396,7 @@ Alpine.data('picker', ({ model, options, pinned, remote = false }) => ({
 // Give a lead to somebody from where you are (<x-leads::assign-menu>): the Owner cell of the list, the Assign
 // tile of a lead. The menu is drawn at the end of <body> and placed beside whatever asked for it, so a table's
 // scroll box or a slide-over cannot cut it. The chosen name shows at once (`pending`), before the answer.
-Alpine.data('assignMenu', ({ people, teams = [], assign, send = null }) => ({
+Alpine.data('assignMenu', ({ people, teams = [], assign, send = null, unassign = null }) => ({
     open: false,
     query: '',
     place: '',
@@ -406,6 +406,8 @@ Alpine.data('assignMenu', ({ people, teams = [], assign, send = null }) => ({
     pending: {},
     people,
     teams,
+    // Taking a lead off its owner, back to the queue (26 Oct 2026): offered where the screen passes `unassign`.
+    canUnassign: unassign !== null,
 
     // A lead that is already in a department is offered that department's people.
     get inReach() {
@@ -472,6 +474,15 @@ Alpine.data('assignMenu', ({ people, teams = [], assign, send = null }) => ({
 
         this.close();
         if (send) send(lead, team.id);
+    },
+
+    release() {
+        const lead = this.lead;
+
+        this.pending[lead] = 'Unassigned';
+        this.close();
+
+        Promise.resolve(unassign(lead)).finally(() => { delete this.pending[lead]; });
     },
 }));
 

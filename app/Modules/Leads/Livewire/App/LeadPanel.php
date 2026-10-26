@@ -167,6 +167,27 @@ final class LeadPanel extends Component
         $this->toast('Assigned to '.$agent->name, null, 'success', $this->undoPayload($lead, 'assign', $previous));
     }
 
+    /**
+     * "Unassign" in the same menu (user request, 26 Oct 2026): an Admin or the
+     * lead's Manager takes it off its owner, back to its team's queue.
+     */
+    public function unassign(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('assign', $lead);
+
+        $previous = $lead->assigned_to;
+
+        if ($previous === null) {
+            return;
+        }
+
+        app(AssignLead::class)->handle($lead, null, $this->user());
+
+        $this->changed();
+        $this->toast('Unassigned', 'Back in the queue: nobody owns it now.', 'success', $this->undoPayload($lead, 'assign', $previous));
+    }
+
     /** A team chosen in the same menu, by whoever may send leads to departments. */
     public function quickSend(int $departmentId): void
     {

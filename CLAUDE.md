@@ -260,6 +260,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   the panel's root), opened with `openFor($el, {lead, dept, owner})`; `quickAssign` / `quickSend` on `LeadsIndex` and
   `LeadPanel`. `AssignableAgents::people()` leaves out people who only work clients, and `find()` is the server's
   check. The menu is teleported and `position: fixed` (a table's scroll box or the slide-over would cut it).
+  Unassign (user request, 26 Oct 2026): the menu's `unassign` callback (`LeadPanel::unassign`, `LeadsIndex::quickUnassign`,
+  bulk Assign › "Nobody" = `bulkAssignTo` 0) calls `AssignLead` with null, for whoever may `assign` the lead (Admins, its
+  Manager); the lead keeps its department and waits in the queue, its open follow-ups wait with no owner and go to the
+  next one. The Inbox's assign select already had "Unassigned".
 - Front sales sees its team (user request, 19 Oct 2026): `Lead::scopeVisibleTo` adds, for anyone on a front (non-Upsell)
   team (`User::frontDepartmentIds()`), that team's leads and the leads with no department. `scopeWorkedBy` is the old
   rule (own leads, a Manager's departments) and is what `LeadPolicy::update` / `reveal` / `recordSale`, `Task::visibleTo`,

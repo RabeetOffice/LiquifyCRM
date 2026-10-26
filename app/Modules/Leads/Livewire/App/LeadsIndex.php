@@ -213,6 +213,23 @@ final class LeadsIndex extends Component
         $this->toast($lead->name.' assigned to '.$agent->name, null, 'success', $this->undoPayload($lead, 'assign', $previous));
     }
 
+    /** "Unassign" in the same menu (user request, 26 Oct 2026): back to its team's queue, for Admins and its Manager. */
+    public function quickUnassign(int $leadId): void
+    {
+        $lead = Lead::query()->visibleTo($this->user())->findOrFail($leadId);
+        $this->authorize('assign', $lead);
+
+        $previous = $lead->assigned_to;
+
+        if ($previous === null) {
+            return;
+        }
+
+        app(AssignLead::class)->handle($lead, null, $this->user());
+
+        $this->toast($lead->name.' unassigned', 'Back in the queue: nobody owns it now.', 'success', $this->undoPayload($lead, 'assign', $previous));
+    }
+
     /** A team chosen in the same menu, by whoever may send leads to departments. */
     public function quickSend(int $leadId, int $departmentId): void
     {
@@ -233,6 +250,14 @@ final class LeadsIndex extends Component
         $this->validate(['bulkAssignTo' => ['required', 'integer']]);
 
         $agentId = (int) $this->bulkAssignTo;
+
+        // "Nobody": the chosen leads go back to the queue (26 Oct 2026).
+        if ($agentId === 0) {
+            $this->bulkUnassign();
+
+            return;
+        }
+
         abort_unless(array_key_exists($agentId, app(AssignableAgents::class)->for($this->user(), $this->brand)), 403);
         $agent = User::query()->findOrFail($agentId);
         $done = 0;
@@ -257,6 +282,24 @@ final class LeadsIndex extends Component
         $this->showBulkAssign = false;
         $this->selected = [];
         $this->toastSuccess("{$done} ".str('lead')->plural($done).' assigned to '.$agent->name, $skipped > 0 ? $skipped.' '.str('lead')->plural($skipped).' left as they were: '.($skipped === 1 ? 'it is' : 'they are').' in a department '.$agent->name.' does not work in.' : null);
+    }
+
+    private function bulkUnassign(): void
+    {
+        $done = 0;
+
+        foreach ($this->selectedLeads() as $lead) {
+            if ($lead->assigned_to === null || ! $this->user()->can('assign', $lead)) {
+                continue;
+            }
+
+            app(AssignLead::class)->handle($lead, null, $this->user());
+            $done++;
+        }
+
+        $this->showBulkAssign = false;
+        $this->selected = [];
+        $this->toastSuccess("{$done} ".str('lead')->plural($done).' unassigned', 'Back in the queue: nobody owns '.($done === 1 ? 'it' : 'them').' now.');
     }
 
     public function bulkSend(): void
