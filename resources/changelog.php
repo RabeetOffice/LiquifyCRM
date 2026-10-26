@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.35.0',
+        'date' => '2026-10-26',
+        'title' => 'Front sales merges leads',
+        'changes' => [
+            ['new', 'Agents now see "This person has another lead" and can merge their own lead with the other lead of the same person when it is theirs too or still free. Before, only Admins and Managers could.'],
+            ['improved', 'When the other lead belongs to a colleague, the lead says whose it is, and their Manager or an Admin merges the two.'],
+        ],
+    ],
+    [
         'version' => '1.34.0',
         'date' => '2026-10-26',
         'title' => 'Unassign a lead',

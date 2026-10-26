@@ -188,8 +188,13 @@
                                 <a class="lq-link" href="{{ route('brand.leads.show', ['brand' => $brandSlug, 'lead' => $twin['lead']->getKey()]) }}" target="_blank" rel="noopener">{{ $twin['lead']->name }}</a>
                                 · {{ $twin['lead']->source_type->getLabel() }} · {{ $twin['lead']->status->name }} · received {{ $twin['lead']->created_at?->diffForHumans() }} · {{ $twin['why'] }}
                             </p>
+                            @unless ($twin['mergeable'])
+                                <p class="lq-twin-text">{{ $twin['lead']->assignee ? 'It is '.$twin['lead']->assignee->name.'\'s lead' : 'It is not yours to merge' }}: their Manager or an Admin can make the two one.</p>
+                            @endunless
                         </div>
-                        <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrows-pointing-in" wire:click="confirmMerge({{ $twin['lead']->getKey() }})">Merge</x-ui.button>
+                        @if ($twin['mergeable'])
+                            <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrows-pointing-in" wire:click="confirmMerge({{ $twin['lead']->getKey() }})">Merge</x-ui.button>
+                        @endif
                     </div>
                 @endforeach
             </div>

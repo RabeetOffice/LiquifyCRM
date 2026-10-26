@@ -338,7 +338,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
 - One person, one lead: a Facebook lead form carries `inbox_url`, whose number is the person's Messenger id on that
   Page (`LeadMatcher::messengerId()`). `ProcessMetaEvent` joins a form to the chat's open lead (`MergeLeads::join`)
   and a chat to the form's open lead (`LeadMatcher::byMessenger`). `LeadMatcher::twins()` finds existing pairs for
-  the panel's hint; `MergeLeads::handle()` merges two open leads (whoever may `assign` both). Never merge on a name
+  the panel's hint; `MergeLeads::handle()` merges two open leads (whoever may `merge` both: `LeadPolicy::merge` is
+  assign, update or take, so since 26 Oct 2026 front sales merges its own and free leads; a colleague's twin is only
+  named, for its Manager to merge). Never merge on a name
   alone: a name is only a hint. A lead's timeline moves with it (`activity_log.subject_id`), nothing is deleted.
 - Instagram direct messages (user request, 14 Oct 2026) use Meta's Instagram API with Facebook Login: the same app,
   webhook and Page token as Messenger. `meta_sources.instagram_id` / `instagram_username` is the professional account

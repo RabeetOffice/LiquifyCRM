@@ -98,7 +98,7 @@ final class LeadMatcher
             return [];
         }
 
-        $others = fn (): Builder => Lead::query()->visibleTo($user)->open()->whereKeyNot($lead->getKey())->with('status')->latest('id')->limit(5);
+        $others = fn (): Builder => Lead::query()->visibleTo($user)->open()->whereKeyNot($lead->getKey())->with(['status', 'assignee'])->latest('id')->limit(5);
         $found = [];
 
         $add = function (iterable $leads, string $why, bool $sure) use (&$found): void {

@@ -219,13 +219,13 @@ final class LeadPanel extends Component
         $this->toastSuccess('Merged into one lead', 'Everything of the other lead is here now.');
     }
 
-    /** A lead this one may be merged with: by somebody who runs both. */
+    /** A lead this one may be merged with: by somebody who may merge both (LeadPolicy::merge). */
     private function twin(int $otherId): Lead
     {
         $lead = $this->lead();
         $other = Lead::query()->visibleTo($this->user())->findOrFail($otherId);
 
-        abort_unless($this->user()->can('assign', $lead) && $this->user()->can('assign', $other), 403);
+        abort_unless($this->user()->can('merge', $lead) && $this->user()->can('merge', $other), 403);
 
         return $other;
     }
@@ -699,8 +699,8 @@ final class LeadPanel extends Component
             'copyText' => LeadEnquiry::copyText($lead, $canSeeFull),
             'sourceFacts' => LeadEnquiry::source($lead),
             'inboxUrl' => LeadEnquiry::inboxUrl($lead),
-            // Other leads of the same person, offered for merging to whoever runs both.
-            'twins' => $canAssign ? array_values(array_filter(LeadMatcher::twins($lead, $user), fn (array $twin): bool => $user->can('assign', $twin['lead']))) : [],
+            // Other leads of the same person, offered for merging to whoever may merge both; a colleague's is only named.
+            'twins' => $user->can('merge', $lead) ? array_map(fn (array $twin): array => [...$twin, 'mergeable' => $user->can('merge', $twin['lead'])], LeadMatcher::twins($lead, $user)) : [],
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],
             'teamChoices' => $canDistribute ? $this->teamChoices() : [],
             'departmentOptions' => $this->departmentOptions(),

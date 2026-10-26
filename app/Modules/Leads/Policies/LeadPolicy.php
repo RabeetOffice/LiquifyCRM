@@ -51,6 +51,17 @@ final class LeadPolicy
             && $user->can(Permission::LeadsUpdate->value);
     }
 
+    /**
+     * Make two leads of the same person one (user request, 26 Oct 2026: front
+     * sales works the leads, so it merges them too). Whoever may assign the
+     * lead, or work it, or take it: an Agent merges their own leads and the
+     * free ones. A colleague's lead is not theirs to remove; its Manager merges it.
+     */
+    public function merge(User $user, Lead $lead): bool
+    {
+        return $this->assign($user, $lead) || $this->update($user, $lead) || $this->take($user, $lead);
+    }
+
     /** Manual lead: Admin or Manager. */
     public function create(User $user): bool
     {

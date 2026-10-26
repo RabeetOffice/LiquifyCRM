@@ -212,12 +212,12 @@ it('makes two leads of one person one, and keeps everything of both', function (
         ->and(LeadMatcher::twins($chat, $this->admin)[0]['lead']->getKey())->toBe($form->getKey())
         ->and(LeadMatcher::twins($stranger, $this->admin))->toBe([]);
 
-    // An Agent is not offered a merge and cannot ask for one (they see the free form, but may not assign it).
+    // Front sales works the leads, so it is offered the merge too (26 Oct 2026): Vimal's chat and the free form.
     Livewire::actingAs($this->agent)
         ->test(LeadPanel::class, ['leadId' => $chat->getKey()])
-        ->assertDontSee('This person has another lead')
+        ->assertSee('This person has another lead')
         ->call('confirmMerge', $form->getKey())
-        ->assertForbidden();
+        ->assertSee('Merge the two leads of Anthony Camilleri?');
 
     Livewire::actingAs($this->admin)
         ->test(LeadPanel::class, ['leadId' => $form->getKey()])
