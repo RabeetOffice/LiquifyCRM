@@ -46,6 +46,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `ChangeBrandAccess` keeps their department seats in that brand in step with the role. Managers still add people to
   their own brand, but `BrandSharing::refusal()` stops them adding (or inviting) somebody who works in another brand or
   is already in theirs. Never let a Manager's action reach a person's other brands.
+- A Manager over front sales and Upsell (user decision, 26 Oct 2026): no new role. An Admin seats a brand Manager as
+  Manager in Front Sales and in every Upsell team (Departments › Edit › People › Add person, role Manager); everything
+  reads `managedDepartmentIds()`, so they see and work both sides while a front-only Manager still sees no Upsell.
+  A team made later needs them added by hand. Ask before building a brand-wide "Sales Head" role.
 - Role audit (14 Oct 2026), rules that keep it clean: what a screen hides must also be refused on the server. A
   method behind a password dialog starts with `ensureConfirmed()` (`WithConfirmation::$confirm` is `#[Locked]`); a
   public property that unlocks something (`showRecoveryCodes`, `ClientShow::$revealed`) is `#[Locked]`. Every way of
