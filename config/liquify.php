@@ -96,7 +96,7 @@ return [
         'name' => env('LIQUIFY_LEGAL_NAME', 'LiquifyCRM'),
         'email' => env('LIQUIFY_LEGAL_EMAIL', 'rabeet0846551@gmail.com'),
         'facebook_app' => env('LIQUIFY_LEGAL_FACEBOOK_APP', 'LiquifyCRM Leads'),
-        'updated' => '2026-10-26',
+        'updated' => '2026-10-27',
     ],
 
     /*

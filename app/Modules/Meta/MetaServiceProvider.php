@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Meta;
 
 use App\Modules\Core\ModuleServiceProvider;
+use App\Modules\Meta\Console\ProfileNamesCommand;
 use App\Modules\Meta\Console\RefreshTokensCommand;
 use App\Modules\Meta\Jobs\ProcessMetaEvent;
 use App\Modules\Meta\Models\Conversation;
@@ -24,6 +25,7 @@ final class MetaServiceProvider extends ModuleServiceProvider
 
     protected array $commands = [
         RefreshTokensCommand::class,
+        ProfileNamesCommand::class,
     ];
 
     protected function bootModule(): void

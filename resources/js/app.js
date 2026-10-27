@@ -626,6 +626,75 @@ Alpine.data('copy', (value) => ({
     },
 }));
 
+// ------------------------------------------------------------ drafts
+// A note being written is kept on this computer as it is typed (user report, 27 Oct 2026: notes were lost when the
+// page loaded again, after an update or a sign-out, or when the slide-over closed). It comes back when the same
+// lead's note box is drawn again, and goes once the note is saved or its words are taken out. One entry per person
+// and lead, dropped after a week, and all of them when the person signs out.
+const DRAFTS = 'lq_draft:';
+const DRAFT_DAYS = 7;
+
+const drafts = {
+    read(key) {
+        try {
+            const kept = JSON.parse(localStorage.getItem(DRAFTS + key) ?? 'null');
+
+            return typeof kept?.text === 'string' ? kept.text : '';
+        } catch (error) {
+            return '';
+        }
+    },
+
+    write(key, text) {
+        try {
+            if (String(text ?? '').trim() === '') localStorage.removeItem(DRAFTS + key);
+            else localStorage.setItem(DRAFTS + key, JSON.stringify({ text, at: Date.now() }));
+        } catch (error) {
+            // Storage full or turned off: the box still works, only without the safety net.
+        }
+    },
+
+    // Every draft, or only those older than a number of days.
+    forget(days = 0) {
+        try {
+            Object.keys(localStorage).filter((name) => name.startsWith(DRAFTS)).forEach((name) => {
+                const at = Number(JSON.parse(localStorage.getItem(name) ?? 'null')?.at ?? 0);
+
+                if (days === 0 || Date.now() - at > days * 86400000) localStorage.removeItem(name);
+            });
+        } catch (error) {
+            // Nothing to tidy.
+        }
+    },
+};
+
+drafts.forget(DRAFT_DAYS);
+
+document.addEventListener('submit', (event) => {
+    if (event.target instanceof HTMLFormElement && new URL(event.target.action, location.href).pathname === '/logout') drafts.forget();
+});
+
+// Around a box bound to a Livewire property: draft({ property: 'note', key: 'note:12:345' }). The box itself carries
+// data-draft, so a page with nothing else typed may load again (its words come back).
+Alpine.data('draft', ({ property, key }) => ({
+    restored: false,
+
+    init() {
+        const kept = drafts.read(key);
+
+        if (kept !== '' && String(this.$wire[property] ?? '') === '') {
+            this.$wire[property] = kept;
+            this.restored = true;
+        }
+
+        this.$watch('$wire.' + property, (text) => {
+            drafts.write(key, text);
+
+            if (String(text ?? '') === '') this.restored = false;
+        });
+    },
+}));
+
 // After a page has settled, rows that arrive later (live updates) are highlighted.
 const markReady = () => {
     document.body.classList.remove('lq-ready');
@@ -1014,8 +1083,10 @@ const refreshLive = () => {
 const outdated = { known: false };
 
 // Something typed and not saved yet: text in a field that no longer holds what the page was drawn with, or a
-// file chosen. A choice in a list or a tick is quick to make again and does not hold the page back.
+// file chosen. A choice in a list or a tick is quick to make again and does not hold the page back, and a box
+// with a draft (a lead's note) gets its words back after the reload.
 const typedSomething = () => [...document.querySelectorAll('input, textarea')].some((field) => {
+    if (field.hasAttribute('data-draft')) return false;
     if (field.type === 'file') return field.files.length > 0;
     if (['hidden', 'checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color'].includes(field.type)) return false;
 
@@ -1043,11 +1114,41 @@ document.addEventListener('livewire:navigate', (event) => {
     location.href = event.detail.url.href;
 });
 
-Livewire.interceptRequest(({ onError }) => {
+// A request that only reloads a screen's data: the live updates, wire:poll, a Refresh button.
+const onlyRefreshes = (request) => {
+    const actions = [...(request?.messages ?? [])].flatMap((message) => [...(message.actions ?? [])]);
+
+    return actions.length > 0 && actions.every((action) => action.name === '$refresh');
+};
+
+Livewire.interceptRequest(({ request, onError }) => {
     onError(({ preventDefault }) => {
+        // A screen reloaded in the background that fails says nothing (user report, 27 Oct 2026: an error screen came
+        // up again and again while people worked). Nobody asked for that reload: a host that turned one request away, a
+        // lead that moved to another team, a deploy under way. The next round tries again, and a click of the
+        // person's own still shows what went wrong.
+        if (onlyRefreshes(request)) {
+            preventDefault();
+
+            return;
+        }
+
         if (! outdated.known) return;
 
         preventDefault();
+
+        // Words typed in a box that keeps no draft would go with the reload: they stay, and the bar says why the
+        // click did nothing (27 Oct 2026).
+        if (typedSomething()) {
+            const bar = document.querySelector('[data-new-version]');
+
+            bar?.querySelector('[data-new-version-text]')?.setAttribute('hidden', '');
+            bar?.querySelector('[data-new-version-failed]')?.removeAttribute('hidden');
+            bar?.classList.add('lq-updatebar-failed');
+
+            return;
+        }
+
         location.reload();
     });
 });

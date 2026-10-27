@@ -5075,6 +5075,23 @@ a.lq-stat-hero:hover {
     color: var(--lq-orange-deep);
 }
 
+/* A click of the old page failed while words were typed: the bar asks for the reload, louder. */
+.lq-updatebar-failed {
+    border-bottom-color: color-mix(in srgb, var(--lq-danger) 35%, transparent);
+    background: var(--lq-danger-tint);
+    animation: lq-fade 300ms ease-out, lq-nudge 420ms ease-out;
+}
+
+.lq-updatebar-failed .lq-updatebar-icon {
+    color: var(--lq-danger);
+}
+
+@keyframes lq-nudge {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
 /* The "version X is ready" card on the Updates screen. */
 .lq-update {
     position: relative;
@@ -5953,6 +5970,63 @@ a.lq-cell-title {
     margin-top: 0.375rem;
     font-size: 0.8125rem;
     color: var(--lq-muted);
+}
+
+/* The name on their Facebook or Instagram profile, under the one the lead goes by (what Messenger searches). */
+.lq-lead-alias {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    max-width: 100%;
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--lq-muted);
+}
+
+.lq-lead-alias strong {
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-lead-alias-mark {
+    flex: none;
+    width: 0.9375rem;
+    height: 0.9375rem;
+    color: var(--lq-info);
+}
+
+.lq-lead-alias-copy {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.5rem;
+    color: var(--lq-muted);
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.lq-lead-alias-copy:hover {
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+}
+
+.lq-lead-alias-copy svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/* In a list's name cell: the profile name on the second line, beside the contact. */
+.lq-cell-alias {
+    white-space: nowrap;
+}
+
+.lq-cell-alias svg {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    vertical-align: -0.0625rem;
+    color: var(--lq-info);
 }
 
 /* The pipeline as one rail: steps behind the lead are tinted, its own is filled. */
@@ -10799,6 +10873,20 @@ a.lq-file-main:hover .lq-file-name {
 
 .lq-notebox-foot .lq-help {
     margin: 0;
+}
+
+/* The words of a note that was not saved, back after the page loaded again. */
+.lq-notebox-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--lq-orange-deep);
+    font-weight: 500;
+}
+
+.lq-notebox-back svg {
+    width: 1rem;
+    height: 1rem;
 }
 
 /* The owner as a fact of the lead: one line, with the arrow that says it opens. */

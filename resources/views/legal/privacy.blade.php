@@ -28,7 +28,7 @@
     <h3>When you make an enquiry</h3>
     <ul>
         <li><strong>From a website form:</strong> what you typed (usually your name, email address, phone number and message), the page you were on, and the campaign tags in the link you followed. The website may also send your IP address and browser type; those stay only in a temporary record that is deleted within 30 days, not with your enquiry.</li>
-        <li><strong>From a Facebook or Instagram lead form:</strong> the answers you gave in the form, and the names of the Page, the form, the ad and the campaign it came from.</li>
+        <li><strong>From a Facebook or Instagram lead form:</strong> the answers you gave in the form, the names of the Page, the form, the ad and the campaign it came from, and the name on your Facebook profile if Facebook shares it, so the business can find your chat with its Page.</li>
         <li><strong>From Messenger:</strong> the messages you send to the business's Page and the replies you get, your name and profile picture if Facebook shares them, and the ID Facebook gives you for that Page. We do not download attachments; we keep only the reference Facebook sends with the message.</li>
         <li><strong>From an Instagram direct message:</strong> the messages you send to the business's Instagram account and the replies you get, your name, Instagram username and profile picture if Instagram shares them, the ID Instagram gives you for that account and, if you wrote after tapping an ad, the name of that ad. As with Messenger, we do not download photos, videos or shared posts; we keep only the reference Instagram sends with the message. If you delete a message, we remove its words too.</li>
         <li><strong>What the team adds</strong> while working on your enquiry: notes, follow-up tasks, its status and, if you buy, the amount and date of each sale.</li>
@@ -54,7 +54,7 @@
     </ul>
 
     <h3>Cookies</h3>
-    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Keep me signed in", one that remembers light or dark mode, and one random code that lets {{ $name }} recognise the same browser again, so an Admin can approve or block a phone (only a scrambled copy of it is stored). There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts) and a copy of the "You are offline" page; these stay on the computer and are not sent to us.</p>
+    <p>{{ $name }} uses only the cookies it needs to work: one for your session, one that protects forms against forgery, one that keeps you signed in if you tick "Keep me signed in", one that remembers light or dark mode, and one random code that lets {{ $name }} recognise the same browser again, so an Admin can approve or block a phone (only a scrambled copy of it is stored). There are no advertising or analytics cookies. For team members, the browser also keeps a few choices of that computer (light or dark mode, the notification sound, desktop alerts), a note they are writing on an enquiry until it is saved (for at most a week, and removed when they sign out) and a copy of the "You are offline" page; these stay on the computer and are not sent to us.</p>
 
     <h2>4. What we use it for</h2>
     <ul>

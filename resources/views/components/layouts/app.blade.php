@@ -50,7 +50,8 @@
         {{-- Shown by app.js when the site has deployed since this page was opened (data-live-build below). --}}
         <div class="lq-updatebar" role="status" data-new-version hidden>
             <x-heroicon-o-arrow-path class="lq-updatebar-icon" />
-            <span class="min-w-0 flex-1"><strong>LiquifyCRM has been updated.</strong> Reload the page to use the new version.</span>
+            <span class="min-w-0 flex-1" data-new-version-text><strong>LiquifyCRM has been updated.</strong> Reload the page to use the new version.</span>
+            <span class="min-w-0 flex-1" data-new-version-failed hidden><strong>That did not go through: this page is from before an update.</strong> Copy what you typed, then reload. A note you were writing on a lead comes back by itself.</span>
             <button type="button" class="lq-btn lq-btn-secondary lq-btn-sm" onclick="location.reload()">Reload</button>
         </div>
 

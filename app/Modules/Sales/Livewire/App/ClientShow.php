@@ -16,6 +16,7 @@ use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordUpsell;
 use App\Modules\Sales\Actions\SaveClientNote;
 use App\Modules\Sales\Actions\StoreClientFile;
+use App\Modules\Sales\Actions\UpdateClientDetails;
 use App\Modules\Sales\Livewire\Concerns\ChoosesSaleCurrency;
 use App\Modules\Sales\Livewire\Concerns\CreatesInvoices;
 use App\Modules\Sales\Livewire\Concerns\RecordsPayments;
@@ -67,6 +68,40 @@ final class ClientShow extends Component
         $this->brand = $brand;
         $this->client = $client;
         $this->authorize('view', $client);
+    }
+
+    // ------------------------------------------------------ the client's details
+
+    public bool $showDetails = false;
+
+    /** @var array<string, string> */
+    public array $details = ['name' => '', 'phone' => '', 'email' => ''];
+
+    /** Correct the name, phone or email: everybody who works the client, Agents too. */
+    public function openDetails(): void
+    {
+        $this->authorize('update', $this->client);
+
+        $this->details = ['name' => (string) $this->client->name, 'phone' => (string) $this->client->phone, 'email' => (string) $this->client->email];
+        $this->resetValidation();
+        $this->showDetails = true;
+    }
+
+    public function saveDetails(UpdateClientDetails $update): void
+    {
+        $this->authorize('update', $this->client);
+
+        /** @var array<string, string|null> $details */
+        $details = $this->validate([
+            'details.name' => ['required', 'string', 'max:160'],
+            'details.phone' => ['nullable', 'string', 'max:32'],
+            'details.email' => ['nullable', 'email', 'max:190'],
+        ], attributes: ['details.name' => 'name', 'details.phone' => 'phone', 'details.email' => 'email'])['details'];
+
+        $update->handle($this->client, $details, $this->user());
+
+        $this->showDetails = false;
+        $this->toastSuccess('Details saved');
     }
 
     // ------------------------------------------------------ correcting a sale
@@ -566,6 +601,7 @@ final class ClientShow extends Component
             'sellerOptions' => $this->sellerOptions(),
             'can' => [
                 'correct' => $user->isGlobalAdmin(),
+                'update' => $user->can('update', $this->client),
                 'upsell' => $ready && $user->can('recordUpsell', $this->client),
                 // A closed client is reopened first, as everywhere else.
                 'handOver' => $ready && ! $this->client->isClosed() && ($user->can('handOver', $this->client) || $user->can('assign', $this->client)),

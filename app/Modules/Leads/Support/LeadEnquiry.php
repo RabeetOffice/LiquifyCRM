@@ -130,6 +130,11 @@ final class LeadEnquiry
 
         $lines = [$lead->name];
 
+        // The name to search for in Messenger or Instagram, when it is not the one above.
+        if (($profile = ProfileNames::shown($lead)) !== null) {
+            $lines[] = $profile['where'].' name: '.$profile['name'];
+        }
+
         if (filled($phone)) {
             $lines[] = 'Phone: '.$phone;
         }

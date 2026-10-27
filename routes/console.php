@@ -37,6 +37,9 @@ Schedule::command('sites:check')->everyThirtyMinutes()->doNotMonitor();
 // Facebook: renew the connection token before its 60 days run out.
 Schedule::command('meta:refresh-tokens')->dailyAt('03:15')->doNotMonitor();
 
+// Facebook and Instagram: the profile name of open leads, which Messenger searches by (a form has only what was typed).
+Schedule::command('meta:profile-names')->everyTenMinutes()->withoutOverlapping(10)->runInBackground()->doNotMonitor();
+
 // Brands: refresh each favicon weekly in case the website changed it.
 Schedule::command('brands:refresh-identity')->weeklyOn(1, '04:00')->doNotMonitor();
 

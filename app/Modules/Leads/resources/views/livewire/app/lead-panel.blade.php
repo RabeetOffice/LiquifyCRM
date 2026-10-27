@@ -58,6 +58,17 @@
         <x-ui.avatar :name="$lead->name" size="lg" tone />
         <div class="min-w-0 flex-1">
             <h2 class="lq-lead-name">{{ $lead->name }}</h2>
+            @if ($profileName)
+                {{-- The name Messenger and Instagram search by: a lead form only has what the person typed. --}}
+                <p class="lq-lead-alias">
+                    <x-ui.brand-icon :name="$profileName['icon']" class="lq-lead-alias-mark" />
+                    <span class="min-w-0 truncate" title="The name on their {{ $profileName['where'] }} profile. Search for it in {{ $profileName['where'] === 'Instagram' ? 'Instagram' : 'Messenger' }}.">On {{ $profileName['where'] }}: <strong>{{ $profileName['name'] }}</strong></span>
+                    <button type="button" class="lq-lead-alias-copy" x-data="copy(@js($profileName['name']))" x-on:click="copy()" x-bind:title="copied ? 'Copied' : @js('Copy the '.$profileName['where'].' name')" aria-label="Copy the {{ $profileName['where'] }} name">
+                        <x-heroicon-o-clipboard x-show="! copied" />
+                        <x-heroicon-o-check x-show="copied" x-cloak />
+                    </button>
+                </p>
+            @endif
             <div class="lq-lead-meta">
                 <x-ui.lead-source :lead="$lead" />
                 <span>Received <x-ui.received :at="$lead->created_at" inline /></span>
@@ -240,15 +251,17 @@
                 @elseif ($shown === 'notes')
                     <div class="flex flex-col gap-3">
                         @if ($can['update'])
-                            {{-- A note is written here, where the notes are, not in a dialog. --}}
-                            <form wire:submit="addNote" class="lq-notebox">
-                                <textarea class="lq-input" rows="2" wire:model="note" name="note" id="lead-note" aria-label="Write a note" placeholder="Write a note: what happened, what is next…"
-                                    x-data x-on:focus-note.window="setTimeout(() => $el.focus(), 80)" x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()" x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"></textarea>
+                            {{-- A note is written here, where the notes are, not in a dialog. What is typed is kept on this
+                                 computer until it is saved, so a reload or a closed slide-over never loses it. --}}
+                            <form wire:submit="addNote" class="lq-notebox" x-data="draft({ property: 'note', key: @js('note:'.auth()->id().':'.$lead->getKey()) })">
+                                <textarea class="lq-input" rows="2" wire:model="note" name="note" id="lead-note" data-draft aria-label="Write a note" placeholder="Write a note: what happened, what is next…"
+                                    x-on:focus-note.window="setTimeout(() => $el.focus(), 80)" x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()" x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"></textarea>
                                 @error('note')
                                     <p class="lq-error">{{ $message }}</p>
                                 @enderror
                                 <div class="lq-notebox-foot">
-                                    <span class="lq-help">Only your team sees notes. Ctrl + Enter saves.</span>
+                                    <span class="lq-help lq-notebox-back" x-show="restored" x-cloak><x-heroicon-o-arrow-uturn-left /> Your note was not saved yet, so it is back here.</span>
+                                    <span class="lq-help" x-show="! restored">Only your team sees notes. Ctrl + Enter saves.</span>
                                     <x-ui.button type="submit" size="sm" variant="secondary" icon="heroicon-o-plus" wire:loading.attr="disabled" wire:target="addNote">Add note</x-ui.button>
                                 </div>
                             </form>

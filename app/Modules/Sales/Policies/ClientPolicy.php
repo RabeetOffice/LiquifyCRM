@@ -47,6 +47,17 @@ final class ClientPolicy
         return $this->inCurrentBrand($client) && Client::query()->visibleTo($user)->whereKey($client->getKey())->exists();
     }
 
+    /**
+     * Correct the client's name, phone and email (user request, 27 Oct 2026):
+     * everybody who works the client, Agents included. That is whoever may open
+     * them: the person who looks after them, the people who help, the Manager
+     * of their department, a front Manager until the hand-over, and Admins.
+     */
+    public function update(User $user, Client $client): bool
+    {
+        return $this->view($user, $client) && ($user->isGlobalAdmin() || $user->isMemberOf($client->brand_id));
+    }
+
     /** Bring clients in from a CSV or Excel file: Admins. */
     public function import(User $user): bool
     {

@@ -99,6 +99,9 @@
                                     <span class="lq-quiet-dot" title="No activity since {{ $lead->last_activity_at?->format('j M') }}"></span>
                                 @endif
                             </div>
+                            @if ($alias = \App\Modules\Leads\Support\ProfileNames::shown($lead))
+                                <div class="lq-kcard-note lq-cell-alias" title="On {{ $alias['where'] }}"><x-ui.brand-icon :name="$alias['icon']" /> {{ $alias['name'] }}</div>
+                            @endif
                             @if (filled($lead->fields['service'] ?? null))
                                 <div class="lq-kcard-note">{{ $lead->fields['service'] }}</div>
                             @endif

@@ -196,6 +196,28 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `data-new-version` bar, turns the next `wire:navigate` into a full load, reloads a background tab with no typed text,
   and reloads instead of Livewire's error dialog when a request fails. The error page's "Try again" goes to the
   Referer for anything but a GET: `url()->current()` inside a Livewire request is `/livewire-…/update` (a 405 as a page).
+- Notes never lost, quiet background refreshes (user report, 27 Oct 2026: notes lost "since 5", an error screen "again and
+  again"; the live log had no server error since 21 Oct). The lead's note box is `x-data="draft({ property, key })"` with
+  `data-draft` on the textarea: app.js keeps what is typed in localStorage `lq_draft:note:{user}:{lead}` and puts it back
+  when the box is drawn again, drops it once `$wire.note` is empty (saved), after 7 days, and all of them on a sign-out
+  form. Never draft a client's saved text (it holds passwords). `typedSomething()` skips `data-draft` boxes. A request
+  that only calls `$refresh` (live updates, wire:poll) and fails is silenced in `Livewire.interceptRequest` (the next round
+  tries again); a person's own click still shows Livewire's error. When outdated, a failed click with typed words keeps
+  the page and shows `data-new-version-failed` in the bar instead of reloading. Livewire 4 keeps keystrokes typed while a
+  refresh is in flight (`mergeNewSnapshot` only patches what the server changed), so refreshing a screen with a box being
+  typed in is safe.
+- Profile names (user report, 27 Oct 2026: a form carries what the person typed; Messenger searches only profile names):
+  `leads.profile_name` (behind `ProfileNames::ready()`) is the name on their Facebook profile (`@username` on Instagram
+  when Meta gives no name), only ever from Meta: `SyncContactProfile` (also returns `profileName` for a chat that gets its
+  lead afterwards), `LearnProfileName` (lead form via `inbox_url`, or the lead's chat; `due()` once in 12 hours per lead;
+  run inline by `ProcessMetaEvent::leadAd`, RunSoon from `LeadPanel` render, and `meta:profile-names` every ten minutes for
+  open leads of 60 days). `ProfileNames::shown()` is null when it equals the lead's name; shown under the lead's name, in
+  the list's second line, on Pipeline cards, in the copy text and Ctrl K, and searched by LeadsIndex, Pipeline and
+  GlobalSearch. `MetaGraph::contactProfile(withPicture: false)` skips the picture call.
+- Client details (user request, 27 Oct 2026, "for agent as well"): `ClientPolicy::update` = whoever may `view` the client
+  (owner, helpers, the Upsell team's Manager, a front Manager until the hand-over, Admins), Agents included.
+  `UpdateClientDetails` changes only the client (name, phone, email); its lead and invoices keep theirs; the log names
+  the fields, not the values. "Edit details" tile and the Contact card link on `ClientShow`.
 - Alerts and the installed app (user request, 14 Oct 2026): `NotificationBell::tick()` dispatches `lq-alert` with up to three
   new entries; `app.js` plays a chime made with Web Audio (no file) and asks `public/sw.js` for desktop notifications, which it
   shows only while no LiquifyCRM window is focused. Sound and desktop alerts are choices of the computer (localStorage

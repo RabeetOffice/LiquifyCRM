@@ -159,11 +159,12 @@ final class MetaGraph
      * Three places are asked, because Meta guards them differently: the
      * person's profile, the Page's own list of chats (which names who it
      * talks to), and the picture on its own. `reason` is what Meta answered
-     * when it gave no name, in its own words.
+     * when it gave no name, in its own words. Without `$withPicture` the picture
+     * is not asked for on its own (only the name is wanted).
      *
      * @return array{name: ?string, picture: ?string, reason: ?string}
      */
-    public function contactProfile(MetaSource $page, string $psid): array
+    public function contactProfile(MetaSource $page, string $psid, bool $withPicture = true): array
     {
         $token = $this->pageToken($page);
         $name = null;
@@ -192,7 +193,7 @@ final class MetaGraph
             }
         }
 
-        if ($picture === null) {
+        if ($picture === null && $withPicture) {
             try {
                 $image = (array) ($this->get('/'.$psid.'/picture', $token, ['redirect' => 'false', 'type' => 'large'])['data'] ?? []);
                 $picture = empty($image['is_silhouette']) ? $this->pictureUrl((string) ($image['url'] ?? '')) : null;

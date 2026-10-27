@@ -33,6 +33,8 @@ use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Leads\Support\FollowUpZones;
 use App\Modules\Leads\Support\LeadEnquiry;
 use App\Modules\Leads\Support\LeadMatcher;
+use App\Modules\Leads\Support\ProfileNames;
+use App\Modules\Meta\Jobs\LearnProfileName;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
@@ -674,6 +676,9 @@ final class LeadPanel extends Component
         // The lead's chat (Messenger or Instagram), its latest if there are two.
         $chat = Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->first(['id', 'channel']);
 
+        // The name on their Facebook or Instagram profile, asked for once in a while until Meta gives it.
+        LearnProfileName::soon($lead);
+
         return view('leads::livewire.app.lead-panel', [
             'lead' => $lead,
             'followUpZones' => $this->showFollowUp && FollowUpZones::ready() ? $this->followUpZoneChoices($lead) : null,
@@ -699,6 +704,7 @@ final class LeadPanel extends Component
             'copyText' => LeadEnquiry::copyText($lead, $canSeeFull),
             'sourceFacts' => LeadEnquiry::source($lead),
             'inboxUrl' => LeadEnquiry::inboxUrl($lead),
+            'profileName' => ProfileNames::shown($lead),
             // Other leads of the same person, offered for merging to whoever may merge both; a colleague's is only named.
             'twins' => $user->can('merge', $lead) ? array_map(fn (array $twin): array => [...$twin, 'mergeable' => $user->can('merge', $twin['lead'])], LeadMatcher::twins($lead, $user)) : [],
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],

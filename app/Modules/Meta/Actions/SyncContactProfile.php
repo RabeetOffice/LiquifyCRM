@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Actions;
 
 use App\Modules\Leads\Support\LeadMatcher;
+use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Support\Instagram;
 use App\Modules\Meta\Support\MetaGraph;
@@ -16,18 +17,22 @@ use Illuminate\Support\Facades\Schema;
  * once a day (the picture's address expires), and whenever someone clicks
  * the refresh button. A name the team typed in by hand is never replaced; a
  * lead still called "Messenger contact", "Instagram contact" or only by the
- * username takes the real name once Meta shares it.
+ * username takes the real name once Meta shares it, and every lead keeps
+ * the profile name beside its own (ProfileNames).
  */
 final class SyncContactProfile
 {
     public function __construct(private readonly MetaGraph $graph) {}
 
     /**
-     * @return array{name: bool, picture: bool, reason: ?string} what was learned, or Meta's reason for nothing
+     * What was learned, or Meta's reason for nothing; `profileName` is the
+     * name Meta gave, for a lead the chat only gets afterwards.
+     *
+     * @return array{name: bool, picture: bool, reason: ?string, profileName: ?string}
      */
     public function handle(Conversation $conversation, bool $force = false): array
     {
-        $nothing = ['name' => false, 'picture' => false, 'reason' => null];
+        $nothing = ['name' => false, 'picture' => false, 'reason' => null, 'profileName' => null];
         $conversation->loadMissing(['source', 'lead']);
         $page = $conversation->source;
 
@@ -68,12 +73,24 @@ final class SyncContactProfile
 
         $lead = $conversation->lead;
         $after = $conversation->displayName();
+        $changes = [];
 
         // A lead that still carries the stand-in name ("Instagram contact", or only the @username) takes the better one.
         if ($after !== $before && $lead !== null && ($lead->name === $before || LeadMatcher::isPlaceholder($lead->name))) {
-            $lead->forceFill(['name' => $after])->save();
+            $changes['name'] = $after;
         }
 
-        return ['name' => $named || ($handle !== null && $after !== $before), 'picture' => $ready && $profile['picture'] !== null, 'reason' => $profile['reason']];
+        // The name Messenger and Instagram search by stays beside the one the lead goes by (ProfileNames).
+        $profileName = $profile['name'] ?? ($handle !== null ? '@'.$handle : null);
+
+        if ($lead !== null && $profileName !== null && ProfileNames::ready() && $lead->getAttribute('profile_name') !== $profileName) {
+            $changes['profile_name'] = $profileName;
+        }
+
+        if ($lead !== null && $changes !== []) {
+            $lead->forceFill($changes)->save();
+        }
+
+        return ['name' => $named || ($handle !== null && $after !== $before), 'picture' => $ready && $profile['picture'] !== null, 'reason' => $profile['reason'], 'profileName' => $profileName];
     }
 }

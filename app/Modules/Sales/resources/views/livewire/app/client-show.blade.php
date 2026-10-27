@@ -38,12 +38,18 @@
     </header>
 
     {{-- What you can do. Recording an upsell is the one orange action. --}}
-    @if ($can['upsell'] || $can['addFile'] || $care || $can['handOver'] || $can['close'] || $can['reopen'])
+    @if ($can['upsell'] || $can['update'] || $can['addFile'] || $care || $can['handOver'] || $can['close'] || $can['reopen'])
         <div class="lq-actions lq-actions-row">
             @if ($can['upsell'])
                 <button type="button" class="lq-action lq-action-primary" wire:click="openUpsell">
                     <span class="lq-action-icon"><x-heroicon-o-arrow-trending-up /></span>
                     <span class="lq-action-label">Record an upsell</span>
+                </button>
+            @endif
+            @if ($can['update'])
+                <button type="button" class="lq-action" wire:click="openDetails">
+                    <span class="lq-action-icon"><x-heroicon-o-pencil-square /></span>
+                    <span class="lq-action-label">Edit details</span>
                 </button>
             @endif
             @if ($can['addFile'])
@@ -416,7 +422,12 @@
 
             <section class="lq-card">
                 <div class="lq-card-body">
-                    <h2 class="lq-lead-heading">Contact</h2>
+                    <h2 class="lq-lead-heading lq-lead-heading-row">
+                        Contact
+                        @if ($can['update'])
+                            <button type="button" class="lq-link text-xs" wire:click="openDetails">Edit details</button>
+                        @endif
+                    </h2>
                     <ul class="lq-facts">
                         <li class="lq-fact">
                             <span class="lq-fact-icon"><x-heroicon-o-phone /></span>
@@ -459,6 +470,26 @@
     </div>
 
     {{-- Dialogs --}}
+    @if ($can['update'])
+        <x-ui.modal model="showDetails" title="Edit details" description="The client's name, phone and email. The leads they came from keep what they sent." size="sm">
+            <form wire:submit="saveDetails" class="lq-form" id="client-details-form">
+                <x-ui.field label="Name" name="details.name" required>
+                    <x-ui.input wire:model="details.name" name="details.name" autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field label="Phone" name="details.phone">
+                    <x-ui.input type="tel" wire:model="details.phone" name="details.phone" autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field label="Email" name="details.email">
+                    <x-ui.input type="email" wire:model="details.email" name="details.email" autocomplete="off" />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showDetails', false)">Cancel</x-ui.button>
+                <x-ui.button type="submit" form="client-details-form" variant="primary" wire:loading.attr="disabled" wire:target="saveDetails">Save details</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
     @if ($can['upsell'])
         @include('sales::partials.payment-sheet')
         @include('sales::partials.invoice-sheet')

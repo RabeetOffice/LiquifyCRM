@@ -11,6 +11,7 @@ use App\Modules\Core\Navigation\Menu;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\ProfileNames;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
@@ -72,8 +73,10 @@ final class GlobalSearch extends Component
             ->visibleTo($user)
             ->where(fn (Builder $q): Builder => $fullContacts
                 ? $q->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)
+                    ->when(ProfileNames::ready(), fn (Builder $n): Builder => $n->orWhere('profile_name', 'like', $like))
                 // Masked contacts match only as a whole, so typed fragments cannot uncover them.
-                : $q->where('name', 'like', $like)->orWhere('email', mb_strtolower($query))->orWhere('phone', $query))
+                : $q->where('name', 'like', $like)->orWhere('email', mb_strtolower($query))->orWhere('phone', $query)
+                    ->when(ProfileNames::ready(), fn (Builder $n): Builder => $n->orWhere('profile_name', 'like', $like)))
             ->with(['status', 'assignee'])
             ->limit(6)
             ->get();
@@ -81,7 +84,8 @@ final class GlobalSearch extends Component
         if ($leads->isNotEmpty()) {
             $results['Leads'] = $leads->map(fn (Lead $lead): array => [
                 'label' => $lead->name,
-                'detail' => $lead->status->name.($lead->assignee ? ' · '.$lead->assignee->name : '').($lead->isArchived() ? ' · Archived' : ''),
+                // Found by the name on their profile: say which one.
+                'detail' => (($profile = ProfileNames::shown($lead)) !== null ? $profile['where'].': '.$profile['name'].' · ' : '').$lead->status->name.($lead->assignee ? ' · '.$lead->assignee->name : '').($lead->isArchived() ? ' · Archived' : ''),
                 'url' => $brand->url('leads/'.$lead->getKey()),
                 'icon' => 'heroicon-o-user',
             ])->all();

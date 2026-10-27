@@ -13,6 +13,7 @@ use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\LeadMatcher;
+use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Actions\SyncContactProfile;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
@@ -180,6 +181,8 @@ final class ProcessMetaEvent implements ShouldQueue
                 actionLabel: 'Open lead',
             ));
 
+            $this->learnProfileName($lead, $graph);
+
             return $lead;
         }
 
@@ -196,7 +199,20 @@ final class ProcessMetaEvent implements ShouldQueue
             $chat->forceFill(['lead_id' => $lead->getKey()])->save();
         }
 
+        $this->learnProfileName($lead, $graph);
+
         return $lead;
+    }
+
+    /**
+     * The name on the person's Facebook profile, which Messenger searches by: the form only carries what they
+     * typed (27 Oct 2026). Nothing learned leaves the lead as it is.
+     */
+    private function learnProfileName(Lead $lead, MetaGraph $graph): void
+    {
+        if (LearnProfileName::due($lead)) {
+            (new LearnProfileName($lead->getKey()))->handle($graph);
+        }
     }
 
     /**
@@ -255,7 +271,7 @@ final class ProcessMetaEvent implements ShouldQueue
         }
 
         $conversation->setRelation('source', $page);
-        app(SyncContactProfile::class)->handle($conversation);
+        $profile = app(SyncContactProfile::class)->handle($conversation);
 
         $lead = $conversation->lead;
         $newLead = false;
@@ -286,6 +302,11 @@ final class ProcessMetaEvent implements ShouldQueue
                 ]),
             ], mergeDuplicates: false)->lead;
             $newLead = true;
+        }
+
+        // The name on their profile, asked a moment ago while the chat had no lead yet (ProfileNames).
+        if ($profile['profileName'] !== null && ProfileNames::ready() && $lead->getAttribute('profile_name') !== $profile['profileName']) {
+            $lead->forceFill(['profile_name' => $profile['profileName']])->save();
         }
 
         if ($mid === '' || ! Message::query()->where('external_id', $mid)->exists()) {

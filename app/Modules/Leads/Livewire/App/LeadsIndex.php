@@ -25,6 +25,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Sales\Models\LeadDistribution;
 use App\Modules\Sites\Support\LeadSites;
 use Carbon\CarbonImmutable;
@@ -543,7 +544,7 @@ final class LeadsIndex extends Component
         }
 
         $query
-            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like))))
+            ->when($this->search !== '', fn (Builder $q): Builder => $q->where(fn (Builder $w): Builder => $this->searchContacts($w->where('name', 'like', $like)->when(ProfileNames::ready(), fn (Builder $n): Builder => $n->orWhere('profile_name', 'like', $like)))))
             ->when($this->status !== '', fn (Builder $q): Builder => $q->where('status_id', (int) $this->status))
             ->when($this->source !== '', fn (Builder $q): Builder => $q->where('source_type', $this->source))
             ->when($this->department !== '', fn (Builder $q): Builder => $q->where('department_id', (int) $this->department))

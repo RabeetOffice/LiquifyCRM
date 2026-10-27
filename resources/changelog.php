@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.37.0',
+        'date' => '2026-10-27',
+        'title' => 'Notes are never lost, Facebook names on leads, edit a client',
+        'changes' => [
+            ['fixed', 'A note you are writing on a lead is kept on your computer as you type. If the page loads again (after an update, a sign-out, a closed slide-over or a lost connection), open the lead and the note is back in the box, with a line saying so. It goes once the note is saved.'],
+            ['fixed', 'An error window no longer pops up again and again while you work. A screen that refreshes itself in the background and is turned away once (by the server, or because the lead moved to another team) now just tries again a few seconds later. Your own clicks still say when something went wrong.'],
+            ['improved', 'A page opened before an update no longer reloads under your hands when a click fails: if you have typed something, it stays, and the bar at the top asks you to reload.'],
+            ['new', 'Leads from Facebook and Instagram show the name on the person\'s profile under the name they typed into the form ("On Facebook: …"), with a copy button, because Messenger only searches profile names. The list, the Pipeline and the search find a lead by that name too, and the copy of a lead includes it.'],
+            ['new', 'Edit details on a client\'s page: the name, phone and email. Everybody who works the client can correct them, Agents included (whoever looks after the client and the people who help), as well as the team\'s Manager and Admins.'],
+            ['improved', 'Open leads that came in before this update get their Facebook name over the next few hours, a few at a time, once an Admin has clicked Update system. Opening a lead asks for its name at once.'],
+        ],
+    ],
+    [
         'version' => '1.36.0',
         'date' => '2026-10-26',
         'title' => 'Sign-in security: office network, phones and blocked addresses',
