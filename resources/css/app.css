@@ -12120,4 +12120,213 @@ a.lq-ov-row:hover {
     }
 }
 
+
+/* Two-step codes (27 Oct 2026): the closed panel, each person's code now, their QR code. */
+.lq-twostep-locked {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lq-twostep-locked > .min-w-0 {
+    flex: 1 1 20rem;
+}
+
+.lq-twostep-locked-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-orange-tint);
+    color: var(--lq-orange-deep);
+}
+
+.lq-twostep-locked-icon svg {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+.lq-twostep-locked-title {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-twostep-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--lq-hairline);
+    border-radius: 10px;
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 150ms ease;
+}
+
+.lq-twostep-code:hover {
+    border-color: var(--lq-orange);
+}
+
+.lq-twostep-code-hidden {
+    cursor: default;
+    color: var(--lq-muted);
+}
+
+.lq-twostep-code-hidden:hover {
+    border-color: var(--lq-hairline);
+}
+
+.lq-twostep-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.625rem;
+    text-align: center;
+}
+
+.lq-twostep-qr-image {
+    padding: 0.75rem;
+    border-radius: var(--lq-radius-inner);
+    background: #fff;
+    line-height: 0;
+}
+
+.lq-twostep-key {
+    font-size: 0.9375rem;
+    letter-spacing: 0.04em;
+    word-break: break-all;
+}
+
+
+/* Website leads (27 Oct 2026): the chart beside the top websites, and the read-only lead sheet. */
+.lq-wl-top {
+    display: grid;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1100px) {
+    .lq-wl-top {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+}
+
+button.lq-perday-row {
+    width: 100%;
+    border: 0;
+    background: none;
+    text-align: start;
+    cursor: pointer;
+}
+
+button.lq-perday-row:hover {
+    background: var(--lq-raised);
+}
+
+.lq-wl-sites {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lq-wl-site {
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr) auto;
+    grid-template-areas: "icon name num" ". bar bar";
+    align-items: center;
+    column-gap: 0.625rem;
+    row-gap: 0.3125rem;
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 0;
+    border-radius: var(--lq-radius-control);
+    background: none;
+    color: var(--lq-ink);
+    font-size: 0.8125rem;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-wl-site:hover {
+    background: var(--lq-raised);
+}
+
+.lq-wl-site svg {
+    grid-area: icon;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+}
+
+.lq-wl-site-name {
+    grid-area: name;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-wl-site-num {
+    grid-area: num;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.lq-wl-site-bar {
+    grid-area: bar;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--lq-orange) var(--share), var(--lq-raised) var(--share));
+}
+
+.lq-wl-heading {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--lq-muted);
+}
+
+.lq-wl-message {
+    margin: 0 0 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+    color: var(--lq-ink);
+    white-space: pre-line;
+}
+
+.lq-wl-facts {
+    display: grid;
+    gap: 0.625rem 1rem;
+    margin: 0;
+}
+
+@media (min-width: 640px) {
+    .lq-wl-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.lq-wl-facts dt {
+    font-size: 0.75rem;
+    color: var(--lq-muted);
+}
+
+.lq-wl-facts dd {
+    margin: 0.125rem 0 0;
+    color: var(--lq-ink);
+    font-size: 0.875rem;
+}
+
 } /* @layer components */

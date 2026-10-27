@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Auth\Livewire\Admin;
 
+use App\Modules\Auth\Actions\SetPersonPassword;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Enums\BrandRole;
@@ -18,14 +19,16 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * Everyone who can sign in, across all brands: Super Admins, Admins,
- * Managers and Agents. Super Admins and Admins add and manage them here; a
- * Super Admin is protected and can only be changed by themselves.
+ * Everyone who can sign in, across all brands: Super Admins, Admins, IT,
+ * Website leads people, Managers and Agents. Super Admins and Admins add and
+ * manage them here; a Super Admin is protected and can only be changed by
+ * themselves. IT reads the list and sets passwords (27 Oct 2026).
  */
 #[Layout('components.layouts.app')]
 #[Title('People')]
@@ -36,12 +39,22 @@ final class PeopleIndex extends Component
     use WithTableState;
     use WithToasts;
 
-    /** all | admins | managers | agents */
+    /** all | admins | staff (IT and Website leads) | managers | agents */
     #[Url(except: 'all')]
     public string $tab = 'all';
 
     #[Url(as: 'brand', except: '')]
     public string $brandFilter = '';
+
+    /** The person whose password is being set; chosen on the server after the check. */
+    #[Locked]
+    public ?int $passwordFor = null;
+
+    public bool $showPassword = false;
+
+    public string $newPassword = '';
+
+    public string $newPassword_confirmation = '';
 
     public function mount(): void
     {
@@ -103,11 +116,43 @@ final class PeopleIndex extends Component
         $this->toastSuccess($user->name.' removed');
     }
 
+    /** Set somebody's password (Admins and IT, UserPolicy::changePassword). */
+    public function openPassword(int $userId): void
+    {
+        $user = User::query()->findOrFail($userId);
+        $this->authorize('changePassword', $user);
+
+        $this->passwordFor = (int) $user->getKey();
+        $this->reset('newPassword', 'newPassword_confirmation');
+        $this->resetErrorBag();
+        $this->showPassword = true;
+    }
+
+    public function savePassword(SetPersonPassword $setPassword): void
+    {
+        $user = User::query()->findOrFail((int) $this->passwordFor);
+        $this->authorize('changePassword', $user);
+
+        $this->validate(
+            ['newPassword' => ['required', 'string', SetPersonPassword::rule($user), 'confirmed']],
+            ['newPassword.confirmed' => 'The two passwords are not the same.'],
+            ['newPassword' => 'new password'],
+        );
+
+        /** @var User $actor */
+        $actor = auth()->user();
+        $setPassword->handle($user, $this->newPassword, $actor);
+
+        $this->reset('newPassword', 'newPassword_confirmation', 'passwordFor', 'showPassword');
+        $this->toastSuccess('New password set for '.$user->name, 'They were signed out everywhere. Give them the new password securely.');
+    }
+
     public function render(): View
     {
         $like = '%'.$this->search.'%';
         $brandId = ctype_digit($this->brandFilter) ? (int) $this->brandFilter : null;
         $globalRoles = [GlobalRole::SuperAdmin->value, GlobalRole::Admin->value];
+        $otherRoles = [GlobalRole::It->value, GlobalRole::WebsiteLeads->value];
 
         $inRole = fn (BrandRole $role): callable => fn (Builder $query): Builder => $query
             ->withoutGlobalScopes()
@@ -119,6 +164,7 @@ final class PeopleIndex extends Component
                 $query->withoutGlobalScopes()->with('brand');
             }])
             ->when($this->tab === 'admins', fn (Builder $query): Builder => $query->whereIn('role', $globalRoles))
+            ->when($this->tab === 'staff', fn (Builder $query): Builder => $query->whereIn('role', $otherRoles))
             ->when($this->tab === 'managers', fn (Builder $query): Builder => $query->whereHas('memberships', $inRole(BrandRole::Manager)))
             ->when($this->tab === 'agents', fn (Builder $query): Builder => $query->whereHas('memberships', $inRole(BrandRole::Agent)))
             ->when($brandId !== null && ! in_array($this->tab, ['managers', 'agents'], true), fn (Builder $query): Builder => $query->whereHas('memberships', fn (Builder $q): Builder => $q->withoutGlobalScopes()->where('brand_id', $brandId)))
@@ -129,9 +175,13 @@ final class PeopleIndex extends Component
         return view('auth::livewire.admin.people-index', [
             'people' => $people,
             'brands' => Brand::query()->orderBy('name')->pluck('name', 'id')->all(),
+            'passwordPerson' => $this->showPassword && $this->passwordFor !== null ? User::query()->find($this->passwordFor) : null,
+            // IT opens no brand, so the brands are names, not links.
+            'linkBrands' => (bool) auth()->user()?->isGlobalAdmin(),
             'counts' => [
                 'all' => User::query()->count(),
                 'admins' => User::query()->whereIn('role', $globalRoles)->count(),
+                'staff' => User::query()->whereIn('role', $otherRoles)->count(),
                 'managers' => User::query()->whereHas('memberships', fn (Builder $q): Builder => $q->withoutGlobalScopes()->where('role', BrandRole::Manager->value))->count(),
                 'agents' => User::query()->whereHas('memberships', fn (Builder $q): Builder => $q->withoutGlobalScopes()->where('role', BrandRole::Agent->value))->count(),
             ],

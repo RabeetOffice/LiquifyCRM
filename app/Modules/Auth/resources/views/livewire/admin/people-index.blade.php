@@ -9,7 +9,7 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="lq-tabs" role="tablist">
-            @foreach (['all' => 'Everyone', 'admins' => 'Admins', 'managers' => 'Managers', 'agents' => 'Agents'] as $key => $label)
+            @foreach (array_filter(['all' => 'Everyone', 'admins' => 'Admins', 'staff' => $counts['staff'] > 0 || $tab === 'staff' ? 'IT and website leads' : null, 'managers' => 'Managers', 'agents' => 'Agents']) as $key => $label)
                 <button type="button" role="tab" wire:click="$set('tab', '{{ $key }}')" @class(['lq-tab', 'lq-tab-active' => $tab === $key]) aria-selected="{{ $tab === $key ? 'true' : 'false' }}">
                     {{ $label }} <span class="lq-muted lq-tabular">{{ $counts[$key] }}</span>
                 </button>
@@ -34,7 +34,9 @@
     <x-ui.card flush>
         @if ($people->isEmpty())
             <x-ui.empty title="Nobody here yet" description="Add a Manager or an Agent and place them in a brand, or add another Admin." icon="heroicon-o-users">
-                <x-ui.button variant="primary" icon="heroicon-o-user-plus" :href="route('admin.people.create')">Add person</x-ui.button>
+                @can('create', \App\Modules\Auth\Models\User::class)
+                    <x-ui.button variant="primary" icon="heroicon-o-user-plus" :href="route('admin.people.create')">Add person</x-ui.button>
+                @endcan
             </x-ui.empty>
         @else
             <div class="lq-table-wrap">
@@ -82,25 +84,29 @@
                                 <td>
                                     @if ($person->isGlobalAdmin())
                                         <span class="lq-muted">Every brand</span>
+                                    @elseif ($person->isIt())
+                                        <span class="lq-muted">People and System</span>
+                                    @elseif ($person->isWebsiteLeads())
+                                        <span class="lq-muted">Website leads</span>
                                     @elseif ($memberships->isEmpty())
                                         <span class="lq-muted">—</span>
                                     @elseif ($memberships->filter(fn ($membership) => $membership->brand)->count() === 1)
                                         @php $membership = $memberships->first(fn ($item) => $item->brand); @endphp
-                                        <a href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}" wire:navigate>
+                                        <{{ $linkBrands ? 'a' : 'span' }} @if ($linkBrands) href="{{ route('brand.members.index', ['brand' => $membership->brand->slug]) }}" wire:navigate @endif class="lq-badge lq-badge-brand" title="{{ $membership->role->getLabel() }} in {{ $membership->brand->name }}">
                                             <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
                                             {{ $membership->brand->name }}
-                                        </a>
+                                        </{{ $linkBrands ? 'a' : 'span' }}>
                                     @else
                                         {{-- Several brands: their marks side by side, the brand and role on hover; the list is on Edit. --}}
                                         @php $shown = $memberships->filter(fn ($membership) => $membership->brand)->sortBy(fn ($membership) => $membership->brand->name); @endphp
-                                        <a href="{{ route('admin.people.edit', ['userId' => $person->getKey()]) }}" class="lq-brand-stack" title="{{ $shown->map(fn ($membership) => $membership->role->getLabel().' in '.$membership->brand->name)->implode("\n") }}" wire:navigate>
+                                        <{{ $linkBrands ? 'a' : 'span' }} @if ($linkBrands) href="{{ route('admin.people.edit', ['userId' => $person->getKey()]) }}" wire:navigate @endif class="lq-brand-stack" title="{{ $shown->map(fn ($membership) => $membership->role->getLabel().' in '.$membership->brand->name)->implode("\n") }}">
                                             <span class="lq-brand-stack-marks">
                                                 @foreach ($shown->take(4) as $membership)
                                                     <x-ui.avatar :name="$membership->brand->name" :src="$membership->brand->avatarUrl()" :color="$membership->brand->primaryColor()" :tile="$membership->brand->tileColor()" size="xs" brand />
                                                 @endforeach
                                             </span>
                                             <span>{{ $shown->count() }} brands</span>
-                                        </a>
+                                        </{{ $linkBrands ? 'a' : 'span' }}>
                                     @endif
                                 </td>
                                 <td><x-ui.badge :color="$person->status->getColor()">{{ $person->status->getLabel() }}</x-ui.badge></td>
@@ -109,6 +115,9 @@
                                     <div class="lq-row-tools">
                                         @can('update', $person)
                                             <x-ui.button size="sm" variant="ghost" :href="route('admin.people.edit', ['userId' => $person->getKey()])" icon="heroicon-o-pencil-square">Edit</x-ui.button>
+                                        @endcan
+                                        @can('changePassword', $person)
+                                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon" wire:click="openPassword({{ $person->getKey() }})" title="Set a new password" aria-label="Set a new password for {{ $person->name }}"><x-heroicon-o-key /></button>
                                         @endcan
                                         @can('suspend', $person)
                                             @php $toggle = $person->isSuspended() ? 'Reactivate' : 'Suspend'; @endphp
@@ -127,6 +136,21 @@
             {{ $people->links('pagination.lq') }}
         @endif
     </x-ui.card>
+
+    <x-ui.modal model="showPassword" :title="$passwordPerson ? 'New password for '.$passwordPerson->name : 'New password'" description="They are signed out everywhere and told on the bell. Give them the new password securely." size="sm">
+        <form wire:submit="savePassword" id="set-password" class="flex flex-col gap-4">
+            <x-ui.field label="New password" name="newPassword" required :help="'At least '.($passwordPerson && ($passwordPerson->isGlobalAdmin() || $passwordPerson->isIt()) ? '12' : '10').' characters with letters and numbers.'">
+                <x-ui.input type="password" wire:model="newPassword" name="newPassword" autocomplete="new-password" required />
+            </x-ui.field>
+            <x-ui.field label="Type it again" name="newPassword_confirmation" required>
+                <x-ui.input type="password" wire:model="newPassword_confirmation" name="newPassword_confirmation" autocomplete="new-password" required />
+            </x-ui.field>
+        </form>
+        <x-slot:footer>
+            <x-ui.button variant="ghost" x-on:click="open = false">Cancel</x-ui.button>
+            <x-ui.button type="submit" form="set-password" variant="primary" wire:loading.attr="disabled" wire:target="savePassword">Set password</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
 
     <x-ui.confirm :confirm="$confirm" />
 </div>

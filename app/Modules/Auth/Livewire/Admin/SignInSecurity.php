@@ -58,7 +58,7 @@ final class SignInSecurity extends Component
 
     public function mount(): void
     {
-        abort_unless((bool) auth()->user()?->canAccessAdminArea(), 403);
+        abort_unless((bool) auth()->user()?->canManageSystem(), 403);
 
         $rules = SignInRules::current();
         $this->network = $rules->network->value;

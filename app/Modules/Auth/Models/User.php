@@ -130,6 +130,37 @@ class User extends Authenticatable
         return $this->isSuperAdmin() || $this->isAdmin();
     }
 
+    /** IT: People, passwords, two-step and the System screens; never a brand, a lead or a sale. */
+    public function isIt(): bool
+    {
+        return $this->role === GlobalRole::It;
+    }
+
+    /** Website leads: reads the website leads of the brands chosen for them (WebsiteLeads), nothing else. */
+    public function isWebsiteLeads(): bool
+    {
+        return $this->role === GlobalRole::WebsiteLeads;
+    }
+
+    /** People, Sign-in security, Logs, Updates and System: Admins and IT. */
+    public function canManageSystem(): bool
+    {
+        return $this->isActive() && ($this->isGlobalAdmin() || $this->isIt());
+    }
+
+    /**
+     * Where IT and Website leads people land, since they open no brand: their
+     * own screen. Null for everybody else (a brand, or the admin area).
+     */
+    public function homeUrl(): ?string
+    {
+        return match (true) {
+            $this->isIt() => route('admin.people.index'),
+            $this->isWebsiteLeads() => route('website-leads'),
+            default => null,
+        };
+    }
+
     public function isSuspended(): bool
     {
         return $this->status === MembershipStatus::Suspended;
@@ -210,6 +241,8 @@ class User extends Authenticatable
         return match (true) {
             $this->isSuperAdmin() => 'Super Admin',
             $this->isAdmin() => 'Administrator',
+            $this->isIt() => 'IT',
+            $this->isWebsiteLeads() => 'Website leads',
             $brand !== null => $this->brandRole($brand)?->getLabel() ?? 'Member',
             default => $this->brandRolesLabel(),
         };
@@ -379,10 +412,10 @@ class User extends Authenticatable
 
     // --------------------------------------------------------- two-factor auth
 
-    /** Super Admins and Admins must set up an authenticator app (unless switched off by LIQUIFY_REQUIRE_TWO_FACTOR). */
+    /** Super Admins, Admins and IT must set up an authenticator app (unless switched off by LIQUIFY_REQUIRE_TWO_FACTOR). */
     public function requiresTwoFactor(): bool
     {
-        return $this->isGlobalAdmin() && (bool) config('liquify.require_two_factor');
+        return ($this->isGlobalAdmin() || $this->isIt()) && (bool) config('liquify.require_two_factor');
     }
 
     public function hasTwoFactorEnabled(): bool

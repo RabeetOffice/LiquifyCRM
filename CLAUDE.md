@@ -79,6 +79,17 @@ in the document's weekly phases; never skip a phase or silently change the desig
   Never save a change that refuses the Admin making it (`refuseIfLockedOut`); `LIQUIFY_SIGN_IN_RULES=false` in .env
   switches everything off. Hostinger gives the visitor's real address in `REMOTE_ADDR` (checked on live logs 26 Oct):
   keep `TRUSTED_PROXIES` empty there, or a forwarded header could fake the office address. Behind `SignInRules::ready()`.
+- IT and Website leads people (user request, 27 Oct 2026): two more `users.role` values (`GlobalRole::It`, `WebsiteLeads`),
+  neither `isGlobalAdmin()`, neither ever in a brand (`BrandSharing::refusal`, `shareBrands` is Managers and Agents only),
+  each landing on `User::homeUrl()`. IT passes `canManageSystem()` (middleware `system-staff`: People list, Two-step codes,
+  Sign-in security, Logs, Updates, System), needs two-step like an Admin, and acts only on Managers, Agents and Website
+  leads people (`UserPolicy::changePassword` / `manageTwoStep`; Admins: anybody but a Super Admin). `SetPersonPassword`
+  signs the person out everywhere and tells them. `TwoStepPanel` (`/admin/two-step`) opens for 10 minutes after the
+  viewer's password (session, not page state), shows each person's current code (`ManageTwoStep::currentCode`) and QR,
+  and turns two-step on per person or for everyone; every person keeps a key of their own: the user first asked for one
+  shared code for all accounts and chose this instead once told a leaked shared key opens every account. Do not add a
+  shared key. A Website leads person reads `WebsiteLeadsBoard` (`/website-leads`, also in the Admins' menu) for the
+  brands in `website_lead_brands` (`WebsiteLeads`, behind `ready()`): website leads only, read only, contact masked.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

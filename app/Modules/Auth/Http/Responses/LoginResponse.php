@@ -25,6 +25,11 @@ final class LoginResponse implements LoginResponseContract, TwoFactorLoginRespon
             return redirect()->intended('/');
         }
 
+        // IT and Website leads people open no brand: each has a screen of their own.
+        if ($user->homeUrl() !== null) {
+            return redirect()->intended($user->homeUrl());
+        }
+
         $brand = $user->defaultBrand();
 
         if ($brand === null && $user->isGlobalAdmin()) {

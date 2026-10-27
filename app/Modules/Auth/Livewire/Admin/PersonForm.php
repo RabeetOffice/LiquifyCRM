@@ -24,6 +24,7 @@ use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Departments\Models\Department;
+use App\Modules\Leads\Support\WebsiteLeads;
 use App\Modules\Sales\Models\Target;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -60,8 +61,15 @@ final class PersonForm extends Component
 
     public string $password = '';
 
-    /** admin | manager | agent (and super_admin when editing one) */
+    /** admin | it | website_leads | manager | agent (and super_admin when editing one) */
     public string $kind = 'agent';
+
+    /**
+     * The brands whose website leads a Website leads person reads (the ticked boxes).
+     *
+     * @var array<int, string>
+     */
+    public array $leadBrandIds = [];
 
     public string $status = 'active';
 
@@ -85,11 +93,17 @@ final class PersonForm extends Component
 
     public string $signInPhones = '';
 
+    /** What can be chosen for a new person. */
+    private const KINDS = ['admin', 'it', 'website_leads', 'manager', 'agent'];
+
+    /** The kinds that work outside the brands, with a role of their own (users.role). */
+    private const GLOBAL_KINDS = ['admin', 'it', 'website_leads'];
+
     public function mount(?int $userId = null): void
     {
         if ($userId === null) {
             $this->authorize('create', User::class);
-            $this->kind = in_array(request()->query('as'), ['admin', 'manager', 'agent'], true) ? (string) request()->query('as') : 'agent';
+            $this->kind = in_array(request()->query('as'), self::KINDS, true) ? (string) request()->query('as') : 'agent';
             $this->brandId = ctype_digit((string) request()->query('brand')) ? (string) request()->query('brand') : '';
 
             return;
@@ -104,6 +118,10 @@ final class PersonForm extends Component
         $this->phone = (string) $this->account->phone;
         $this->status = $this->account->status->value;
         $this->kind = $this->account->role->value ?? 'member';
+
+        if ($this->account->isWebsiteLeads()) {
+            $this->leadBrandIds = array_map('strval', WebsiteLeads::chosenBrandIds($this->account));
+        }
 
         if (SignInRules::ready()) {
             $this->signInNetwork = (string) $this->account->getAttribute('sign_in_network');
@@ -229,6 +247,7 @@ final class PersonForm extends Component
                 : collect(),
             'newDepartments' => $newBrand !== null ? Department::query()->forBrand($newBrand)->orderBy('name')->pluck('name', 'id')->all() : [],
             'signIn' => SignInRules::ready() ? $this->signInFacts() : null,
+            'websiteLeadsReady' => WebsiteLeads::ready(),
         ])->title($title);
     }
 
@@ -280,15 +299,16 @@ final class PersonForm extends Component
     {
         /** @var User $actor */
         $actor = auth()->user();
-        $isAdmin = $this->kind === 'admin';
+        $isAdmin = in_array($this->kind, self::GLOBAL_KINDS, true);
+        $strong = in_array($this->kind, ['admin', 'it'], true);
 
         $data = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'designation' => ['nullable', 'string', 'max:120'],
             'phone' => ['nullable', 'string', 'max:40'],
-            'password' => ['required', 'string', $isAdmin ? Password::min(12)->letters()->numbers() : Password::min(10)->letters()->numbers()],
-            'kind' => ['required', Rule::in(['admin', 'manager', 'agent'])],
+            'password' => ['required', 'string', $strong ? Password::min(12)->letters()->numbers() : Password::min(10)->letters()->numbers()],
+            'kind' => ['required', Rule::in(self::KINDS)],
             'brandId' => [$isAdmin ? 'nullable' : 'required', 'integer'],
             'departmentId' => ['nullable', 'integer'],
             'targetRevenue' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
@@ -300,32 +320,43 @@ final class PersonForm extends Component
         $existing = User::query()->where('email', $email)->first();
 
         if ($isAdmin) {
-            abort_unless($actor->can('assignGlobalRole', [User::class, GlobalRole::Admin]), 403);
+            $role = GlobalRole::from($data['kind']);
+            abort_unless($actor->can('assignGlobalRole', [User::class, $role]), 403);
 
             if ($existing !== null) {
                 throw ValidationException::withMessages(['email' => 'This email address already has an account.']);
             }
 
-            $person = User::query()->create([
-                'name' => $data['name'], 'email' => $email, 'password' => $data['password'],
-                'designation' => $data['designation'] ?: null, 'phone' => $data['phone'] ?: null,
-                'role' => GlobalRole::Admin, 'created_by' => $actor->getKey(),
-            ]);
-            $person->forceFill(['email_verified_at' => now()])->save();
+            $leadBrands = $role === GlobalRole::WebsiteLeads ? $this->chosenLeadBrands() : [];
+
+            $person = DB::transaction(function () use ($data, $email, $role, $actor, $leadBrands): User {
+                $person = User::query()->create([
+                    'name' => $data['name'], 'email' => $email, 'password' => $data['password'],
+                    'designation' => $data['designation'] ?: null, 'phone' => $data['phone'] ?: null,
+                    'role' => $role, 'created_by' => $actor->getKey(),
+                ]);
+                $person->forceFill(['email_verified_at' => now()])->save();
+
+                if ($role === GlobalRole::WebsiteLeads) {
+                    WebsiteLeads::choose($person, $leadBrands);
+                }
+
+                return $person;
+            });
 
             if (SignInRules::ready()) {
                 app(ChangeSignInRules::class)->forPerson($person, $network, $phones);
             }
 
-            Audit::log('members.admin_created', $person, ['email' => $person->email, 'role' => GlobalRole::Admin->value], 'Admin account created', logName: 'members');
-            $this->toastSuccess($person->name.' added as Admin', 'They will be asked to set up an authenticator app on first sign-in.');
+            Audit::log('members.admin_created', $person, ['email' => $person->email, 'role' => $role->value], $role->getLabel().' account created', logName: 'members');
+            $this->toastSuccess($person->name.' added as '.$role->getLabel(), $person->requiresTwoFactor() ? 'They will be asked to set up an authenticator app on first sign-in.' : null);
             $this->redirectRoute('admin.people.index', navigate: true);
 
             return;
         }
 
-        if ($existing !== null && $existing->isGlobalAdmin()) {
-            throw ValidationException::withMessages(['email' => 'This person is an Admin and already sees every brand.']);
+        if ($existing !== null && $existing->role !== null) {
+            throw ValidationException::withMessages(['email' => $existing->isGlobalAdmin() ? 'This person is an Admin and already sees every brand.' : 'This email address is a '.$existing->role->getLabel().' account, which works outside the brands.']);
         }
 
         $brand = Brand::query()->findOrFail((int) $data['brandId']);
@@ -387,8 +418,10 @@ final class PersonForm extends Component
             'phone' => ['nullable', 'string', 'max:40'],
             'status' => ['required', Rule::in(array_column(MembershipStatus::cases(), 'value'))],
             'kind' => ['required', 'string'],
-            'password' => ['nullable', 'string', Password::min($account->isGlobalAdmin() ? 12 : 10)->letters()->numbers()],
+            'password' => ['nullable', 'string', Password::min($account->isGlobalAdmin() || $account->isIt() ? 12 : 10)->letters()->numbers()],
         ]);
+
+        $leadBrands = $account->isWebsiteLeads() ? $this->chosenLeadBrands() : null;
 
         $attributes = [
             'name' => $data['name'],
@@ -417,13 +450,32 @@ final class PersonForm extends Component
 
         $account->forceFill($attributes)->save();
 
+        if ($leadBrands !== null) {
+            WebsiteLeads::choose($account, $leadBrands);
+        }
+
         if (SignInRules::ready()) {
             app(ChangeSignInRules::class)->forPerson($account, $network, $phones);
         }
 
-        Audit::log($account->isGlobalAdmin() ? 'members.admin_updated' : 'members.profile_updated', $account, ['email' => $account->email], 'Account updated', logName: 'members');
+        Audit::log($account->role !== null ? 'members.admin_updated' : 'members.profile_updated', $account, ['email' => $account->email] + ($leadBrands !== null ? ['website_lead_brands' => $leadBrands] : []), 'Account updated', logName: 'members');
         $this->toastSuccess('Account saved');
         $this->redirectRoute('admin.people.index', navigate: true);
+    }
+
+    /**
+     * The brands ticked for a Website leads person, checked to be brands that exist.
+     *
+     * @return list<int>
+     */
+    private function chosenLeadBrands(): array
+    {
+        $this->validate([
+            'leadBrandIds' => ['required', 'array', 'min:1'],
+            'leadBrandIds.*' => ['integer', Rule::exists('brands', 'id')],
+        ], ['leadBrandIds.required' => 'Choose at least one brand.', 'leadBrandIds.min' => 'Choose at least one brand.'], ['leadBrandIds' => 'brands']);
+
+        return array_map(intval(...), array_values($this->leadBrandIds));
     }
 
     /** A Super Admin's role and status, and your own, cannot be changed from this form. */
@@ -464,7 +516,7 @@ final class PersonForm extends Component
      */
     private function sharedBrands(): array
     {
-        if ($this->account === null || $this->account->isGlobalAdmin()) {
+        if ($this->account === null || $this->account->role !== null) {
             return [];
         }
 

@@ -21,6 +21,11 @@ final class BrandSharing
     /** Why the actor may not add this person to the brand, or null when they may. */
     public static function refusal(User $actor, ?User $person, Brand $brand): ?string
     {
+        // IT and Website leads people never work inside a brand, whoever adds them (27 Oct 2026).
+        if ($person !== null && ($person->isIt() || $person->isWebsiteLeads())) {
+            return 'This account is '.$person->role?->getLabel().', which works outside the brands. Use another email address.';
+        }
+
         if ($actor->isGlobalAdmin() || $person === null) {
             return null;
         }

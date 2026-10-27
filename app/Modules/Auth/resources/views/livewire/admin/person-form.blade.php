@@ -6,11 +6,13 @@
         @if ($account === null)
             <x-ui.card title="What will they do?" description="This decides what they see after signing in.">
                 <div class="lq-choices">
-                    @foreach ([
+                    @foreach (array_filter([
                         'agent' => ['Agent', 'Works the leads assigned to them inside one department.', 'heroicon-o-user'],
                         'manager' => ['Manager', 'Leads a department: shares leads among its Agents and sets their targets.', 'heroicon-o-user-group'],
                         'admin' => ['Admin', 'Sees every brand and manages brands, people, integrations and settings.', 'heroicon-o-shield-check'],
-                    ] as $value => [$label, $hint, $icon])
+                        'it' => ['IT', 'Sets passwords and two-step codes for Managers and Agents, and looks after sign-in security, logs and updates. Sees no leads or sales.', 'heroicon-o-wrench-screwdriver'],
+                        'website_leads' => $websiteLeadsReady ? ['Website leads', 'Sees the leads that came from the websites of the brands you choose, on one dashboard. Read only.', 'heroicon-o-globe-alt'] : null,
+                    ]) as $value => [$label, $hint, $icon])
                         <label @class(['lq-choice', 'lq-choice-active' => $kind === $value])>
                             <input type="radio" wire:model.live="kind" value="{{ $value }}" name="kind">
                             <span class="flex items-center gap-2 lq-choice-title">@svg($icon, 'h-4 w-4') {{ $label }}</span>
@@ -37,7 +39,7 @@
                     <x-ui.input type="tel" wire:model="phone" name="phone" autocomplete="off" placeholder="+44 7700 900123" />
                 </x-ui.field>
                 <x-ui.field :label="$account ? 'New password' : 'Password'" name="password" :required="$account === null"
-                    :help="$account ? 'Leave empty to keep the current password.' : 'At least '.($kind === 'admin' ? '12' : '10').' characters with letters and numbers. Share it with them securely.'">
+                    :help="$account ? 'Leave empty to keep the current password.' : 'At least '.(in_array($kind, ['admin', 'it'], true) ? '12' : '10').' characters with letters and numbers. Share it with them securely.'">
                     <x-ui.input type="password" wire:model="password" name="password" autocomplete="new-password" />
                 </x-ui.field>
 
@@ -53,7 +55,26 @@
             </div>
         </x-ui.card>
 
-        @if ($account === null && $kind !== 'admin')
+        @if (($account === null && $kind === 'website_leads') || $account?->isWebsiteLeads())
+            {{-- Not a brand membership: they open no brand, they read these brands' website leads on their dashboard. --}}
+            <x-ui.card title="Whose website leads" description="They see the leads that came from these brands' websites, and nothing from Facebook, Messenger or Instagram. They cannot change a lead.">
+                @if ($brands->isEmpty())
+                    <p class="lq-help">Add a brand first.</p>
+                @else
+                    <div class="lq-form-grid lq-form-grid-2">
+                        @foreach ($brands as $option)
+                            <label class="lq-check" wire:key="lead-brand-{{ $option->id }}">
+                                <input type="checkbox" wire:model="leadBrandIds" value="{{ $option->id }}">
+                                <span>{{ $option->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+                @error('leadBrandIds') <p class="lq-error mt-2">{{ $message }}</p> @enderror
+            </x-ui.card>
+        @endif
+
+        @if ($account === null && ! in_array($kind, ['admin', 'it', 'website_leads'], true))
             <x-ui.card title="Where they work" description="The brand whose leads they see, and the team they belong to. To let them work in more brands, open Edit after adding them.">
                 @if ($brands->isEmpty())
                     <x-ui.empty title="Add a brand first" description="Managers and Agents work inside a brand." icon="heroicon-o-building-storefront">
@@ -97,7 +118,7 @@
                     </x-ui.field>
                 </div>
             </x-ui.card>
-        @elseif ($account !== null)
+        @elseif ($account !== null && $account->role === null)
             {{-- The brands they work in, each with its own role and department. Only Admins change this. --}}
             <x-ui.card title="Brands" description="Where they work. The role and the department are chosen for each brand on its own: Manager in one brand and Agent in another is fine. A change applies at once.">
                 @if ($shared === [])

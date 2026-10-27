@@ -107,7 +107,7 @@ final class LogsPage extends Component
         $this->brand = $brand !== null && $brand->exists ? $brand : null;
 
         $user = $this->user();
-        abort_unless($user->isGlobalAdmin(), 403);
+        abort_unless($this->mayRead(), 403);
 
         $this->databaseDays = $settings->database_days;
         $this->archiveDays = $settings->archive_days;
@@ -152,7 +152,7 @@ final class LogsPage extends Component
     public function export(int $days): void
     {
         $user = $this->user();
-        abort_unless($user->isGlobalAdmin(), 403);
+        abort_unless($this->mayRead(), 403);
         abort_unless(in_array($days, LogExport::RANGES, true), 422);
 
         $export = LogExport::query()->create([
@@ -170,7 +170,7 @@ final class LogsPage extends Component
 
     public function saveRetention(LogSettings $settings): void
     {
-        abort_unless($this->user()->isGlobalAdmin(), 403);
+        abort_unless($this->mayRead(), 403);
 
         $this->validate([
             'databaseDays' => ['required', Rule::in(LogSettings::DATABASE_OPTIONS)],
@@ -189,7 +189,7 @@ final class LogsPage extends Component
 
     public function confirmDelete(): void
     {
-        abort_unless($this->user()->isGlobalAdmin(), 403);
+        abort_unless($this->mayRead(), 403);
 
         $this->validate([
             'deleteBefore' => ['required', 'date', 'before_or_equal:'.now()->subDays(LogSettings::PROTECTED_DAYS)->toDateString()],
@@ -202,7 +202,7 @@ final class LogsPage extends Component
     {
         $this->ensureConfirmed();
 
-        abort_unless($this->user()->isGlobalAdmin(), 403);
+        abort_unless($this->mayRead(), 403);
 
         // Checked again: the confirm dialog must not be a way around the 7-day rule.
         if ($this->deleteBefore === '' || $this->deleteBefore > now()->subDays(LogSettings::PROTECTED_DAYS)->toDateString()) {
@@ -216,10 +216,18 @@ final class LogsPage extends Component
         $this->toastSuccess('Deleting in the background', 'You get a notification when it is done.');
     }
 
+    /** Admins read every log; IT reads them in the admin area only, since they open no brand (27 Oct 2026). */
+    private function mayRead(): bool
+    {
+        $user = $this->user();
+
+        return $this->brand === null ? $user->canManageSystem() : $user->isGlobalAdmin();
+    }
+
     public function render(): View
     {
         $user = $this->user();
-        $admin = $user->isGlobalAdmin();
+        $admin = $this->mayRead();
 
         $entries = $this->query()->with(['causer', 'brand', 'department'])->latest('id')->paginate(50);
         $brands = $this->brand === null ? Brand::query()->orderBy('name')->pluck('name', 'id') : collect();
@@ -239,7 +247,7 @@ final class LogsPage extends Component
                 'until' => $this->until !== '' ? 'Until '.$day($this->until) : null,
             ]),
             'isAdmin' => $admin,
-            'isSuperAdmin' => $user->isGlobalAdmin(),
+            'isSuperAdmin' => $admin,
             'canDownload' => $admin,
             'ranges' => LogExport::RANGES,
             'exports' => LogExport::query()->where('user_id', $user->getKey())->latest('id')->limit(5)->get(),

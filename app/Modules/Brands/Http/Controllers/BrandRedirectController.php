@@ -16,6 +16,11 @@ final class BrandRedirectController
     {
         /** @var User $user */
         $user = $request->user();
+
+        if ($user->homeUrl() !== null) {
+            return redirect()->to($user->homeUrl());
+        }
+
         $brand = $user->defaultBrand();
 
         if ($brand !== null) {

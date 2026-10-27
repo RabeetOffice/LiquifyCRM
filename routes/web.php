@@ -7,6 +7,7 @@ use App\Modules\Activity\Livewire\LogsPage;
 use App\Modules\Auth\Livewire\Admin\PeopleIndex;
 use App\Modules\Auth\Livewire\Admin\PersonForm;
 use App\Modules\Auth\Livewire\Admin\SignInSecurity;
+use App\Modules\Auth\Livewire\Admin\TwoStepPanel;
 use App\Modules\Auth\Livewire\Profile;
 use App\Modules\Auth\Livewire\ProfileSecurity;
 use App\Modules\Brands\Http\Controllers\BrandRedirectController;
@@ -31,6 +32,7 @@ use App\Modules\Leads\Livewire\App\LeadsBin;
 use App\Modules\Leads\Livewire\App\LeadShow;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
 use App\Modules\Leads\Livewire\App\Pipeline;
+use App\Modules\Leads\Livewire\WebsiteLeadsBoard;
 use App\Modules\Meta\Http\Controllers\ConversationMessageController;
 use App\Modules\Meta\Http\Controllers\FacebookConnectController;
 use App\Modules\Meta\Livewire\Admin\IntegrationsPage;
@@ -79,21 +81,30 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/brands/{brandId}/edit', BrandForm::class)->name('brands.edit');
         Route::post('/sites/{site}/check', SiteCheckController::class)->whereNumber('site')->name('sites.check');
         Route::get('/integrations', IntegrationsPage::class)->name('integrations');
-        Route::get('/logs', LogsPage::class)->name('logs');
-        Route::get('/logs/archives/{archive}', [LogDownloadController::class, 'archive'])->whereNumber('archive')->name('logs.archives.download');
         Route::get('/sales', SalesDashboard::class)->name('sales');
         Route::post('/brands/{brandId}/fetch-identity', FetchIdentityController::class)->whereNumber('brandId')->name('brands.fetch-identity');
 
-        // People and the System screen: every Super Admin and Admin (since 9 October).
-        Route::get('/people', PeopleIndex::class)->name('people.index');
+        // Adding and editing people: every Super Admin and Admin (since 9 October).
         Route::get('/people/create', PersonForm::class)->name('people.create');
         Route::get('/people/{userId}/edit', PersonForm::class)->whereNumber('userId')->name('people.edit');
+    });
+
+    // What IT looks after as well as the Admins (user request, 27 Oct 2026): the people, their passwords and
+    // two-step, where they may sign in from, the logs and the System screens. No brand, lead or sale.
+    Route::middleware('system-staff')->prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('/people', PeopleIndex::class)->name('people.index');
         Route::redirect('/admins', '/admin/people');
+        Route::get('/two-step', TwoStepPanel::class)->name('two-step');
         // Where people may sign in from: the office network, phones, blocked addresses.
         Route::get('/sign-in', SignInSecurity::class)->name('sign-in');
+        Route::get('/logs', LogsPage::class)->name('logs');
+        Route::get('/logs/archives/{archive}', [LogDownloadController::class, 'archive'])->whereNumber('archive')->name('logs.archives.download');
         Route::get('/system', SystemPage::class)->name('system');
         Route::get('/updates', UpdatesPage::class)->name('updates');
     });
+
+    // Website leads across brands, read only (user request, 27 Oct 2026): Website leads people and Admins.
+    Route::get('/website-leads', WebsiteLeadsBoard::class)->name('website-leads');
 
     // A person's own log download, while its 24 hours last.
     Route::get('/logs/exports/{export}', [LogDownloadController::class, 'export'])->whereNumber('export')->name('logs.exports.download');

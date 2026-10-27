@@ -7,7 +7,7 @@
 
 <aside class="lq-sidebar" id="main-sidebar" aria-label="Main navigation" @if ($user) data-menu-badges="{{ $brand ? route('brand.menu-badges', ['brand' => $brand->slug]) : route('menu-badges') }}" @endif>
     <div class="lq-side-header">
-        <a href="{{ $brand ? $brand->url() : ($isAdmin ? route('admin.dashboard') : url('/')) }}" class="lq-side-logo" aria-label="LiquifyCRM" wire:navigate>
+        <a href="{{ $brand ? $brand->url() : ($isAdmin ? route('admin.dashboard') : ($user?->homeUrl() ?? url('/'))) }}" class="lq-side-logo" aria-label="LiquifyCRM" wire:navigate>
             <x-ui.logo class="lq-side-logo-full" />
             <img src="{{ asset('images/brand/liquify-mark.webp') }}" alt="" width="210" height="192" class="lq-side-logo-mark">
         </a>

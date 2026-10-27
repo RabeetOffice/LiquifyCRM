@@ -21,7 +21,32 @@ final class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isGlobalAdmin() || $user->can(Permission::UsersManage->value);
+        return $user->isGlobalAdmin() || $user->isIt() || $user->can(Permission::UsersManage->value);
+    }
+
+    /**
+     * Set somebody's password and look after their two-step (authenticator)
+     * from the People and Two-step screens (user request, 27 Oct 2026). Admins
+     * do it for everybody but a Super Admin; IT only for Managers, Agents and
+     * Website leads people, never for an Admin, a Super Admin or another IT
+     * person. Your own goes through your profile, where the old one is asked.
+     */
+    public function changePassword(User $user, User $target): bool
+    {
+        if ($user->is($target) || ! $user->canManageSystem() || $target->isSuperAdmin()) {
+            return false;
+        }
+
+        if ($user->isGlobalAdmin()) {
+            return true;
+        }
+
+        return $target->role === null || $target->isWebsiteLeads();
+    }
+
+    public function manageTwoStep(User $user, User $target): bool
+    {
+        return $this->changePassword($user, $target);
     }
 
     public function view(User $user, User $target): bool
@@ -86,7 +111,8 @@ final class UserPolicy
      */
     public function shareBrands(User $user, User $target): bool
     {
-        return $user->isGlobalAdmin() && $user->isActive() && ! $target->isGlobalAdmin();
+        // IT and Website leads people open no brand, so only Managers and Agents (no global role) get one.
+        return $user->isGlobalAdmin() && $user->isActive() && $target->role === null;
     }
 
     /**

@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Hands out log files from private storage, to Admins and Super Admins only: their
+ * Hands out log files from private storage, to Admins, Super Admins and IT only: their
  * own export while its 24 hours last, and the daily archive files. Every download is logged.
  */
 final class LogDownloadController
 {
     public function export(Request $request, int $export): StreamedResponse
     {
-        abort_unless((bool) $request->user()?->isGlobalAdmin(), 403);
+        abort_unless((bool) $request->user()?->canManageSystem(), 403);
 
         $model = LogExport::query()->findOrFail($export);
 
@@ -34,7 +34,7 @@ final class LogDownloadController
 
     public function archive(Request $request, int $archive): StreamedResponse
     {
-        abort_unless((bool) $request->user()?->isGlobalAdmin(), 403);
+        abort_unless((bool) $request->user()?->canManageSystem(), 403);
 
         $model = LogArchive::query()->findOrFail($archive);
         abort_unless(Storage::disk(LogArchiver::DISK)->exists($model->path), 404);

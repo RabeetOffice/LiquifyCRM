@@ -1,6 +1,6 @@
 {{-- Admins only: new code is on the server and waits to be applied. Hidden on the Updates screen itself. --}}
 @php
-    $updateFlag = auth()->user()?->isGlobalAdmin() && ! request()->routeIs('admin.updates')
+    $updateFlag = auth()->user()?->canManageSystem() && ! request()->routeIs('admin.updates')
         ? \App\Modules\System\Support\SystemUpdater::flag()
         : null;
 @endphp

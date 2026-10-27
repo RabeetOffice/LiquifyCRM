@@ -32,7 +32,7 @@ final class UpdatesPage extends Component
 
     public function mount(): void
     {
-        abort_unless($this->user()->isGlobalAdmin(), 403);
+        abort_unless($this->user()->canManageSystem(), 403);
     }
 
     public function update(): void
@@ -78,7 +78,7 @@ final class UpdatesPage extends Component
     {
         $this->ensureConfirmed();
 
-        abort_unless($this->user()->isGlobalAdmin(), 403);
+        abort_unless($this->user()->canManageSystem(), 403);
 
         $deployment = app(SystemUpdater::class)->run($this->user(), $withoutBackup);
 

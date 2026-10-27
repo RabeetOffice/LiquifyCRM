@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.39.0',
+        'date' => '2026-10-27',
+        'title' => 'IT and Website leads people, two-step codes in one place',
+        'changes' => [
+            ['new', 'Two new kinds of person on People › Add person. IT sees everybody, sets a new password for Managers, Agents and Website leads people, and looks after Sign-in security, Two-step codes, Logs, Updates and System. IT never sees a brand, a lead or a sale, and needs an authenticator app like an Admin.'],
+            ['new', 'Two-step codes (Settings): turn two-step on for one person or for everyone at once, without going to each computer. After your password the screen shows the code each person\'s app shows right now, changing every 30 seconds, and their QR code to add to Google Authenticator: on their phone, or on yours to read their codes there too. Every person keeps a key of their own. Admins see everybody but Super Admins; IT sees Managers, Agents and Website leads people.'],
+            ['new', 'Set a new password from People (the key button): the person is signed out everywhere and told on the bell. Admins can do it for anybody but a Super Admin.'],
+            ['new', 'Website leads: one dashboard with the leads that came from the websites of the brands you choose for that person, with leads per day, the top websites, and the list to read. Facebook, Messenger and Instagram leads are not shown, nothing can be changed, and email and phone are masked. Admins find the same screen, for every brand, in their menu.'],
+        ],
+    ],
+    [
         'version' => '1.38.0',
         'date' => '2026-10-27',
         'title' => 'New leads by email every three hours',

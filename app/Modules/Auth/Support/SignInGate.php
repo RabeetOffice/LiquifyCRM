@@ -153,8 +153,9 @@ final class SignInGate
 
     private function tellAdmins(User $user, Device $device): void
     {
+        // IT looks after Sign-in security too (27 Oct 2026).
         $admins = User::query()
-            ->whereIn('role', [GlobalRole::SuperAdmin->value, GlobalRole::Admin->value])
+            ->whereIn('role', [GlobalRole::SuperAdmin->value, GlobalRole::Admin->value, GlobalRole::It->value])
             ->where('status', MembershipStatus::Active->value)
             ->get();
 

@@ -80,7 +80,7 @@
     @endif
 
     <div class="lq-top-end">
-        @if ($brand === null && $user?->isGlobalAdmin())
+        @if ($brand === null && $user?->canManageSystem())
             @php
                 $status = app(\App\Modules\System\Support\SystemStatus::class);
                 $last = $status->lastCronRun();

@@ -10,6 +10,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\WebsiteLeads;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Resources\Support\BrandResources;
 use App\Modules\Sales\Enums\ClientStage;
@@ -39,6 +40,10 @@ final class Menu
             $brand !== null => self::brandMenu($user, $brand, $currentRoute),
             // The admin area's menu is for Admins only: a Manager or Agent never sees it, even without a brand.
             $user->isGlobalAdmin() => self::adminMenu($user, $currentRoute),
+            $user->isIt() => self::itMenu($currentRoute),
+            $user->isWebsiteLeads() && WebsiteLeads::ready() => [['label' => 'Main menu', 'items' => [
+                self::item('Website leads', 'heroicon-o-globe-alt', route('website-leads'), $currentRoute === 'website-leads'),
+            ]]],
             default => [],
         };
     }
@@ -169,31 +174,86 @@ final class Menu
 
         $settings = [self::item('Integrations', 'heroicon-o-puzzle-piece', route('admin.integrations'), $isActive('admin.integrations'))];
 
-        // Where people may sign in from; the count is the phones waiting for an Admin's approval.
         if (SignInRules::ready()) {
-            $settings[] = self::item('Sign-in security', 'heroicon-o-finger-print', route('admin.sign-in'), $isActive('admin.sign-in'), function (): ?string {
-                $waiting = SignInDevice::query()->withStatus(DeviceStatus::Waiting)->count();
+            $settings[] = self::signInItem($isActive);
+        }
 
-                return $waiting > 0 ? (string) $waiting : null;
-            });
+        $main = [
+            self::item('Overview', 'heroicon-o-home', route('admin.dashboard'), $isActive('admin.dashboard')),
+            self::item('Sales dashboard', 'heroicon-o-trophy', route('admin.sales'), $isActive('admin.sales')),
+        ];
+
+        // The website leads of every brand on one screen, as a Website leads person sees theirs.
+        if (WebsiteLeads::ready()) {
+            $main[] = self::item('Website leads', 'heroicon-o-globe-alt', route('website-leads'), $isActive('website-leads'));
         }
 
         // Admins and Super Admins see the same menu: the only difference between
         // them is that a Super Admin cannot be edited or removed by anyone else.
         return [
             ['label' => 'Main menu', 'items' => [
-                self::item('Overview', 'heroicon-o-home', route('admin.dashboard'), $isActive('admin.dashboard')),
-                self::item('Sales dashboard', 'heroicon-o-trophy', route('admin.sales'), $isActive('admin.sales')),
+                ...$main,
                 self::item('Brands', 'heroicon-o-building-storefront', route('admin.brands.index'), $isActive('admin.brands.index', 'admin.brands.create', 'admin.brands.edit')),
                 self::item('People', 'heroicon-o-users', route('admin.people.index'), $isActive('admin.people.index', 'admin.people.create', 'admin.people.edit')),
             ]],
             ['label' => 'Settings', 'items' => [
                 ...$settings,
-                self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
-                self::item('Updates', 'heroicon-o-arrow-up-circle', route('admin.updates'), $isActive('admin.updates'), fn (): ?string => SystemUpdater::flag()['available'] ? 'New' : null),
-                self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
+                ...self::systemItems($isActive),
             ]],
         ];
+    }
+
+    /**
+     * IT (user request, 27 Oct 2026): the people, their passwords and two-step,
+     * and the System screens. No brand, lead or sale.
+     *
+     * @return list<MenuGroup>
+     */
+    private static function itMenu(string $currentRoute): array
+    {
+        $isActive = fn (string ...$routes): bool => in_array($currentRoute, $routes, true);
+        $settings = SignInRules::ready() ? [self::signInItem($isActive)] : [];
+
+        return [
+            ['label' => 'Main menu', 'items' => [
+                self::item('People', 'heroicon-o-users', route('admin.people.index'), $isActive('admin.people.index')),
+            ]],
+            ['label' => 'Settings', 'items' => [
+                ...$settings,
+                ...self::systemItems($isActive),
+            ]],
+        ];
+    }
+
+    /**
+     * Two-step, Logs, Updates and System: the same for Admins and IT.
+     *
+     * @param  Closure(string ...): bool  $isActive
+     * @return list<MenuItem>
+     */
+    private static function systemItems(Closure $isActive): array
+    {
+        return [
+            self::item('Two-step codes', 'heroicon-o-key', route('admin.two-step'), $isActive('admin.two-step')),
+            self::item('Logs', 'heroicon-o-clipboard-document-list', route('admin.logs'), $isActive('admin.logs')),
+            self::item('Updates', 'heroicon-o-arrow-up-circle', route('admin.updates'), $isActive('admin.updates'), fn (): ?string => SystemUpdater::flag()['available'] ? 'New' : null),
+            self::item('System', 'heroicon-o-server-stack', route('admin.system'), $isActive('admin.system')),
+        ];
+    }
+
+    /**
+     * Where people may sign in from; the count is the phones waiting for an Admin's approval.
+     *
+     * @param  Closure(string ...): bool  $isActive
+     * @return MenuItem
+     */
+    private static function signInItem(Closure $isActive): array
+    {
+        return self::item('Sign-in security', 'heroicon-o-finger-print', route('admin.sign-in'), $isActive('admin.sign-in'), function (): ?string {
+            $waiting = SignInDevice::query()->withStatus(DeviceStatus::Waiting)->count();
+
+            return $waiting > 0 ? (string) $waiting : null;
+        });
     }
 
     /**

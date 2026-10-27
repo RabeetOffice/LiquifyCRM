@@ -6,6 +6,7 @@ use App\Modules\Auth\Http\Middleware\EnforceSignInRules;
 use App\Modules\Auth\Http\Middleware\EnsureGlobalAdmin;
 use App\Modules\Auth\Http\Middleware\EnsureGlobalAdminHasTwoFactor;
 use App\Modules\Auth\Http\Middleware\EnsureSuperAdmin;
+use App\Modules\Auth\Http\Middleware\EnsureSystemStaff;
 use App\Modules\Core\Http\Middleware\EnsureBrandMember;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'global-admin' => EnsureGlobalAdmin::class,
             'super-admin' => EnsureSuperAdmin::class,
+            'system-staff' => EnsureSystemStaff::class,
             'two-factor' => EnsureGlobalAdminHasTwoFactor::class,
             'brand.member' => EnsureBrandMember::class,
         ]);
