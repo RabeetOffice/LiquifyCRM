@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.38.0',
+        'date' => '2026-10-27',
+        'title' => 'New leads by email every three hours',
+        'changes' => [
+            ['improved', 'No more email for every new lead. Every three hours, on the hour, you get one email with the leads that came in since the last one, brand by brand: who they are, where they came from, who has them, and how many still wait for a person. Nothing came in, no email.'],
+            ['improved', 'Admins get every brand, a Manager the teams they lead, and a brand\'s notification addresses that brand alone. The bell, the sound and the desktop alerts still arrive the moment a lead does.'],
+            ['fixed', 'The nightly backup report went to an example address the mail server refuses. It now goes to backups@ your own domain, or to BACKUP_NOTIFY_EMAIL in .env.'],
+        ],
+    ],
+    [
         'version' => '1.37.0',
         'date' => '2026-10-27',
         'title' => 'Notes are never lost, Facebook names on leads, edit a client',

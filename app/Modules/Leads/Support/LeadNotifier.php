@@ -16,10 +16,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * In-app bell plus email for the people who need to act on a lead: the
- * department's Managers for a new lead (Admins while it has no department),
- * the Agent when it is assigned. Front sales hears of every free lead it may
- * take (bell, sound and desktop alert, no email: one a lead would be too many).
+ * In-app bell for the people who need to act on a lead: the department's
+ * Managers for a new lead (Admins while it has no department), plus an email
+ * to the Agent when it is assigned. Front sales hears of every free lead it
+ * may take (bell, sound and desktop alert). New leads are emailed once every
+ * three hours instead, per brand (leads:digest, user request 27 Oct 2026):
+ * an email a lead filled the inbox and ran into the mail server's limit.
  */
 final class LeadNotifier
 {
@@ -35,13 +37,8 @@ final class LeadNotifier
 
         $body = $lead->source_type->getLabel().' · '.$brand->name.($lead->department ? ' · '.$lead->department->name : '');
 
-        $this->send($recipients, 'New lead: '.$lead->name, $body, $this->url($lead), 'heroicon-o-inbox-arrow-down');
+        $this->send($recipients, 'New lead: '.$lead->name, $body, $this->url($lead), 'heroicon-o-inbox-arrow-down', mail: false);
         $this->tellFrontSales($lead, $recipients, 'New lead: '.$lead->name, $body.'. Nobody has it yet: take it if you are free.');
-
-        if ($brand->notificationEmails() !== []) {
-            Notification::route('mail', $brand->notificationEmails())
-                ->notify(new AppNotification('New lead: '.$lead->name, 'A new lead arrived for '.$brand->name.' from '.$lead->source_type->getLabel().'.', 'info', $this->url($lead), mail: true, actionLabel: 'Open lead'));
-        }
     }
 
     public function assigned(Lead $lead, ?User $agent, ?User $by = null): void
@@ -69,6 +66,7 @@ final class LeadNotifier
             ($by->name ?? 'LiquifyCRM').' sent this lead to your department. Assign it to an Agent.',
             $this->url($lead),
             'heroicon-o-inbox-arrow-down',
+            mail: false,
         );
 
         $lead->setRelation('department', $department);

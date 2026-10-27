@@ -57,6 +57,9 @@ Schedule::command('model:prune', ['--model' => [InboundEvent::class, MonitoredSc
 // Follow-ups: the owner hears 10, 5 and 1 minutes before (bell, chime, desktop alert, push).
 Schedule::command('followups:remind')->everyMinute()->withoutOverlapping(5)->runInBackground()->doNotMonitor();
 
+// New leads by email: one summary per person every three hours, on the hour, instead of an email a lead.
+Schedule::command('leads:digest')->cron('0 */3 * * *')->timezone((string) config('liquify.default_timezone'))->withoutOverlapping(30)->runInBackground()->doNotMonitor();
+
 // Leads that have been in the bin for 30 days are deleted for good.
 Schedule::command('leads:empty-bin')->dailyAt('00:50')->doNotMonitor();
 

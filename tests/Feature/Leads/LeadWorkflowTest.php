@@ -56,7 +56,8 @@ it('creates a manual lead in New / Unassigned with a normalised phone and tells 
         ->and($result->lead->assigned_to)->toBeNull();
 
     $this->assertDatabaseHas('activity_log', ['event' => 'leads.created', 'subject_id' => $result->lead->getKey()]);
-    Notification::assertSentTo($this->admin, AppNotification::class, fn (AppNotification $notification, array $channels): bool => $notification->title === 'New lead: Sarah Lee' && in_array('database', $channels, true) && in_array('mail', $channels, true));
+    // The bell at once; the email comes with the summary every three hours (leads:digest).
+    Notification::assertSentTo($this->admin, AppNotification::class, fn (AppNotification $notification, array $channels): bool => $notification->title === 'New lead: Sarah Lee' && $channels === ['database']);
 });
 
 it('adds a repeat enquiry to the existing open lead instead of creating a second one', function (): void {

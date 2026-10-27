@@ -218,6 +218,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   (owner, helpers, the Upsell team's Manager, a front Manager until the hand-over, Admins), Agents included.
   `UpdateClientDetails` changes only the client (name, phone, email); its lead and invoices keep theirs; the log names
   the fields, not the values. "Edit details" tile and the Contact card link on `ClientShow`.
+- New leads by email (user request, 27 Oct 2026: an email a lead filled the inbox and hit Hostinger's sending limit,
+  "451 hostinger_out_ratelimit"): `LeadNotifier` sends new and sent-to-team leads to the bell only (`mail: false`); the
+  "assigned to you" email stays. `leads:digest` (cron `0 */3 * * *` in `liquify.default_timezone`) emails each person
+  `LeadDigestMail` built by `LeadDigest`: Admins every brand, a Manager the teams they lead, a brand's
+  `notification_emails` that brand; per brand the new leads (8 listed), the count, and how many wait for a person;
+  nothing new, no email. The window runs from the cache key `LeadDigestCommand::LAST` (else 3 hours, at most a day)
+  to the start of the minute. The body is `leads::mail.digest-body` (inline styles, tables) put into the markdown
+  message on one line, so the markdown reader leaves it alone. Backup reports go to `BACKUP_NOTIFY_EMAIL` or
+  backups@ the APP_URL host (spatie refuses an address without a dot at start-up, so local is `localhost.test`).
 - Alerts and the installed app (user request, 14 Oct 2026): `NotificationBell::tick()` dispatches `lq-alert` with up to three
   new entries; `app.js` plays a chime made with Web Audio (no file) and asks `public/sw.js` for desktop notifications, which it
   shows only while no LiquifyCRM window is focused. Sound and desktop alerts are choices of the computer (localStorage

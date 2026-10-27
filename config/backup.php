@@ -13,6 +13,11 @@ use Spatie\Backup\Tasks\Cleanup\Strategies\DefaultStrategy;
 use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays;
 use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 
+// The site's own domain, for the backups@ address below. The package refuses an address without a dot in its
+// domain at start-up, so a local "localhost" becomes "localhost.test".
+$siteHost = (string) parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST);
+$siteHost = str_contains($siteHost, '.') ? $siteHost : 'localhost.test';
+
 return [
 
     'backup' => [
@@ -239,7 +244,9 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => 'your@example.com',
+            // Where the nightly backup reports go (27 Oct 2026: the package's example address was refused by the
+            // mail server every night). BACKUP_NOTIFY_EMAIL in .env, else backups@ on the site's own domain.
+            'to' => env('BACKUP_NOTIFY_EMAIL') ?: 'backups@'.$siteHost,
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),

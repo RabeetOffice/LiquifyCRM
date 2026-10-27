@@ -165,7 +165,7 @@ it('lets a Manager take a lead, from the Take button or from the assign menu', f
         ->and(array_column(app(AssignableAgents::class)->people($this->manager, $this->brand), 'name'))->toBe(['Maria Manager', 'Ali Khan', 'Sara Malik']);
 });
 
-it('alerts front sales to a free lead with a bell, and only its Managers by email', function (): void {
+it('alerts front sales and its Managers to a free lead with a bell (the email comes with the three-hourly summary)', function (): void {
     $lead = app(CreateLead::class)->handle($this->brand, ['name' => 'Fresh Lead', 'department_id' => $this->front->getKey()])->lead;
     $upseller = agentOf(department($this->brand, ['name' => 'Upsell', 'kind' => 'upsell']));
 
@@ -175,7 +175,7 @@ it('alerts front sales to a free lead with a bell, and only its Managers by emai
 
     Notification::assertSentTo($this->ali, AppNotification::class, $bellOnly);
     Notification::assertSentTo($this->sara, AppNotification::class, $bellOnly);
-    Notification::assertSentTo($this->manager, AppNotification::class, fn (AppNotification $notification, array $channels): bool => in_array('mail', $channels, true));
+    Notification::assertSentTo($this->manager, AppNotification::class, $bellOnly);
     Notification::assertSentToTimes($this->manager, AppNotification::class, 1);
     Notification::assertNotSentTo($upseller, AppNotification::class);
 });
