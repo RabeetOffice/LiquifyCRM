@@ -60,7 +60,7 @@ final class UserPolicy
 
     public function create(User $user): bool
     {
-        return $user->isGlobalAdmin() || $user->can(Permission::UsersManage->value);
+        return ($user->isGlobalAdmin() && $user->isActive()) || $user->can(Permission::UsersManage->value);
     }
 
     public function update(User $user, User $target): bool
@@ -121,6 +121,11 @@ final class UserPolicy
      */
     public function assignGlobalRole(User $user, ?GlobalRole $role): bool
     {
+        // A suspended Admin hands out nothing, whichever screen asks.
+        if (! $user->isActive()) {
+            return false;
+        }
+
         if ($role === GlobalRole::SuperAdmin) {
             return $user->isSuperAdmin();
         }

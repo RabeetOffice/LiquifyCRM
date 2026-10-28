@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Sites\Support;
 
+use App\Modules\Core\Support\SafeSvg;
 use App\Modules\Sites\Enums\SitePlatform;
 use App\Modules\Sites\Models\Site;
 use Illuminate\Support\Facades\Http;
@@ -92,6 +93,11 @@ class SiteIdentity
             $body = $response->body();
 
             if (! $response->successful() || $extension === null || $body === '' || strlen($body) > 512 * 1024) {
+                continue;
+            }
+
+            // The file is served from our own address, so an SVG must be a drawing and nothing more.
+            if ($extension === 'svg' && ! SafeSvg::isDrawing($body)) {
                 continue;
             }
 

@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.39.1',
+        'date' => '2026-10-28',
+        'title' => 'Security fixes from the code audit',
+        'changes' => [
+            ['fixed', 'A person who is suspended, or taken out of a brand, can no longer keep working from a screen they already had open: every click is now checked the same way as opening the page.'],
+            ['fixed', 'Logos and icons read from a website are kept only when they are a plain picture. An SVG that could run a script is refused, however it is written, and every SVG file is now sent to the browser as a picture only.'],
+        ],
+    ],
+    [
         'version' => '1.39.0',
         'date' => '2026-10-27',
         'title' => 'IT and Website leads people, two-step codes in one place',

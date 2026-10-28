@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core;
 
+use App\Modules\Auth\Http\Middleware\EnsureGlobalAdmin;
+use App\Modules\Auth\Http\Middleware\EnsureSuperAdmin;
+use App\Modules\Auth\Http\Middleware\EnsureSystemStaff;
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Contracts\PushTransport;
 use App\Modules\Core\Enums\Permission;
+use App\Modules\Core\Http\Middleware\EnsureBrandMember;
 use App\Modules\Core\Jobs\SendWebPush;
 use App\Modules\Core\Models\PushSubscription;
 use App\Modules\Core\Navigation\Menu;
@@ -31,6 +35,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\View\View as ViewInstance;
+use Livewire\Livewire;
 
 final class CoreServiceProvider extends ModuleServiceProvider
 {
@@ -57,6 +62,10 @@ final class CoreServiceProvider extends ModuleServiceProvider
         // building; production only logs so a stray query never breaks a page.
         Model::shouldBeStrict(! $this->app->isProduction());
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // A screen's later clicks are checked like its first load (security audit, 28 Oct 2026): without
+        // this a person suspended, or taken out of a brand, could keep working from a page already open.
+        Livewire::addPersistentMiddleware([EnsureGlobalAdmin::class, EnsureSuperAdmin::class, EnsureSystemStaff::class, EnsureBrandMember::class]);
 
         // Dashboard numbers are cached for 60 seconds; anything that changes them clears the brand's cache.
         Event::listen([LeadCreated::class, LeadAssigned::class, LeadStatusChanged::class], function (LeadCreated|LeadAssigned|LeadStatusChanged $event): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Brands\Support;
 
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Support\SafeSvg;
 use Illuminate\Support\Facades\Storage;
 use League\ColorExtractor\Color;
 use League\ColorExtractor\ColorExtractor;
@@ -214,7 +215,7 @@ class BrandIdentity
         }
 
         // The file is served from our own address, so an SVG must be a drawing and nothing more.
-        if ($extension === 'svg' && preg_match('~<script|\son\w+\s*=|javascript:|<foreignObject|<iframe|<embed|<object~i', $body)) {
+        if ($extension === 'svg' && ! SafeSvg::isDrawing($body)) {
             return null;
         }
 

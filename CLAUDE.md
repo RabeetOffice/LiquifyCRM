@@ -90,6 +90,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   shared code for all accounts and chose this instead once told a leaked shared key opens every account. Do not add a
   shared key. A Website leads person reads `WebsiteLeadsBoard` (`/website-leads`, also in the Admins' menu) for the
   brands in `website_lead_brands` (`WebsiteLeads`, behind `ready()`): website leads only, read only, contact masked.
+- Security audit (28 Oct 2026, Cloudflare security-audit skill; report in ~/security-audit-skill/LiquifyCRM/run-1):
+  Livewire re-runs only its persistent middleware on a component's later requests, so `EnsureGlobalAdmin`,
+  `EnsureSuperAdmin`, `EnsureSystemStaff` and `EnsureBrandMember` are registered with
+  `Livewire::addPersistentMiddleware` (CoreServiceProvider). A new access middleware must be added there too, or a
+  suspended person keeps working from an open screen. An SVG fetched from an outside website is kept only when
+  `SafeSvg::isDrawing()` passes (parsed, allowlist of drawing elements), never a regex; public/.htaccess sends every
+  .svg with a sandbox CSP. Tests: tests/Feature/Core/SecurityAuditTest.php.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks
