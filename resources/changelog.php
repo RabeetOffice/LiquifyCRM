@@ -20,22 +20,20 @@ declare(strict_types=1);
 
 return [
     [
-        'version' => '1.39.2',
-        'date' => '2026-10-28',
-        'title' => 'More security fixes from the code audit',
-        'changes' => [
-            ['fixed', 'A new password now signs the person out on every other computer and phone, whichever way it was changed: People › Edit, the emailed reset link, the authenticator reset or their own profile. Before, only People › Set password did.'],
-            ['fixed', 'On Website leads, a search finds a hidden email or phone only when the whole of it is typed, so parts of it can no longer be guessed one letter at a time. Admins, who see contacts in full, search as before.'],
-            ['fixed', 'On a teammate\'s lead the Timeline no longer shows the sale, payment and invoice amounts, just as the sales list there already hid them.'],
-        ],
-    ],
-    [
         'version' => '1.39.1',
         'date' => '2026-10-28',
         'title' => 'Security fixes from the code audit',
         'changes' => [
             ['fixed', 'A person who is suspended, or taken out of a brand, can no longer keep working from a screen they already had open: every click is now checked the same way as opening the page.'],
             ['fixed', 'Logos and icons read from a website are kept only when they are a plain picture. An SVG that could run a script is refused, however it is written, and every SVG file is now sent to the browser as a picture only.'],
+            ['fixed', 'A new password now signs the person out on every other computer and phone, whichever way it was changed: People › Edit, the emailed reset link, the authenticator reset or their own profile. Before, only People › Set password did.'],
+            ['fixed', 'Desktop alerts stop going to a phone that is blocked, to the other browsers of somebody whose password changed, and to anybody suspended.'],
+            ['fixed', 'On Website leads, a search finds a hidden email or phone only when the whole of it is typed, so parts of it can no longer be guessed one letter at a time. Admins, who see contacts in full, search as before.'],
+            ['fixed', 'On a teammate\'s lead the Timeline no longer shows the sale, payment and invoice amounts, just as the sales list there already hid them.'],
+            ['fixed', 'Facebook and website leads can no longer be held back by somebody sending fake requests: only messages Facebook really signed count against a Page, and each sender has an allowance of their own.'],
+            ['fixed', 'An IT or Website leads account can no longer join a brand by accepting an invitation.'],
+            ['fixed', 'Lead and log exports write what people typed as text: a name or message that starts like a spreadsheet formula no longer runs as one when the file is opened.'],
+            ['fixed', 'Undo after Take gives back only a lead you just took yourself. A lead your Manager gave you stays yours until the Manager moves it.'],
         ],
     ],
     [

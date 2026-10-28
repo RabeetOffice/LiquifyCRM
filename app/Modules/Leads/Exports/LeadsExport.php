@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Exports;
 
+use App\Modules\Core\Support\SpreadsheetText;
 use App\Modules\Leads\Models\Lead;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
@@ -37,16 +38,17 @@ final class LeadsExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             $row->getKey(),
-            $row->name,
-            $row->email,
-            $row->phone,
+            // What the person typed on a form is written as text, never as a formula.
+            SpreadsheetText::safe($row->name),
+            SpreadsheetText::safe($row->email),
+            SpreadsheetText::safe($row->phone),
             $row->status->name,
             $row->source_type->getLabel(),
             $row->department?->name,
             $row->assignee?->name,
             $row->next_follow_up_at?->format('Y-m-d H:i'),
             $row->created_at?->format('Y-m-d H:i'),
-            $row->message,
+            SpreadsheetText::safe($row->message),
         ];
     }
 }

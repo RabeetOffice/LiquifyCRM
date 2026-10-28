@@ -100,7 +100,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   remember_token, deletes their database sessions except the browser that changed its own), so no password writer
   needs to do it. A search box over leads for a viewer who sees contacts masked matches email and phone only whole
   and escapes `%` / `_` (GlobalSearch, LeadsIndex, WebsiteLeadsBoard). `LeadPanel`'s timeline hides `sales.*`
-  entries from viewers who cannot `update` the lead. Tests: tests/Feature/Core/SecurityAuditTest.php.
+  entries from viewers who cannot `update` the lead. A password change also deletes the person's push subscriptions
+  (but this browser's), `DecideDevice::block` deletes those of everybody on the phone, and `SendWebPush` skips a
+  suspended person. The Meta webhook limiter counts unsigned calls per IP, never per Page; ingest counts per site and
+  IP. `InvitationController::refusal` and `User::canAccessBrand` refuse IT and Website leads people. Text written into
+  CSV/Excel goes through `SpreadsheetText::safe()`. Undo of a take needs the `lead-taken:` cache mark set by
+  `TakesLeads::takeLead` (or the assign right). Tests: tests/Feature/Core/SecurityAudit*Test.php.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

@@ -60,8 +60,10 @@ trait HandlesLeadUndo
             }
 
             app(AssignLead::class)->handle($record, $agent, $user);
-        } elseif ($kind === 'take' && $record->assigned_to === $user->getKey()) {
-            // Taken by mistake: back to the others, free again.
+        } elseif ($kind === 'take' && $record->assigned_to === $user->getKey()
+            && (Cache::pull(self::takenKey($user, $record)) === true || $user->can('assign', $record))) {
+            // Taken by mistake: back to the others, free again. Only a take this person just made, or by
+            // whoever may assign the lead: a lead a Manager gave an Agent is not theirs to drop (audit, 28 Oct 2026).
             app(AssignLead::class)->handle($record, null, $user);
         } elseif ($kind === 'archive' && $user->can('archive', $record)) {
             app(ArchiveLead::class)->bringBack($record, $user);
@@ -84,6 +86,12 @@ trait HandlesLeadUndo
         }
 
         $this->toastSuccess('Undone');
+    }
+
+    /** Remembers for a while that this person took this lead themselves, so their Undo may give it back. */
+    protected static function takenKey(User $user, Lead $lead): string
+    {
+        return 'lead-taken:'.$user->getKey().':'.$lead->getKey();
     }
 
     /** @return array{event: string, params: array<string, mixed>} */

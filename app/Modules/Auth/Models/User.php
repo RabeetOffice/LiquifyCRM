@@ -12,6 +12,8 @@ use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\DepartmentRole;
 use App\Modules\Core\Enums\GlobalRole;
 use App\Modules\Core\Enums\MembershipStatus;
+use App\Modules\Core\Models\PushSubscription;
+use App\Modules\Core\Support\WebPush;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Departments\Models\DepartmentUser;
 use Carbon\CarbonImmutable;
@@ -117,11 +119,26 @@ class User extends Authenticatable
         });
 
         static::updated(function (self $user): void {
-            if (! $user->wasChanged('password') || config('session.driver') !== 'database') {
+            if (! $user->wasChanged('password')) {
                 return;
             }
 
-            $keep = Auth::id() === $user->getKey() && app()->bound('session.store') ? app('session.store')->getId() : null;
+            $self = Auth::id() === $user->getKey() && app()->bound('session.store');
+
+            // Desktop alerts go to a browser, not a session, so they stop too (except on the browser that changed it).
+            if (WebPush::ready()) {
+                $endpoint = $self ? app('session.store')->get('push_endpoint') : null;
+
+                PushSubscription::query()->where('user_id', $user->getKey())
+                    ->when(is_string($endpoint), fn ($query) => $query->where('endpoint_hash', '!=', $endpoint))
+                    ->delete();
+            }
+
+            if (config('session.driver') !== 'database') {
+                return;
+            }
+
+            $keep = $self ? app('session.store')->getId() : null;
 
             DB::table((string) config('session.table', 'sessions'))
                 ->where('user_id', $user->getKey())
@@ -403,6 +420,11 @@ class User extends Authenticatable
 
         if ($this->isGlobalAdmin()) {
             return true;
+        }
+
+        // IT and Website leads people never open a brand, even with a membership left over.
+        if ($this->isIt() || $this->isWebsiteLeads()) {
+            return false;
         }
 
         return $this->memberships()

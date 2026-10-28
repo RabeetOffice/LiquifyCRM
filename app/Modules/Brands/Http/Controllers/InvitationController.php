@@ -156,6 +156,11 @@ final class InvitationController
             return 'This account is an Admin and already sees every brand. Sign in to continue.';
         }
 
+        // IT and Website leads people never work in a brand, however the invitation reached them.
+        if ($user->isIt() || $user->isWebsiteLeads()) {
+            return 'This account is for IT or website leads and cannot join a brand. Ask an Admin.';
+        }
+
         $membership = $this->membership($user, $brand);
 
         if ($membership !== null && $membership->status !== MembershipStatus::Active) {

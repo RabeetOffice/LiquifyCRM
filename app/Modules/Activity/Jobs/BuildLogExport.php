@@ -8,6 +8,7 @@ use App\Modules\Activity\Models\Activity;
 use App\Modules\Activity\Models\LogExport;
 use App\Modules\Activity\Support\LogArchiver;
 use App\Modules\Core\Notifications\AppNotification;
+use App\Modules\Core\Support\SpreadsheetText;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -71,13 +72,14 @@ final class BuildLogExport implements ShouldQueue
                             $entry->created_at?->toDateTimeString(),
                             $entry->log_name,
                             $entry->event,
-                            $entry->description,
-                            $entry->causer?->getAttribute('name') ?? 'System',
+                            // Descriptions carry lead names and messages: text, never a formula.
+                            SpreadsheetText::safe($entry->description),
+                            SpreadsheetText::safe($entry->causer?->getAttribute('name') ?? 'System'),
                             $entry->brand?->name,
                             $entry->department?->name,
                             $entry->subject_type ? class_basename((string) $entry->subject_type).' #'.$entry->subject_id : '',
                             $entry->ip,
-                            $entry->user_agent,
+                            SpreadsheetText::safe($entry->user_agent),
                             json_encode($entry->properties, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         ]);
                         $rows++;

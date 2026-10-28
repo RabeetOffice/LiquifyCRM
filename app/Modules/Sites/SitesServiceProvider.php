@@ -32,8 +32,9 @@ final class SitesServiceProvider extends ModuleServiceProvider
     {
         InboundEvent::processWith(InboundEvent::SOURCE_SITE, IngestLead::class);
 
-        // 120 requests a minute per source, as the security section asks.
+        // 120 requests a minute per source, as the security section asks, counted per sending address too:
+        // a stranger who learns a site's key fills only their own allowance, not the website's (audit, 28 Oct 2026).
         RateLimiter::for('ingest', fn (Request $request): Limit => Limit::perMinute((int) config('liquify.ingest.rate_limit', 120))
-            ->by('ingest:'.$request->route('site_key')));
+            ->by('ingest:'.$request->route('site_key').'|'.$request->ip()));
     }
 }

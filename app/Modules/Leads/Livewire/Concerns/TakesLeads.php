@@ -11,6 +11,7 @@ use App\Modules\Leads\Exceptions\LeadAlreadyTaken;
 use App\Modules\Leads\Exceptions\RevealLimitReached;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\ContactVisibility;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The Take button of front sales, wherever a free lead shows: one click and
@@ -48,6 +49,7 @@ trait TakesLeads
         }
 
         $lead->refresh();
+        Cache::put(self::takenKey($user, $lead), true, now()->addMinutes(10));
         $note = 'It is yours now: nobody else can take it.';
 
         if (! app(ContactVisibility::class)->canSeeFull($user, $lead)) {

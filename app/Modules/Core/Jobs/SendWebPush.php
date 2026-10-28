@@ -43,6 +43,13 @@ final class SendWebPush implements ShouldQueue
             return;
         }
 
+        // A suspended person is told nothing, wherever their browsers still listen.
+        $person = User::query()->find((int) $notification->getAttribute('notifiable_id'));
+
+        if (! $person instanceof User || $person->isSuspended()) {
+            return;
+        }
+
         $data = (array) $notification->data;
         $payload = (string) json_encode([
             'id' => (string) $notification->getKey(),
