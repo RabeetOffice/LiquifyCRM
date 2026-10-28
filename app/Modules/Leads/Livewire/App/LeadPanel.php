@@ -668,6 +668,8 @@ final class LeadPanel extends Component
         $timeline = Activity::query()
             ->where('subject_type', $lead->getMorphClass())
             ->where('subject_id', $lead->getKey())
+            // The sales lines carry amounts: on a colleague's lead they stay hidden, like the sales list above.
+            ->when(! $canUpdate, fn ($query) => $query->where('event', 'not like', 'sales.%'))
             ->with('causer')
             ->latest('id')
             ->limit(80)

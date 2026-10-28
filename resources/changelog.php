@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.39.2',
+        'date' => '2026-10-28',
+        'title' => 'More security fixes from the code audit',
+        'changes' => [
+            ['fixed', 'A new password now signs the person out on every other computer and phone, whichever way it was changed: People › Edit, the emailed reset link, the authenticator reset or their own profile. Before, only People › Set password did.'],
+            ['fixed', 'On Website leads, a search finds a hidden email or phone only when the whole of it is typed, so parts of it can no longer be guessed one letter at a time. Admins, who see contacts in full, search as before.'],
+            ['fixed', 'On a teammate\'s lead the Timeline no longer shows the sale, payment and invoice amounts, just as the sales list there already hid them.'],
+        ],
+    ],
+    [
         'version' => '1.39.1',
         'date' => '2026-10-28',
         'title' => 'Security fixes from the code audit',

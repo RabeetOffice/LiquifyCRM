@@ -96,14 +96,18 @@ final class WebsiteLeadsBoard extends Component
 
         $today = ViewerTime::startOfToday($viewer);
         $week = $today->subDays(6);
-        $like = '%'.$this->search.'%';
+        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $this->search).'%';
+        $fullContact = $viewer->isGlobalAdmin();
 
         $leads = $scoped()
             ->with(['status', 'assignee:id,name,avatar_path'])
             ->when($this->tab === 'today', fn (Builder $query): Builder => $query->where('created_at', '>=', $today))
             ->when($this->tab === 'week', fn (Builder $query): Builder => $query->where('created_at', '>=', $week))
             ->when($this->tab === 'waiting', fn (Builder $query): Builder => $query->unassigned()->open())
-            ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $q): Builder => $q->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)))
+            ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $q): Builder => $fullContact
+                ? $q->where('name', 'like', $like)->orWhere('email', 'like', $like)->orWhere('phone', 'like', $like)
+                // Masked contacts match only as a whole, so typed fragments cannot uncover them (as in GlobalSearch).
+                : $q->where('name', 'like', $like)->orWhere('email', mb_strtolower(trim($this->search)))->orWhere('phone', trim($this->search))))
             ->latest('created_at')->latest('id')
             ->paginate(25);
 
@@ -131,7 +135,7 @@ final class WebsiteLeadsBoard extends Component
             ]),
             'perDay' => $this->perDay($scoped(), $brands->whereIn('id', $shownIds)->values()->all(), $viewer),
             'bySite' => $this->bySite($scoped(), $sites->pluck('name', 'id')->all()),
-            'fullContact' => $viewer->isGlobalAdmin(),
+            'fullContact' => $fullContact,
             'lead' => $lead,
             'answers' => $lead !== null ? LeadEnquiry::answers($lead) : [],
             'facts' => $lead !== null ? LeadEnquiry::source($lead) : [],

@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Support\BrandIdentity;
+use App\Modules\Core\Enums\GlobalRole;
 use App\Modules\Core\Enums\MembershipStatus;
 use App\Modules\Core\Support\SafeSvg;
+use App\Modules\Leads\Enums\LeadSource;
+use App\Modules\Leads\Livewire\App\LeadPanel;
+use App\Modules\Leads\Livewire\WebsiteLeadsBoard;
+use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Support\WebsiteLeads;
+use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Support\SiteIdentity;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -163,4 +171,82 @@ it('still stores a plain SVG favicon from a website', function (): void {
     app(SiteIdentity::class)->refresh($site, Http::get('https://plain.test/')->body());
 
     expect($site->refresh()->favicon_path)->toBe('sites/favicons/'.$site->getKey().'.svg');
+});
+
+/** A session row in the database store, as a signed-in browser leaves it. */
+function sessionRowFor(User $user, string $id): void
+{
+    DB::table('sessions')->insert([
+        'id' => $id, 'user_id' => $user->getKey(), 'ip_address' => '127.0.0.1', 'user_agent' => 'test', 'payload' => '', 'last_activity' => now()->getTimestamp(),
+    ]);
+}
+
+it('signs a person out everywhere whenever their password is replaced', function (): void {
+    config(['session.driver' => 'database']);
+    $agent = User::factory()->create();
+    sessionRowFor($agent, 'old-browser');
+    $token = $agent->getRememberToken();
+
+    // An Admin on People › Edit, the emailed reset and the authenticator reset all end up here.
+    $agent->forceFill(['password' => 'NewPassw0rd99'])->save();
+
+    expect(DB::table('sessions')->where('user_id', $agent->getKey())->count())->toBe(0)
+        ->and($agent->fresh()->getRememberToken())->not->toBe($token);
+});
+
+it('keeps the browser that changed its own password signed in', function (): void {
+    config(['session.driver' => 'database']);
+    $agent = User::factory()->create();
+    $this->actingAs($agent);
+    $current = app('session.store')->getId();
+    sessionRowFor($agent, $current);
+    sessionRowFor($agent, 'other-browser');
+
+    $agent->forceFill(['password' => 'NewPassw0rd99'])->save();
+
+    expect(DB::table('sessions')->where('user_id', $agent->getKey())->pluck('id')->all())->toBe([$current]);
+});
+
+it('does not let a Website leads person uncover a masked contact by searching parts of it', function (): void {
+    $brand = brand();
+    $web = User::factory()->create(['role' => GlobalRole::WebsiteLeads])->refresh();
+    WebsiteLeads::choose($web, [$brand->getKey()]);
+    Lead::factory()->create([
+        'brand_id' => $brand->getKey(), 'source_type' => LeadSource::Website,
+        'name' => 'Target Tina', 'email' => 'secretlocal@example.com', 'phone' => '07700900123',
+    ]);
+
+    $board = Livewire\Livewire::actingAs($web)->test(WebsiteLeadsBoard::class);
+
+    foreach (['secretl', 's_c%@example.com', '0090', '%'] as $probe) {
+        $board->set('search', $probe)->assertDontSee('Target Tina');
+    }
+
+    // The whole address, or the name, still finds the lead.
+    $board->set('search', 'secretlocal@example.com')->assertSee('Target Tina')
+        ->set('search', 'Tina')->assertSee('Target Tina');
+
+    // An Admin sees contacts in full, so parts of them match.
+    Livewire\Livewire::actingAs(admin())->test(WebsiteLeadsBoard::class)
+        ->set('search', 'secretl')->assertSee('Target Tina');
+});
+
+it('does not show a colleague\'s sale money on the lead timeline', function (): void {
+    $brand = brand(['currency' => 'GBP']);
+    $front = department($brand, ['name' => 'Front Sales']);
+    $ali = agentOf($front, ['name' => 'Ali Khan']);
+    $sara = agentOf($front, ['name' => 'Sara Malik']);
+    inBrand($brand);
+    $lead = Lead::factory()->create(['brand_id' => $brand->getKey(), 'department_id' => $front->getKey(), 'assigned_to' => $sara->getKey()]);
+    app(RecordSale::class)->handle($lead, 4321, 'Publishing', now(), $sara);
+
+    Livewire\Livewire::actingAs($ali)->test(LeadPanel::class, ['leadId' => $lead->getKey()])
+        ->set('tab', 'timeline')
+        ->assertDontSee('4,321')
+        ->assertDontSee('Sale recorded');
+
+    // The seller still sees their own sale there.
+    Livewire\Livewire::actingAs($sara)->test(LeadPanel::class, ['leadId' => $lead->getKey()])
+        ->set('tab', 'timeline')
+        ->assertSee('Sale recorded');
 });

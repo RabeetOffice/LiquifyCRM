@@ -96,7 +96,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `Livewire::addPersistentMiddleware` (CoreServiceProvider). A new access middleware must be added there too, or a
   suspended person keeps working from an open screen. An SVG fetched from an outside website is kept only when
   `SafeSvg::isDrawing()` passes (parsed, allowlist of drawing elements), never a regex; public/.htaccess sends every
-  .svg with a sandbox CSP. Tests: tests/Feature/Core/SecurityAuditTest.php.
+  .svg with a sandbox CSP. A changed `users.password` signs the person out everywhere in `User::booted` (rotates
+  remember_token, deletes their database sessions except the browser that changed its own), so no password writer
+  needs to do it. A search box over leads for a viewer who sees contacts masked matches email and phone only whole
+  and escapes `%` / `_` (GlobalSearch, LeadsIndex, WebsiteLeadsBoard). `LeadPanel`'s timeline hides `sales.*`
+  entries from viewers who cannot `update` the lead. Tests: tests/Feature/Core/SecurityAuditTest.php.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

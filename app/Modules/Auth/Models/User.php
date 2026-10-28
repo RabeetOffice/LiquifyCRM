@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -103,6 +105,28 @@ class User extends Authenticatable
             if ($wasSuperAdmin && ! $user->isSuperAdmin() && static::superAdmins()->count() <= 1) {
                 throw ProtectedUserException::lastSuperAdmin();
             }
+        });
+
+        // A replaced password signs the person out everywhere, whichever screen replaced it (security audit,
+        // 28 Oct 2026): People › Edit, the emailed reset, the authenticator reset or their own profile. Only the
+        // browser that changed its own password stays signed in.
+        static::saving(function (self $user): void {
+            if ($user->exists && $user->isDirty('password') && ! $user->isDirty('remember_token')) {
+                $user->setRememberToken(Str::random(60));
+            }
+        });
+
+        static::updated(function (self $user): void {
+            if (! $user->wasChanged('password') || config('session.driver') !== 'database') {
+                return;
+            }
+
+            $keep = Auth::id() === $user->getKey() && app()->bound('session.store') ? app('session.store')->getId() : null;
+
+            DB::table((string) config('session.table', 'sessions'))
+                ->where('user_id', $user->getKey())
+                ->when($keep !== null, fn ($query) => $query->where('id', '!=', $keep))
+                ->delete();
         });
 
         static::deleting(function (self $user): void {
