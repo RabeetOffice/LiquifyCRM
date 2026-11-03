@@ -8,8 +8,11 @@ use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Sites\Actions\UseLiquifyFile;
 use App\Modules\Sites\Enums\CheckType;
 use App\Modules\Sites\Enums\InboundStatus;
+use App\Modules\Sites\Enums\SiteMode;
+use App\Modules\Sites\Enums\SitePlatform;
 use App\Modules\Sites\Jobs\ImportSiteHistory;
 use App\Modules\Sites\Jobs\IngestLead;
 use App\Modules\Sites\Jobs\PullSiteLeads;
@@ -17,9 +20,11 @@ use App\Modules\Sites\Livewire\Concerns\EditsPullConfig;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Models\SiteCheck;
 use App\Modules\Sites\Support\LiquifySnippet;
+use App\Modules\Sites\Support\PlatformChoice;
 use App\Modules\Sites\Support\SiteHealthChecker;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -54,6 +59,8 @@ final class SiteShow extends Component
 
     public string $formPath = '';
 
+    public string $platform = '';
+
     public bool $isActive = true;
 
     public bool $showImport = false;
@@ -71,6 +78,7 @@ final class SiteShow extends Component
         $this->name = $site->name;
         $this->url = $site->url;
         $this->formPath = $site->formPath();
+        $this->platform = $site->platform->value;
         $this->isActive = $site->is_active;
         $this->fillPullConfig($site);
     }
@@ -180,12 +188,15 @@ final class SiteShow extends Component
             'name' => ['required', 'string', 'max:160'],
             'url' => ['required', 'url:http,https', 'max:255'],
             'formPath' => ['nullable', 'string', 'max:190'],
+            'platform' => ['required', Rule::enum(SitePlatform::class)],
             'isActive' => ['boolean'],
-        ], attributes: ['name' => 'website name', 'url' => 'website address', 'formPath' => 'form handler path']);
+        ], attributes: ['name' => 'website name', 'url' => 'website address', 'formPath' => 'form handler path', 'platform' => 'website type']);
 
         // Only a website read straight from its database has details to keep; liquify.php finds its own.
         $pull = $this->readsDatabase() ? $this->validatedPullConfig($this->site) : $this->site->pull_config;
         $sourceChanged = $pull !== $this->site->pull_config;
+        $platform = SitePlatform::from($data['platform']);
+        $typeChanged = $platform !== $this->site->platform;
 
         $this->site->update([
             'name' => $data['name'],
@@ -196,9 +207,26 @@ final class SiteShow extends Component
             'pull_config' => $pull,
             // A different source starts watching from its own last row.
             'pull_cursor' => $sourceChanged ? null : $this->site->pull_cursor,
+            ...($typeChanged ? PlatformChoice::attributes($platform) : []),
+            // An Elementor form sends each lead to the webhook address.
+            ...($typeChanged && $platform === SitePlatform::Elementor ? ['mode' => SiteMode::Push] : []),
         ]);
 
-        Audit::log('sites.updated', $this->site, ['name' => $this->site->name, 'is_active' => $this->site->is_active], 'Website settings saved', logName: 'sites');
+        Audit::log('sites.updated', $this->site, ['name' => $this->site->name, 'platform' => $this->site->platform->value, 'is_active' => $this->site->is_active], 'Website settings saved', logName: 'sites');
+
+        // A custom PHP website is read through liquify.php as soon as the file can read its leads table.
+        if ($typeChanged && $platform === SitePlatform::Php && ! $this->site->isPull()) {
+            set_time_limit(60);
+            $answer = app(UseLiquifyFile::class)->handle($this->site);
+
+            match (true) {
+                $answer['ok'] => $this->toastSuccess('Website saved', 'LiquifyCRM now reads its new leads every minute through liquify.php.'),
+                $answer['answered'] => $this->toastWarning('Website saved', $answer['message']),
+                default => $this->toast('Website saved', 'Upload liquify.php to its root folder (Setup steps) and LiquifyCRM reads its new leads every minute.', 'info'),
+            };
+
+            return;
+        }
 
         $this->toastSuccess('Website saved');
     }
@@ -272,6 +300,7 @@ final class SiteShow extends Component
             'canManage' => (bool) auth()->user()?->can('update', $site),
             'readsDatabase' => $this->readsDatabase(),
             'lines' => LiquifySnippet::lines(),
+            'platforms' => SitePlatform::cases(),
         ])->title($site->name);
     }
 }

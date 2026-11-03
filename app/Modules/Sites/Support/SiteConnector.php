@@ -13,13 +13,14 @@ use Throwable;
  * a question: "ping", "leads" (rows after an id) or "diagnostics" (its email
  * and database). The question is signed like a lead the other way round:
  * X-Liquify-Timestamp and X-Liquify-Signature, HMAC-SHA256 of
- * "timestamp.body" with the website's secret. The file only reads.
+ * "timestamp.body" with the website's secret. The file only reads. Every
+ * answer carries the file's version, so an outdated copy can be named.
  */
 final class SiteConnector
 {
     /**
      * @param  array<string, mixed>  $params
-     * @return array{ok: bool, data: array<string, mixed>, error: string, ms: int}
+     * @return array{ok: bool, data: array<string, mixed>, error: string, ms: int, version: string}
      */
     public function call(Site $site, string $action, array $params = [], int $timeout = 20): array
     {
@@ -53,17 +54,19 @@ final class SiteConnector
             }, $started);
         }
 
+        $version = is_scalar($json['liquify']) ? (string) $json['liquify'] : '';
+
         if (empty($json['ok'])) {
-            return $this->failed((string) ($json['error'] ?? 'liquify.php could not answer.'), $started);
+            return $this->failed((string) ($json['error'] ?? 'liquify.php could not answer.'), $started, $version);
         }
 
-        return ['ok' => true, 'data' => is_array($json['data'] ?? null) ? $json['data'] : [], 'error' => '', 'ms' => $this->ms($started)];
+        return ['ok' => true, 'data' => is_array($json['data'] ?? null) ? $json['data'] : [], 'error' => '', 'ms' => $this->ms($started), 'version' => $version];
     }
 
-    /** @return array{ok: false, data: array<string, mixed>, error: string, ms: int} */
-    private function failed(string $error, float $started): array
+    /** @return array{ok: false, data: array<string, mixed>, error: string, ms: int, version: string} */
+    private function failed(string $error, float $started, string $version = ''): array
     {
-        return ['ok' => false, 'data' => [], 'error' => $error, 'ms' => $this->ms($started)];
+        return ['ok' => false, 'data' => [], 'error' => $error, 'ms' => $this->ms($started), 'version' => $version];
     }
 
     private function ms(float $started): int

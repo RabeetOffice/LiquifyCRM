@@ -118,10 +118,23 @@ in the document's weekly phases; never skip a phase or silently change the desig
   signed questions (`SiteConnector`: `ping`, `leads`, `diagnostics`; `X-Liquify-Timestamp` / `X-Liquify-Signature`,
   the site secret, 5 minutes) and nothing else. Such a site is `mode = pull`, `pull_config.driver = file`
   (`Site::readsThroughFile()`); `sites:pull` runs every minute (`PullSiteLeads` is unique per site) and its first run
-  only notes `max_id`. The same file's `liquify_send()` (two optional lines after `$db = log_lead_to_db($lead)`) sends
-  at once with the row id as `external_id`, so push and pull dedupe. Keep the stub PHP 7.4-safe and
-  self-contained. `driver = database` reads the database straight from LiquifyCRM. Pushes from the older
-  `includes/liquify.php` are still accepted; `ConnectionTester` moves a push PHP site to the file once it answers.
+  only notes `max_id`. The same file's `liquify_send()` (two optional lines after `$db = log_lead_to_db($lead)`; `$db`
+  may be the row id or the row) sends at once with the row id as `external_id`, so push and pull dedupe. Keep the stub
+  PHP 7.4-safe and self-contained. `driver = database` reads the database straight from LiquifyCRM. Pushes from the older
+  `includes/liquify.php` are still accepted.
+- Brand sites' settings (user request, 3 Nov 2026; checked against the 11 sites in `C:\xampp\htdocs\brands`): liquify.php
+  2.1 (`LiquifySnippet::VERSION`, keep it equal to the stub's `LIQUIFY_VERSION`) reads written-out `define()` and top-level
+  `const`, prefixed names count (`SBP_DB_NAME` → `DB_NAME`, `liquify_canonical`), and only then runs the config file:
+  any config with a worked-out `DB_NAME` or a `$DB` list, so values merged from the admin panel's
+  `admin/data/settings-overrides.json` (Viral Advice Media) are the ones used. After the run it reads DB_/SMTP_/MAIL_
+  constants and global lists (`$DB`, `$SMTP`, `$config['db']`, `liquify_global_list`); `SMTP_ENABLED` off skips Email.
+  The stub was tried on copies of all 11 sites (scratch harness, values masked); `WebsiteTypeTest` runs it per style.
+- Website type (same request): `SitePlatform` Php ("Custom PHP website"), WordPress, Elementor (webhook), chosen on
+  Websites › Settings and recorded in `sites.platform_chosen_at` (behind `PlatformChoice::ready()`); `SiteIdentity`
+  never guesses over a chosen type or into/out of Elementor, and a `wp-content/uploads` picture alone is not WordPress.
+  `UseLiquifyFile` (connection test, health check, choosing Custom PHP) moves a push Php site to `pull` / `file` once
+  liquify.php reads its leads table; when the file answers but cannot, the Database check is amber and names an
+  outdated copy (`SiteConnector` returns the file's `version`).
 - Facebook (`app/Modules/Meta`): `/webhooks/meta` verifies `X-Hub-Signature-256` and stores `InboundEvent`s;
   `ProcessMetaEvent` turns them into leads (Lead Ads, via `MetaGraph`) or `Conversation` / `Message` rows (Messenger).
   One global connection (`MetaConnection`), Pages mapped to brands (`MetaSource`, not brand-scoped). Each channel

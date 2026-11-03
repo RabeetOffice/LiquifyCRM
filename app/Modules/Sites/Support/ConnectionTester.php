@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Sites\Support;
 
+use App\Modules\Sites\Actions\UseLiquifyFile;
 use App\Modules\Sites\Enums\InboundStatus;
-use App\Modules\Sites\Enums\SiteMode;
-use App\Modules\Sites\Jobs\PullSiteLeads;
 use App\Modules\Sites\Models\Site;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -17,8 +16,8 @@ use Throwable;
  * reachable, does liquify.php in its root folder answer and find the leads
  * table (or the database, or the webhook), does a signed test lead pass
  * through LiquifyCRM, and has a real lead arrived. A PHP website that still
- * sent leads with the older two-file setup moves to the one file as soon as
- * the file answers.
+ * sends each lead itself (the older two-file setup) is read through the one
+ * file as soon as the file finds the leads table.
  *
  * @phpstan-type Step array{label: string, ok: ?bool, message: string}
  */
@@ -26,7 +25,7 @@ final class ConnectionTester
 {
     public function __construct(
         private readonly SiteIngestor $ingestor,
-        private readonly SiteConnector $connector,
+        private readonly UseLiquifyFile $useFile,
         private readonly SiteDatabase $database,
     ) {}
 
@@ -72,31 +71,10 @@ final class ConnectionTester
      */
     private function file(Site $site): array
     {
-        $ping = $this->connector->call($site, 'ping', [], 20);
+        // A website that sends each lead itself moves to the one file now.
+        $answer = $this->useFile->handle($site);
 
-        if (! $ping['ok']) {
-            return ['label' => 'liquify.php in the root folder', 'ok' => false, 'message' => $ping['error']];
-        }
-
-        $table = $ping['data']['table'] ?? null;
-
-        if (! is_string($table)) {
-            return ['label' => 'liquify.php in the root folder', 'ok' => false, 'message' => 'The file answers, but: '.($ping['data']['error'] ?? 'it found no leads table.')];
-        }
-
-        // An older PHP website (two files and two lines) moves to the one file now.
-        if (! $site->isPull()) {
-            $site->forceFill(['mode' => SiteMode::Pull, 'pull_config' => ['driver' => 'file'], 'pull_cursor' => null])->save();
-        }
-
-        if ($site->pull_cursor === null) {
-            PullSiteLeads::dispatchSync((int) $site->getKey());
-            $site->refresh();
-        }
-
-        $rows = (int) ($ping['data']['rows'] ?? 0);
-
-        return ['label' => 'liquify.php in the root folder', 'ok' => true, 'message' => 'Answered in '.$ping['ms'].' ms. It reads the '.$table.' table ('.number_format($rows).' '.str('row')->plural($rows).'); new leads are read every minute.'];
+        return ['label' => 'liquify.php in the root folder', 'ok' => $answer['ok'], 'message' => $answer['message']];
     }
 
     /** @return Step */

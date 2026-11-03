@@ -7,8 +7,10 @@ namespace App\Modules\Sites\Support;
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Enums\GlobalRole;
 use App\Modules\Core\Notifications\AppNotification;
+use App\Modules\Sites\Actions\UseLiquifyFile;
 use App\Modules\Sites\Enums\CheckStatus;
 use App\Modules\Sites\Enums\CheckType;
+use App\Modules\Sites\Enums\SitePlatform;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Models\SiteCheck;
 use Carbon\CarbonInterface;
@@ -33,11 +35,17 @@ final class SiteHealthChecker
         private readonly SiteConnector $connector,
         private readonly SiteDatabase $database,
         private readonly SiteIdentity $identity,
+        private readonly UseLiquifyFile $useFile,
     ) {}
 
     public function run(Site $site): CheckStatus
     {
         [$uptime, $homepage] = $this->uptime($site);
+
+        // The type first: a custom PHP website has its database checked through liquify.php.
+        if ($homepage !== null) {
+            $this->identity->refresh($site, $homepage);
+        }
 
         $results = [$uptime, $this->ssl($site), $this->form($site), ...$this->emailAndDatabase($site)];
         $now = now();
@@ -63,10 +71,6 @@ final class SiteHealthChecker
         }
 
         $site->forceFill(['health_status' => $overall, 'last_checked_at' => $now])->save();
-
-        if ($homepage !== null) {
-            $this->identity->refresh($site, $homepage);
-        }
 
         $this->warnWhenQuiet($site);
 
@@ -179,6 +183,17 @@ final class SiteHealthChecker
      */
     private function emailAndDatabase(Site $site): array
     {
+        // A custom PHP website that sends each lead itself is read through liquify.php as soon as the
+        // file can read its leads table, so a lead whose send fails still arrives within a minute.
+        $file = $site->platform === SitePlatform::Php && ! $site->isPull() ? $this->useFile->handle($site) : null;
+
+        if ($file !== null && ! $file['ok'] && $file['answered']) {
+            return [
+                $this->result(CheckType::Smtp, CheckStatus::Skip, 'Checked through liquify.php once it can read the leads table.'),
+                $this->result(CheckType::Database, CheckStatus::Warn, 'liquify.php is in the root folder but cannot read the leads table yet, so only the form\'s own send brings leads in. '.$file['message'], $file['ms']),
+            ];
+        }
+
         if ($site->readsThroughFile()) {
             $diagnostics = $this->connector->call($site, 'diagnostics', [], 40);
 

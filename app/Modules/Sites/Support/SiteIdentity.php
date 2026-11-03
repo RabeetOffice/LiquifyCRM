@@ -13,8 +13,8 @@ use Throwable;
 
 /**
  * The favicon of a website (fetched from the site itself, largest icon wins)
- * and its platform badge: PHP, WordPress or Elementor. Not final so tests
- * can replace it.
+ * and its platform badge, custom PHP or WordPress, until a person chooses
+ * the type. Not final so tests can replace it.
  */
 class SiteIdentity
 {
@@ -29,8 +29,8 @@ class SiteIdentity
         $changes = [];
         $platform = $this->platform($html);
 
-        // A site connected through a page-builder webhook keeps that badge.
-        if (! $site->usesWebhook() && $platform !== $site->platform) {
+        // A type a person chose stays, and so does an Elementor form: that one decides how leads arrive.
+        if ($site->platform !== SitePlatform::Elementor && ! PlatformChoice::isChosen($site) && $platform !== $site->platform) {
             $changes['platform'] = $platform;
         }
 
@@ -47,13 +47,17 @@ class SiteIdentity
         }
     }
 
+    /**
+     * Custom PHP or WordPress, guessed from the homepage. A picture under
+     * wp-content/uploads proves nothing: a PHP website rebuilt from an old
+     * WordPress one keeps linking to them (UK Publishing House, 3 Nov 2026).
+     * Elementor is never guessed, because it changes how leads arrive.
+     */
     public function platform(string $html): SitePlatform
     {
-        return match (true) {
-            (bool) preg_match('~wp-content/plugins/elementor|class="[^"]*elementor-~i', $html) => SitePlatform::Elementor,
-            (bool) preg_match('~wp-content/|wp-includes/|name="generator" content="WordPress~i', $html) => SitePlatform::WordPress,
-            default => SitePlatform::Php,
-        };
+        return preg_match('~wp-content/(themes|plugins)/|wp-includes/|name="generator" content="WordPress|api\.w\.org~i', $html)
+            ? SitePlatform::WordPress
+            : SitePlatform::Php;
     }
 
     /** Icon addresses found in the page, best first, with /favicon.ico as the fallback. */

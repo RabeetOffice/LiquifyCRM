@@ -7,8 +7,11 @@
    LiquifyCRM asks this file every minute for the new rows of the website's
    own leads table, so the forms keep working exactly as before.
 
-   - It finds the database details in the website's config file
-     (includes/config.php) without running it, and it only reads.
+   - It finds the database details by itself, wherever the website keeps them:
+     define('DB_NAME', ...) or const DB_NAME = ... (also SITE_DB_NAME), a
+     $DB = [...] list, or settings saved in the website's admin panel. Written
+     out, they are read without running anything; otherwise the config file is
+     run once, as the website runs it. It only reads.
    - It answers LiquifyCRM only: every question carries a signature made with
      this website's secret, and a question older than 5 minutes is refused.
    - Optional, for leads in seconds instead of within a minute: two lines in
@@ -17,16 +20,17 @@
 
 const LIQUIFY_URL     = '{{URL}}';
 const LIQUIFY_SECRET  = '{{SECRET}}';
-const LIQUIFY_VERSION = '2.0';
+const LIQUIFY_VERSION = '2.1';
 
 // Only if this website keeps its settings or its leads somewhere else:
 // define('LIQUIFY_CONFIG', 'includes/config.php');
 // define('LIQUIFY_TABLE', 'leads');
 
 /* ------------------------------------------------------------------------------
-   Optional instant send, from the form handler:
+   Optional instant send, from the form handler, where $db is what saved the
+   lead (its row id, or a row with an id):
      require_once __DIR__ . '/liquify.php';
-     liquify_send($lead['form_type'], $db['id'], $lead);
+     liquify_send($lead['form_type'], $db, $lead);
 ------------------------------------------------------------------------------ */
 
 if (!function_exists('liquify_send')) {
@@ -34,6 +38,12 @@ if (!function_exists('liquify_send')) {
     function liquify_send($form, $externalId, array $fields)
     {
         try {
+            if (is_array($externalId)) {
+                $externalId = isset($externalId['id']) ? $externalId['id'] : null;
+            }
+            if (!is_scalar($externalId)) {
+                $externalId = null;
+            }
             $meta = array(
                 'page_url'   => isset($fields['page_url']) ? (string) $fields['page_url'] : (isset($_SERVER['HTTP_REFERER']) ? (string) $_SERVER['HTTP_REFERER'] : ''),
                 'ip'         => isset($fields['ip_address']) ? (string) $fields['ip_address'] : (isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : ''),
@@ -194,32 +204,39 @@ function liquify_config_files()
         : array('includes/config.php', 'config.php', 'includes/db.php', 'includes/database.php', 'inc/config.php', 'config/config.php', 'admin/config.php');
 }
 
+function liquify_config_code($file)
+{
+    $path = __DIR__ . '/' . ltrim($file, '/');
+
+    return is_file($path) && is_readable($path) ? (string) file_get_contents($path) : null;
+}
+
 /**
- * A config file whose database settings are worked out when it runs (read from
- * the admin's saved settings, for example: define('DB_NAME', setting('db_name')))
- * rather than written out. Such a file is run once, the way the website runs it.
+ * A config file whose database settings are not written out: worked out when
+ * it runs (define('DB_NAME', setting('db_name'))), or kept in a list such as
+ * $DB = [...] that the admin panel's saved settings are merged into. Such a
+ * file is run once, the way the website runs it.
  */
 function liquify_config_to_run()
 {
+    $first = null;
     foreach (liquify_config_files() as $file) {
-        $path = __DIR__ . '/' . ltrim($file, '/');
-        if (!is_file($path) || !is_readable($path)) {
+        $code = liquify_config_code($file);
+        if ($code === null) {
             continue;
         }
-        $code = (string) file_get_contents($path);
-        $values = liquify_defines($code);
-        if (isset($values['DB_NAME']) || isset($values['DB_DATABASE'])) {
+        if (liquify_written($code) !== null) {
             return null; // written out: read without running anything
         }
-        if (preg_match('/[\'"](DB_NAME|DB_DATABASE)[\'"]/', $code)) {
-            return $path;
+        if ($first === null && preg_match('/DB_(NAME|DATABASE)\b|\$(DB|db|database|DATABASE|db_?config|dbConfig)\s*=|\[\s*[\'"](db|database)[\'"]\s*\]/', $code)) {
+            $first = __DIR__ . '/' . ltrim($file, '/');
         }
     }
 
-    return null;
+    return $first;
 }
 
-/** The website's settings: define('NAME', 'value') lines of its config file, read without running it when they are written out. */
+/** The website's database (and mail) settings, wherever its config keeps them. */
 function liquify_settings()
 {
     static $settings = null;
@@ -230,32 +247,45 @@ function liquify_settings()
     $settings = array('file' => null, 'values' => array());
 
     foreach (liquify_config_files() as $file) {
-        $path = __DIR__ . '/' . ltrim($file, '/');
-        if (!is_file($path) || !is_readable($path)) {
-            continue;
+        $code = liquify_config_code($file);
+        $values = $code === null ? null : liquify_written($code);
+        if ($values !== null) {
+            return $settings = array('file' => $file, 'values' => $values);
         }
-        $values = liquify_defines((string) file_get_contents($path));
-        if (isset($values['DB_NAME']) || isset($values['DB_DATABASE'])) {
-            $settings = array('file' => $file, 'values' => $values);
-            break;
-        }
-        // Worked out when the config ran (see the end of this file): read what it defined.
-        if (defined('DB_NAME') || defined('DB_DATABASE')) {
-            $defined = get_defined_constants(true);
-            foreach (isset($defined['user']) ? $defined['user'] : array() as $name => $value) {
-                if (preg_match('/^(DB|SMTP|MAIL)_/', $name) && is_scalar($value)) {
-                    $values[$name] = (string) $value;
-                }
-            }
-            $settings = array('file' => $file, 'values' => $values);
-            break;
-        }
+    }
+
+    // Worked out when the config ran (see the end of this file): what it defined and set.
+    $values = liquify_runtime_settings();
+    if (isset($values['DB_NAME']) || isset($values['DB_DATABASE'])) {
+        $ran = isset($GLOBALS['liquify_config']) ? (string) $GLOBALS['liquify_config'] : '';
+        $settings = array('file' => $ran !== '' ? ltrim(str_replace('\\', '/', substr($ran, strlen(__DIR__))), '/') : 'includes/config.php', 'values' => $values);
     }
 
     return $settings;
 }
 
+/** The settings a file writes out, when they include the database and nothing in it works them out at run time. */
+function liquify_written($code)
+{
+    $scan = liquify_scan($code);
+    $values = $scan['values'];
+    if ((!isset($values['DB_NAME']) && !isset($values['DB_DATABASE'])) || $scan['worked_out']) {
+        return null;
+    }
+
+    return $values;
+}
+
+/** define('NAME', 'value') and const NAME = 'value'; lines, read without running anything. */
 function liquify_defines($code)
+{
+    $scan = liquify_scan($code);
+
+    return $scan['values'];
+}
+
+/** The written-out settings of a file, and worked_out: a database setting is also given a value at run time. */
+function liquify_scan($code)
 {
     $tokens = array();
     foreach (token_get_all($code) as $token) {
@@ -265,24 +295,147 @@ function liquify_defines($code)
     }
 
     $values = array();
-    for ($i = 0, $n = count($tokens); $i + 5 < $n; $i++) {
-        $define = $tokens[$i];
-        if (!is_array($define) || $define[0] !== T_STRING || strtolower($define[1]) !== 'define' || $tokens[$i + 1] !== '(') {
+    $workedOut = false;
+    $depth = 0;
+    for ($i = 0, $n = count($tokens); $i < $n; $i++) {
+        $token = $tokens[$i];
+        if ($token === '{' || (is_array($token) && in_array($token[0], array(T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES), true))) {
+            $depth++;
             continue;
         }
-        $name = $tokens[$i + 2];
-        $value = $tokens[$i + 4];
-        if (!is_array($name) || $name[0] !== T_CONSTANT_ENCAPSED_STRING || $tokens[$i + 3] !== ',' || !is_array($value) || $tokens[$i + 5] !== ')') {
+        if ($token === '}') {
+            $depth = max(0, $depth - 1);
             continue;
         }
-        if ($value[0] === T_CONSTANT_ENCAPSED_STRING) {
-            $values[liquify_literal($name[1])] = liquify_literal($value[1]);
-        } elseif ($value[0] === T_LNUMBER) {
-            $values[liquify_literal($name[1])] = $value[1];
+
+        $name = null;
+        $value = null;
+        $end = null;
+        if (is_array($token) && $token[0] === T_STRING && strtolower($token[1]) === 'define' && isset($tokens[$i + 3]) && $tokens[$i + 1] === '(' && $tokens[$i + 3] === ',') {
+            $name = is_array($tokens[$i + 2]) && $tokens[$i + 2][0] === T_CONSTANT_ENCAPSED_STRING ? liquify_literal($tokens[$i + 2][1]) : null;
+            $value = isset($tokens[$i + 4]) ? $tokens[$i + 4] : null;
+            $end = isset($tokens[$i + 5]) && $tokens[$i + 5] === ')';
+        } elseif ($depth === 0 && is_array($token) && $token[0] === T_CONST && isset($tokens[$i + 2]) && is_array($tokens[$i + 1]) && $tokens[$i + 1][0] === T_STRING && $tokens[$i + 2] === '=') {
+            // A constant of the file itself, not of a class.
+            $name = $tokens[$i + 1][1];
+            $value = isset($tokens[$i + 3]) ? $tokens[$i + 3] : null;
+            $end = isset($tokens[$i + 4]) && ($tokens[$i + 4] === ';' || $tokens[$i + 4] === ',');
+        }
+        if ($name === null) {
+            continue;
+        }
+
+        if ($end && is_array($value) && $value[0] === T_CONSTANT_ENCAPSED_STRING) {
+            $values[$name] = liquify_literal($value[1]);
+        } elseif ($end && is_array($value) && $value[0] === T_LNUMBER) {
+            $values[$name] = $value[1];
+        } elseif (preg_match('/DB_(NAME|DATABASE)$/i', $name)) {
+            $workedOut = true;
+        }
+    }
+
+    return array('values' => liquify_canonical($values), 'worked_out' => $workedOut);
+}
+
+/** SITE_DB_NAME counts as DB_NAME (SMTP_ and MAIL_ settings alike), unless DB_NAME itself is there. */
+function liquify_canonical(array $values)
+{
+    foreach ($values as $name => $value) {
+        if (preg_match('/^\w+?_((?:DB|SMTP|MAIL)_[A-Za-z]+)$/', (string) $name, $match) && !isset($values[strtoupper($match[1])])) {
+            $values[strtoupper($match[1])] = $value;
         }
     }
 
     return $values;
+}
+
+/**
+ * What the config left behind once it ran: its DB_, SMTP_ and MAIL_ constants,
+ * and lists such as $DB = ['host' => ..., 'name' => ...] or $SMTP = [...],
+ * with any settings saved in the website's admin panel already merged in.
+ */
+function liquify_runtime_settings()
+{
+    $values = array();
+    $defined = get_defined_constants(true);
+    foreach (isset($defined['user']) ? $defined['user'] : array() as $name => $value) {
+        if (is_scalar($value) && preg_match('/(^|_)(DB|SMTP|MAIL)_/', $name)) {
+            $values[$name] = is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+        }
+    }
+    $values = liquify_canonical($values);
+
+    $maps = array(
+        'db' => array(
+            'DB_HOST' => array('host', 'hostname', 'server', 'db_host', 'dbhost'),
+            'DB_PORT' => array('port', 'db_port'),
+            'DB_NAME' => array('name', 'dbname', 'database', 'db_name', 'db'),
+            'DB_USER' => array('user', 'username', 'db_user', 'dbuser'),
+            'DB_PASS' => array('pass', 'password', 'db_pass', 'dbpass', 'pwd'),
+            'DB_CHARSET' => array('charset'),
+        ),
+        'smtp' => array(
+            'SMTP_HOST' => array('host', 'server', 'smtp_host'),
+            'SMTP_PORT' => array('port', 'smtp_port'),
+            'SMTP_USER' => array('user', 'username', 'smtp_user'),
+            'SMTP_PASS' => array('pass', 'password', 'smtp_pass'),
+            'SMTP_SECURE' => array('secure', 'encryption'),
+            'SMTP_ENABLED' => array('enabled'),
+        ),
+    );
+    foreach ($maps as $kind => $map) {
+        $list = liquify_global_list($kind);
+        if ($list === null) {
+            continue;
+        }
+        foreach ($map as $setting => $keys) {
+            foreach ($keys as $key) {
+                if (!isset($values[$setting]) && isset($list[$key]) && is_scalar($list[$key])) {
+                    $values[$setting] = is_bool($list[$key]) ? ($list[$key] ? '1' : '0') : (string) $list[$key];
+                }
+            }
+        }
+    }
+
+    return $values;
+}
+
+/** The website's database (kind db) or mail (kind smtp) list among its global variables, a well-named one first. */
+function liquify_global_list($kind)
+{
+    $named = $kind === 'db' ? '/^(db|database|db_?config|dbconfig|mysql)$/i' : '/^(smtp|mail|mailer)$/i';
+    $found = null;
+    foreach ($GLOBALS as $name => $value) {
+        $name = (string) $name;
+        if (!is_array($value) || $name === 'GLOBALS' || substr($name, 0, 1) === '_' || stripos($name, 'liquify') === 0) {
+            continue;
+        }
+        $lists = array(array($name, $value));
+        foreach ($value as $key => $inner) {
+            if (is_string($key) && is_array($inner)) {
+                $lists[] = array($key, $inner);
+            }
+        }
+        foreach ($lists as $pair) {
+            $list = array_change_key_case($pair[1], CASE_LOWER);
+            $isNamed = (bool) preg_match($named, $pair[0]);
+            $hasName = isset($list['name']) || isset($list['dbname']) || isset($list['database']) || isset($list['db_name']);
+            $looks = $kind === 'db'
+                ? $hasName && (isset($list['user']) || isset($list['username'])) && ($isNamed || isset($list['host']) || isset($list['pass']) || isset($list['password']))
+                : isset($list['host']) && ($isNamed || (!$hasName && (isset($list['port']) || isset($list['user']) || isset($list['username']))));
+            if (!$looks) {
+                continue;
+            }
+            if ($isNamed) {
+                return $list;
+            }
+            if ($found === null) {
+                $found = $list;
+            }
+        }
+    }
+
+    return $found;
 }
 
 function liquify_literal($literal)
@@ -310,7 +463,7 @@ function liquify_pdo(&$error)
     $error = null;
     $name = liquify_setting(array('DB_NAME', 'DB_DATABASE'));
     if ($name === null) {
-        $error = 'No database settings were found (looked for DB_NAME in includes/config.php).';
+        $error = 'No database settings were found in the website\'s config files (looked for DB_NAME, a $DB list and the settings saved in its admin panel).';
         return null;
     }
 
@@ -436,6 +589,10 @@ function liquify_check($group, $label, $status, $message, $fix, $started)
 function liquify_smtp()
 {
     $started = microtime(true);
+    $settings = liquify_settings();
+    if (array_key_exists('SMTP_ENABLED', $settings['values']) && !in_array(strtolower(trim((string) $settings['values']['SMTP_ENABLED'])), array('1', 'true', 'on', 'yes'), true)) {
+        return liquify_check('email', 'Email', 'skip', 'SMTP is switched off in the website\'s settings: it sends email another way.', null, $started);
+    }
     $host = liquify_setting(array('SMTP_HOST', 'MAIL_HOST'));
     if ($host === null) {
         return liquify_check('email', 'Email', 'skip', 'No SMTP settings in the config file: the website sends email another way.', null, $started);

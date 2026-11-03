@@ -33,7 +33,7 @@
                         <div class="lq-choices">
                             <label @class(['lq-choice', 'lq-choice-active' => $connection === 'php'])>
                                 <input type="radio" wire:model.live="connection" value="php">
-                                <span class="lq-choice-title">PHP website</span>
+                                <span class="lq-choice-title">Custom PHP website</span>
                                 <span class="lq-choice-desc">Upload one file to the website's root folder. Nothing to edit; new leads are read every minute.</span>
                             </label>
                             <label @class(['lq-choice', 'lq-choice-active' => $connection === 'elementor'])>
@@ -106,14 +106,14 @@
                         <span class="lq-step-mark">2</span>
                         <div class="lq-step-body">
                             <div class="lq-step-title">Upload it to the website's root folder</div>
-                            <p class="lq-step-desc">Next to <code class="lq-code">index.php</code> and <code class="lq-code">{{ ltrim($site->formPath(), '/') }}</code>, with the hosting file manager or FTP. It finds the database in <code class="lq-code">includes/config.php</code> by itself, and LiquifyCRM reads every new lead within a minute.</p>
+                            <p class="lq-step-desc">Next to <code class="lq-code">index.php</code> and <code class="lq-code">{{ ltrim($site->formPath(), '/') }}</code>, with the hosting file manager or FTP. It finds the database details by itself, written in <code class="lq-code">includes/config.php</code> (or <code class="lq-code">includes/db.php</code>) or saved in the website's admin panel, and LiquifyCRM reads every new lead within a minute.</p>
                         </div>
                     </li>
                 </ol>
 
                 <details class="mt-4">
                     <summary class="lq-link text-sm">Optional: leads in seconds instead of within a minute</summary>
-                    <p class="lq-help mt-2">Paste these lines into <code class="lq-code">{{ ltrim($site->formPath(), '/') }}</code> right after the line that saves the lead (<code class="lq-code">$db = log_lead_to_db($lead);</code>). The lead is then sent the moment the form is sent, and never counted twice.</p>
+                    <p class="lq-help mt-2">Paste these lines into <code class="lq-code">{{ ltrim($site->formPath(), '/') }}</code> right after the line that saves the lead (<code class="lq-code">$db = log_lead_to_db($lead);</code>, its row id or the row). The lead is then sent the moment the form is sent, and never counted twice.</p>
                     <div class="lq-copy mt-2" x-data="{ copied: false }">
                         <pre class="lq-log" x-ref="text">{{ $lines }}</pre>
                         <x-ui.button size="sm" variant="secondary" icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText($refs.text.innerText); copied = true; setTimeout(() => copied = false, 2000)"><span x-text="copied ? 'Copied' : 'Copy'">Copy</span></x-ui.button>

@@ -14,6 +14,7 @@ use App\Modules\Sites\Livewire\Concerns\EditsPullConfig;
 use App\Modules\Sites\Models\Site;
 use App\Modules\Sites\Support\ConnectionTester;
 use App\Modules\Sites\Support\LiquifySnippet;
+use App\Modules\Sites\Support\PlatformChoice;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Validation\Rule;
@@ -103,9 +104,12 @@ final class SiteWizard extends Component
             'name' => $data['name'],
             'url' => $data['url'],
             'domain' => Site::domainOf($data['url']),
-            // A PHP website is read through liquify.php; an Elementor form sends each lead itself.
+            // A custom PHP website is read through liquify.php; an Elementor form sends each lead itself.
+            // Both say what the website is; a database read leaves the type to the homepage.
             'mode' => $data['connection'] === 'elementor' ? SiteMode::Push : SiteMode::Pull,
-            'platform' => $data['connection'] === 'elementor' ? SitePlatform::Elementor : SitePlatform::Php,
+            ...($data['connection'] === 'database'
+                ? ['platform' => SitePlatform::Php]
+                : PlatformChoice::attributes($data['connection'] === 'elementor' ? SitePlatform::Elementor : SitePlatform::Php)),
             'pull_config' => match ($data['connection']) {
                 'php' => ['driver' => 'file'],
                 'database' => ['driver' => 'database'],

@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.40.0',
+        'date' => '2026-11-03',
+        'title' => 'Website type, and liquify.php finds every brand site\'s database',
+        'changes' => [
+            ['new', 'Websites › Settings has a Website type: Custom PHP website, WordPress, or WordPress with an Elementor form. A type chosen there is never guessed again from the homepage.'],
+            ['fixed', 'A PHP website is no longer called WordPress because its homepage still shows a picture from an old WordPress site. UK Publishing House was one of them.'],
+            ['improved', 'A custom PHP website that sent each lead itself is now read every minute through liquify.php as soon as the file can read its leads table, from the health check, the connection test or the Website type. A lead whose own send fails still arrives within a minute.'],
+            ['improved', 'liquify.php 2.1 finds the database wherever a brand site keeps it: define(\'DB_NAME\', …), const DB_NAME = … (also with a prefix such as SBP_DB_NAME in includes/db.php), a $DB = […] list, or the details saved in the website\'s admin panel. It reads the $SMTP = […] list for the Email check too. Download it again for each website and upload it over the old one.'],
+            ['improved', 'When liquify.php is in place but cannot read the leads table, the Database check turns amber and says why, and names an older copy of the file that needs replacing.'],
+        ],
+    ],
+    [
         'version' => '1.39.1',
         'date' => '2026-10-28',
         'title' => 'Security fixes from the code audit',

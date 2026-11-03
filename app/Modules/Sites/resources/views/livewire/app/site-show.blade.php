@@ -202,6 +202,13 @@
                     <x-ui.field label="Website address" name="url" required>
                         <x-ui.input wire:model="url" name="url" required />
                     </x-ui.field>
+                    <x-ui.field label="Website type" name="platform" help="A custom PHP website is read every minute through liquify.php in its root folder." tip="Chosen here, the type is never guessed again from the homepage. A custom PHP website (our own brand sites) keeps its leads in its own leads table, which LiquifyCRM reads through liquify.php. Choose WordPress with an Elementor form when that form sends each lead to the webhook address.">
+                        <x-ui.select wire:model="platform" name="platform">
+                            @foreach ($platforms as $type)
+                                <option value="{{ $type->value }}">{{ $type->choiceLabel() }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
                     @unless ($site->usesWebhook())
                         <x-ui.field label="Form handler path" name="formPath" help="The file the form posts to. Used for the form health check." tip="The address of the file that receives the form on the website, for example /form-submission.php or /contact.php. If it is wrong the Form check turns red even though leads arrive.">
                             <x-ui.input wire:model="formPath" name="formPath" placeholder="/form-submission.php" />

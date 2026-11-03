@@ -32,6 +32,7 @@ use Illuminate\Support\Str;
  * @property string $secret
  * @property SiteMode $mode
  * @property SitePlatform $platform
+ * @property CarbonImmutable|null $platform_chosen_at
  * @property string|null $form_path
  * @property string|null $favicon_path
  * @property array<string, mixed>|null $pull_config
@@ -58,7 +59,7 @@ class Site extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'brand_id', 'name', 'url', 'domain', 'site_key', 'secret', 'mode', 'platform', 'form_path',
+        'brand_id', 'name', 'url', 'domain', 'site_key', 'secret', 'mode', 'platform', 'platform_chosen_at', 'form_path',
         'favicon_path', 'pull_config', 'pull_cursor', 'last_pulled_at', 'last_pull_note', 'health_status',
         'last_checked_at', 'last_lead_at', 'last_test_at', 'quiet_notified_at', 'is_active', 'created_by',
     ];
@@ -89,6 +90,7 @@ class Site extends Model
             'pull_config' => 'encrypted:array',
             'mode' => SiteMode::class,
             'platform' => SitePlatform::class,
+            'platform_chosen_at' => 'datetime',
             'health_status' => CheckStatus::class,
             'last_pulled_at' => 'datetime',
             'last_checked_at' => 'datetime',
