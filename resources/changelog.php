@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.40.1',
+        'date' => '2026-11-03',
+        'title' => 'Add brand: "The link has already been taken"',
+        'changes' => [
+            ['fixed', 'Adding a brand whose website name was used by a brand deleted earlier no longer stops with "The link has already been taken". The form now picks the next free link (name-2) by itself.'],
+        ],
+    ],
+    [
         'version' => '1.40.0',
         'date' => '2026-11-03',
         'title' => 'Website type, and liquify.php finds every brand site\'s database',

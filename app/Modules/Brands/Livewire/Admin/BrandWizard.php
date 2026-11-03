@@ -399,7 +399,8 @@ final class BrandWizard extends Component
         $candidate = $base;
         $number = 1;
 
-        while (Brand::query()->where('slug', $candidate)->exists()) {
+        // A deleted brand still holds its link (the unique rule counts it), so look at those too.
+        while (Brand::withTrashed()->where('slug', $candidate)->exists()) {
             $candidate = $base.'-'.(++$number);
         }
 

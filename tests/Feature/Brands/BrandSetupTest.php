@@ -116,6 +116,22 @@ it('fills a new brand in from what its website says about the company', function
     Storage::disk('public')->assertExists($brand->logo_path);
 })->skip(! function_exists('imagecreatetruecolor'), 'Needs the GD extension.');
 
+it('offers the next free link when a deleted brand still holds the name', function (): void {
+    Http::fake();
+
+    brand(['name' => 'Sydney Book Publishers', 'slug' => 'sydney-book-publishers'])->delete();
+
+    Livewire::actingAs($this->admin)
+        ->test(BrandWizard::class)
+        ->set('name', 'Sydney Book Publishers')
+        ->assertSet('slug', 'sydney-book-publishers-2')
+        ->call('createBrand')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    expect(Brand::query()->where('slug', 'sydney-book-publishers-2')->exists())->toBeTrue();
+});
+
 it('works out the currency and time zone from the country and reads the contact page', function (): void {
     Http::fake([
         'riverbooks.com.au/contact/' => Http::response('<html><body><a href="tel:+61892000000"><span>+61 8 9200 0000</span></a> <a href="mailto:hello@riverbooks.com.au?subject=Hi">Email us</a><address>12 Quay Street<br>Perth WA 6000<br><a href="tel:+61892000000">+61 8 9200 0000</a></address></body></html>'),
