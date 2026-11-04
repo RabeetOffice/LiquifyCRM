@@ -245,3 +245,26 @@ are not either.
 - Widget: typing both ways, a closed note, the offline form when `online` is false.
 - Tests: tests/Feature/Chat/LiveChatTeamTest.php (10). Whole suite 554 tests pass. Checked by eye: the offline form, an answer and a
   note from the Inbox, close and reopen, the visitor seeing the answer and the closed line.
+
+## Canned replies and files built (4 Nov 2026, version 1.47.0)
+The spec's Stage 8, as the user asked right after Phase 3. Tables `canned_replies` (scope global, brand or personal) and
+`chat_attachments`, behind `LiveChat::extrasReady()` (second migration after the work columns).
+- Saved replies (UI word; the code says canned): `CannedReply` + `CannedReplyPolicy` (Admins write the company's, Managers the
+  brand's, anybody their own), screen `/b/{brand}/saved-replies` for every brand member, and the `/` picker in the message box of
+  every chat (Alpine `savedReplies` in app.js; `{visitor_name}`, `{agent_name}`, `{brand_name}` are filled in server-side per
+  chat; a visitor with no name is "there"). Not built: a manual list of replies in the widget, or replies with attachments.
+- Files: `ChatFiles` (allow list jpg, jpeg, png, webp, gif, pdf, txt, doc, docx; judged by content with finfo, `getimagesize`
+  for pictures, a text file that looks like HTML is refused; random name on the private `local` disk under
+  `chat/{brand}/{year}/{month}`; size limit per widget in `appearance.max_upload_mb`, default `liquify.chat.max_upload_mb`, at
+  most 25). Visitor upload `POST /chat/api/upload` (6 a minute per visitor); the team attaches in the Inbox (Livewire upload).
+  Served only by `ChatFileController`: the visitor's browser gets a link signed for six hours (`/chat/files/{id}`, no session),
+  the team a signed-in route `/b/{brand}/chat-files/{id}` that asks the chat's policy; pictures inline, everything else
+  as a download, with `nosniff` and a sandboxing CSP.
+- Retention (`config('liquify.chat')`, the privacy page shows these numbers): `chat:prune` at 00:58 deletes files after
+  `file_days` (180) and the chat, files and visitor of somebody with no lead after `anonymous_days` (14), and visitors who only
+  looked. `DeleteLeadForever` now also removes a live chat's files from the disk (`ChatErasure`), the visitor rows of the
+  lead and the bell entries and log lines that name the visitor. Privacy and data-deletion pages updated.
+- Tests: tests/Feature/Chat/LiveChatExtrasTest.php (7). The whole suite passes. Checked by eye: the visitor's chat box with a
+  picture and a PDF, the team's thread with them, the `/pr` menu, a picked reply with the names filled in, the saved replies page.
+- Still open: read receipts, a manual Away switch, page trail and invites (Phase 6), AI (Phase 5), Ably pings (Phase 4), routing
+  of live chat leads by widget.

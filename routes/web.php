@@ -18,7 +18,9 @@ use App\Modules\Brands\Livewire\Admin\BrandWizard;
 use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
+use App\Modules\Chat\Http\Controllers\ChatFileController;
 use App\Modules\Chat\Http\Controllers\ConversationTypingController;
+use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
 use App\Modules\Chat\Livewire\App\ChatWidgets;
 use App\Modules\Core\Http\Controllers\MenuBadgesController;
 use App\Modules\Core\Http\Controllers\PushSubscriptionController;
@@ -142,8 +144,10 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/clients/{client}/files/{file}', ClientFileController::class)->whereNumber('file')->name('clients.files.show');
         Route::get('/inbox', Inbox::class)->name('inbox');
         Route::get('/live-chat', ChatWidgets::class)->name('live-chat');
+        Route::get('/saved-replies', CannedRepliesIndex::class)->name('saved-replies');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
         Route::post('/conversations/{conversation}/typing', ConversationTypingController::class)->name('conversations.typing');
+        Route::get('/chat-files/{attachment}', [ChatFileController::class, 'team'])->whereNumber('attachment')->name('chat-files.show');
 
         Route::get('/departments', DepartmentsIndex::class)->name('departments.index');
         Route::get('/departments/create', DepartmentForm::class)->name('departments.create');

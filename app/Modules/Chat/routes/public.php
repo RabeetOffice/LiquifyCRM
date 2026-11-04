@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Chat\Http\Controllers\ChatFileController;
 use App\Modules\Chat\Http\Controllers\WidgetAssetController;
 use App\Modules\Chat\Http\Controllers\WidgetController;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 // visitor's signed token (see WidgetController); each kind of call has its own rate limit.
 Route::get('/chat/widget.js', [WidgetAssetController::class, 'script'])->name('chat.widget.script');
 Route::get('/chat/frame/{key}', [WidgetAssetController::class, 'frame'])->name('chat.widget.frame');
+// A file of a chat, for the visitor's browser: a link signed for six hours, good for that one file.
+Route::get('/chat/files/{attachment}', [ChatFileController::class, 'visitor'])->middleware('signed')->whereNumber('attachment')->name('chat.widget.file');
 
 Route::prefix('chat/api')->group(function (): void {
     Route::get('config', [WidgetController::class, 'config'])->middleware('throttle:chat-config')->name('chat.widget.config');
@@ -19,5 +22,6 @@ Route::prefix('chat/api')->group(function (): void {
     Route::get('messages', [WidgetController::class, 'messages'])->middleware('throttle:chat-poll')->name('chat.widget.messages');
     Route::post('messages', [WidgetController::class, 'send'])->middleware('throttle:chat-send')->name('chat.widget.send');
     Route::post('typing', [WidgetController::class, 'typing'])->middleware('throttle:chat-typing')->name('chat.widget.typing');
+    Route::post('upload', [WidgetController::class, 'upload'])->middleware('throttle:chat-upload')->name('chat.widget.upload');
     Route::post('details', [WidgetController::class, 'details'])->middleware('throttle:chat-details')->name('chat.widget.details');
 });

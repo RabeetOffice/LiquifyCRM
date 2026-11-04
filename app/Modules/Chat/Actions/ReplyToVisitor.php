@@ -5,43 +5,53 @@ declare(strict_types=1);
 namespace App\Modules\Chat\Actions;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\VisitorSpam;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * The team answers a visitor in a website chat, or leaves a note for the team that the visitor never sees.
- * There is no 24-hour window on a website: the visitor reads it on their next poll. The first answer of a chat
- * is timed (for the reports), and a chat nobody looks after goes to whoever answers it first.
+ * The team answers a visitor in a website chat (with words, a file, or both), or leaves a note for the team that
+ * the visitor never sees. There is no 24-hour window on a website: the visitor reads it on their next poll. The
+ * first answer of a chat is timed (for the reports), and a chat nobody looks after goes to whoever answers it first.
  */
 final class ReplyToVisitor
 {
-    /** @throws RuntimeException when the text is refused; its words are for the person typing */
-    public function reply(Conversation $conversation, User $by, string $text): Message
+    /** @throws RuntimeException when the text or the file is refused; its words are for the person typing */
+    public function reply(Conversation $conversation, User $by, string $text, ?UploadedFile $file = null): Message
     {
-        $body = $this->clean($text);
+        $body = $file !== null && trim($text) === '' ? '' : $this->clean($text);
+
+        if ($file !== null && ($why = ChatFiles::refusal($file, ChatFiles::maxBytes($conversation->widget))) !== null) {
+            throw new RuntimeException($why);
+        }
 
         if ($conversation->isClosed()) {
             throw new RuntimeException('This chat is closed. Reopen it to reply.');
         }
 
-        return DB::transaction(function () use ($conversation, $by, $body): Message {
+        return DB::transaction(function () use ($conversation, $by, $body, $file): Message {
             $message = Message::query()->create([
                 'conversation_id' => $conversation->getKey(),
                 'direction' => Message::OUT,
-                'kind' => 'text',
+                'kind' => $file !== null ? 'file' : 'text',
                 'sender_type' => 'agent',
                 'sent_by' => $by->getKey(),
-                'body' => $body,
+                'body' => $body !== '' ? $body : null,
             ]);
+
+            $attachment = $file !== null ? ChatFiles::keep($file, $message, $conversation) : null;
 
             $conversation->forceFill([
                 'last_message_at' => now(),
-                'last_message_preview' => Str::limit((string) Str::of($body)->squish(), 190, ''),
+                'last_message_preview' => $attachment !== null && $body === ''
+                    ? 'File: '.$attachment->original_name
+                    : Str::limit((string) Str::of($body)->squish(), 190, ''),
                 'unread_count' => 0,
                 'first_response_at' => $conversation->first_response_at ?? now(),
             ])->save();

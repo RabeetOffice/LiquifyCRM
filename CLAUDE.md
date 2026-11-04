@@ -126,7 +126,14 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `ChatTyping`, `AgentPresence` (cache only; noted from `Live::read` through `Live::whenSeen`, so a brand page open in somebody's
   browser is "here"). Message `kind` is text, note or event: notes and events never go to the visitor. A visitor's chat with no
   lead is assigned on `conversations.chat_assigned_to`; one with a lead goes by the lead. New columns are behind
-  `LiveChat::workReady()`. Canned replies and files (spec Stage 8) are not built.
+  `LiveChat::workReady()`.
+  1.47.0: files and saved replies (tables behind `LiveChat::extrasReady()`). `ChatFiles` decides what a file is by its content
+  (finfo), keeps it under a random name on the private disk, and `ChatFileController` is the only way to it (visitors: a signed
+  link, no session; the team: a signed-in route that asks the chat's policy). Never serve a chat file by its public path.
+  `chat:prune` (nightly) enforces `liquify.chat.file_days` (180) and `anonymous_days` (14); the privacy pages print those
+  numbers. Whatever else a live chat keeps about a person must be wiped in `ChatErasure` / `DeleteLeadForever`. The saved reply
+  picker (`savedReplies` in app.js) sits in every chat's message box, not only the website's. A route outside the web group
+  (`Chat/routes/public.php`) has no route model binding: look the model up in the controller.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

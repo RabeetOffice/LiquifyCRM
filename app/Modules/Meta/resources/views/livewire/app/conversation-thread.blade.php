@@ -1,6 +1,6 @@
 {{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one.
      `bytes` counts the reply as Instagram does (an emoji is four), against `limit` (0: no count shown). --}}
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }}, lastTyped: 0, ping(url) { if (! url || Date.now() - this.lastTyped < 4000) return; this.lastTyped = Date.now(); fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'Accept': 'application/json' } }).catch(() => {}); } }">
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], busy: false, file: '', bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }}, lastTyped: 0, ping(url) { if (! url || Date.now() - this.lastTyped < 4000) return; this.lastTyped = Date.now(); fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'Accept': 'application/json' } }).catch(() => {}); } }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
@@ -100,7 +100,27 @@
                     @endif
                 @endforeach
 
-                @unless ($message->isOnlyAttachments())
+                {{-- Files of a website chat: pictures in place, the rest as a card; opened only through the signed-in route. --}}
+                @if ($message->kindOf() === 'file' && $filesReady)
+                    @forelse ($message->chatFiles as $chatFile)
+                        @php $fileUrl = route('brand.chat-files.show', ['brand' => $brandSlug, 'attachment' => $chatFile->getKey()]); @endphp
+                        @if ($chatFile->isImage())
+                            <a href="{{ $fileUrl }}" class="lq-attach lq-attach-image" target="_blank" rel="noopener noreferrer" title="{{ $chatFile->original_name }}">
+                                <img src="{{ $fileUrl }}" alt="{{ $chatFile->original_name }}" loading="lazy">
+                            </a>
+                        @else
+                            <a href="{{ $fileUrl }}" class="lq-attach lq-attach-file" rel="noopener noreferrer" title="Download {{ $chatFile->original_name }}">
+                                <x-heroicon-o-paper-clip />
+                                <span class="truncate">{{ $chatFile->original_name }}</span>
+                                <small class="lq-attach-size">{{ $chatFile->humanSize() }}</small>
+                            </a>
+                        @endif
+                    @empty
+                        <div class="lq-bubble"><p class="whitespace-pre-wrap"><em>A file that was removed.</em></p></div>
+                    @endforelse
+                @endif
+
+                @unless ($message->isOnlyAttachments() || ($message->kindOf() === 'file' && blank($message->body)))
                     <div class="lq-bubble" title="{{ $message->created_at?->format('j M Y, H:i') }}">
                         <p class="whitespace-pre-wrap">{{ $message->body }}</p>
                     </div>
@@ -145,8 +165,9 @@
             x-on:submit.prevent="
                 const text = ($wire.reply ?? '').trim();
                 const box = $el.querySelector('textarea');
-                if (text === '' || sending.length > 0 || (limit > 0 && bytes > limit)) return;
-                sending.push(text);
+                if ((text === '' && file === '') || busy || sending.length > 0 || (limit > 0 && bytes > limit)) return;
+                busy = true;
+                if (text !== '') sending.push(text);
                 $nextTick(() => {
                     if (box) { box.value = ''; box.style.height = 'auto'; }
                     bytes = 0;
@@ -155,6 +176,8 @@
                 });
                 $wire.send().finally(() => {
                     sending = [];
+                    busy = false;
+                    file = '';
                     // Not sent (the window closed, Facebook refused): the words go back into the box.
                     if (box && ($wire.reply ?? '') !== '') box.value = $wire.reply;
                     bytes = box ? new TextEncoder().encode(box.value).length : 0;
@@ -168,7 +191,31 @@
                         <button type="button" role="tab" @class(['lq-composer-mode', 'lq-composer-mode-active' => $mode === 'note']) wire:click="$set('mode', 'note')">Note for the team</button>
                     </div>
                 @endif
+                <div class="lq-saved-wrap" x-data="savedReplies(@js($savedReplies))" x-on:input="check()" x-on:keydown="key($event)" x-on:click.outside="open = false">
+                    <ul class="lq-saved-menu" x-show="open" x-cloak role="listbox" aria-label="Saved replies">
+                        <template x-for="(reply, i) in matches" :key="reply.id">
+                            <li role="option" x-bind:aria-selected="i === index">
+                                <button type="button" class="lq-saved-item" x-bind:class="{ 'lq-saved-item-active': i === index }" x-on:mousedown.prevent="pick(reply)" x-on:mouseenter="index = i">
+                                    <span class="lq-saved-top"><code class="lq-code" x-text="reply.shortcut"></code> <span x-text="reply.title"></span></span>
+                                    <span class="lq-saved-body" x-text="reply.body"></span>
+                                </button>
+                            </li>
+                        </template>
+                    </ul>
+                @if ($isLiveChat && $filesReady && $mode === 'reply')
+                    <div class="lq-composer-file" x-show="file !== ''" x-cloak>
+                        <x-heroicon-o-document />
+                        <span class="truncate" x-text="file"></span>
+                        <button type="button" class="lq-composer-file-x" title="Take the file out" x-on:click="file = ''; $wire.set('upload', null); $refs.attach.value = ''">&times;</button>
+                    </div>
+                @endif
                 <div class="lq-composer">
+                    @if ($isLiveChat && $filesReady && $mode === 'reply')
+                        <label class="lq-composer-attach" title="Attach a file: a picture, a PDF, a Word document or a text file">
+                            <x-heroicon-o-paper-clip />
+                            <input type="file" class="sr-only" x-ref="attach" wire:model="upload" accept="{{ $accept }}" aria-label="Attach a file" x-on:change="file = $el.files[0] ? $el.files[0].name : ''">
+                        </label>
+                    @endif
                     <textarea
                         wire:model="reply"
                         name="reply"
@@ -182,7 +229,7 @@
                         x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()"
                         x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"
                     ></textarea>
-                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" x-bind:disabled="sending.length > 0 || (limit > 0 && bytes > limit)">
+                    <button type="submit" class="lq-composer-send" title="Send (Ctrl + Enter)" wire:loading.attr="disabled" wire:target="upload" x-bind:disabled="busy || sending.length > 0 || (limit > 0 && bytes > limit)">
                         <x-heroicon-m-paper-airplane />
                     </button>
                 </div>
@@ -191,7 +238,11 @@
                     @if ($instagram)
                         <span x-bind:class="{ 'lq-composer-over': bytes > limit }" x-text="bytes > 0 ? '· ' + bytes.toLocaleString() + ' / 1,000' + (bytes > limit ? ': too long for Instagram' : '') : '· Instagram takes up to 1,000 characters'">· Instagram takes up to 1,000 characters</span>
                     @endif
+                    <button type="button" class="lq-composer-saved" x-show="replies.length > 0" x-cloak x-on:click="all()" title="Put one of your saved replies in the box. Or type a slash.">
+                        <x-heroicon-m-bolt /> Saved replies
+                    </button>
                 </p>
+                </div>
             @elseif ($isLiveChat)
                 <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> <span class="flex-1">This chat is closed. Reopen it to reply; the visitor can also write again, and it opens by itself.</span></p>
             @else

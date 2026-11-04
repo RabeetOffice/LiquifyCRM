@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Actions;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatNotifier;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
@@ -16,6 +17,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\ChatContacts;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -37,12 +39,16 @@ final class SendVisitorMessage
      *
      * @throws RuntimeException when the message is refused; its text is for the visitor
      */
-    public function handle(ChatWidget $widget, ChatVisitor $visitor, string $body, bool $detect = true): array
+    public function handle(ChatWidget $widget, ChatVisitor $visitor, string $body, bool $detect = true, ?UploadedFile $file = null): array
     {
         $body = trim((string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', str_replace(["\r\n", "\r"], "\n", $body)));
 
-        if ($body === '') {
+        if ($body === '' && $file === null) {
             throw new RuntimeException('Write a message first.');
+        }
+
+        if ($file !== null && ($why = ChatFiles::refusal($file, ChatFiles::maxBytes($widget))) !== null) {
+            throw new RuntimeException($why);
         }
 
         if (mb_strlen($body) > VisitorSpam::MAX_MESSAGE) {
@@ -55,7 +61,7 @@ final class SendVisitorMessage
 
         $started = false;
 
-        [$conversation, $message] = DB::transaction(function () use ($widget, $visitor, $body, &$started): array {
+        [$conversation, $message] = DB::transaction(function () use ($widget, $visitor, $body, $file, &$started): array {
             $conversation = VisitorChats::conversationFor($visitor, $widget, true) ?? throw new RuntimeException('The chat could not start.');
 
             // The first thing this visitor wrote, or the first after the team closed the chat: it is a chat for the team to pick up.
@@ -65,15 +71,17 @@ final class SendVisitorMessage
             $message = Message::query()->create([
                 'conversation_id' => $conversation->getKey(),
                 'direction' => Message::IN,
-                'kind' => 'text',
+                'kind' => $file !== null ? 'file' : 'text',
                 'sender_type' => 'visitor',
-                'body' => $body,
+                'body' => $body !== '' ? $body : null,
             ]);
+
+            $attachment = $file !== null ? ChatFiles::keep($file, $message, $conversation) : null;
 
             $conversation->forceFill([
                 'last_inbound_at' => now(),
                 'last_message_at' => now(),
-                'last_message_preview' => Str::limit((string) Str::of($body)->squish(), 190, ''),
+                'last_message_preview' => $attachment !== null && $body === '' ? 'File: '.$attachment->original_name : Str::limit((string) Str::of($body)->squish(), 190, ''),
                 'unread_count' => $conversation->unread_count + 1,
             ])->save();
 
@@ -92,7 +100,7 @@ final class SendVisitorMessage
         if ($conversation->lead_id !== null) {
             $lead = Lead::query()->find($conversation->lead_id);
 
-            if ($lead !== null && blank($lead->message)) {
+            if ($lead !== null && blank($lead->message) && $body !== '') {
                 $lead->forceFill(['message' => $body])->save();
             }
 
@@ -101,7 +109,7 @@ final class SendVisitorMessage
 
         // A bell that fails to ring must not lose the visitor's message.
         try {
-            $this->notifier->visitorWrote($conversation, $body, $started);
+            $this->notifier->visitorWrote($conversation, $body !== '' ? $body : 'Sent a file', $started);
         } catch (Throwable $exception) {
             report($exception);
         }

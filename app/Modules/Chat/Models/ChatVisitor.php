@@ -6,9 +6,11 @@ namespace App\Modules\Chat\Models;
 
 use App\Modules\Core\Concerns\BelongsToBrand;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Meta\Models\Conversation;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Somebody who opened a brand's chat widget: a browser (the token in its storage), whoever it turns out to
@@ -61,6 +63,12 @@ class ChatVisitor extends Model
     public function displayName(): string
     {
         return filled($this->name) ? (string) $this->name : 'Visitor '.$this->getKey();
+    }
+
+    /** @return HasMany<Conversation, $this> */
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'chat_visitor_id')->withoutGlobalScopes();
     }
 
     /** @return BelongsTo<ChatWidget, $this> */

@@ -17,10 +17,18 @@ final class LiveChat
 
     private static bool $workReady = false;
 
+    private static bool $extrasReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
         return self::$ready = self::$ready || (Schema::hasTable('chat_widgets') && Schema::hasColumn('messages', 'sender_type'));
+    }
+
+    /** Files in a chat and saved replies: the tables of the third update are there. */
+    public static function extrasReady(): bool
+    {
+        return self::$extrasReady = self::$extrasReady || (self::workReady() && Schema::hasTable('canned_replies') && Schema::hasTable('chat_attachments'));
     }
 
     /** The team can work a website chat (answer, assign, close): the columns of the second update are there. */

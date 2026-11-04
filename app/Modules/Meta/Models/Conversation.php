@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $unread_count
  * @property-read Lead|null $lead
  * @property-read MetaSource|null $source
+ * @property int|null $chat_widget_id
+ * @property int|null $chat_visitor_id
  * @property int|null $chat_assigned_to who looks after a website chat that has no lead (a chat with a lead goes by the lead)
  * @property string|null $chat_status open or closed, for a website chat
  * @property CarbonImmutable|null $chat_closed_at

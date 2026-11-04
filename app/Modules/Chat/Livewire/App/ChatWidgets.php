@@ -53,6 +53,9 @@ final class ChatWidgets extends Component
 
     public string $consent = '';
 
+    /** The largest file a visitor may send, in megabytes. */
+    public int $maxMb = 10;
+
     public bool $askFirst = false;
 
     /** @var array<string, bool> */
@@ -73,7 +76,7 @@ final class ChatWidgets extends Component
         $this->authorize('create', ChatWidget::class);
 
         $this->resetErrorBag();
-        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
+        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'maxMb', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
         $this->name = $this->brand->name;
         $this->color = $this->brand->primaryColor() ?? ChatWidget::DEFAULT_APPEARANCE['color'];
         $this->fields = ['name' => true, 'email' => true, 'phone' => false, 'message' => false];
@@ -96,6 +99,7 @@ final class ChatWidgets extends Component
         $this->welcome = (string) (($widget->appearance ?? [])['welcome'] ?? '');
         $this->offline = (string) (($widget->appearance ?? [])['offline'] ?? '');
         $this->consent = (string) (($widget->appearance ?? [])['consent'] ?? '');
+        $this->maxMb = (int) (($widget->appearance ?? [])['max_upload_mb'] ?? config('liquify.chat.max_upload_mb', 10));
         $this->askFirst = $widget->asksFirst();
         $this->fields = [];
         foreach (array_keys(ChatWidget::PRECHAT_FIELDS) as $field) {
@@ -125,10 +129,12 @@ final class ChatWidgets extends Component
             'welcome' => ['nullable', 'string', 'max:300'],
             'offline' => ['nullable', 'string', 'max:300'],
             'consent' => ['nullable', 'string', 'max:300'],
+            'maxMb' => ['required', 'integer', 'min:1', 'max:25'],
         ], [
             'domains.required' => 'List the website this chat runs on, for example example.com.',
             'color.regex' => 'Choose a colour.',
-        ], ['domains' => 'websites']);
+            'maxMb.max' => 'The largest file can be 25 MB.',
+        ], ['domains' => 'websites', 'maxMb' => 'largest file']);
 
         $parsed = ChatWidget::parseDomains($this->domains);
 
@@ -159,6 +165,7 @@ final class ChatWidgets extends Component
                 'welcome' => trim($this->welcome),
                 'offline' => trim($this->offline),
                 'consent' => trim($this->consent),
+                'max_upload_mb' => (string) $this->maxMb,
             ],
             'prechat' => ['enabled' => $this->askFirst, 'fields' => $fields],
             'agents_see_visitors' => $this->agentsSeeVisitors,

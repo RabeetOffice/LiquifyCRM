@@ -118,6 +118,11 @@ final class Menu
                 self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
             ];
 
+        // The replies the team types often, for everyone in the brand (live chat, 3 Nov 2026).
+        if (LiveChat::extrasReady()) {
+            $main[] = self::item('Saved replies', 'heroicon-o-bolt', route('brand.saved-replies', $params), $isActive('brand.saved-replies'));
+        }
+
         // The brand's templates and material, for everyone in it (19 Oct 2026).
         if (BrandResources::ready()) {
             $main[] = self::item('Resources', 'heroicon-o-folder-open', route('brand.resources.index', $params), $isActive('brand.resources.index'));

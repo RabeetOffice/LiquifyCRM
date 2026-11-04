@@ -80,6 +80,21 @@ return [
         'rate_limit' => (int) env('META_WEBHOOK_RATE_LIMIT', 120),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Live chat on the websites
+    |--------------------------------------------------------------------------
+    | How long a website chat keeps what visitors send (the privacy pages say so, change them with these):
+    | files are deleted after file_days; the chat of a visitor who never gave an email address or a phone
+    | number, with the visitor's details, after anonymous_days. A widget may allow files up to max_upload_mb
+    | (its own setting, at most 25).
+    */
+    'chat' => [
+        'file_days' => (int) env('CHAT_FILE_DAYS', 180),
+        'anonymous_days' => (int) env('CHAT_ANONYMOUS_DAYS', 14),
+        'max_upload_mb' => (int) env('CHAT_MAX_UPLOAD_MB', 10),
+    ],
+
     'sites' => [
         'quiet_hours' => (int) env('SITE_QUIET_HOURS', 48),
     ],

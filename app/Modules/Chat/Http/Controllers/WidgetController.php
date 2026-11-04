@@ -12,6 +12,7 @@ use App\Modules\Chat\Actions\SendVisitorMessage;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\AgentPresence;
+use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
@@ -102,6 +103,23 @@ final class WidgetController
         ]);
     }
 
+    /** A file the visitor sends: a picture, a PDF, a Word document or a text file, with or without words. */
+    public function upload(Request $request, SendVisitorMessage $send): JsonResponse
+    {
+        [$widget, $visitor] = $this->visitor($request);
+        abort_unless(LiveChat::extrasReady(), 404);
+
+        $request->validate(['file' => ['required', 'file'], 'caption' => ['nullable', 'string', 'max:2000']]);
+
+        try {
+            $sent = $send->handle($widget, $visitor, (string) $request->input('caption', ''), detect: false, file: $request->file('file'));
+        } catch (RuntimeException $exception) {
+            return response()->json(['error' => $exception->getMessage()], 422);
+        }
+
+        return response()->json(['message' => VisitorChats::row($sent['message']->load('chatFiles'))]);
+    }
+
     /** The visitor is typing: the team's open chat shows the dots for a few seconds. */
     public function typing(Request $request): JsonResponse
     {
@@ -176,6 +194,7 @@ final class WidgetController
             'consent' => $widget->look('consent'),
             'offline' => $widget->look('offline'),
             'online' => AgentPresence::online((int) $widget->brand_id),
+            'files' => LiveChat::extrasReady() ? ['max_mb' => (int) (ChatFiles::maxBytes($widget) / 1048576), 'accept' => ChatFiles::accept()] : null,
             'prechat' => ['enabled' => $widget->asksFirst(), 'fields' => collect(ChatWidget::PRECHAT_FIELDS)->map(fn (string $label, string $field): bool => $widget->asks($field))->all(), 'labels' => ChatWidget::PRECHAT_FIELDS],
         ];
     }

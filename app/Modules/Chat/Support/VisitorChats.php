@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat\Support;
 
+use App\Modules\Chat\Models\ChatAttachment;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Meta\Models\Conversation;
@@ -40,7 +41,7 @@ final class VisitorChats
     }
 
     /**
-     * @return list<array{id: int, from: string, body: string, at: string, name: ?string}>
+     * @return list<array{id: int, from: string, body: string, at: string, name: ?string, files: list<array{name: string, size: string, image: bool, url: string}>}>
      */
     public static function messages(Conversation $conversation, int $after = 0): array
     {
@@ -48,7 +49,7 @@ final class VisitorChats
             ->where('conversation_id', $conversation->getKey())
             ->whereIn('kind', ['text', 'file'])
             ->when($after > 0, fn ($query) => $query->where('id', '>', $after))
-            ->with('sender')
+            ->with(['sender', ...(LiveChat::extrasReady() ? ['chatFiles'] : [])])
             ->orderByDesc('id')
             ->limit(100)
             ->get()
@@ -58,7 +59,7 @@ final class VisitorChats
             ->all();
     }
 
-    /** @return array{id: int, from: string, body: string, at: string, name: ?string} */
+    /** @return array{id: int, from: string, body: string, at: string, name: ?string, files: list<array{name: string, size: string, image: bool, url: string}>} */
     public static function row(Message $message): array
     {
         $from = match (true) {
@@ -73,6 +74,9 @@ final class VisitorChats
             'body' => (string) $message->body,
             'at' => $message->created_at?->toIso8601String() ?? now()->toIso8601String(),
             'name' => $from === 'team' && $message->sender !== null ? self::firstName($message->sender->name) : null,
+            'files' => $message->relationLoaded('chatFiles')
+                ? $message->chatFiles->map(fn (ChatAttachment $file): array => ['name' => $file->original_name, 'size' => $file->humanSize(), 'image' => $file->isImage(), 'url' => $file->visitorUrl()])->values()->all()
+                : [],
         ];
     }
 

@@ -12566,4 +12566,141 @@ button.lq-perday-row:hover {
     background: var(--lq-warning-tint);
 }
 
+/* Saved replies: the list that opens above the message box when a slash is typed. */
+.lq-saved-wrap {
+    position: relative;
+}
+
+.lq-saved-menu {
+    position: absolute;
+    z-index: 20;
+    bottom: calc(100% + 0.375rem);
+    left: 0;
+    right: 0;
+    max-height: 16rem;
+    margin: 0;
+    padding: 0.25rem;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid var(--lq-card-border);
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-panel);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
+}
+
+.lq-saved-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--lq-ink);
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lq-saved-item-active {
+    background: var(--lq-orange-tint);
+}
+
+.lq-saved-top {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-weight: 600;
+}
+
+.lq-saved-body {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* The paperclip beside the box, and the file chosen to go with the reply. */
+.lq-composer-attach {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    color: var(--lq-muted);
+    cursor: pointer;
+}
+
+.lq-composer-attach:hover,
+.lq-composer-attach:focus-within {
+    background: var(--lq-surface);
+    color: var(--lq-ink);
+}
+
+.lq-composer-attach svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.lq-composer-file {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    max-width: 100%;
+    margin: 0 0 0.5rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 10px;
+    background: var(--lq-surface);
+    font-size: 0.8125rem;
+}
+
+.lq-composer-file svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    color: var(--lq-muted);
+}
+
+.lq-composer-file-x {
+    margin-left: auto;
+    padding: 0 0.25rem;
+    border: 0;
+    background: transparent;
+    color: var(--lq-muted);
+    font-size: 1.125rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.lq-composer-saved {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    margin-left: 0.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+    cursor: pointer;
+}
+
+.lq-composer-saved:hover {
+    color: var(--lq-ink);
+}
+
+.lq-composer-saved svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-attach-size {
+    margin-left: auto;
+    color: var(--lq-muted);
+}
+
 } /* @layer components */

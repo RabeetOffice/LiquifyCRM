@@ -1247,4 +1247,96 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
+// Saved replies (live chat, 3 Nov 2026): type "/" and the first letters of a shortcut in the message box, pick with
+// the arrow keys and Enter (or the mouse), and the whole reply is in the box, ready to change before it is sent.
+Alpine.data('savedReplies', (replies) => ({
+    replies,
+    open: false,
+    query: '',
+    index: 0,
+    start: -1,
+
+    get matches() {
+        const query = this.query.toLowerCase();
+
+        return this.replies.filter((reply) => reply.shortcut.toLowerCase().includes(query) || reply.title.toLowerCase().includes(query)).slice(0, 8);
+    },
+
+    box() {
+        return this.$root.querySelector('textarea');
+    },
+
+    // After every keystroke: is the word at the caret a slash and some letters?
+    check() {
+        const box = this.box();
+
+        if (! box || this.replies.length === 0) {
+            return;
+        }
+
+        const before = box.value.slice(0, box.selectionStart);
+        const found = before.match(/(?:^|\s)\/([\w-]*)$/);
+
+        if (found) {
+            this.query = found[1];
+            this.start = before.length - found[1].length - 1;
+            this.index = 0;
+            this.open = this.matches.length > 0;
+        } else {
+            this.open = false;
+        }
+    },
+
+    // The whole list, from the button: the reply goes in at the caret.
+    all() {
+        const box = this.box();
+
+        if (! box || this.replies.length === 0) {
+            return;
+        }
+
+        this.query = '';
+        this.start = box.selectionStart;
+        this.index = 0;
+        this.open = true;
+        box.focus();
+    },
+
+    key(event) {
+        if (! this.open || event.ctrlKey || event.metaKey) {
+            return;
+        }
+
+        const count = this.matches.length;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            this.index = (this.index + 1) % count;
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.index = (this.index - 1 + count) % count;
+        } else if (event.key === 'Enter' || event.key === 'Tab') {
+            if (this.matches[this.index]) {
+                event.preventDefault();
+                this.pick(this.matches[this.index]);
+            }
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            this.open = false;
+        }
+    },
+
+    pick(reply) {
+        const box = this.box();
+        const end = box.selectionStart;
+
+        box.value = box.value.slice(0, this.start) + reply.body + box.value.slice(end);
+        box.setSelectionRange(this.start + reply.body.length, this.start + reply.body.length);
+        this.open = false;
+        // Livewire and the counters hear about the new words through the input event.
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+        box.focus();
+    },
+}));
+
 Livewire.start();

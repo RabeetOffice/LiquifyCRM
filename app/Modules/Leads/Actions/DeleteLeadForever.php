@@ -7,6 +7,7 @@ namespace App\Modules\Leads\Actions;
 use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Support\ChatErasure;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\DashboardCache;
 use App\Modules\Leads\Models\Lead;
@@ -108,8 +109,18 @@ final class DeleteLeadForever
 
         // The chat and its messages (the messages go with the conversation in the database).
         foreach (Conversation::query()->forBrand($brandId)->where('lead_id', $lead->getKey())->get() as $conversation) {
+            // A website chat also has files on the disk, bell entries and log lines that name the visitor.
+            if ($conversation->isLiveChat()) {
+                $paths = [...$paths, ...ChatErasure::erase($conversation)];
+
+                continue;
+            }
+
             $conversation->delete();
         }
+
+        // The visitor behind a website chat: their email, phone number and address.
+        ChatErasure::eraseVisitorsOf((int) $lead->getKey());
 
         InboundEvent::query()->where('lead_id', $lead->getKey())->delete();
 

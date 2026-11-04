@@ -63,6 +63,9 @@ Schedule::command('leads:digest')->cron('0 */3 * * *')->timezone((string) config
 // Leads that have been in the bin for 30 days are deleted for good.
 Schedule::command('leads:empty-bin')->dailyAt('00:50')->doNotMonitor();
 
+// Live chat: files after 180 days, the chats of visitors who never gave their details after 14 (the privacy page says so).
+Schedule::command('chat:prune')->dailyAt('00:58')->doNotMonitor();
+
 // Chat leads without an email or phone read what the person wrote in their chat (new messages are read as they come).
 Schedule::command('leads:chat-contacts')->dailyAt('03:30')->withoutOverlapping(60)->runInBackground()->doNotMonitor();
 

@@ -87,6 +87,9 @@
                 <x-ui.textarea wire:model="offline" name="offline" rows="2" :placeholder="$defaults['offline']"></x-ui.textarea>
             </x-ui.field>
 
+            <x-ui.field label="Largest file (MB)" name="maxMb" help="Visitors can send pictures, PDF, Word documents and text files up to this size. At most 25 MB.">
+                <x-ui.input type="number" min="1" max="25" wire:model="maxMb" name="maxMb" />
+            </x-ui.field>
             <x-ui.field label="Privacy line" name="consent" help="Shown under the welcome message.">
                 <x-ui.textarea wire:model="consent" name="consent" rows="2" :placeholder="$defaults['consent']"></x-ui.textarea>
             </x-ui.field>

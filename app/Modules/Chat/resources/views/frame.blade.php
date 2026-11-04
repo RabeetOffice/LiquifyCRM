@@ -40,6 +40,15 @@ input:focus,textarea:focus{border-color:var(--c);box-shadow:0 0 0 3px color-mix(
 .consent{font-size:11px;color:#8a857d;text-align:center;margin:2px 8px 0}
 form.composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e7e4df;background:#fff}
 form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:1.35}
+.attach{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:#8a857d}
+.attach:hover{background:#f1efec;color:#1c1b19}
+.attach:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+.pic{display:block;max-width:220px;margin-bottom:4px;border-radius:12px;overflow:hidden;border:1px solid #e7e4df;background:#fff}
+.pic img{display:block;width:100%;height:auto;max-height:240px;object-fit:cover}
+.doc{display:flex;gap:8px;align-items:center;max-width:240px;margin-bottom:4px;padding:9px 12px;border-radius:12px;border:1px solid #e7e4df;background:#fff;color:inherit;text-decoration:none;font-size:13px}
+.doc span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc small{margin-left:auto;color:#8a857d;white-space:nowrap}
+.visitor .doc,.visitor .pic{border-color:transparent}
 .send{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--c);color:var(--on)}
 .send:disabled{opacity:.5;cursor:default}
 /* typing dots */
@@ -59,6 +68,8 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
 </header>
 <main id="thread" aria-live="polite" aria-label="Conversation"></main>
 <form class="composer hidden" id="composer" autocomplete="off">
+    <button class="attach hidden" id="attach" type="button" aria-label="Attach a file" title="Attach a file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/></svg></button>
+    <input type="file" id="file" class="hidden" tabindex="-1" aria-hidden="true">
     <textarea id="box" rows="1" maxlength="2000" placeholder="Write a message…" aria-label="Your message"></textarea>
     <button class="send" id="send" type="submit" aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12L3.27 3.13a.75.75 0 0 1 1.03-.9l16.5 8.25a.75.75 0 0 1 0 1.34L4.3 19.77a.75.75 0 0 1-1.03-.9L6 12zm0 0h7.5"/></svg></button>
 </form>
@@ -74,6 +85,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     var STORE = 'lq_v_' + KEY;
     var $ = function (id) { return document.getElementById(id); };
     var thread = $('thread'), composer = $('composer'), box = $('box'), sendButton = $('send');
+    var attachButton = $('attach'), fileInput = $('file');
 
     var creds = null, config = null, visitor = null;
     var seen = {}, lastId = 0, open = false, unread = 0, page = null, timer = null, failures = 0;
@@ -117,7 +129,29 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         lastId = Math.max(lastId, m.id);
 
         var row = el('div', 'row ' + m.from);
-        row.appendChild(el('div', 'bubble', m.body));
+        // Files: a picture in place, anything else as a card to download. The links are signed by the CRM.
+        (m.files || []).forEach(function (f) {
+            var url;
+
+            try { url = new URL(f.url, location.href); } catch (e) { return; }
+            if (url.origin !== location.origin) { return; }
+
+            var link = el('a', f.image ? 'pic' : 'doc');
+            link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+
+            if (f.image) {
+                var img = el('img'); img.src = url.href; img.alt = f.name; img.loading = 'lazy';
+                img.onload = scroll;
+                link.appendChild(img);
+            } else {
+                link.appendChild(el('span', '', f.name));
+                link.appendChild(el('small', '', f.size));
+            }
+
+            row.appendChild(link);
+        });
+
+        if (m.body) { row.appendChild(el('div', 'bubble', m.body)); }
         row.appendChild(el('div', 'meta', (m.from === 'team' && m.name ? m.name + ' · ' : m.from === 'ai' ? 'Virtual assistant · ' : '') + clock(m.at)));
         row.setAttribute('data-id', m.id);
         thread.insertBefore(row, tooltip && tooltip.parentNode === thread ? tooltip : (typingRow && typingRow.parentNode === thread ? typingRow : null));
@@ -326,6 +360,40 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     }
 
     // ---- sending and polling --------------------------------------------------------------------------------
+    // A file from the paperclip: checked here for size and kind (the CRM checks again), then sent as it is.
+    function upload(file) {
+        var limit = config.files.max_mb * 1048576;
+        var kinds = config.files.accept.split(',');
+        var dot = file.name.lastIndexOf('.');
+        var extension = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
+
+        if (kinds.indexOf(extension) < 0) { addNote('This kind of file is not accepted. You can send pictures, PDF, Word documents and text files.'); return; }
+        if (file.size > limit) { addNote('That file is too big. The most we take is ' + config.files.max_mb + ' MB.'); return; }
+        if (file.size === 0) { addNote('That file is empty.'); return; }
+
+        var data = new FormData();
+        data.append('file', file);
+
+        var h = headers();
+        delete h['Content-Type'];
+
+        var pending = el('p', 'consent', 'Sending ' + file.name + '…');
+        thread.appendChild(pending); scroll();
+        attachButton.disabled = true;
+
+        return fetch(API + '/upload', { method: 'POST', headers: h, body: data, credentials: 'omit' })
+            .then(function (response) { return response.json().catch(function () { return {}; }).then(function (json) { return { status: response.status, json: json }; }); })
+            .then(function (r) {
+                attachButton.disabled = false;
+                if (pending.parentNode) { pending.parentNode.removeChild(pending); }
+                if (r.status === 422 || r.status === 429 || r.status === 413) { addNote(r.json.error || (r.json.errors && r.json.errors.file ? r.json.errors.file[0] : 'The file was not sent. Please try again.')); return; }
+                if (r.status >= 400) { addNote('The file was not sent. Please try again.'); return; }
+                addMessage(r.json.message);
+                if (!visitor.has_details) { detailsCard(); }
+            })
+            .catch(function () { attachButton.disabled = false; if (pending.parentNode) { pending.parentNode.removeChild(pending); } addNote('No connection. Please try again.'); });
+    }
+
     function send(text) {
         sendButton.disabled = true;
         return call('POST', '/messages', { body: text }).then(function (r) {
@@ -370,6 +438,12 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
             creds = { token: r.json.token, sig: r.json.sig }; save(creds);
             config = r.json.config; visitor = r.json.visitor;
             $('title').textContent = config.title;
+
+            if (config.files) {
+                fileInput.accept = config.files.accept;
+                attachButton.classList.remove('hidden');
+            }
+
             var messages = r.json.messages || [];
 
             if (!messages.length) {
@@ -400,6 +474,8 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         if (started && box.value.trim() !== '' && now - lastTyped > 4000) { lastTyped = now; call('POST', '/typing', {}).catch(function () {}); }
     });
     box.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); composer.requestSubmit(); } });
+    attachButton.onclick = function () { fileInput.click(); };
+    fileInput.onchange = function () { var file = fileInput.files && fileInput.files[0]; fileInput.value = ''; if (file && config && config.files) { upload(file); } };
     $('close').onclick = function () { tell({ type: 'close' }); };
     document.addEventListener('visibilitychange', schedule);
 

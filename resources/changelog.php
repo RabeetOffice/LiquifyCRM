@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.47.0',
+        'date' => '2026-11-04',
+        'title' => 'Files in the website chat, and saved replies',
+        'changes' => [
+            ['new', 'Files in a website chat, both ways. The visitor has a paperclip in the chat box and the team has one in the Inbox: pictures, PDF, Word documents and text files, up to 10 MB (each chat sets its own limit, up to 25 MB, under Live chat settings). A picture shows in the chat; anything else is a card to download.'],
+            ['new', 'Files are kept private and checked by what is inside them, not by their name: a program called invoice.pdf is refused. Only the people who see that chat can open a file, and a visitor\'s link works for six hours.'],
+            ['new', 'Saved replies (in the menu, for everybody in the brand). Write the answers you type again and again, then type a slash and a few letters in the message box (like /price) and pick it: the words go in, ready to change before you send. They can use {visitor_name}, {agent_name} and {brand_name}. The company\'s are written by Admins, a brand\'s by its Managers, and anybody can keep their own. It works in every chat, Messenger and Instagram too.'],
+            ['new', 'Every night, files of website chats are deleted after 180 days, and the chat of a visitor who never gave an email address or phone number is deleted after 14 days, with what we noted about them. Deleting a lead for good now also removes the files, the visitor\'s details and the traces of its website chat.'],
+            ['improved', 'The privacy and data-deletion pages say what the website chat keeps and for how long.'],
+        ],
+    ],
+    [
         'version' => '1.46.0',
         'date' => '2026-11-04',
         'title' => 'Answer the website chat from the Inbox',

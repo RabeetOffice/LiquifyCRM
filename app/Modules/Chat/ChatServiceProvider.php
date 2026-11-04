@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat;
 
+use App\Modules\Chat\Console\PruneChatCommand;
+use App\Modules\Chat\Models\CannedReply;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Policies\CannedReplyPolicy;
 use App\Modules\Chat\Policies\ChatWidgetPolicy;
 use App\Modules\Chat\Support\AgentPresence;
 use App\Modules\Core\ModuleServiceProvider;
@@ -23,8 +26,13 @@ final class ChatServiceProvider extends ModuleServiceProvider
 {
     protected string $module = 'Chat';
 
+    protected array $commands = [
+        PruneChatCommand::class,
+    ];
+
     protected array $policies = [
         ChatWidget::class => ChatWidgetPolicy::class,
+        CannedReply::class => CannedReplyPolicy::class,
     ];
 
     protected function bootModule(): void
@@ -45,6 +53,7 @@ final class ChatServiceProvider extends ModuleServiceProvider
         RateLimiter::for('chat-init', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-init:'.$request->ip()));
         RateLimiter::for('chat-poll', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-poll:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-send', fn (Request $request): Limit => Limit::perMinute(20)->by('chat-send:'.($request->header('X-Chat-Token') ?: $request->ip())));
+        RateLimiter::for('chat-upload', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-upload:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-typing', fn (Request $request): Limit => Limit::perMinute(30)->by('chat-typing:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-details', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-details:'.($request->header('X-Chat-Token') ?: $request->ip())));
     }

@@ -7,6 +7,8 @@ namespace App\Modules\Meta\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Chat\Actions\ChangeChat;
 use App\Modules\Chat\Actions\ReplyToVisitor;
+use App\Modules\Chat\Models\CannedReply;
+use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Core\Support\CurrentBrand;
@@ -16,9 +18,11 @@ use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\UploadedFile;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use RuntimeException;
 
 /**
@@ -29,6 +33,7 @@ use RuntimeException;
 final class ConversationThread extends Component
 {
     use AuthorizesRequests;
+    use WithFileUploads;
 
     #[Locked]
     public int $conversationId;
@@ -41,6 +46,9 @@ final class ConversationThread extends Component
 
     /** In a website chat: reply to the visitor, or note for the team only. */
     public string $mode = 'reply';
+
+    /** A file chosen to go with the reply (website chat only). */
+    public mixed $upload = null;
 
     public function mount(int $conversationId, bool $inbox = false): void
     {
@@ -104,12 +112,15 @@ final class ConversationThread extends Component
     private function sendInLiveChat(Conversation $conversation): void
     {
         $this->authorize('reply', $conversation);
-        $this->validate(['reply' => ['required', 'string']], attributes: ['reply' => 'message']);
+        // A file may go without words; a note never carries one.
+        $file = $this->mode === 'note' || ! LiveChat::extrasReady() || ! $this->upload instanceof UploadedFile ? null : $this->upload;
+
+        $this->validate(['reply' => [$file !== null ? 'nullable' : 'required', 'string']], attributes: ['reply' => 'message']);
 
         $lines = app(ReplyToVisitor::class);
 
         try {
-            $this->mode === 'note' ? $lines->note($conversation, $this->user(), $this->reply) : $lines->reply($conversation, $this->user(), $this->reply);
+            $this->mode === 'note' ? $lines->note($conversation, $this->user(), $this->reply) : $lines->reply($conversation, $this->user(), (string) $this->reply, $file);
         } catch (RuntimeException $exception) {
             $this->addError('reply', $exception->getMessage());
 
@@ -117,6 +128,7 @@ final class ConversationThread extends Component
         }
 
         $this->reply = '';
+        $this->upload = null;
         $this->dispatch('conversation-updated');
     }
 
@@ -148,6 +160,26 @@ final class ConversationThread extends Component
         return $conversation->isLiveChat() && LiveChat::workReady() && $conversation->chatAssignee !== null ? $conversation->chatAssignee->name : null;
     }
 
+    /**
+     * What this person may put in the box with a slash: the company's, the brand's and their own saved replies, with
+     * this chat's names filled in.
+     *
+     * @return list<array{id: int, shortcut: string, title: string, body: string}>
+     */
+    private function savedReplies(Conversation $conversation): array
+    {
+        if (! LiveChat::extrasReady()) {
+            return [];
+        }
+
+        $brand = app(CurrentBrand::class)->get();
+
+        return CannedReply::query()->usableBy($this->user(), (int) $conversation->brand_id)->orderBy('shortcut')->get()
+            ->map(fn (CannedReply $reply): array => ['id' => (int) $reply->getKey(), 'shortcut' => $reply->shortcut, 'title' => $reply->title, 'body' => $reply->filled($conversation->displayName(), $this->user()->name, $brand->name ?? '')])
+            ->values()
+            ->all();
+    }
+
     private function user(): User
     {
         /** @var User $user */
@@ -165,11 +197,15 @@ final class ConversationThread extends Component
         return view('meta::livewire.app.conversation-thread', [
             'conversation' => $conversation,
             // The newest 100, shown oldest first.
-            'messages' => Message::query()->where('conversation_id', $conversation->getKey())->with('sender')->latest('id')->limit(100)->get()->reverse()->values(),
+            'messages' => Message::query()->where('conversation_id', $conversation->getKey())->with(['sender', ...(LiveChat::extrasReady() ? ['chatFiles'] : [])])->latest('id')->limit(100)->get()->reverse()->values(),
             'canReply' => (bool) auth()->user()?->can('reply', $conversation),
             // Front sales: a free chat is taken before it is answered; a colleague's is only read.
             'canTake' => $conversation->lead !== null && (bool) auth()->user()?->can('take', $conversation->lead),
             'owner' => $this->owner($conversation),
+            'filesReady' => LiveChat::extrasReady(),
+            'accept' => ChatFiles::accept(),
+            'brandSlug' => app(CurrentBrand::class)->get()?->slug,
+            'savedReplies' => $this->savedReplies($conversation),
             'typingUrl' => $conversation->isLiveChat() && ($brand = app(CurrentBrand::class)->get()) !== null ? route('brand.conversations.typing', ['brand' => $brand->slug, 'conversation' => $conversation->getKey()]) : null,
             'isLiveChat' => $conversation->isLiveChat(),
             'closed' => $conversation->isClosed(),

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Chat\Models\ChatAttachment;
 use App\Modules\Core\Support\Live;
 use App\Modules\Meta\Enums\MessageStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One message in a conversation, in ("in") from the person or out ("out")
@@ -58,6 +60,12 @@ class Message extends Model
 
             Live::touchChat($brandId !== null ? (int) $brandId : null);
         });
+    }
+
+    /** @return HasMany<ChatAttachment, $this> */
+    public function chatFiles(): HasMany
+    {
+        return $this->hasMany(ChatAttachment::class);
     }
 
     /** @return BelongsTo<Conversation, $this> */
