@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Policies;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Chat\Support\ChatAccess;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Models\Conversation;
 
@@ -21,6 +23,11 @@ final class ConversationPolicy
 
     public function view(User $user, Conversation $conversation): bool
     {
+        // A visitor who has not given an email or phone number has no lead: their team decides (ChatAccess).
+        if ($conversation->isLiveChat() && $conversation->lead_id === null) {
+            return LiveChat::ready() && ChatAccess::canSeeVisitors($user, (int) $conversation->brand_id);
+        }
+
         $lead = $this->lead($conversation);
 
         return $lead !== null && $user->can('view', $lead);
@@ -28,6 +35,11 @@ final class ConversationPolicy
 
     public function reply(User $user, Conversation $conversation): bool
     {
+        // Answering a website chat comes with the next update; Messenger and Instagram replies are untouched.
+        if ($conversation->isLiveChat()) {
+            return false;
+        }
+
         $lead = $this->lead($conversation);
 
         return $lead !== null && $user->can('update', $lead);

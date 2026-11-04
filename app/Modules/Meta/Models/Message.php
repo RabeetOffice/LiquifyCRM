@@ -33,7 +33,7 @@ class Message extends Model
 
     public const OUT = 'out';
 
-    protected $fillable = ['conversation_id', 'direction', 'body', 'external_id', 'status', 'error', 'sent_by', 'raw', 'created_at'];
+    protected $fillable = ['conversation_id', 'direction', 'kind', 'sender', 'body', 'external_id', 'status', 'error', 'sent_by', 'raw', 'created_at'];
 
     protected $attributes = ['status' => 'sent', 'external_id' => null, 'error' => null, 'sent_by' => null, 'raw' => null];
 

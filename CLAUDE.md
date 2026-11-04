@@ -106,6 +106,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   IP. `InvitationController::refusal` and `User::canAccessBrand` refuse IT and Website leads people. Text written into
   CSV/Excel goes through `SpreadsheetText::safe()`. Undo of a take needs the `lead-taken:` cache mark set by
   `TakesLeads::takeLead` (or the assign right). Tests: tests/Feature/Core/SecurityAudit*Test.php.
+- Live chat (user request, 3 Nov 2026; plan and decisions in `docs/LIVECHAT_PLAN.md`, built by phases, phase 1 = 1.44.0):
+  a website visitor's chat is a `Conversation` with `channel = livechat` (`Conversation::CHANNEL_LIVECHAT`), module
+  `app/Modules/Chat`, behind `LiveChat::ready()`. **A visitor is not a lead**: `lead_id` stays null until they give a valid
+  email or phone number (user decision); such chats show only in the Inbox's Visitors view (`Conversation::anonymous()`,
+  every other Inbox view needs a lead) and `ChatAccess` decides who sees them (Admins, the brand's Managers, Agents unless
+  `chat_widgets.agents_see_visitors` is off). Never make a lead from a chat that has no email or phone. Ask `ChannelCapabilities`
+  what a channel can do instead of testing for Messenger or Instagram. Free AI only (Groq, then Cloudflare Workers AI are the
+  candidates; never Gemini's free tier for UK/EU visitors), contacts never sent to the AI. Hostinger Node apps cannot take
+  inbound WebSockets (120 s request limit, no workers): real-time is polling, later Ably's free tier for pings only.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

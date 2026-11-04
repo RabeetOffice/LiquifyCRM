@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Meta\Models;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Chat\Models\ChatVisitor;
+use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\ChatAccess;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Core\Concerns\BelongsToBrand;
 use App\Modules\Leads\Models\Lead;
 use Carbon\CarbonImmutable;
@@ -36,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $unread_count
  * @property-read Lead|null $lead
  * @property-read MetaSource|null $source
+ * @property-read ChatWidget|null $widget
+ * @property-read ChatVisitor|null $visitor
  */
 class Conversation extends Model
 {
@@ -48,6 +54,9 @@ class Conversation extends Model
 
     public const CHANNEL_INSTAGRAM = 'instagram';
 
+    /** The chat box on a brand's own website. Its visitor has no lead until they give an email or phone number. */
+    public const CHANNEL_LIVECHAT = 'livechat';
+
     /** Messenger and Instagram let a business reply freely for 24 hours after the person's last message. */
     public const REPLY_WINDOW_HOURS = 24;
 
@@ -55,7 +64,7 @@ class Conversation extends Model
     public const INSTAGRAM_MAX_BYTES = 1000;
 
     protected $fillable = [
-        'brand_id', 'lead_id', 'channel', 'contact_external_id', 'contact_name', 'meta_source_id',
+        'brand_id', 'lead_id', 'channel', 'contact_external_id', 'contact_name', 'meta_source_id', 'chat_widget_id', 'chat_visitor_id',
         'last_inbound_at', 'last_message_at', 'last_message_preview', 'unread_count',
     ];
 
@@ -91,15 +100,28 @@ class Conversation extends Model
         return $this->channel === self::CHANNEL_INSTAGRAM;
     }
 
-    /** "Messenger" or "Instagram", for the screens. */
-    public function channelLabel(): string
+    public function isLiveChat(): bool
     {
-        return $this->isInstagram() ? 'Instagram' : 'Messenger';
+        return $this->channel === self::CHANNEL_LIVECHAT;
     }
 
-    /** Who the person wrote to: the Facebook Page, or the Instagram account linked to it. */
+    /** "Messenger", "Instagram" or "Live chat", for the screens. */
+    public function channelLabel(): string
+    {
+        return match ($this->channel) {
+            self::CHANNEL_LIVECHAT => 'Live chat',
+            self::CHANNEL_INSTAGRAM => 'Instagram',
+            default => 'Messenger',
+        };
+    }
+
+    /** Who the person wrote to: the Facebook Page, the Instagram account linked to it, or the website's chat. */
     public function accountName(): string
     {
+        if ($this->isLiveChat()) {
+            return $this->widget === null ? 'Chat removed' : $this->widget->name;
+        }
+
         if ($this->source === null) {
             return $this->isInstagram() ? 'Account removed' : 'Page removed';
         }
@@ -155,6 +177,18 @@ class Conversation extends Model
         return $this->belongsTo(MetaSource::class, 'meta_source_id');
     }
 
+    /** @return BelongsTo<ChatWidget, $this> */
+    public function widget(): BelongsTo
+    {
+        return $this->belongsTo(ChatWidget::class, 'chat_widget_id');
+    }
+
+    /** @return BelongsTo<ChatVisitor, $this> */
+    public function visitor(): BelongsTo
+    {
+        return $this->belongsTo(ChatVisitor::class, 'chat_visitor_id');
+    }
+
     /** @return HasMany<Message, $this> */
     public function messages(): HasMany
     {
@@ -169,7 +203,38 @@ class Conversation extends Model
      */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $query->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user));
+        return $query->where(fn (Builder $visible): Builder => $visible
+            ->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user))
+            ->orWhere(fn (Builder $visitors): Builder => $visitors->visitorChatsFor($user)));
+    }
+
+    /**
+     * Website chats of visitors who have not given an email or phone number: no lead, so the lead cannot say
+     * who sees them. Admins, the brand's Managers and (unless the brand's chat says otherwise) its Agents.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeVisitorChatsFor(Builder $query, User $user): Builder
+    {
+        if (! LiveChat::ready()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $query->where('channel', self::CHANNEL_LIVECHAT)->whereNull('lead_id');
+
+        return $user->isGlobalAdmin() ? $query : $query->whereIn('brand_id', ChatAccess::visitorBrandIds($user));
+    }
+
+    /**
+     * Anonymous website chats only: the Inbox's "Visitors" view.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeAnonymous(Builder $query): Builder
+    {
+        return $query->where('channel', self::CHANNEL_LIVECHAT)->whereNull('lead_id');
     }
 
     /**
@@ -183,7 +248,9 @@ class Conversation extends Model
      */
     public function scopeListedFor(Builder $query, User $user): Builder
     {
-        return $query->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user)->unarchived());
+        return $query->where(fn (Builder $listed): Builder => $listed
+            ->whereHas('lead', fn (Builder $lead): Builder => $lead->visibleTo($user)->unarchived())
+            ->orWhere(fn (Builder $visitors): Builder => $visitors->visitorChatsFor($user)));
     }
 
     public function replyWindowEndsAt(): ?CarbonImmutable
@@ -193,6 +260,11 @@ class Conversation extends Model
 
     public function canReply(): bool
     {
+        // A website chat has no 24-hour window; the team answers it from the Inbox in a later update.
+        if ($this->isLiveChat()) {
+            return false;
+        }
+
         $ends = $this->replyWindowEndsAt();
 
         return $ends !== null && $ends->isFuture();
@@ -200,6 +272,10 @@ class Conversation extends Model
 
     public function displayName(): string
     {
+        if ($this->isLiveChat()) {
+            return filled($this->contact_name) ? (string) $this->contact_name : ($this->visitor?->displayName() ?? 'Visitor');
+        }
+
         if (filled($this->contact_name)) {
             return (string) $this->contact_name;
         }

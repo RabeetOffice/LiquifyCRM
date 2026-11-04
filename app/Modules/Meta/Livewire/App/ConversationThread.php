@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Livewire\App;
 
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Meta\Actions\ReplyOnMessenger;
 use App\Modules\Meta\Exceptions\MetaException;
@@ -118,6 +119,6 @@ final class ConversationThread extends Component
 
     private function conversation(): Conversation
     {
-        return Conversation::query()->with(['lead.status', 'source'])->findOrFail($this->conversationId);
+        return Conversation::query()->with(['lead.status', 'source', ...(LiveChat::ready() ? ['visitor', 'widget'] : [])])->findOrFail($this->conversationId);
     }
 }

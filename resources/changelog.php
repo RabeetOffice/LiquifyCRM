@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.44.0',
+        'date' => '2026-11-04',
+        'title' => 'Live chat settings, and a place in the Inbox for website visitors',
+        'changes' => [
+            ['new', 'Live chat (Settings, for Admins and Managers): add the chat box of a brand\'s website. Choose the websites it may run on, its colour, where it sits, what it says and what it asks first, and copy the one line to paste into the website. The chat box itself is switched on in a coming update.'],
+            ['new', 'The Inbox gets a Visitors view for people who write in a website chat without giving an email address or a phone number. They are not leads: a lead is made only when they give one of the two. Admins and Managers see them; Agents too, unless the brand\'s chat is set for Managers only.'],
+            ['new', 'A website chat can be added next to Messenger and Instagram in the Inbox filters (Live chat).'],
+        ],
+    ],
+    [
         'version' => '1.43.1',
         'date' => '2026-11-04',
         'title' => 'A lead shows what came from the form and what came from Messenger',

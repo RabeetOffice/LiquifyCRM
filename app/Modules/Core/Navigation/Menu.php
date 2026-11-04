@@ -9,6 +9,7 @@ use App\Modules\Auth\Models\SignInDevice;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\WebsiteLeads;
 use App\Modules\Meta\Models\Conversation;
@@ -152,6 +153,10 @@ final class Menu
             $settings = [
                 self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
             ];
+
+            if (LiveChat::ready()) {
+                $settings[] = self::item('Live chat', 'heroicon-o-chat-bubble-oval-left-ellipsis', route('brand.live-chat', $params), $isActive('brand.live-chat'));
+            }
 
             // Logs and the bin of deleted leads are for Admins only.
             if ($user->isGlobalAdmin()) {

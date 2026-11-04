@@ -1,12 +1,12 @@
 <div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh="chat">
-    <x-ui.page-header title="Inbox" subtitle="Messenger and Instagram chats of your leads. Reply here or from the lead page." />
+    <x-ui.page-header title="Inbox" :subtitle="$hasLiveChat ? 'Messenger, Instagram and website chats. Reply here or from the lead page.' : 'Messenger and Instagram chats of your leads. Reply here or from the lead page.'" />
 
     @if ($total === 0)
         <x-ui.card>
             <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, or sends a direct message to its Instagram account, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
         </x-ui.card>
     @else
-        <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null])>
+        <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null || $selected?->isLiveChat()])>
             {{-- The chats --}}
             <aside class="lq-inbox-list" aria-label="Chats">
                 <div class="lq-inbox-tools">
@@ -23,12 +23,25 @@
                             @endif
                         </button>
                         <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'open']) wire:click="$set('filter', 'open')" role="tab" title="Chats you can still answer: the person wrote in the last 24 hours">Can reply</button>
+                        @if ($hasLiveChat)
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'visitors']) wire:click="$set('filter', 'visitors')" role="tab" title="Website visitors who have not given an email address or phone number yet, so they are not leads">
+                                Visitors
+                                @if ($visitors > 0)
+                                    <span class="lq-count">{{ $visitors }}</span>
+                                @endif
+                            </button>
+                        @endif
                     </div>
-                    @if ($hasInstagram)
+                    @if ($hasInstagram || $hasLiveChat)
                         <div class="lq-seg" role="tablist" aria-label="Which channel">
                             <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === '']) wire:click="$set('channel', '')" role="tab">Every channel</button>
                             <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'messenger']) wire:click="$set('channel', 'messenger')" role="tab"><x-ui.brand-icon name="messenger" /> Messenger</button>
-                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'instagram']) wire:click="$set('channel', 'instagram')" role="tab"><x-ui.brand-icon name="instagram" /> Instagram</button>
+                            @if ($hasInstagram)
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'instagram']) wire:click="$set('channel', 'instagram')" role="tab"><x-ui.brand-icon name="instagram" /> Instagram</button>
+                            @endif
+                            @if ($hasLiveChat)
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'livechat']) wire:click="$set('channel', 'livechat')" role="tab"><x-heroicon-o-chat-bubble-oval-left-ellipsis /> Live chat</button>
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -54,7 +67,7 @@
                                         <span class="lq-inbox-preview">{{ $conversation->last_message_preview }}</span>
                                         @if ($fresh)
                                             <span class="lq-count">{{ $conversation->unread_count }}</span>
-                                        @elseif (! $conversation->canReply())
+                                        @elseif (! $conversation->canReply() && ! $conversation->isLiveChat())
                                             <x-heroicon-m-lock-closed class="lq-inbox-lock" title="Reply window closed" />
                                         @endif
                                     </span>
@@ -63,7 +76,7 @@
                         </li>
                     @empty
                         <li class="lq-inbox-none">
-                            {{ $search !== '' ? 'No chat matches your search.' : ($filter === 'unread' ? 'You have read everything.' : ($filter === 'open' ? 'No chat can be answered right now.' : 'No '.($channel === 'instagram' ? 'Instagram' : 'Messenger').' chats yet.')) }}
+                            {{ $search !== '' ? 'No chat matches your search.' : ($filter === 'unread' ? 'You have read everything.' : ($filter === 'open' ? 'No chat can be answered right now.' : ($filter === 'visitors' ? 'No visitor is waiting. People who write in the website chat without giving an email address or phone number show here.' : 'No '.($channel === 'instagram' ? 'Instagram' : ($channel === 'livechat' ? 'live chat' : 'Messenger')).' chats yet.'))) }}
                         </li>
                     @endforelse
                 </ul>
@@ -77,6 +90,41 @@
                     <x-ui.empty title="Choose a chat" description="Pick a chat on the left to read it and reply." icon="heroicon-o-chat-bubble-left-right" />
                 @endif
             </section>
+
+            {{-- A website visitor who has not given an email or phone number: no lead behind the chat yet. --}}
+            @if ($selected?->isLiveChat() && $selected->lead === null)
+                @php $visitor = $selected->visitor; @endphp
+                <aside class="lq-inbox-side" aria-label="Visitor">
+                    <div class="lq-inbox-side-hero">
+                        <x-ui.avatar :name="$selected->displayName()" size="lg" tone />
+                        <h2 class="lq-inbox-side-name">{{ $selected->displayName() }}</h2>
+                        <x-ui.badge color="gray">No lead yet</x-ui.badge>
+                    </div>
+                    <dl class="lq-kv">
+                        <div>
+                            <dt>Website</dt>
+                            <dd>{{ $selected->accountName() }}</dd>
+                        </div>
+                        @if ($visitor?->country)
+                            <div>
+                                <dt>Country</dt>
+                                <dd>{{ $visitor->country }}{{ $visitor->city ? ', '.$visitor->city : '' }}</dd>
+                            </div>
+                        @endif
+                        @if ($visitor?->device)
+                            <div>
+                                <dt>Device</dt>
+                                <dd>{{ trim(($visitor->browser ?? '').' · '.($visitor->os ?? '').' · '.$visitor->device, ' ·') }}</dd>
+                            </div>
+                        @endif
+                        <div>
+                            <dt>First wrote</dt>
+                            <dd title="{{ $selected->created_at?->format('j M Y, H:i') }}">{{ $selected->created_at?->diffForHumans() }}</dd>
+                        </div>
+                    </dl>
+                    <p class="lq-help px-4 pb-4">This visitor is not a lead. They become one when they give an email address or a phone number, here or in the chat.</p>
+                </aside>
+            @endif
 
             {{-- The lead behind it --}}
             @if ($selected?->lead)

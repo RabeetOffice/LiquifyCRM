@@ -18,7 +18,9 @@
             <span class="lq-cell-title truncate">{{ $conversation->displayName() }}</span>
             <span class="lq-cell-sub lq-channel-line truncate"><x-ui.brand-icon :name="$conversation->channel" /> {{ $channel }} · {{ $conversation->accountName() }}</span>
         </div>
-        @if ($open)
+        @if ($conversation->isLiveChat())
+            <x-ui.badge color="gray" icon="heroicon-m-eye">Read only for now</x-ui.badge>
+        @elseif ($open)
             <x-ui.badge color="success" icon="heroicon-m-clock" title="{{ $channel }} lets you reply for 24 hours after this person's last message">Reply within {{ $ends->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'short' => true]) }}</x-ui.badge>
         @else
             <x-ui.badge color="warning" icon="heroicon-m-lock-closed">Reply window closed</x-ui.badge>

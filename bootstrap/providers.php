@@ -4,6 +4,7 @@ declare(strict_types=1);
 use App\Modules\Activity\ActivityServiceProvider;
 use App\Modules\Auth\AuthServiceProvider;
 use App\Modules\Brands\BrandsServiceProvider;
+use App\Modules\Chat\ChatServiceProvider;
 use App\Modules\Core\CoreServiceProvider;
 use App\Modules\Departments\DepartmentsServiceProvider;
 use App\Modules\Leads\LeadsServiceProvider;
@@ -25,6 +26,7 @@ return [
     LeadsServiceProvider::class,
     SitesServiceProvider::class,
     MetaServiceProvider::class,
+    ChatServiceProvider::class,
     SalesServiceProvider::class,
     ResourcesServiceProvider::class,
     ActivityServiceProvider::class,
