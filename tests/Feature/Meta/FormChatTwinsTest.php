@@ -188,6 +188,27 @@ it('gives the chat under a close name to whoever works the form, who can merge t
         ->and($this->agent->can('merge', $form->refresh()))->toBeTrue();
 });
 
+it('finds the form of a chat under a close name on a busy Page, from either lead', function (): void {
+    // Seen on live: the chat did not find its form, because the day after it held more forms than were fetched.
+    twinForm('9109', 'Rob Alexander', 'rob@example.com');
+
+    Carbon::setTestNow(now()->addMinutes(3));
+    twinChat('8809', 'Robert James Alexander', 'Hi', 'mid.r3');
+
+    inBrand($this->brand);
+
+    foreach (range(1, 8) as $hour) {
+        Lead::factory()->create(['brand_id' => $this->brand->getKey(), 'source_type' => LeadSource::Facebook, 'source_id' => $this->page->getKey(), 'name' => 'Other Person '.$hour, 'created_at' => now()->addHours($hour)]);
+    }
+
+    $form = Lead::query()->where('name', 'Rob Alexander')->sole();
+    $chat = Lead::query()->where('name', 'Robert James Alexander')->sole();
+    $admin = admin();
+
+    expect(array_map(fn (array $twin): int => $twin['lead']->getKey(), LeadMatcher::twins($chat, $admin)))->toBe([$form->getKey()])
+        ->and(array_map(fn (array $twin): int => $twin['lead']->getKey(), LeadMatcher::twins($form, $admin)))->toBe([$chat->getKey()]);
+});
+
 it('routes the chat under a close name as usual while the form waits for somebody', function (): void {
     twinForm('9108', 'Rob Alexander', 'rob@example.com');
 

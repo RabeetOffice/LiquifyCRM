@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.42.1',
+        'date' => '2026-11-04',
+        'title' => 'The Messenger lead also names its lead form',
+        'changes' => [
+            ['fixed', 'On a busy Facebook Page the Messenger lead did not show "This may be the same person" for its lead form under a similar name (Robert James Alexander and Rob Alexander); only the form showed it. Both leads show it now.'],
+        ],
+    ],
+    [
         'version' => '1.42.0',
         'date' => '2026-11-04',
         'title' => 'A Facebook form and the Messenger chat of the same person become one lead',

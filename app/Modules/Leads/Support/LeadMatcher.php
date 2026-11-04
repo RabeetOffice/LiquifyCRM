@@ -162,7 +162,8 @@ final class LeadMatcher
         if ($pair !== null && $lead->created_at !== null) {
             $at = CarbonImmutable::instance($lead->created_at);
 
-            $close = $others()
+            // Only leads under the same surname are fetched: a day of a busy Page holds more forms than $others() keeps.
+            $close = self::withSurname($others(), $lead->name)
                 ->where('source_type', $pair->value)
                 ->where('source_id', $lead->source_id)
                 ->whereBetween('created_at', [$at->subHours(self::CLOSE_NAME_HOURS), $at->addHours(self::CLOSE_NAME_HOURS)])
@@ -189,7 +190,7 @@ final class LeadMatcher
             return null;
         }
 
-        return self::nearOnPage($brand, $pageId, $kind, $at)
+        return self::nearOnPage($brand, $pageId, $kind, $at, $name)
             ->first(fn (Lead $lead): bool => self::sameName($lead->name, $name) && ! self::differentContact($lead, $email, $phone) && ! self::otherChat($lead, $psid));
     }
 
@@ -200,7 +201,7 @@ final class LeadMatcher
             return null;
         }
 
-        return self::nearOnPage($brand, $pageId, $kind, $at)
+        return self::nearOnPage($brand, $pageId, $kind, $at, $name)
             ->first(fn (Lead $lead): bool => self::closeName($lead->name, $name) && ! self::otherChat($lead, $psid));
     }
 
@@ -256,21 +257,41 @@ final class LeadMatcher
         };
     }
 
-    /** @return Collection<int, Lead> */
-    private static function nearOnPage(Brand|int $brand, int $pageId, LeadSource $kind, CarbonInterface $at): Collection
+    /**
+     * Open leads of `$kind` from the Page within the hour, under this name's surname.
+     *
+     * @return Collection<int, Lead>
+     */
+    private static function nearOnPage(Brand|int $brand, int $pageId, LeadSource $kind, CarbonInterface $at, string $name): Collection
     {
         $at = CarbonImmutable::instance($at);
 
-        return Lead::query()
+        return self::withSurname(Lead::query(), $name)
             ->forBrand($brand)
             ->open()
             ->where('source_type', $kind->value)
             ->where('source_id', $pageId)
             ->whereBetween('created_at', [$at->subMinutes(self::SAME_NAME_MINUTES), $at->addMinutes(self::SAME_NAME_MINUTES)])
             ->latest('id')
-            ->limit(10)
+            ->limit(20)
             ->get()
             ->toBase();
+    }
+
+    /**
+     * Only leads whose name holds this name's last word. A time window of a
+     * busy Page holds more leads than a query fetches, and the one wanted was
+     * left out (seen on live, 4 Nov 2026: a chat did not find its form).
+     *
+     * @param  Builder<Lead>  $query
+     * @return Builder<Lead>
+     */
+    private static function withSurname(Builder $query, string $name): Builder
+    {
+        $words = self::words($name);
+        $last = $words !== [] ? $words[count($words) - 1] : '';
+
+        return $last === '' ? $query : $query->where('name', 'like', '%'.addcslashes($last, '%_\\').'%');
     }
 
     /** Both have an email, or both a phone, and they are not the same: two people. */
