@@ -318,3 +318,31 @@ subscriber on `lq-b-2` received both published "changed" messages (with `Accept:
 `event: message` and a JSON `data:`, which is what `EventSource` sends), and in the browser the chat box opened its channel and
 showed the team's answer straight after the publish. The first token request of the session once timed out after 8 seconds
 (network on the dev machine); it worked on every retry, and a failure only means polling, as designed.
+
+## Live chat tab and Live visitors built (4 Nov 2026, version 1.49.0): the spec's Stage 7 (page trail, invites)
+- **One sidebar tab** (user request): `Menu::liveChatTab()` builds "Live chat" with children Live visitors (`ChatAccess::canSeeVisitors`),
+  Saved replies (everybody in the brand) and Chat boxes (Admins, Managers). A menu item may have `children`; `sidebar.blade.php`
+  opens it while a child is shown (narrow sidebar: the icon goes to the first child), `MenuBadgesController` reads the children's
+  badges. New screens of the website chat go inside this tab (add a child in `liveChatTab`). The old Saved replies and Settings
+  items are gone; the URLs are unchanged.
+- **Tracking:** tables `chat_sessions` (a browser, by the `vid` UUID the launcher keeps in the website's own localStorage) and
+  `chat_page_views`; `LiveChat::trackingReady()`. The launcher (`widget.js`, `track()`) pings `POST /chat/api/ping` at once and every 30
+  seconds while the tab is visible, and on a page change (history API too). A plain-text body holding JSON, so there is no CORS
+  preflight; answered only to an allowed `Origin`, which is also its CORS header. `RecordPing` keeps the address without query and
+  fragment, a title without tags, the referrer as a host name only; a page outside the widget's websites is not kept. Online means
+  seen in the last 90 seconds (`ChatSession::ONLINE_SECONDS`); a return after 30 minutes is a new visit.
+- **Live visitors** (`/b/{brand}/live-chat/visitors`, polls every 15 s while visible: presence is time, not a stamp) and the
+  Inbox's "Pages they read" (through `chat_sessions.chat_visitor_id`, set when the chat box's `init` sends the `vid`).
+- **Invitations** (`InviteVisitor`): creates the visitor and the chat if needed, the team's words as the first message
+  (`ReplyToVisitor`), keeps `invite_text` on the session; the next ping hands it over once and the launcher shows a card by the
+  button. The chat box waits up to 0.7 s for the page's `vid`, then `init` gives a browser with an invited chat that visitor's token.
+  Not built: automatic triggers ("after 30 s on /pricing"), exit-intent.
+- Setting `appearance.track_visitors` ("0" turns a widget off); `liquify.chat.page_view_days` (30) with `chat:prune`; sessions and their pages
+  go with a lead deleted for good (`ChatErasure`). Privacy page updated.
+- The launcher's `config` answer is cached five minutes by browsers (`max-age=300`), so a changed setting reaches a website within five minutes.
+- Tests: tests/Feature/Chat/LiveChatVisitorsTest.php (9). Checked by eye on the stand-in website: the nested tab, the list with a
+  visitor and the page trail, the invite dialog, the card by the chat button, and the chat opening with the invited words.
+
+### Chats inside the Live chat tab (4 Nov 2026, same version)
+
+The user asked that a website visitor's chat never needs the Inbox. `LiveChats` (`/b/{brand}/live-chat/chats`, first child of the tab, with the unread count) is the Inbox screen kept to `channel = livechat`, views All, Unread, Visitors, Closed. The Inbox is now Messenger and Instagram only (views All, Unread, Can reply; channel row only once Instagram is there, which also fixed the row sticking out of the card). `ChatNotifier` links to the new screen; `ChatErasure` deletes bell entries of both addresses.

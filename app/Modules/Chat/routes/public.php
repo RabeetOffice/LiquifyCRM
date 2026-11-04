@@ -23,6 +23,8 @@ Route::prefix('chat/api')->group(function (): void {
     Route::post('messages', [WidgetController::class, 'send'])->middleware('throttle:chat-send')->name('chat.widget.send');
     Route::post('realtime', [WidgetController::class, 'realtime'])->middleware('throttle:chat-poll')->name('chat.widget.realtime');
     Route::post('typing', [WidgetController::class, 'typing'])->middleware('throttle:chat-typing')->name('chat.widget.typing');
+    // A simple request (plain text body): the browser sends it without asking first; the answer names its own allowed origin.
+    Route::post('ping', [WidgetController::class, 'ping'])->middleware('throttle:chat-ping')->name('chat.widget.ping');
     Route::post('upload', [WidgetController::class, 'upload'])->middleware('throttle:chat-upload')->name('chat.widget.upload');
     Route::post('details', [WidgetController::class, 'details'])->middleware('throttle:chat-details')->name('chat.widget.details');
 });

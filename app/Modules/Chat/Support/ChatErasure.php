@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Support;
 use App\Modules\Activity\Models\Activity;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatAttachment;
+use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Meta\Models\Conversation;
 use Illuminate\Notifications\DatabaseNotification;
@@ -39,7 +40,9 @@ final class ChatErasure
         $slug = Brand::withTrashed()->whereKey($conversation->brand_id)->value('slug');
 
         if (is_string($slug)) {
-            DatabaseNotification::query()->where('data->url', 'like', '%/b/'.$slug.'/inbox?chat='.$conversation->getKey())->delete();
+            DatabaseNotification::query()->where(fn ($query) => $query
+                ->where('data->url', 'like', '%/b/'.$slug.'/inbox?chat='.$conversation->getKey())
+                ->orWhere('data->url', 'like', '%/b/'.$slug.'/live-chat/chats?chat='.$conversation->getKey()))->delete();
         }
 
         // What the chat's own log lines say names the visitor too (closed by, given to).
@@ -54,7 +57,14 @@ final class ChatErasure
     public static function eraseVisitorsOf(int $leadId): void
     {
         if (LiveChat::ready()) {
-            ChatVisitor::query()->withoutGlobalScopes()->where('lead_id', $leadId)->delete();
+            $visitorIds = ChatVisitor::query()->withoutGlobalScopes()->where('lead_id', $leadId)->pluck('id');
+
+            // The browser the visitor chatted from, with the pages it read (they go with the session).
+            if (LiveChat::trackingReady()) {
+                ChatSession::query()->withoutGlobalScopes()->whereIn('chat_visitor_id', $visitorIds)->delete();
+            }
+
+            ChatVisitor::query()->withoutGlobalScopes()->whereIn('id', $visitorIds)->delete();
         }
     }
 }

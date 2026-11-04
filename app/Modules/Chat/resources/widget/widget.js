@@ -24,6 +24,8 @@
 
     var openKey = 'lq_chat_open_' + key;
     var startedKey = 'lq_chat_started_' + key;
+    var vidKey = 'lq_vid_' + key;
+    var inviteKey = 'lq_chat_invite_' + key;
     var storage = function (area, name, value) {
         try {
             if (value === undefined) { return window[area].getItem(name); }
@@ -78,7 +80,106 @@
         }
 
         function pageInfo() {
-            return { type: 'page', url: location.href.split('#')[0].slice(0, 500), title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500) };
+            return { type: 'page', vid: storage('localStorage', vidKey), url: location.href.split('#')[0].slice(0, 500), title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500) };
+        }
+
+        // ---- who is on the website (only when the brand switched Live visitors on) -------------------------------
+        // The team sees this browser as "on the page /memoirs" while the website is open, with the pages it read. It
+        // sends the page's address without its query, the title and where it came from, and nothing else about the
+        // page. A random code kept in the website's own storage tells one browser from another.
+        function vidValue() {
+            var v = storage('localStorage', vidKey);
+
+            if (!v || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(v)) {
+                v = uuid();
+                storage('localStorage', vidKey, v);
+            }
+
+            return v;
+        }
+
+        function uuid() {
+            if (window.crypto && crypto.randomUUID) { return crypto.randomUUID(); }
+
+            var b = new Uint8Array(16);
+            (window.crypto || window.msCrypto).getRandomValues(b);
+            b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+            var h = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+
+            return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+        }
+
+        var inviteCard = null;
+
+        function dropInvite() {
+            if (inviteCard && inviteCard.parentNode) { inviteCard.parentNode.removeChild(inviteCard); }
+            inviteCard = null;
+        }
+
+        // The team invited this visitor: a small card by the button; opening it opens the chat, where the words are the first message.
+        function invite(data) {
+            if (isOpen || inviteCard || storage('sessionStorage', inviteKey) === data.text) { return; }
+
+            storage('sessionStorage', inviteKey, data.text);
+
+            var card = document.createElement('div');
+            card.setAttribute('role', 'dialog');
+            card.setAttribute('aria-label', 'Message from ' + data.from);
+            card.style.cssText = 'all:initial;position:absolute;bottom:74px;' + (left ? 'left' : 'right') + ':0;width:264px;box-sizing:border-box;padding:12px 38px 12px 14px;border-radius:14px;background:#fff;color:#1c1b19;box-shadow:0 10px 30px rgba(0,0,0,.22);font:14px/1.4 system-ui,sans-serif;cursor:pointer;';
+
+            var who = document.createElement('div');
+            who.style.cssText = 'all:initial;display:block;font:700 12px/1.3 system-ui,sans-serif;color:' + config.color + ';margin-bottom:2px;';
+            who.textContent = data.from;
+
+            var words = document.createElement('div');
+            words.style.cssText = 'all:initial;display:block;font:14px/1.4 system-ui,sans-serif;color:#1c1b19;';
+            words.textContent = data.text;
+
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.setAttribute('aria-label', 'Dismiss');
+            close.textContent = '×';
+            close.style.cssText = 'all:initial;position:absolute;top:6px;right:8px;width:24px;height:24px;text-align:center;font:20px/24px system-ui,sans-serif;color:#8a857d;cursor:pointer;';
+
+            card.appendChild(who); card.appendChild(words); card.appendChild(close);
+            card.onclick = function () { dropInvite(); show(true); };
+            close.onclick = function (event) { event.stopPropagation(); dropInvite(); };
+
+            inviteCard = card;
+            root.insertBefore(card, button);
+            unread = 1;
+            badge.textContent = '1';
+            badge.style.display = 'block';
+        }
+
+        function ping() {
+            if (document.hidden) { return; }
+
+            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500) });
+
+            // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
+            fetch(base + '/chat/api/ping', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
+                .then(function (response) { return response.status === 200 ? response.json() : null; })
+                .then(function (data) { if (data && data.invite) { invite(data.invite); } })
+                .catch(function () {});
+        }
+
+        function track() {
+            var lastPath = location.pathname;
+            var soon = null;
+            var changed = function () { clearTimeout(soon); soon = setTimeout(function () { if (location.pathname !== lastPath) { lastPath = location.pathname; ping(); } }, 400); };
+
+            ping();
+            setInterval(ping, 30000);
+            document.addEventListener('visibilitychange', function () { if (!document.hidden) { ping(); } });
+            window.addEventListener('popstate', changed);
+
+            // A website that changes pages without loading them again (a single-page site).
+            ['pushState', 'replaceState'].forEach(function (name) {
+                var original = history[name];
+
+                history[name] = function () { var result = original.apply(this, arguments); changed(); return result; };
+            });
         }
 
         function ensureFrame() {
@@ -98,6 +199,7 @@
 
             if (open) {
                 ensureFrame();
+                dropInvite();
                 unread = 0;
                 badge.style.display = 'none';
             }
@@ -135,5 +237,7 @@
             ensureFrame();
             layout();
         }
+
+        if (config.track) { track(); }
     }
 })();

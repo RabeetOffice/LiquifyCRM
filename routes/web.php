@@ -23,6 +23,8 @@ use App\Modules\Chat\Http\Controllers\ConversationTypingController;
 use App\Modules\Chat\Http\Controllers\RealtimeTokenController;
 use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
 use App\Modules\Chat\Livewire\App\ChatWidgets;
+use App\Modules\Chat\Livewire\App\LiveChats;
+use App\Modules\Chat\Livewire\App\LiveVisitors;
 use App\Modules\Core\Http\Controllers\MenuBadgesController;
 use App\Modules\Core\Http\Controllers\PushSubscriptionController;
 use App\Modules\Core\Http\Controllers\TimezonesController;
@@ -145,6 +147,8 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/clients/{client}/files/{file}', ClientFileController::class)->whereNumber('file')->name('clients.files.show');
         Route::get('/inbox', Inbox::class)->name('inbox');
         Route::get('/live-chat', ChatWidgets::class)->name('live-chat');
+        Route::get('/live-chat/visitors', LiveVisitors::class)->name('live-chat.visitors');
+        Route::get('/live-chat/chats', LiveChats::class)->name('live-chat.chats');
         Route::get('/saved-replies', CannedRepliesIndex::class)->name('saved-replies');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
         Route::post('/conversations/{conversation}/typing', ConversationTypingController::class)->name('conversations.typing');

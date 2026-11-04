@@ -56,6 +56,9 @@ final class ChatWidgets extends Component
     /** The largest file a visitor may send, in megabytes. */
     public int $maxMb = 10;
 
+    /** Whether the team sees who is on the website (Live visitors). */
+    public bool $track = true;
+
     public bool $askFirst = false;
 
     /** @var array<string, bool> */
@@ -76,7 +79,7 @@ final class ChatWidgets extends Component
         $this->authorize('create', ChatWidget::class);
 
         $this->resetErrorBag();
-        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'maxMb', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
+        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'maxMb', 'track', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
         $this->name = $this->brand->name;
         $this->color = $this->brand->primaryColor() ?? ChatWidget::DEFAULT_APPEARANCE['color'];
         $this->fields = ['name' => true, 'email' => true, 'phone' => false, 'message' => false];
@@ -100,6 +103,7 @@ final class ChatWidgets extends Component
         $this->offline = (string) (($widget->appearance ?? [])['offline'] ?? '');
         $this->consent = (string) (($widget->appearance ?? [])['consent'] ?? '');
         $this->maxMb = (int) (($widget->appearance ?? [])['max_upload_mb'] ?? config('liquify.chat.max_upload_mb', 10));
+        $this->track = $widget->tracks();
         $this->askFirst = $widget->asksFirst();
         $this->fields = [];
         foreach (array_keys(ChatWidget::PRECHAT_FIELDS) as $field) {
@@ -166,6 +170,7 @@ final class ChatWidgets extends Component
                 'offline' => trim($this->offline),
                 'consent' => trim($this->consent),
                 'max_upload_mb' => (string) $this->maxMb,
+                'track_visitors' => $this->track ? '1' : '0',
             ],
             'prechat' => ['enabled' => $this->askFirst, 'fields' => $fields],
             'agents_see_visitors' => $this->agentsSeeVisitors,
@@ -194,7 +199,7 @@ final class ChatWidgets extends Component
 
         $widget->update(['is_active' => ! $widget->is_active]);
         Audit::log($widget->is_active ? 'chat.widget_on' : 'chat.widget_off', $widget, ['name' => $widget->name], 'Live chat '.($widget->is_active ? 'switched on' : 'switched off').': '.$widget->name, brand: $this->brand, causer: $this->user(), logName: 'chat');
-        $this->toastSuccess($widget->is_active ? 'Live chat is on' : 'Live chat is off', $widget->is_active ? null : 'The chat disappears from the website. Chats already started stay in the Inbox.');
+        $this->toastSuccess($widget->is_active ? 'Live chat is on' : 'Live chat is off', $widget->is_active ? null : 'The chat disappears from the website. Chats already started stay under Live chat › Chats.');
     }
 
     public function confirmRemove(int $widgetId): void
@@ -202,7 +207,7 @@ final class ChatWidgets extends Component
         $widget = ChatWidget::query()->findOrFail($widgetId);
         $this->authorize('delete', $widget);
 
-        $this->askConfirmation('remove', [$widgetId], 'Remove '.$widget->name.'?', 'The chat disappears from the website for good and the line on the website stops working. Chats already started stay in the Inbox.', 'Remove', 'danger');
+        $this->askConfirmation('remove', [$widgetId], 'Remove '.$widget->name.'?', 'The chat disappears from the website for good and the line on the website stops working. Chats already started stay under Live chat › Chats.', 'Remove', 'danger');
     }
 
     public function remove(int $widgetId): void

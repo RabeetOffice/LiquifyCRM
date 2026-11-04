@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Modules\Chat\Livewire\App\LiveChats;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
-use App\Modules\Meta\Livewire\App\Inbox;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 use Illuminate\Support\Facades\Notification;
@@ -119,7 +119,7 @@ it('starts a chat with the first message, and a visitor who gave no details is n
         ->and(Lead::query()->count())->toBe(0);
 
     // It is in the Inbox under Visitors for the team, and the visitor reads it back.
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertSee('Do you publish memoirs?');
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertSee('Do you publish memoirs?');
     $this->getJson('/chat/api/messages', chatHeaders($this, $creds))->assertOk()->assertJsonCount(1, 'messages');
 
     // Somebody else's browser sees none of it.
@@ -187,8 +187,8 @@ it('makes the lead when a valid email is given, in the widget\'s brand, with the
     $this->assertDatabaseHas('activity_log', ['event' => 'chat.lead_from_chat', 'subject_id' => $lead->getKey()]);
 
     // The chat left the Visitors view and is a chat of a lead now.
-    Livewire::actingAs($this->admin)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
-    Livewire::actingAs($this->admin)->test(Inbox::class, ['brand' => $this->brand])->assertSee('Do you publish memoirs?');
+    Livewire::actingAs($this->admin)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
+    Livewire::actingAs($this->admin)->test(LiveChats::class, ['brand' => $this->brand])->assertSee('Do you publish memoirs?');
     $this->actingAs($this->admin)->get('/b/dpp/leads/'.$lead->getKey())->assertOk()->assertSee('Live chat')->assertSee('Open the live chat');
 
     // More details later change nothing about the lead's count.

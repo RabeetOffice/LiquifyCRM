@@ -7,7 +7,8 @@ namespace App\Modules\Meta\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Actions\ChangeChat;
-use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Models\ChatPageView;
+use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Support\ChatAccess;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Leads\Actions\AssignLead;
@@ -22,6 +23,7 @@ use App\Modules\Meta\Support\Instagram;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -38,7 +40,7 @@ use RuntimeException;
  */
 #[Layout('components.layouts.app')]
 #[Title('Inbox')]
-final class Inbox extends Component
+class Inbox extends Component
 {
     use AuthorizesRequests;
     use EditsLeadDetails;
@@ -232,31 +234,33 @@ final class Inbox extends Component
         $like = '%'.$this->search.'%';
         $replyableSince = now()->subHours(Conversation::REPLY_WINDOW_HOURS);
         $visible = fn (): Builder => Conversation::query()->visibleTo($user);
-
-        $channels = [Conversation::CHANNEL_MESSENGER, Conversation::CHANNEL_INSTAGRAM, Conversation::CHANNEL_LIVECHAT];
         $handles = Instagram::ready();
 
-        // The website's live chat: its own view for visitors who have not given an email or phone number yet.
-        $liveChat = LiveChat::ready() && ChatAccess::canSeeVisitors($user, (int) $this->brand->getKey());
+        // The website's chats have a screen of their own in the Live chat tab (user request, 4 Nov 2026): the Inbox is
+        // Messenger and Instagram, and Live chats is every chat of the website, visitors with no lead included.
+        $inChats = $this->place() === 'livechat';
+        $liveChat = LiveChat::ready();
+        $seesVisitors = $liveChat && ChatAccess::canSeeVisitors($user, (int) $this->brand->getKey());
         // Closing, assigning and answering need the columns of the second update.
         $work = $liveChat && LiveChat::workReady();
-        $hasLiveChat = $liveChat && ($this->channel === Conversation::CHANNEL_LIVECHAT || ChatWidget::query()->exists() || $visible()->where('channel', Conversation::CHANNEL_LIVECHAT)->exists());
 
         // The chat of an archived lead is out of the list too; a new message brings the lead back (Lead::heardFrom).
-        $listed = fn (): Builder => Conversation::query()->listedFor($user);
+        $listed = fn (): Builder => Conversation::query()->listedFor($user)
+            ->when($inChats, fn (Builder $query): Builder => $query->where('channel', Conversation::CHANNEL_LIVECHAT), fn (Builder $query): Builder => $query->where('channel', '!=', Conversation::CHANNEL_LIVECHAT));
+        $relations = ['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : []), ...($work ? ['chatAssignee'] : [])];
 
         $conversations = $listed()
-            ->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : []), ...($work ? ['chatAssignee'] : [])])
-            // A visitor with no lead has a view of their own; the Closed view has every closed chat; every other view is chats of leads.
-            ->when($this->filter === 'visitors' && $liveChat, fn (Builder $query): Builder => $query->anonymous(), fn (Builder $query): Builder => $this->filter === 'closed' ? $query : $query->whereNotNull('lead_id'))
-            ->when($work, fn (Builder $query): Builder => $this->filter === 'closed' ? $query->where('chat_status', 'closed') : $query->where('chat_status', '!=', 'closed'))
+            ->with($relations)
+            // Live chats: Visitors is the chats with no lead yet, Closed the closed ones, every other view the open ones.
+            ->when($inChats && $this->filter === 'visitors', fn (Builder $query): Builder => $query->anonymous())
+            ->when($inChats && $work, fn (Builder $query): Builder => $this->filter === 'closed' ? $query->where('chat_status', 'closed') : $query->where('chat_status', '!=', 'closed'))
             ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $inner): Builder => $inner
                 ->where('contact_name', 'like', $like)
                 ->when($handles, fn (Builder $handle): Builder => $handle->orWhere('contact_handle', 'like', '%'.ltrim($this->search, '@').'%'))
                 ->orWhere('last_message_preview', 'like', $like)))
-            ->when(in_array($this->channel, $channels, true), fn (Builder $query): Builder => $query->where('channel', $this->channel))
+            ->when(! $inChats && in_array($this->channel, [Conversation::CHANNEL_MESSENGER, Conversation::CHANNEL_INSTAGRAM], true), fn (Builder $query): Builder => $query->where('channel', $this->channel))
             ->when($this->filter === 'unread', fn (Builder $query): Builder => $query->where('unread_count', '>', 0))
-            ->when($this->filter === 'open', fn (Builder $query): Builder => $query->where('last_inbound_at', '>', $replyableSince))
+            ->when(! $inChats && $this->filter === 'open', fn (Builder $query): Builder => $query->where('last_inbound_at', '>', $replyableSince))
             ->orderByDesc('last_message_at')
             ->limit(100)
             ->get();
@@ -265,7 +269,12 @@ final class Inbox extends Component
 
         // A chat opened from a notification, or hidden by the filter, may not be in the list.
         if ($selected === null && $this->chat !== '') {
-            $selected = $visible()->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : []), ...($work ? ['chatAssignee'] : [])])->find((int) $this->chat);
+            $selected = $visible()->with($relations)->find((int) $this->chat);
+        }
+
+        // A chat of the other screen (an older bell entry, a bookmark) opens where it belongs.
+        if ($selected !== null && $selected->isLiveChat() !== $inChats) {
+            $this->redirect(route($selected->isLiveChat() ? 'brand.live-chat.chats' : 'brand.inbox', ['brand' => $this->brand->slug, 'chat' => $selected->getKey()]), navigate: true);
         }
 
         $lead = $selected?->lead;
@@ -274,20 +283,41 @@ final class Inbox extends Component
         return view('meta::livewire.app.inbox', [
             'conversations' => $conversations,
             'selected' => $selected,
+            'inChats' => $inChats,
             'total' => $listed()->count(),
-            'unread' => $listed()->where('unread_count', '>', 0)->count(),
+            'unread' => $listed()->where('unread_count', '>', 0)->when($inChats && $work, fn (Builder $query): Builder => $query->where('chat_status', '!=', 'closed'))->count(),
             // The channel choice shows once there is more than Messenger to choose from.
-            'hasInstagram' => $this->channel !== '' || $visible()->where('channel', Conversation::CHANNEL_INSTAGRAM)->exists(),
-            'hasLiveChat' => $hasLiveChat,
-            'visitors' => $hasLiveChat ? $listed()->anonymous()->when($work, fn (Builder $query): Builder => $query->where('chat_status', '!=', 'closed'))->count() : 0,
+            'hasInstagram' => ! $inChats && ($this->channel !== '' || $visible()->where('channel', Conversation::CHANNEL_INSTAGRAM)->exists()),
+            'seesVisitors' => $seesVisitors,
+            'visitors' => $inChats && $seesVisitors ? $listed()->anonymous()->when($work, fn (Builder $query): Builder => $query->where('chat_status', '!=', 'closed'))->count() : 0,
             'canAssignChat' => $work && $selected !== null && $user->can('assignChat', $selected),
             'chatTeam' => $work && $selected !== null && $selected->isLiveChat() && $selected->lead_id === null && $user->can('assignChat', $selected) ? ChatAccess::team((int) $this->brand->getKey())->mapWithKeys(fn (User $person): array => [$person->getKey() => $person->name.($person->is($user) ? ' (you)' : '')])->all() : [],
             'workReady' => $work,
+            // The pages the visitor read on the website before and while they chat.
+            'trail' => $work && LiveChat::trackingReady() && $selected !== null && $selected->isLiveChat() && $selected->chat_visitor_id !== null ? $this->trailOf((int) $selected->chat_visitor_id) : new Collection,
             'fullContact' => $lead !== null && app(ContactVisibility::class)->canSeeFull($user, $lead),
             'canAssign' => $canAssign,
             'canUpdate' => $lead !== null && $user->can('update', $lead),
             'agentOptions' => $canAssign ? app(AssignableAgents::class)->for($user, $this->brand) : [],
         ]);
+    }
+
+    /** Which screen this is: the Inbox (Messenger and Instagram) or Live chats (the website's chats, LiveChats). */
+    protected function place(): string
+    {
+        return 'inbox';
+    }
+
+    /**
+     * The pages a chat visitor's browser read, newest first.
+     *
+     * @return Collection<int, ChatPageView>
+     */
+    private function trailOf(int $visitorId): Collection
+    {
+        $session = ChatSession::query()->where('chat_visitor_id', $visitorId)->latest('last_seen_at')->first();
+
+        return $session !== null ? ChatPageView::query()->where('chat_session_id', $session->getKey())->latest('id')->limit(12)->get() : new Collection;
     }
 
     private function user(): User

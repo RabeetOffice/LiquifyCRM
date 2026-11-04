@@ -471,7 +471,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     // ---- start ----------------------------------------------------------------------------------------------
     function begin() {
         creds = load();
-        call('POST', '/init', {}).then(function (r) {
+        call('POST', '/init', { vid: page && page.vid ? page.vid : null }).then(function (r) {
             if (r.status === 404 || r.status === 403) { thread.appendChild(el('div', 'card', 'The chat is not available right now.')); return; }
             if (r.status !== 200) { thread.appendChild(el('div', 'card', 'The chat could not start. Please try again later.')); return; }
 
@@ -523,7 +523,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     window.addEventListener('message', function (event) {
         if (event.source !== parent || event.origin !== ORIGIN || !event.data || event.data.lqChat !== true) { return; }
 
-        if (event.data.type === 'page') { page = { url: event.data.url, title: event.data.title, referrer: event.data.referrer }; }
+        if (event.data.type === 'page') { page = { vid: event.data.vid, url: event.data.url, title: event.data.title, referrer: event.data.referrer }; if (waiting) { waiting(); } }
         if (event.data.type === 'visible') {
             open = !!event.data.open;
             if (open) { unread = 0; scroll(); if (!composer.classList.contains('hidden')) { box.focus(); } }
@@ -531,8 +531,11 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         }
     });
 
+    // The website's launcher tells this box which browser it is (its "vid"), so a chat the team started with an invitation is found.
+    // The chat opens without it after a moment, as it did before.
+    var waiting = function () { waiting = null; clearTimeout(waitTimer); begin(); };
+    var waitTimer = setTimeout(function () { if (waiting) { waiting(); } }, 700);
     tell({ type: 'ready' });
-    begin();
 })();
 @endverbatim
 </script>

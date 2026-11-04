@@ -19,6 +19,8 @@ final class LiveChat
 
     private static bool $extrasReady = false;
 
+    private static bool $trackingReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -29,6 +31,12 @@ final class LiveChat
     public static function extrasReady(): bool
     {
         return self::$extrasReady = self::$extrasReady || (self::workReady() && Schema::hasTable('canned_replies') && Schema::hasTable('chat_attachments'));
+    }
+
+    /** Who is on the website now and the pages they read: the tables of the fourth update are there. */
+    public static function trackingReady(): bool
+    {
+        return self::$trackingReady = self::$trackingReady || (self::workReady() && Schema::hasTable('chat_sessions') && Schema::hasTable('chat_page_views'));
     }
 
     /** The team can work a website chat (answer, assign, close): the columns of the second update are there. */

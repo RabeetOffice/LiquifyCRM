@@ -95,6 +95,12 @@ class ChatWidget extends Model
         return $luma > 0.62 ? '#111111' : '#ffffff';
     }
 
+    /** Whether the team sees who is on the website (Live visitors). On unless the brand switched it off. */
+    public function tracks(): bool
+    {
+        return (($this->appearance ?? [])['track_visitors'] ?? '1') !== '0';
+    }
+
     /** Whether the widget asks for this field before the chat starts. */
     public function asks(string $field): bool
     {

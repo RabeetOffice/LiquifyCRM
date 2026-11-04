@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.49.0',
+        'date' => '2026-11-04',
+        'title' => 'One Live chat tab, and who is on the website right now',
+        'changes' => [
+            ['new', 'Every website chat is now under Live chat › Chats, with All, Unread, Visitors (people who have not given their details yet) and Closed. A new website chat and its bell link open there, so you never need the Inbox for them. The Inbox keeps Messenger and Instagram.'],
+            ['fixed', 'The row of choices above the chat list no longer sticks out of its box on a laptop screen.'],
+            ['new', 'One "Live chat" tab in the menu, with its screens inside it: Chats, Live visitors, Saved replies and Chat boxes (the settings of the chat on each website). Saved replies and Live chat settings are no longer separate items, and what comes next for the chat goes inside this tab too.'],
+            ['new', 'Live visitors (Live chat tab): everybody who is on the brand\'s websites right now, the page they are on, how long they have been there, where they came from, how many times they have visited and whether they are chatting. It updates by itself. Open "Pages" to see the pages one of them read.'],
+            ['new', 'Invite a visitor to chat: write a short line and it shows by the chat button on the website. If they open it, the chat starts with your words and appears under Live chat › Chats. One invitation to a visitor every ten minutes.'],
+            ['new', 'In a website chat, Live chat › Chats shows "Pages they read": the pages the visitor opened before and while they chatted.'],
+            ['improved', 'Under Chat boxes you can switch Live visitors off for a website. Pages are kept for 30 days and the address is kept without anything after a "?". The privacy page says so. A change to this setting reaches a website within five minutes.'],
+        ],
+    ],
+    [
         'version' => '1.48.0',
         'date' => '2026-11-04',
         'title' => 'Instant delivery in the website chat (optional, with a free Ably account)',

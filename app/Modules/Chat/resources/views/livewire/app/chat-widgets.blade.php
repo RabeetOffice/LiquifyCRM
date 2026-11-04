@@ -87,6 +87,8 @@
                 <x-ui.textarea wire:model="offline" name="offline" rows="2" :placeholder="$defaults['offline']"></x-ui.textarea>
             </x-ui.field>
 
+            <x-ui.checkbox wire:model="track" label="Show the team who is on the website now (Live visitors)" />
+            <p class="lq-help">The chat button then tells us, every half minute, which page of the website is open (without anything after a ?), its title and where the person came from. Pages are kept for 30 days.</p>
             <x-ui.field label="Largest file (MB)" name="maxMb" help="Visitors can send pictures, PDF, Word documents and text files up to this size. At most 25 MB.">
                 <x-ui.input type="number" min="1" max="25" wire:model="maxMb" name="maxMb" />
             </x-ui.field>
@@ -102,7 +104,7 @@
                     @endforeach
                 </div>
             @endif
-            <p class="lq-help">A visitor becomes a lead only once they give an email address or a phone number, here or in the chat. Until then they stay in the Inbox under Visitors.</p>
+            <p class="lq-help">A visitor becomes a lead only once they give an email address or a phone number, here or in the chat. Until then they stay under Live chat › Chats, in Visitors.</p>
 
             <x-ui.checkbox wire:model="agentsSeeVisitors" label="Agents see visitors who have not given their details" />
             <x-ui.checkbox wire:model="active" label="Chat is on" />

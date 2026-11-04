@@ -137,6 +137,14 @@ in the document's weekly phases; never skip a phase or silently change the desig
   1.48.0: `Realtime` sends Ably one "changed" signal per brand or visitor channel (never text) and signs one-channel subscribe
   tokens; off without `ABLY_API_KEY`, and a failure must never lose a message or show an error (polling is always still there).
   Never send a name, text or address to Ably, and never put the key's secret in a response or in JavaScript.
+  1.49.0: every website chat is listed on Live chat › Chats (`LiveChats` extends the Inbox with `place() = 'livechat'`; the
+  Inbox lists only Messenger and Instagram, its menu count leaves the website out, and a chat of the other screen redirects there);
+  bell links go to `live-chat/chats?chat=`.
+  1.49.0: everything of the website chat lives in ONE sidebar tab, "Live chat" (`Menu::liveChatTab()`; a menu item can have `children`):
+  add a new chat screen as a child there, never as a top-level or Settings item. Live visitors come from `chat_sessions` (a browser
+  pinging every 30 s, address kept without the query, the website's own localStorage holds its `vid`); `RecordPing` / `InviteVisitor`.
+  A page address, title or referrer from a visitor is data: show it escaped, never link it blindly. A new thing the chat stores about
+  a visitor is wiped in `ChatErasure` / `chat:prune` and named on the privacy page.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

@@ -9,6 +9,7 @@ use App\Modules\Auth\Models\SignInDevice;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Support\ChatAccess;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\WebsiteLeads;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Builder;
  * they cannot use. Brand screens live under /b/{brand}; the admin area is
  * for Super Admins and Admins.
  *
- * @phpstan-type MenuItem array{label: string, icon: string, url: string, active: bool, badge: ?string}
+ * @phpstan-type MenuItem array{label: string, icon: string, url: string, active: bool, badge: ?string, children?: list<array<string, mixed>>}
  * @phpstan-type MenuGroup array{label: string, items: list<MenuItem>}
  */
 final class Menu
@@ -89,6 +90,8 @@ final class Menu
         $unread = function () use ($user, $agent): ?string {
             // The chats the Inbox lists (none of an archived lead), so the count always matches what is there.
             $count = (int) Conversation::query()->listedFor($user)
+                // The website's chats are counted on Live chat › Chats, not here.
+                ->where('channel', '!=', Conversation::CHANNEL_LIVECHAT)
                 // An Agent counts their own chats and the free ones, not a colleague's.
                 ->when($agent, fn (Builder $query): Builder => $query->whereHas('lead', fn (Builder $lead): Builder => $lead->where(fn (Builder $mine): Builder => $mine->where('assigned_to', $user->getKey())->orWhereNull('assigned_to'))))
                 ->sum('unread_count');
@@ -118,9 +121,12 @@ final class Menu
                 self::item('Follow-ups', 'heroicon-o-calendar-days', route('brand.follow-ups', $params), $isActive('brand.follow-ups')),
             ];
 
-        // The replies the team types often, for everyone in the brand (live chat, 3 Nov 2026).
-        if (LiveChat::extrasReady()) {
-            $main[] = self::item('Saved replies', 'heroicon-o-bolt', route('brand.saved-replies', $params), $isActive('brand.saved-replies'));
+        // One tab for everything of the website chat (user request, 4 Nov 2026): who is on the website now, the saved
+        // replies and the chat boxes' settings sit inside it, and what comes next goes there too.
+        $chatTab = self::liveChatTab($user, $brand, $params, $isActive);
+
+        if ($chatTab !== null) {
+            $main[] = $chatTab;
         }
 
         // The brand's templates and material, for everyone in it (19 Oct 2026).
@@ -158,10 +164,6 @@ final class Menu
             $settings = [
                 self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
             ];
-
-            if (LiveChat::ready()) {
-                $settings[] = self::item('Live chat', 'heroicon-o-chat-bubble-oval-left-ellipsis', route('brand.live-chat', $params), $isActive('brand.live-chat'));
-            }
 
             // Logs and the bin of deleted leads are for Admins only.
             if ($user->isGlobalAdmin()) {
@@ -270,6 +272,57 @@ final class Menu
      * @param  (Closure(): ?string)|null  $badge
      * @return MenuItem
      */
+    /**
+     * The "Live chat" tab with its screens inside: Live visitors (for whoever sees visitors), Saved replies (everybody
+     * in the brand) and the chat boxes' settings (Admins and Managers). Null when there is nothing to put in it yet.
+     *
+     * @param  array<string, string>  $params
+     * @return array<string, mixed>|null
+     */
+    private static function liveChatTab(User $user, Brand $brand, array $params, Closure $isActive): ?array
+    {
+        if (! LiveChat::ready()) {
+            return null;
+        }
+
+        // Every chat of the website, with or without the visitor's details (user request, 4 Nov 2026: "I should not have to
+        // open the Inbox"). Everybody in the brand: what each one sees is decided by Conversation::listedFor().
+        $agent = ! $user->isGlobalAdmin() && $user->isAgentIn($brand);
+        $unread = function () use ($user, $agent): ?string {
+            $count = (int) Conversation::query()->listedFor($user)
+                ->where('channel', Conversation::CHANNEL_LIVECHAT)
+                ->when(LiveChat::workReady(), fn (Builder $query): Builder => $query->where('chat_status', '!=', 'closed'))
+                // An Agent counts their own chats, the free ones and the visitors', not a colleague's.
+                ->when($agent, fn (Builder $query): Builder => $query->where(fn (Builder $own): Builder => $own->whereNull('lead_id')->orWhereHas('lead', fn (Builder $lead): Builder => $lead->where(fn (Builder $mine): Builder => $mine->where('assigned_to', $user->getKey())->orWhereNull('assigned_to')))))
+                ->sum('unread_count');
+
+            return $count > 0 ? (string) $count : null;
+        };
+
+        $children = [self::item('Chats', 'heroicon-o-chat-bubble-left-ellipsis', route('brand.live-chat.chats', $params), $isActive('brand.live-chat.chats'), $unread)];
+
+        if (LiveChat::trackingReady() && ChatAccess::canSeeVisitors($user, (int) $brand->getKey())) {
+            $children[] = self::item('Live visitors', 'heroicon-o-eye', route('brand.live-chat.visitors', $params), $isActive('brand.live-chat.visitors'));
+        }
+
+        if (LiveChat::extrasReady()) {
+            $children[] = self::item('Saved replies', 'heroicon-o-bolt', route('brand.saved-replies', $params), $isActive('brand.saved-replies'));
+        }
+
+        if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
+            $children[] = self::item('Chat boxes', 'heroicon-o-cog-6-tooth', route('brand.live-chat', $params), $isActive('brand.live-chat'));
+        }
+
+        return [
+            'label' => 'Live chat',
+            'icon' => 'heroicon-o-chat-bubble-oval-left-ellipsis',
+            'url' => $children[0]['url'],
+            'active' => in_array(true, array_column($children, 'active'), true),
+            'badge' => null,
+            'children' => $children,
+        ];
+    }
+
     private static function item(string $label, string $icon, string $url, bool $active, ?Closure $badge = null): array
     {
         return [

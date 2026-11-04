@@ -1,9 +1,17 @@
 <div class="lq-wide flex flex-col gap-5" wire:poll.60s.visible data-live-refresh="chat">
-    <x-ui.page-header title="Inbox" :subtitle="$hasLiveChat ? 'Messenger, Instagram and website chats. Reply here or from the lead page.' : 'Messenger and Instagram chats of your leads. Reply here or from the lead page.'" />
+    @if ($inChats)
+        <x-ui.page-header title="Live chats" subtitle="Every chat of the website: visitors who wrote in the chat box, with or without their details. Reply here." />
+    @else
+        <x-ui.page-header title="Inbox" subtitle="Messenger and Instagram chats of your leads. The website's chats are under Live chat. Reply here or from the lead page." />
+    @endif
 
     @if ($total === 0)
         <x-ui.card>
-            <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, or sends a direct message to its Instagram account, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
+            @if ($inChats)
+                <x-ui.empty title="No website chats yet" description="When somebody writes in the chat box on one of this brand's websites, the chat appears here. They become a lead only when they give an email address or a phone number." icon="heroicon-o-chat-bubble-oval-left-ellipsis" />
+            @else
+                <x-ui.empty title="No chats yet" description="When someone writes to a Facebook Page of this brand, or sends a direct message to its Instagram account, the chat appears here and a lead is created in the New queue." icon="heroicon-o-chat-bubble-left-right" />
+            @endif
         </x-ui.card>
     @else
         <div @class(['lq-inbox', 'lq-inbox-open' => $selected !== null, 'lq-inbox-detailed' => $selected?->lead !== null || $selected?->isLiveChat()])>
@@ -14,40 +22,46 @@
                         <x-heroicon-o-magnifying-glass />
                         <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search chats" aria-label="Search chats">
                     </label>
-                    <div class="lq-seg" role="tablist" aria-label="Which chats to show">
-                        <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'all']) wire:click="$set('filter', 'all')" role="tab">All</button>
-                        <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'unread']) wire:click="$set('filter', 'unread')" role="tab">
-                            Unread
-                            @if ($unread > 0)
-                                <span class="lq-count">{{ $unread }}</span>
-                            @endif
-                        </button>
-                        <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'open']) wire:click="$set('filter', 'open')" role="tab" title="Chats you can still answer: the person wrote in the last 24 hours">Can reply</button>
-                    </div>
-                    @if ($hasLiveChat)
-                        <div class="lq-seg" role="tablist" aria-label="Website chats">
-                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'visitors']) wire:click="$set('filter', 'visitors')" role="tab" title="Website visitors who have not given an email address or phone number yet, so they are not leads">
-                                Visitors
-                                @if ($visitors > 0)
-                                    <span class="lq-count">{{ $visitors }}</span>
+                    @if ($inChats)
+                        {{-- Live chats: every chat of the website, those who gave no details yet, and the closed ones. --}}
+                        <div class="lq-seg" role="tablist" aria-label="Which chats to show">
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'all']) wire:click="$set('filter', 'all')" role="tab">All</button>
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'unread']) wire:click="$set('filter', 'unread')" role="tab">
+                                Unread
+                                @if ($unread > 0)
+                                    <span class="lq-count">{{ $unread }}</span>
                                 @endif
                             </button>
+                            @if ($seesVisitors)
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'visitors']) wire:click="$set('filter', 'visitors')" role="tab" title="Visitors who have not given an email address or phone number yet, so they are not leads">
+                                    Visitors
+                                    @if ($visitors > 0)
+                                        <span class="lq-count">{{ $visitors }}</span>
+                                    @endif
+                                </button>
+                            @endif
                             @if ($workReady)
-                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'closed']) wire:click="$set('filter', 'closed')" role="tab" title="Website chats the team closed">Closed</button>
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'closed']) wire:click="$set('filter', 'closed')" role="tab" title="Chats the team closed">Closed</button>
                             @endif
                         </div>
-                    @endif
-                    @if ($hasInstagram || $hasLiveChat)
-                        <div class="lq-seg" role="tablist" aria-label="Which channel">
-                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === '']) wire:click="$set('channel', '')" role="tab">Every channel</button>
-                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'messenger']) wire:click="$set('channel', 'messenger')" role="tab"><x-ui.brand-icon name="messenger" /> Messenger</button>
-                            @if ($hasInstagram)
+                    @else
+                        <div class="lq-seg" role="tablist" aria-label="Which chats to show">
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'all']) wire:click="$set('filter', 'all')" role="tab">All</button>
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'unread']) wire:click="$set('filter', 'unread')" role="tab">
+                                Unread
+                                @if ($unread > 0)
+                                    <span class="lq-count">{{ $unread }}</span>
+                                @endif
+                            </button>
+                            <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'open']) wire:click="$set('filter', 'open')" role="tab" title="Chats you can still answer: the person wrote in the last 24 hours">Can reply</button>
+                        </div>
+                        @if ($hasInstagram)
+                            <div class="lq-seg" role="tablist" aria-label="Which channel">
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === '']) wire:click="$set('channel', '')" role="tab">Every channel</button>
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'messenger']) wire:click="$set('channel', 'messenger')" role="tab"><x-ui.brand-icon name="messenger" /> Messenger</button>
                                 <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'instagram']) wire:click="$set('channel', 'instagram')" role="tab"><x-ui.brand-icon name="instagram" /> Instagram</button>
-                            @endif
-                            @if ($hasLiveChat)
-                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === 'livechat']) wire:click="$set('channel', 'livechat')" role="tab"><x-heroicon-o-chat-bubble-oval-left-ellipsis /> Live chat</button>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
                     @endif
                 </div>
 
@@ -151,6 +165,12 @@
                         @else
                             <p class="lq-help px-4">{{ $selected->chatAssignee ? $selected->chatAssignee->name.' looks after this chat.' : 'Nobody looks after this chat yet: whoever answers it takes it.' }}</p>
                         @endif
+                    @endif
+                    @if ($trail->isNotEmpty())
+                        <div class="px-4 pb-3">
+                            <div class="lq-trail-head">Pages they read</div>
+                            @include('chat::partials.trail', ['trail' => $trail])
+                        </div>
                     @endif
                     <p class="lq-help px-4 pb-4">This visitor is not a lead. They become one when they give an email address or a phone number, here or in the chat.</p>
                 </aside>
@@ -260,6 +280,13 @@
                             <dd title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans() }}</dd>
                         </div>
                     </dl>
+
+                    @if ($selected->isLiveChat() && $trail->isNotEmpty())
+                        <div class="px-4 pb-3">
+                            <div class="lq-trail-head">Pages they read</div>
+                            @include('chat::partials.trail', ['trail' => $trail])
+                        </div>
+                    @endif
 
                     <div class="lq-inbox-side-actions">
                         @if ($canUpdate)

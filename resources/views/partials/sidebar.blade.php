@@ -76,6 +76,30 @@
                 <div class="lq-side-group-label">{{ $group['label'] }}</div>
                 <ul class="lq-side-items">
                     @foreach ($group['items'] as $item)
+                        {{-- A tab with its screens inside (Live chat): opens and closes, and opens by itself while one of them is shown.
+                             With the sidebar narrow there is no room for the list, so the icon goes to the first screen. --}}
+                        @if (! empty($item['children']))
+                            <li @class(['lq-side-item', 'lq-side-parent', 'lq-active-parent' => $item['active']]) x-data="{ open: {{ $item['active'] ? 'true' : 'false' }} }">
+                                <a href="{{ $item['url'] }}" class="lq-side-link" title="{{ $item['label'] }}" x-bind:aria-expanded="open" aria-haspopup="true"
+                                   x-on:click.prevent="$store.sidebar.open ? open = ! open : (Livewire.navigate('{{ $item['url'] }}'), $store.sidebar.closeMobile())">
+                                    @svg($item['icon'], 'lq-side-icon')
+                                    <span class="lq-side-label">{{ $item['label'] }}</span>
+                                    <x-heroicon-m-chevron-down class="lq-side-chevron" x-bind:class="{ 'lq-side-chevron-open': open }" />
+                                </a>
+                                <ul class="lq-side-sub" x-show="open" x-cloak>
+                                    @foreach ($item['children'] as $child)
+                                        <li @class(['lq-side-subitem', 'lq-active' => $child['active']])>
+                                            <a href="{{ $child['url'] }}" class="lq-side-sublink" @if ($child['active']) aria-current="page" @endif x-on:click="$store.sidebar.closeMobile()" wire:navigate.hover>
+                                                @svg($child['icon'], 'lq-side-subicon')
+                                                <span class="lq-side-label">{{ $child['label'] }}</span>
+                                                <span @class(['lq-side-badge', 'lq-side-badge-none' => ! ($child['badge'] ?? null)]) data-badge-for="{{ $child['url'] }}"><span class="lq-badge lq-badge-primary">{{ $child['badge'] ?? '' }}</span></span>
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </li>
+                            @continue
+                        @endif
                         <li @class(['lq-side-item', 'lq-active' => $item['active']])>
                             <a href="{{ $item['url'] }}" class="lq-side-link" @if ($item['active']) aria-current="page" @endif title="{{ $item['label'] }}" x-on:click="$store.sidebar.closeMobile()" wire:navigate.hover>
                                 @svg($item['icon'], 'lq-side-icon')

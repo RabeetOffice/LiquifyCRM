@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Chat\Console;
 
 use App\Modules\Chat\Models\ChatAttachment;
+use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Support\ChatErasure;
 use App\Modules\Chat\Support\ChatFiles;
@@ -70,8 +71,13 @@ final class PruneChatCommand extends Command
             ->whereDoesntHave('conversations')
             ->delete();
 
-        if ($files + $chats + $visitors > 0) {
-            Audit::log('chat.pruned', null, ['files' => $files, 'chats' => $chats, 'visitors' => $visitors], 'Live chat clean-up: '.$files.' file(s), '.$chats.' chat(s) and '.$visitors.' visitor(s) deleted', logName: 'chat');
+        // 4. Who was on the website, and the pages they read, past their days.
+        $sessions = LiveChat::trackingReady()
+            ? ChatSession::query()->withoutGlobalScopes()->where('last_seen_at', '<', now()->subDays(max(1, (int) config('liquify.chat.page_view_days', 30))))->delete()
+            : 0;
+
+        if ($files + $chats + $visitors + $sessions > 0) {
+            Audit::log('chat.pruned', null, ['files' => $files, 'chats' => $chats, 'visitors' => $visitors, 'sessions' => $sessions], 'Live chat clean-up: '.$files.' file(s), '.$chats.' chat(s), '.$visitors.' visitor(s) and '.$sessions.' website visit(s) deleted', logName: 'chat');
         }
 
         $this->info("Deleted {$files} file(s), {$chats} chat(s) and {$visitors} visitor(s).");

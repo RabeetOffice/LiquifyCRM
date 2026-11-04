@@ -36,6 +36,11 @@ final class MenuBadgesController
         foreach ($menu as $group) {
             foreach ($group['items'] as $item) {
                 $badges[$item['url']] = $item['badge'];
+
+                // A tab with screens inside it (Live chat): each of them may carry a badge.
+                foreach ($item['children'] ?? [] as $child) {
+                    $badges[$child['url']] = $child['badge'] ?? null;
+                }
             }
         }
 

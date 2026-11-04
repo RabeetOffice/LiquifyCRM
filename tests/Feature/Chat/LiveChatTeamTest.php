@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Chat\Livewire\App\LiveChats;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\AgentPresence;
 use App\Modules\Chat\Support\ChatTyping;
@@ -10,7 +11,6 @@ use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Live;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Meta\Livewire\App\ConversationThread;
-use App\Modules\Meta\Livewire\App\Inbox;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
 use Illuminate\Support\Facades\Cache;
@@ -125,8 +125,8 @@ it('closes a chat, refuses answers to it, and opens it again when the visitor wr
 
     // The chat box is told once, and the chat leaves the working views for Closed.
     $this->getJson('/chat/api/messages', $headers)->assertJsonPath('closed', true);
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'closed')->assertSee('Do you publish memoirs?');
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'closed')->assertSee('Do you publish memoirs?');
 
     // They write again: it is open, with a line that says why, and the team is told.
     Notification::fake();
@@ -147,20 +147,20 @@ it('lets a Manager give a visitor\'s chat to somebody of the team, and tells the
     [, $chat] = visitorWrites($this);
     Notification::fake();
 
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->assertSee('Looked after by')->call('assignChat', (string) $this->agent->getKey());
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->assertSee('Looked after by')->call('assignChat', (string) $this->agent->getKey());
 
     expect($chat->fresh()->chat_assigned_to)->toBe($this->agent->getKey())
         ->and(Message::query()->where('kind', 'event')->sole()->body)->toBe('Farah Front gave this chat to Sami Seller');
     Notification::assertSentTo($this->agent, AppNotification::class, fn (AppNotification $notification): bool => str_contains($notification->title, 'given to you'));
 
     // Back to everybody.
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', '');
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', '');
     expect($chat->fresh()->chat_assigned_to)->toBeNull();
 
     // An Agent cannot give chats away, and nobody can give one to a person outside the brand.
-    Livewire::actingAs($this->agent)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', (string) $this->colleague->getKey())->assertForbidden();
+    Livewire::actingAs($this->agent)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', (string) $this->colleague->getKey())->assertForbidden();
     $stranger = agentOf(department(brand(['slug' => 'ukph']), ['name' => 'Sales']), ['name' => 'Outsider']);
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', (string) $stranger->getKey())->assertForbidden();
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->call('open', $chat->getKey())->call('assignChat', (string) $stranger->getKey())->assertForbidden();
     expect($chat->fresh()->chat_assigned_to)->toBeNull();
 });
 

@@ -107,6 +107,7 @@ return [
     'chat' => [
         'file_days' => (int) env('CHAT_FILE_DAYS', 180),
         'anonymous_days' => (int) env('CHAT_ANONYMOUS_DAYS', 14),
+        'page_view_days' => (int) env('CHAT_PAGE_VIEW_DAYS', 30),
         'max_upload_mb' => (int) env('CHAT_MAX_UPLOAD_MB', 10),
     ],
 

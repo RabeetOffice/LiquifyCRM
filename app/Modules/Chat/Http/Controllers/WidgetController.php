@@ -7,8 +7,10 @@ namespace App\Modules\Chat\Http\Controllers;
 use App\Modules\Auth\Support\Device;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Actions\CaptureVisitorDetails;
+use App\Modules\Chat\Actions\RecordPing;
 use App\Modules\Chat\Actions\RecordVisit;
 use App\Modules\Chat\Actions\SendVisitorMessage;
+use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\AgentPresence;
@@ -21,6 +23,7 @@ use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Core\Support\CurrentBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use RuntimeException;
 
 /**
@@ -30,6 +33,9 @@ use RuntimeException;
  */
 final class WidgetController
 {
+    /** The code the launcher keeps in the website's own storage for a browser: a UUID. */
+    private const VID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
+
     /**
      * The launcher on the website asks this first, from the website itself: only a website the widget is set
      * up for gets an answer (and the browser's permission to read it), so the chat box appears nowhere else.
@@ -49,6 +55,8 @@ final class WidgetController
             'on' => $widget->onColor(),
             'position' => $widget->look('position'),
             'title' => $widget->look('title'),
+            // Whether the launcher tells the server which page it is on (Live visitors).
+            'track' => LiveChat::trackingReady() && $widget->tracks(),
             'frame' => url('/chat/frame/'.$widget->widget_key),
         ], 200, [
             'Access-Control-Allow-Origin' => $origin,
@@ -67,7 +75,22 @@ final class WidgetController
         $device = Device::of($request);
         [$os, $browser] = array_pad(explode(' · ', $device->name, 2), 2, null);
 
-        $visitor = $visit->handle($widget, $request->header('X-Chat-Token'), $request->header('X-Chat-Sig'), [
+        // The browser the launcher reports (its "vid") may already have a chat: one the team started with an invitation takes
+        // the place of the token this chat box held; otherwise the browser is tied to this visitor from now on.
+        $vid = (string) $request->input('vid');
+        $token = $request->header('X-Chat-Token');
+        $sig = $request->header('X-Chat-Sig');
+        $session = LiveChat::trackingReady() && preg_match(self::VID, $vid) === 1
+            ? ChatSession::query()->where('brand_id', $widget->brand_id)->where('vid', $vid)->first()
+            : null;
+        $invited = $session?->chat_visitor_id !== null ? ChatVisitor::query()->find($session->chat_visitor_id) : null;
+
+        if ($invited !== null && ! $invited->is_banned && $token !== $invited->visitor_token) {
+            $token = $invited->visitor_token;
+            $sig = VisitorToken::sign($token);
+        }
+
+        $visitor = $visit->handle($widget, $token, $sig, [
             'ip' => $request->ip(),
             'country' => self::country($request),
             'kind' => $device->kind->value,
@@ -75,6 +98,10 @@ final class WidgetController
             'browser' => $browser,
         ]);
         abort_if($visitor->is_banned, 403);
+
+        if ($session !== null && $session->chat_visitor_id === null) {
+            $session->forceFill(['chat_visitor_id' => $visitor->getKey()])->save();
+        }
 
         $conversation = VisitorChats::conversationFor($visitor, $widget, false);
 
@@ -86,6 +113,41 @@ final class WidgetController
             'messages' => $conversation !== null ? VisitorChats::messages($conversation) : [],
             'closed' => $conversation?->isClosed() ?? false,
         ]);
+    }
+
+    /**
+     * The launcher on the website, every half minute: this browser is here, on this page. Answered only to a website the
+     * widget is set up for (the browser's Origin), and nothing is kept when the brand switched visitors off. The body is
+     * plain text holding JSON, so the browser sends it without asking first. What comes back is an invitation, once.
+     */
+    public function ping(Request $request, RecordPing $record): Response|JsonResponse
+    {
+        $data = json_decode((string) $request->getContent(), true);
+        $data = is_array($data) ? $data : [];
+        $widget = $this->widget((string) ($data['key'] ?? ''));
+        $origin = (string) $request->headers->get('Origin');
+        $vid = (string) ($data['vid'] ?? '');
+
+        if ($widget === null || ! LiveChat::trackingReady() || ! $widget->allowsOrigin($origin) || preg_match(self::VID, $vid) !== 1) {
+            return response()->noContent(204);
+        }
+
+        $headers = ['Access-Control-Allow-Origin' => $origin, 'Vary' => 'Origin', 'Cache-Control' => 'no-store'];
+
+        if (! $widget->tracks()) {
+            return response()->noContent(204, $headers);
+        }
+
+        $this->enter($widget);
+        $device = Device::of($request);
+
+        $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
+            'country' => self::country($request),
+            'device' => $device->kind->value,
+            'browser' => array_pad(explode(' · ', $device->name, 2), 2, null)[1],
+        ]);
+
+        return response()->json(['invite' => $invite], 200, $headers);
     }
 
     /** The chat box asks for what is new since the last message it has. */
@@ -206,6 +268,7 @@ final class WidgetController
             'offline' => $widget->look('offline'),
             'online' => AgentPresence::online((int) $widget->brand_id),
             'realtime' => Realtime::enabled(),
+            'track' => LiveChat::trackingReady() && $widget->tracks(),
             'files' => LiveChat::extrasReady() ? ['max_mb' => (int) (ChatFiles::maxBytes($widget) / 1048576), 'accept' => ChatFiles::accept()] : null,
             'prechat' => ['enabled' => $widget->asksFirst(), 'fields' => collect(ChatWidget::PRECHAT_FIELDS)->map(fn (string $label, string $field): bool => $widget->asks($field))->all(), 'labels' => ChatWidget::PRECHAT_FIELDS],
         ];

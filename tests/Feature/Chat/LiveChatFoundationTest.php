@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use App\Modules\Chat\Livewire\App\ChatWidgets;
+use App\Modules\Chat\Livewire\App\LiveChats;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\ChannelCapabilities;
 use App\Modules\Leads\Models\Lead;
-use App\Modules\Meta\Livewire\App\Inbox;
 use App\Modules\Meta\Models\Conversation;
 use Livewire\Livewire;
 
@@ -96,9 +96,10 @@ it('keeps the live chat settings to Admins and the brand\'s Managers', function 
 
     // The menu says so too.
     $this->flushSession();
-    $this->actingAs($this->manager)->get('/b/dpp/inbox')->assertOk()->assertSee('Live chat');
+    $this->actingAs($this->manager)->get('/b/dpp/inbox')->assertOk()->assertSee('Live chat')->assertSee('Chat boxes');
     $this->flushSession();
-    $this->actingAs($this->agent)->get('/b/dpp/inbox')->assertOk()->assertDontSee('Live chat');
+    // An Agent has the Live chat tab (saved replies, visitors) but not the settings of the chat boxes inside it.
+    $this->actingAs($this->agent)->get('/b/dpp/inbox')->assertOk()->assertDontSee('Chat boxes');
 });
 
 it('switches a live chat off and on, and removes it', function (): void {
@@ -148,11 +149,11 @@ it('shows a visitor with no details under Visitors, and never as a lead', functi
 
     foreach ([$this->admin, $this->manager, $this->agent] as $person) {
         Livewire::actingAs($person)
-            ->test(Inbox::class, ['brand' => $this->brand])
-            // Not in the working views...
-            ->assertDontSee('Do you publish memoirs?')
+            ->test(LiveChats::class, ['brand' => $this->brand])
+            // Every website chat is under Live chat › Chats, visitors included...
+            ->assertSee('Do you publish memoirs?')
             ->set('filter', 'visitors')
-            // ... but in their own.
+            // ... and in a view of their own.
             ->assertSee('Do you publish memoirs?')
             ->assertSee('Visitor '.$chat->visitor->getKey())
             ->call('open', $chat->getKey())
@@ -167,8 +168,8 @@ it('hides visitors from Agents when the brand says so, and from other brands', f
     ChatWidget::query()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Dublin site', 'widget_key' => ChatWidget::newKey(), 'allowed_domains' => ['dublinpublishingpress.ie'], 'agents_see_visitors' => false]);
     $chat = visitorChat($this);
 
-    Livewire::actingAs($this->agent)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
-    Livewire::actingAs($this->manager)->test(Inbox::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertSee('Do you publish memoirs?');
+    Livewire::actingAs($this->agent)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
+    Livewire::actingAs($this->manager)->test(LiveChats::class, ['brand' => $this->brand])->set('filter', 'visitors')->assertSee('Do you publish memoirs?');
 
     // Nor can an Agent open it by its number.
     expect($this->agent->can('view', $chat))->toBeFalse()
@@ -178,7 +179,7 @@ it('hides visitors from Agents when the brand says so, and from other brands', f
 
     // A Manager of another brand sees none of this brand's visitors in their own Inbox either.
     inBrand($this->other);
-    Livewire::actingAs($this->otherManager)->test(Inbox::class, ['brand' => $this->other])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
+    Livewire::actingAs($this->otherManager)->test(LiveChats::class, ['brand' => $this->other])->set('filter', 'visitors')->assertDontSee('Do you publish memoirs?');
 });
 
 it('keeps the website chat\'s own abilities out of the Messenger and Instagram channels', function (): void {

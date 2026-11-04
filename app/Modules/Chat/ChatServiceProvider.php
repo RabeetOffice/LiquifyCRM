@@ -57,6 +57,7 @@ final class ChatServiceProvider extends ModuleServiceProvider
         RateLimiter::for('chat-init', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-init:'.$request->ip()));
         RateLimiter::for('chat-poll', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-poll:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-send', fn (Request $request): Limit => Limit::perMinute(20)->by('chat-send:'.($request->header('X-Chat-Token') ?: $request->ip())));
+        RateLimiter::for('chat-ping', fn (Request $request): Limit => Limit::perMinute(600)->by('chat-ping:'.$request->ip()));
         RateLimiter::for('chat-upload', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-upload:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-typing', fn (Request $request): Limit => Limit::perMinute(30)->by('chat-typing:'.($request->header('X-Chat-Token') ?: $request->ip())));
         RateLimiter::for('chat-details', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-details:'.($request->header('X-Chat-Token') ?: $request->ip())));
