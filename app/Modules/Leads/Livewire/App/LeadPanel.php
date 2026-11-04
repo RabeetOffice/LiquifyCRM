@@ -18,6 +18,7 @@ use App\Modules\Leads\Actions\AddLeadNote;
 use App\Modules\Leads\Actions\ArchiveLead;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\ChangeLeadStatus;
+use App\Modules\Leads\Actions\EditLeadNote;
 use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Actions\RevealLeadContact;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
@@ -27,12 +28,14 @@ use App\Modules\Leads\Exceptions\RevealLimitReached;
 use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
 use App\Modules\Leads\Livewire\Concerns\TakesLeads;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Models\LeadNote;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Leads\Support\FollowUpZones;
 use App\Modules\Leads\Support\LeadEnquiry;
 use App\Modules\Leads\Support\LeadMatcher;
+use App\Modules\Leads\Support\NoteEdits;
 use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Jobs\LearnProfileName;
 use App\Modules\Meta\Models\Conversation;
@@ -54,6 +57,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -511,6 +515,30 @@ final class LeadPanel extends Component
         $this->toastSuccess('Note added');
     }
 
+    /**
+     * A corrected note, from the Edit box on the note itself (user request,
+     * 4 Nov 2026). The box is opened in the browser; false keeps it open.
+     */
+    public function saveNote(int $noteId, string $body): bool
+    {
+        $lead = $this->lead();
+        $note = LeadNote::query()->where('lead_id', $lead->getKey())->findOrFail($noteId);
+        $this->authorize('editNote', [$lead, $note]);
+
+        Validator::make(
+            ['noteEdit' => $body],
+            ['noteEdit' => ['required', 'string', 'max:5000']],
+            ['noteEdit.required' => 'A note cannot be empty.', 'noteEdit.max' => 'A note can be 5,000 characters at most.'],
+        )->validate();
+
+        app(EditLeadNote::class)->handle($note, $body, $this->user());
+
+        $this->changed();
+        $this->toastSuccess('Note saved');
+
+        return true;
+    }
+
     public function openFollowUp(): void
     {
         $this->authorize('update', $this->lead());
@@ -646,7 +674,7 @@ final class LeadPanel extends Component
             ]);
         }
 
-        $lead = $this->lead()->load(['status', 'department', 'assignee', 'notes.author', 'tasks']);
+        $lead = $this->lead()->load(['status', 'department', 'assignee', 'notes.author', ...(NoteEdits::ready() ? ['notes.editor'] : []), 'tasks']);
         $user = $this->user();
         $canSeeFull = app(ContactVisibility::class)->canSeeFull($user, $lead);
 
@@ -687,6 +715,8 @@ final class LeadPanel extends Component
             'canSeeFull' => $canSeeFull,
             'timeline' => $timeline,
             'openTasks' => $lead->tasks->whereNull('done_at'),
+            // The notes this person may correct: their own, or anybody's on a lead they may assign.
+            'editableNotes' => $canUpdate && NoteEdits::ready() ? $lead->notes->filter(fn (LeadNote $note): bool => $user->can('editNote', [$lead, $note]))->modelKeys() : [],
             'sales' => $sales,
             'client' => $client,
             // Only the files this person may open: a lead given to somebody else after the sale does not bring the seller's contract with it.

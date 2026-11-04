@@ -18,6 +18,7 @@
         'leads.unarchived' => 'heroicon-o-arrow-uturn-left',
         'leads.status_changed' => 'heroicon-o-arrow-path',
         'leads.note_added' => 'heroicon-o-pencil-square',
+        'leads.note_edited' => 'heroicon-o-pencil',
         'leads.contact_revealed' => 'heroicon-o-eye',
         'leads.contact_viewed' => 'heroicon-o-eye',
         'leads.follow_up_scheduled' => 'heroicon-o-calendar-days',
@@ -268,13 +269,44 @@
                         @endif
 
                         @forelse ($lead->notes as $noteItem)
-                            <article class="lq-note" wire:key="note-{{ $noteItem->getKey() }}">
+                            @php
+                                $editable = in_array($noteItem->getKey(), $editableNotes, true);
+                                $editedAt = \App\Modules\Leads\Support\NoteEdits::ready() ? $noteItem->edited_at : null;
+                                $editor = $editedAt !== null && $noteItem->edited_by !== $noteItem->user_id ? $noteItem->editor?->name : null;
+                            @endphp
+                            {{-- A wrong note is corrected in place: the box opens in the browser at once, Save sends it. --}}
+                            <article @class(['lq-note', 'lq-note-editable' => $editable]) wire:key="note-{{ $noteItem->getKey() }}"
+                                @if ($editable) x-data="{ editing: false, body: '', saving: false, async save() { if (this.saving) return; this.saving = true; try { if (await $wire.saveNote({{ $noteItem->getKey() }}, this.body)) this.editing = false } finally { this.saving = false } } }" @endif>
                                 <header class="lq-note-head">
                                     <x-ui.avatar :name="$noteItem->author?->name ?? '?'" :src="$noteItem->author?->avatarUrl()" size="xs" />
                                     <span class="lq-note-author">{{ $noteItem->author?->name ?? 'Unknown' }}</span>
                                     <span title="{{ $noteItem->created_at?->format('j M Y, H:i') }}">{{ $noteItem->created_at?->diffForHumans() }}</span>
+                                    @if ($editedAt !== null)
+                                        <span class="lq-note-edited" title="Edited {{ $editedAt->format('j M Y, H:i') }}">· {{ $editor !== null ? 'edited by '.$editor : 'edited' }}</span>
+                                    @endif
+                                    @if ($editable)
+                                        <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-btn-sm lq-note-edit" x-show="! editing"
+                                            x-on:click="body = @js($noteItem->body); editing = true; $nextTick(() => { $refs.box.focus(); $refs.box.setSelectionRange(body.length, body.length) })"
+                                            title="Edit note" aria-label="Edit this note"><x-heroicon-o-pencil-square /></button>
+                                    @endif
                                 </header>
-                                <p class="lq-note-body">{{ $noteItem->body }}</p>
+                                <p class="lq-note-body" @if ($editable) x-show="! editing" @endif>{{ $noteItem->body }}</p>
+                                @if ($editable)
+                                    <form class="lq-notebox lq-note-editbox" x-show="editing" x-cloak x-on:submit.prevent="save()">
+                                        <textarea x-ref="box" class="lq-input" rows="3" x-model="body" aria-label="Edit the note"
+                                            x-on:keydown.escape.stop.prevent="editing = false" x-on:keydown.ctrl.enter.prevent="save()" x-on:keydown.meta.enter.prevent="save()"></textarea>
+                                        @error('noteEdit')
+                                            <p class="lq-error">{{ $message }}</p>
+                                        @enderror
+                                        <div class="lq-notebox-foot">
+                                            <span class="lq-help">Ctrl + Enter saves, Esc cancels.</span>
+                                            <div class="lq-note-editbox-actions">
+                                                <x-ui.button size="sm" variant="ghost" x-on:click="editing = false">Cancel</x-ui.button>
+                                                <x-ui.button type="submit" size="sm" variant="secondary" icon="heroicon-o-check" x-bind:disabled="saving">Save</x-ui.button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                @endif
                             </article>
                         @empty
                             <p class="lq-help">{{ $can['update'] ? 'No notes yet. The first one you write shows here and on the timeline.' : 'No notes yet.' }}</p>
@@ -322,7 +354,9 @@
                                     <div class="lq-timeline-body">
                                         <div class="lq-timeline-title">{{ $entry->description }}</div>
                                         @if (($entry->event === 'leads.note_added') && ! empty($entry->properties['excerpt']))
-                                            <div class="lq-timeline-quote">{{ $entry->properties['excerpt'] }}</div>
+                                            {{-- A corrected note shows its words as they are now: the wrong ones stay only in the Admins' log. --}}
+                                            @php($nowNote = \App\Modules\Leads\Support\NoteEdits::ready() ? $lead->notes->firstWhere('id', $entry->properties['note_id'] ?? 0) : null)
+                                            <div class="lq-timeline-quote">{{ $nowNote !== null && $nowNote->edited_at !== null ? str($nowNote->body)->limit(140) : $entry->properties['excerpt'] }}</div>
                                         @elseif (in_array($entry->event, ['leads.repeat_enquiry', 'leads.form_joined', 'leads.chat_joined', 'leads.merged'], true) && ! empty($entry->properties['message']))
                                             <div class="lq-timeline-quote">{{ str($entry->properties['message'])->limit(200) }}</div>
                                         @endif

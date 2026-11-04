@@ -6542,6 +6542,37 @@ a.lq-cell-title {
     overflow-wrap: anywhere;
 }
 
+/* A corrected note says so; its pencil sits at the end of the line. */
+.lq-note-edited {
+    font-style: italic;
+}
+
+.lq-note-head .lq-note-edit {
+    width: 2rem;
+    min-height: 2rem;
+    padding: 0;
+    margin: -0.375rem -0.5rem -0.375rem auto;
+}
+
+.lq-note-head .lq-note-edit svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+}
+
+.lq-note-editable:hover .lq-note-edit {
+    color: var(--lq-ink);
+}
+
+.lq-note-editbox textarea {
+    min-height: 5rem;
+}
+
+.lq-note-editbox-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Follow-ups: a round tick, what to do, and when. */
 .lq-tasks {
     list-style: none;

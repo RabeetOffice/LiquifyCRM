@@ -298,6 +298,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   comes. Sidebar links are `wire:navigate.hover` (the page is fetched on hover; only for screens whose GET changes
   nothing, never a chat link, which marks the chat read). Chart.js is a separate chunk, imported by the `chart`
   Alpine component on first use. Keep the page-enter animation short (280 ms).
+- Editing a note (user request, 4 Nov 2026: agents write wrong notes): `EditLeadNote` changes the body and sets
+  `lead_notes.edited_at` / `edited_by` (behind `NoteEdits::ready()`), logging `leads.note_edited` with the new excerpt
+  and the old one (`before`, for the Admins' Logs). `LeadPolicy::editNote`: the author while they may `update` the lead,
+  or whoever may `assign` it (Admins, the team's Manager); an Agent never edits a colleague's note. The pencil on each
+  note opens an Alpine box (`LeadPanel::saveNote`, false keeps it open); the timeline's "Note added" quotes an edited
+  note's current words. No delete of notes was asked for.
 - A lead's details (name, phone, email, company, address, service) are changed through `UpdateLeadDetails`; the
   dialog is the `EditsLeadDetails` trait plus the `lead-details` partial, on `LeadPanel` and in the Inbox. Someone
   who sees email and phone masked never gets them shown there. The Inbox assigns with `AssignLead` from its side

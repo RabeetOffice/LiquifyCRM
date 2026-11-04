@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.41.0',
+        'date' => '2026-11-04',
+        'title' => 'Edit a note',
+        'changes' => [
+            ['new', 'A note on a lead can be corrected: the pencil on the note opens it, Save keeps the new words. Whoever wrote the note can edit it while the lead is theirs, and an Admin or the team\'s Manager can edit anybody\'s note on their leads. An Agent cannot change a colleague\'s note.'],
+            ['new', 'An edited note says "edited" (or "edited by" and the name, when somebody else changed it), and the lead\'s timeline shows when it was edited. The words before the change stay in the Logs for Admins.'],
+            ['improved', 'Notes can be edited once an Admin clicks Update system.'],
+        ],
+    ],
+    [
         'version' => '1.40.1',
         'date' => '2026-11-03',
         'title' => 'Add brand: "The link has already been taken"',

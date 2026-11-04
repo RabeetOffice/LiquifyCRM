@@ -8,7 +8,9 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Core\Enums\Permission;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Leads\Models\Lead;
+use App\Modules\Leads\Models\LeadNote;
 use App\Modules\Leads\Support\LeadArchive;
+use App\Modules\Leads\Support\NoteEdits;
 
 /**
  * The Leads rows of the permission table. Super Admin and Admin see and do
@@ -88,6 +90,20 @@ final class LeadPolicy
             && $user->isMemberOf($lead->brand_id)
             && $this->works($user, $lead)
             && $user->can(Permission::LeadsUpdate->value);
+    }
+
+    /**
+     * Correct a note (user request, 4 Nov 2026: agents write a wrong note).
+     * Its author while they still work the lead, and whoever may assign the
+     * lead (an Admin, the Manager of its team) for anybody's note on it. An
+     * Agent never changes a colleague's words.
+     */
+    public function editNote(User $user, Lead $lead, LeadNote $note): bool
+    {
+        return NoteEdits::ready()
+            && (int) $note->lead_id === (int) $lead->getKey()
+            && $this->update($user, $lead)
+            && (($note->user_id !== null && (int) $note->user_id === (int) $user->getKey()) || $this->assign($user, $lead));
     }
 
     public function delete(User $user, Lead $lead): bool

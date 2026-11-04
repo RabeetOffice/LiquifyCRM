@@ -6,6 +6,7 @@ namespace App\Modules\Leads\Models;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $user_id
  * @property string $body
  * @property bool $is_pinned
+ * @property CarbonImmutable|null $edited_at
+ * @property int|null $edited_by
  */
 class LeadNote extends Model
 {
@@ -27,7 +30,7 @@ class LeadNote extends Model
 
     protected function casts(): array
     {
-        return ['is_pinned' => 'boolean'];
+        return ['is_pinned' => 'boolean', 'edited_at' => 'datetime'];
     }
 
     /** @return BelongsTo<Lead, $this> */
@@ -40,5 +43,15 @@ class LeadNote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Who corrected the note last (NoteEdits).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function editor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'edited_by');
     }
 }
