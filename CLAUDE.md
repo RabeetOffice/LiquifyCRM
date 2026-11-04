@@ -431,6 +431,14 @@ in the document's weekly phases; never skip a phase or silently change the desig
   assign, update or take, so since 26 Oct 2026 front sales merges its own and free leads; a colleague's twin is only
   named, for its Manager to merge). Never merge on a name
   alone: a name is only a hint. A lead's timeline moves with it (`activity_log.subject_id`), nothing is deleted.
+  The one exception (user decision, 4 Nov 2026; seen on live that only 2 forms in 14 carry `inbox_url` and the person
+  writes on Messenger 3-4 minutes after the form): a Facebook form and a Messenger chat of the same Page
+  (`source_id`) under exactly the same full name of two words or more, within `LeadMatcher::SAME_NAME_MINUTES` (60),
+  are joined by `ProcessMetaEvent` (`LeadMatcher::sameNameOnPage`), never when their email or phone differ or either
+  names another chat. A close name (Rob Alexander, Robert James Alexander: `closeName`) is never joined: the new chat
+  goes to the form's owner and team (`keeperOf`) and `twins()` offers the pair ("a similar name, 3 minutes apart").
+  Instagram chats are not part of it. `ProcessMetaEvent` handles one Page's events at a time (`Cache::lock`
+  `meta-page-leads:{page}`, 20 s wait, then goes ahead), because two events of the same moment each started a lead.
 - Instagram direct messages (user request, 14 Oct 2026) use Meta's Instagram API with Facebook Login: the same app,
   webhook and Page token as Messenger. `meta_sources.instagram_id` / `instagram_username` is the professional account
   linked to a Page (read by `ConnectFacebook::syncPages`), so the account follows its Page's brand and `lead_routes` row.

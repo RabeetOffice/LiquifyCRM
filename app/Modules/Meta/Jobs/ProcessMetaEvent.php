@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Jobs;
 
+use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Notifications\AppNotification;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Enums\LeadSource;
@@ -27,8 +29,11 @@ use App\Modules\Sites\Exceptions\LeadRejected;
 use App\Modules\Sites\Models\InboundEvent;
 use App\Modules\Sites\Support\SiteLeadNormalizer;
 use Carbon\CarbonImmutable;
+use Closure;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -77,9 +82,9 @@ final class ProcessMetaEvent implements ShouldQueue
                 $event->forceFill(['brand_id' => $brand->getKey(), 'source_id' => $page->getKey()])->save();
             }
 
-            $lead = app(CurrentBrand::class)->within($brand, fn (): ?Lead => $event->source === self::LEADGEN
+            $lead = $this->onePageAtATime($page, fn (): ?Lead => app(CurrentBrand::class)->within($brand, fn (): ?Lead => $event->source === self::LEADGEN
                 ? $this->leadAd($event, $page, $brand, $graph, $createLead, $normalizer)
-                : $this->message($event, $page, $brand, $createLead));
+                : $this->message($event, $page, $brand, $createLead)));
 
             $page->forceFill(['last_event_at' => now()])->save();
             $event->markDone($lead);
@@ -89,6 +94,27 @@ final class ProcessMetaEvent implements ShouldQueue
             if (! $exception instanceof LeadRejected && ! $exception instanceof MetaException) {
                 report($exception);
             }
+        }
+    }
+
+    /**
+     * One Page's events one at a time. Each event runs in its own request
+     * right after Meta's call, so a lead form and a chat (or two messages of a
+     * new chat) that arrive together each missed the other and started a lead
+     * of their own (seen on live, 4 Nov 2026: two leads in the same minute).
+     * After 20 seconds of waiting the event goes ahead as before.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    private function onePageAtATime(MetaSource $page, Closure $work): mixed
+    {
+        try {
+            return Cache::lock('meta-page-leads:'.$page->getKey(), 60)->block(20, $work);
+        } catch (LockTimeoutException) {
+            return $work();
         }
     }
 
@@ -163,27 +189,23 @@ final class ProcessMetaEvent implements ShouldQueue
             ? Conversation::query()->with('lead.status')->where('meta_source_id', $page->getKey())->where('contact_external_id', $psid)->first()
             : null;
 
+        $form = $formName !== null ? 'the lead form "'.$formName.'"' : 'a lead form';
+
         if ($chat?->lead !== null && $chat->lead->isOpen()) {
-            $lead = app(MergeLeads::class)->join(
-                $chat->lead,
-                [...$details, 'fields' => [...$details['fields'], 'leadgen_id' => $leadgenId]],
-                'leads.form_joined',
-                'Filled in '.($formName !== null ? 'the lead form "'.$formName.'"' : 'a lead form').' on Facebook: the same person as this chat',
-            );
+            return $this->joinForm($chat->lead, $details, $leadgenId, 'Filled in '.$form.' on Facebook: the same person as this chat', $brand, $graph);
+        }
 
-            $lead->loadMissing('assignee');
-            $lead->assignee?->notify(new AppNotification(
-                $lead->name.' filled in your lead form',
-                'The same person as the Messenger chat. Their answers are on the lead now.',
-                'info',
-                $brand->url('leads/'.$lead->getKey()),
-                icon: 'heroicon-o-clipboard-document-list',
-                actionLabel: 'Open lead',
-            ));
+        // Most forms do not name the chat (seen on live: 2 in 14). Somebody who wrote to the Page on
+        // Messenger under exactly this full name within the hour is the same person (user decision, 4 Nov 2026).
+        $submitted = $normalised['created_at'] ?? CarbonImmutable::now();
+        $twin = $chat === null && $normalised['name'] !== null
+            ? LeadMatcher::sameNameOnPage($brand, $page->getKey(), LeadSource::Messenger, $normalised['name'], $submitted, $normalised['email'], $normalised['phone'], $psid)
+            : null;
 
-            $this->learnProfileName($lead, $graph);
+        if ($twin !== null) {
+            $apart = $twin->created_at !== null ? LeadMatcher::apart($twin->created_at, $submitted) : 'soon';
 
-            return $lead;
+            return $this->joinForm($twin, $details, $leadgenId, 'Filled in '.$form.' on Facebook under the same name as this chat, '.$apart.': the same person', $brand, $graph);
         }
 
         $lead = $createLead->handle($brand, [
@@ -198,6 +220,58 @@ final class ProcessMetaEvent implements ShouldQueue
         if ($chat !== null && $lead->isOpen()) {
             $chat->forceFill(['lead_id' => $lead->getKey()])->save();
         }
+
+        $this->learnProfileName($lead, $graph);
+
+        return $lead;
+    }
+
+    /**
+     * The team and the person that work a lead form, for the chat of what may
+     * be the same person, while that person still works leads on that team.
+     * Nothing when the form waits for somebody: the chat is routed as usual.
+     *
+     * @return array{department_id?: int, assigned_to?: int}
+     */
+    private function keeperOf(?Lead $form, Brand $brand): array
+    {
+        if ($form === null || $form->assigned_to === null || $form->department_id === null) {
+            return [];
+        }
+
+        $department = Department::query()->forBrand($brand)->find($form->department_id);
+        $person = User::query()->find($form->assigned_to);
+
+        if ($department === null || $department->isUpsell() || $person === null || ! $person->isActive() || ! $person->isMemberOf($brand) || ! $department->hasMember($person)) {
+            return [];
+        }
+
+        return ['department_id' => (int) $department->getKey(), 'assigned_to' => (int) $person->getKey()];
+    }
+
+    /**
+     * The form's answers go on the lead of the person's chat, and whoever works it hears of it.
+     *
+     * @param  array<string, mixed>  $details
+     */
+    private function joinForm(Lead $chatLead, array $details, string $leadgenId, string $description, Brand $brand, MetaGraph $graph): Lead
+    {
+        $lead = app(MergeLeads::class)->join(
+            $chatLead,
+            [...$details, 'fields' => [...(array) $details['fields'], 'leadgen_id' => $leadgenId]],
+            'leads.form_joined',
+            $description,
+        );
+
+        $lead->loadMissing('assignee');
+        $lead->assignee?->notify(new AppNotification(
+            $lead->name.' filled in your lead form',
+            'The same person as the Messenger chat. Their answers are on the lead now.',
+            'info',
+            $brand->url('leads/'.$lead->getKey()),
+            icon: 'heroicon-o-clipboard-document-list',
+            actionLabel: 'Open lead',
+        ));
 
         $this->learnProfileName($lead, $graph);
 
@@ -280,17 +354,30 @@ final class ProcessMetaEvent implements ShouldQueue
         // named this chat, so the chat joins that lead instead of starting a second one.
         if (! $instagram && ($lead === null || ! $lead->isOpen())) {
             $known = LeadMatcher::byMessenger($brand, $contactId);
+            $why = 'Wrote on Messenger: the same person as this lead form';
+
+            // Most forms do not name the chat (seen on live: 2 in 14). A form of this Page under exactly
+            // the same full name within the hour is the same person (user decision, 4 Nov 2026).
+            if ($known === null) {
+                $known = LeadMatcher::sameNameOnPage($brand, $page->getKey(), LeadSource::Facebook, $conversation->displayName(), $sentAt, psid: $contactId);
+                $why = $known?->created_at !== null ? 'Wrote on Messenger under the same name as this lead form, '.LeadMatcher::apart($known->created_at, $sentAt).': the same person' : $why;
+            }
 
             if ($known !== null) {
                 $lead = $known;
 
-                Audit::log('leads.chat_joined', $lead, ['message' => $text], 'Wrote on Messenger: the same person as this lead form', brand: $brand, logName: 'leads');
+                Audit::log('leads.chat_joined', $lead, ['message' => $text], $why, brand: $brand, logName: 'leads');
             }
         }
 
         // A new chat, or one whose lead was closed or removed, starts a lead in the New queue.
         if ($lead === null || ! $lead->isOpen()) {
+            // Under a close name to a form of the hour (Rob Alexander, Robert James Alexander) the chat goes
+            // to whoever works that form: they see the two side by side and merge them with one click.
+            $keeper = $instagram ? [] : $this->keeperOf(LeadMatcher::closeNameOnPage($brand, $page->getKey(), LeadSource::Facebook, $conversation->displayName(), $sentAt, $contactId), $brand);
+
             $lead = $createLead->handle($brand, [
+                ...$keeper,
                 'source_type' => $instagram ? LeadSource::Instagram : LeadSource::Messenger,
                 'source_id' => $page->getKey(),
                 'external_id' => $contactId.':'.$conversation->getKey().':'.$sentAt->getTimestamp(),

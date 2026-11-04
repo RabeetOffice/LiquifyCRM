@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.42.0',
+        'date' => '2026-11-04',
+        'title' => 'A Facebook form and the Messenger chat of the same person become one lead',
+        'changes' => [
+            ['improved', 'Somebody who fills in a Facebook lead form and writes to the Page on Messenger within the hour, under exactly the same full name, now gets one lead instead of two. The timeline says why ("under the same name as this lead form, 4 minutes apart"). It works both ways: form first or chat first.'],
+            ['improved', 'Under a name that is only close (Rob Alexander on the form, Robert James Alexander on Messenger), the two are not joined by themselves. The chat goes to whoever works the form, and the lead shows "This may be the same person … a similar name, 3 minutes apart" with a Merge button the agent can use.'],
+            ['fixed', 'Two messages, or a form and a message, that arrive in the same moment no longer start two leads for one person.'],
+        ],
+    ],
+    [
         'version' => '1.41.0',
         'date' => '2026-11-04',
         'title' => 'Edit a note',
