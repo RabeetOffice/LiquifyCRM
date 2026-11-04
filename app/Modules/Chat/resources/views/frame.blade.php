@@ -42,6 +42,11 @@ form.composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:10px 1
 form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:1.35}
 .send{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--c);color:var(--on)}
 .send:disabled{opacity:.5;cursor:default}
+/* typing dots */
+.typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
+.typing span{width:6px;height:6px;border-radius:50%;background:#a39d93;animation:dot 1.2s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 .hidden{display:none!important}
 @media (prefers-reduced-motion:no-preference){.row,.card{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
 @endverbatim
@@ -73,6 +78,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     var creds = null, config = null, visitor = null;
     var seen = {}, lastId = 0, open = false, unread = 0, page = null, timer = null, failures = 0;
     var started = false, detailsShown = false, detailsDismissed = false, tooltip = null;
+    var typingRow = null, lastTyped = 0, closedShown = false;
 
     function load() { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }
     function save(value) { try { localStorage.setItem(STORE, JSON.stringify(value)); } catch (e) {} }
@@ -114,7 +120,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         row.appendChild(el('div', 'bubble', m.body));
         row.appendChild(el('div', 'meta', (m.from === 'team' && m.name ? m.name + ' · ' : m.from === 'ai' ? 'Virtual assistant · ' : '') + clock(m.at)));
         row.setAttribute('data-id', m.id);
-        thread.insertBefore(row, tooltip && tooltip.parentNode === thread ? tooltip : null);
+        thread.insertBefore(row, tooltip && tooltip.parentNode === thread ? tooltip : (typingRow && typingRow.parentNode === thread ? typingRow : null));
         scroll();
 
         if (m.from !== 'visitor') {
@@ -125,6 +131,64 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     }
 
     function clearTooltip() { if (tooltip && tooltip.parentNode) { tooltip.parentNode.removeChild(tooltip); } tooltip = null; }
+
+    // The team is typing: three dots at the end of the thread while it lasts.
+    function setTyping(on) {
+        if (on && !typingRow) {
+            typingRow = el('div', 'row team');
+            var bubble = el('div', 'bubble typing');
+            bubble.appendChild(el('span')); bubble.appendChild(el('span')); bubble.appendChild(el('span'));
+            bubble.setAttribute('aria-label', 'The team is typing');
+            typingRow.appendChild(bubble);
+            thread.appendChild(typingRow);
+            scroll();
+        } else if (!on && typingRow) {
+            if (typingRow.parentNode) { typingRow.parentNode.removeChild(typingRow); }
+            typingRow = null;
+        }
+    }
+
+    // The team closed the chat: said once; writing again opens it.
+    function setClosed(closed) {
+        if (closed && !closedShown) { closedShown = true; addNote('The team closed this chat. Write again if you need anything else.'); }
+        if (!closed) { closedShown = false; }
+    }
+
+    // Nobody of the team is here: a form instead of a chat that would wait.
+    function offlineCard() {
+        var form = el('form', 'card');
+        form.appendChild(el('h2', '', 'We are away right now'));
+        form.appendChild(el('p', '', config.offline));
+        form.appendChild(field('Name', 'text', 'name', 'Your name', false));
+        form.appendChild(field('Email', 'email', 'email', 'you@example.com', false));
+        form.appendChild(field('Phone number', 'tel', 'phone', '+44 …', false));
+        var label = el('label', '', 'Your message');
+        var ta = el('textarea'); ta.name = 'message'; ta.rows = 3; ta.maxLength = 2000; ta.required = true;
+        label.appendChild(ta); form.appendChild(label);
+        form.appendChild(honeypot());
+        var go = el('button', 'btn', 'Send message'); go.type = 'submit'; form.appendChild(go);
+
+        form.onsubmit = function (event) {
+            event.preventDefault();
+            var data = readForm(form);
+
+            if (!String(data.email || '').trim() && !String(data.phone || '').trim()) { showErrors(form, { email: 'Add an email address or a phone number, so we can reach you.' }); return; }
+
+            go.disabled = true;
+            call('POST', '/details', data).then(function (r) {
+                go.disabled = false;
+                if (r.status === 422 && r.json.errors) { showErrors(form, r.json.errors); return; }
+                if (r.status >= 400) { showErrors(form, { message: 'Something went wrong. Please try again.' }); return; }
+                visitor.has_details = true;
+                form.parentNode && form.parentNode.removeChild(form);
+                if (r.json.message) { addMessage(r.json.message); }
+                addNote('Thank you. We will reply as soon as we are back.');
+                composer.classList.remove('hidden');
+            }).catch(function () { go.disabled = false; showErrors(form, { message: 'No connection. Please try again.' }); });
+        };
+
+        thread.appendChild(form);
+    }
 
     // ---- the forms ------------------------------------------------------------------------------------------
     function field(labelText, type, name, placeholder, required) {
@@ -283,7 +347,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         if (!creds) { return; }
 
         call('GET', '/messages?after=' + lastId).then(function (r) {
-            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); }
+            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); setTyping(!!r.json.agent_typing); setClosed(!!r.json.closed); }
             else if (r.status === 401 || r.status === 404) { return; }
             else { failures += 1; }
             schedule();
@@ -315,8 +379,10 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
 
             messages.forEach(function (m) { addMessage(m); });
             unread = 0; tell({ type: 'unread', count: 0 });
+            setClosed(!!r.json.closed);
 
-            if (!messages.length && config.prechat.enabled && !visitor.has_details) { prechatCard(); }
+            if (!messages.length && !config.online && !visitor.has_details) { offlineCard(); }
+            else if (!messages.length && config.prechat.enabled && !visitor.has_details) { prechatCard(); }
             else {
                 composer.classList.remove('hidden');
                 if (!messages.length) { thread.appendChild(el('p', 'consent', config.consent)); }
@@ -328,7 +394,11 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     }
 
     composer.onsubmit = function (event) { event.preventDefault(); var text = box.value.trim(); if (text) { send(text); } };
-    box.addEventListener('input', resize);
+    box.addEventListener('input', function () {
+        resize();
+        var now = Date.now();
+        if (started && box.value.trim() !== '' && now - lastTyped > 4000) { lastTyped = now; call('POST', '/typing', {}).catch(function () {}); }
+    });
     box.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); composer.requestSubmit(); } });
     $('close').onclick = function () { tell({ type: 'close' }); };
     document.addEventListener('visibilitychange', schedule);

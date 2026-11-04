@@ -6,6 +6,7 @@ namespace App\Modules\Meta\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Actions\ChangeChat;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\ChatAccess;
 use App\Modules\Chat\Support\LiveChat;
@@ -26,6 +27,7 @@ use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use RuntimeException;
 
 /**
  * Inbox: Messenger and Instagram threads of the leads a person may see
@@ -139,11 +141,35 @@ final class Inbox extends Component
     }
 
     /** Ask Facebook (or Instagram) again for this person's name and picture, and say plainly what came back. */
+    /** Give a visitor's chat (one with no lead yet) to somebody of the team, or back to everybody with "". */
+    public function assignChat(string $userId, ChangeChat $changes): void
+    {
+        $conversation = $this->chat === '' ? null : Conversation::query()->visibleTo($this->user())->find((int) $this->chat);
+
+        if ($conversation === null) {
+            return;
+        }
+
+        $this->authorize('assignChat', $conversation);
+
+        $to = $userId === '' ? null : (ChatAccess::team((int) $this->brand->getKey())->firstWhere('id', (int) $userId) ?? abort(403));
+
+        try {
+            $changes->assign($conversation, $to, $this->user());
+        } catch (RuntimeException $exception) {
+            $this->toastWarning($exception->getMessage());
+
+            return;
+        }
+
+        $this->toastSuccess($to !== null ? 'Given to '.$to->name : 'Back with the team');
+    }
+
     public function refreshProfile(SyncContactProfile $sync): void
     {
         $conversation = $this->chat === '' ? null : Conversation::query()->visibleTo($this->user())->with(['lead', 'source'])->find((int) $this->chat);
 
-        if ($conversation === null) {
+        if ($conversation === null || $conversation->isLiveChat()) {
             return;
         }
 
@@ -212,15 +238,18 @@ final class Inbox extends Component
 
         // The website's live chat: its own view for visitors who have not given an email or phone number yet.
         $liveChat = LiveChat::ready() && ChatAccess::canSeeVisitors($user, (int) $this->brand->getKey());
+        // Closing, assigning and answering need the columns of the second update.
+        $work = $liveChat && LiveChat::workReady();
         $hasLiveChat = $liveChat && ($this->channel === Conversation::CHANNEL_LIVECHAT || ChatWidget::query()->exists() || $visible()->where('channel', Conversation::CHANNEL_LIVECHAT)->exists());
 
         // The chat of an archived lead is out of the list too; a new message brings the lead back (Lead::heardFrom).
         $listed = fn (): Builder => Conversation::query()->listedFor($user);
 
         $conversations = $listed()
-            ->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : [])])
-            // A visitor with no lead has a view of their own; every other view is chats of leads.
-            ->when($this->filter === 'visitors' && $liveChat, fn (Builder $query): Builder => $query->anonymous(), fn (Builder $query): Builder => $query->whereNotNull('lead_id'))
+            ->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : []), ...($work ? ['chatAssignee'] : [])])
+            // A visitor with no lead has a view of their own; the Closed view has every closed chat; every other view is chats of leads.
+            ->when($this->filter === 'visitors' && $liveChat, fn (Builder $query): Builder => $query->anonymous(), fn (Builder $query): Builder => $this->filter === 'closed' ? $query : $query->whereNotNull('lead_id'))
+            ->when($work, fn (Builder $query): Builder => $this->filter === 'closed' ? $query->where('chat_status', 'closed') : $query->where('chat_status', '!=', 'closed'))
             ->when($this->search !== '', fn (Builder $query): Builder => $query->where(fn (Builder $inner): Builder => $inner
                 ->where('contact_name', 'like', $like)
                 ->when($handles, fn (Builder $handle): Builder => $handle->orWhere('contact_handle', 'like', '%'.ltrim($this->search, '@').'%'))
@@ -236,7 +265,7 @@ final class Inbox extends Component
 
         // A chat opened from a notification, or hidden by the filter, may not be in the list.
         if ($selected === null && $this->chat !== '') {
-            $selected = $visible()->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : [])])->find((int) $this->chat);
+            $selected = $visible()->with(['lead.status', 'lead.assignee', 'lead.department', 'source', ...($liveChat ? ['visitor', 'widget'] : []), ...($work ? ['chatAssignee'] : [])])->find((int) $this->chat);
         }
 
         $lead = $selected?->lead;
@@ -250,7 +279,10 @@ final class Inbox extends Component
             // The channel choice shows once there is more than Messenger to choose from.
             'hasInstagram' => $this->channel !== '' || $visible()->where('channel', Conversation::CHANNEL_INSTAGRAM)->exists(),
             'hasLiveChat' => $hasLiveChat,
-            'visitors' => $hasLiveChat ? $listed()->anonymous()->count() : 0,
+            'visitors' => $hasLiveChat ? $listed()->anonymous()->when($work, fn (Builder $query): Builder => $query->where('chat_status', '!=', 'closed'))->count() : 0,
+            'canAssignChat' => $work && $selected !== null && $user->can('assignChat', $selected),
+            'chatTeam' => $work && $selected !== null && $selected->isLiveChat() && $selected->lead_id === null && $user->can('assignChat', $selected) ? ChatAccess::team((int) $this->brand->getKey())->mapWithKeys(fn (User $person): array => [$person->getKey() => $person->name.($person->is($user) ? ' (you)' : '')])->all() : [],
+            'workReady' => $work,
             'fullContact' => $lead !== null && app(ContactVisibility::class)->canSeeFull($user, $lead),
             'canAssign' => $canAssign,
             'canUpdate' => $lead !== null && $user->can('update', $lead),

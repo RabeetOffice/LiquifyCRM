@@ -1,6 +1,6 @@
 {{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one.
      `bytes` counts the reply as Instagram does (an emoji is four), against `limit` (0: no count shown). --}}
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }} }">
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }}, lastTyped: 0, ping(url) { if (! url || Date.now() - this.lastTyped < 4000) return; this.lastTyped = Date.now(); fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'Accept': 'application/json' } }).catch(() => {}); } }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
@@ -19,7 +19,18 @@
             <span class="lq-cell-sub lq-channel-line truncate"><x-ui.brand-icon :name="$conversation->channel" /> {{ $channel }} · {{ $conversation->accountName() }}</span>
         </div>
         @if ($conversation->isLiveChat())
-            <x-ui.badge color="gray" icon="heroicon-m-eye">Read only for now</x-ui.badge>
+            @if ($closed)
+                <x-ui.badge color="gray" icon="heroicon-m-lock-closed">Closed</x-ui.badge>
+            @else
+                <x-ui.badge color="success" icon="heroicon-m-chat-bubble-oval-left">Open</x-ui.badge>
+            @endif
+            @if ($canWork)
+                @if ($closed)
+                    <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-path" wire:click="reopen" wire:loading.attr="disabled" wire:target="reopen">Reopen</x-ui.button>
+                @else
+                    <x-ui.button size="sm" variant="secondary" icon="heroicon-o-check" wire:click="close" wire:loading.attr="disabled" wire:target="close" title="Close this chat: the visitor can write again later">Close</x-ui.button>
+                @endif
+            @endif
         @elseif ($open)
             <x-ui.badge color="success" icon="heroicon-m-clock" title="{{ $channel }} lets you reply for 24 hours after this person's last message">Reply within {{ $ends->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2, 'short' => true]) }}</x-ui.badge>
         @else
@@ -65,7 +76,12 @@
                 @php $previousDay = $day; @endphp
             @endif
 
-            <div @class(['lq-msg', 'lq-msg-out' => $message->isOutbound(), 'lq-msg-last' => $last, 'lq-msg-failed' => $failed]) wire:key="message-{{ $message->getKey() }}">
+            @if ($message->kindOf() === 'event')
+                <div class="lq-thread-event" wire:key="message-{{ $message->getKey() }}" title="{{ $message->created_at?->format('j M Y, H:i') }}">{{ $message->body }} · {{ $message->created_at?->format('H:i') }}</div>
+                @continue
+            @endif
+
+            <div @class(['lq-msg', 'lq-msg-out' => $message->isOutbound(), 'lq-msg-last' => $last || $message->kindOf() === 'note', 'lq-msg-failed' => $failed, 'lq-msg-note' => $message->kindOf() === 'note']) wire:key="message-{{ $message->getKey() }}">
                 {{-- Pictures, videos, voice notes, files and shared posts, shown from Meta's own address. --}}
                 @foreach ($message->attachments() as $file)
                     @if ($file['type'] === 'image')
@@ -89,9 +105,11 @@
                         <p class="whitespace-pre-wrap">{{ $message->body }}</p>
                     </div>
                 @endunless
-                @if ($last || $failed)
+                @if ($last || $failed || $message->kindOf() === 'note')
                     <span class="lq-bubble-meta">
-                        @if ($message->isOutbound())
+                        @if ($isLiveChat && $message->isOutbound())
+                            {{ $message->sender?->name ?? ($message->sender_type === 'ai' ? 'Virtual assistant' : 'Team') }} · {{ $message->created_at?->format('H:i') }}
+                        @elseif ($message->isOutbound())
                             {{ $message->isFromFacebook() ? ($instagram ? 'Sent on Instagram' : 'Sent on Facebook') : ($message->sender?->name ?? 'Team') }} · {{ $message->created_at?->format('H:i') }} · {{ $message->status->getLabel() }}
                         @else
                             {{ $message->created_at?->format('H:i') }}
@@ -106,6 +124,10 @@
             <p class="lq-thread-empty">No messages yet.</p>
         @endforelse
 
+        @if ($visitorTyping)
+            <div class="lq-msg lq-msg-last" wire:key="visitor-typing"><div class="lq-bubble lq-typing" aria-label="The visitor is typing"><span></span><span></span><span></span></div></div>
+        @endif
+
         {{-- What was just typed, until the answer brings the real bubble. Livewire leaves this block alone. --}}
         <div class="lq-thread-pending" wire:ignore>
             <template x-for="(text, index) in sending" :key="index">
@@ -119,7 +141,7 @@
 
     @if ($canReply)
         <form
-            class="lq-thread-foot"
+            @class(['lq-thread-foot', 'lq-composer-note' => $isLiveChat && $mode === 'note'])
             x-on:submit.prevent="
                 const text = ($wire.reply ?? '').trim();
                 const box = $el.querySelector('textarea');
@@ -140,16 +162,22 @@
             "
         >
             @if ($open)
+                @if ($isLiveChat)
+                    <div class="lq-composer-modes" role="tablist" aria-label="What you write">
+                        <button type="button" role="tab" @class(['lq-composer-mode', 'lq-composer-mode-active' => $mode === 'reply']) wire:click="$set('mode', 'reply')">Reply to visitor</button>
+                        <button type="button" role="tab" @class(['lq-composer-mode', 'lq-composer-mode-active' => $mode === 'note']) wire:click="$set('mode', 'note')">Note for the team</button>
+                    </div>
+                @endif
                 <div class="lq-composer">
                     <textarea
                         wire:model="reply"
                         name="reply"
                         rows="1"
                         class="lq-composer-input"
-                        placeholder="Write a reply…"
+                        placeholder="{{ $isLiveChat && $mode === 'note' ? 'Write a note only your team sees…' : 'Write a reply…' }}"
                         aria-label="Reply"
                         x-data
-                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'; bytes = new TextEncoder().encode($el.value).length"
+                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'; bytes = new TextEncoder().encode($el.value).length;@if ($isLiveChat && $mode === 'reply' && $typingUrl) ping('{{ $typingUrl }}') @endif"
                         x-on:conversation-updated.window="$el.style.height = 'auto'"
                         x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()"
                         x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"
@@ -164,6 +192,8 @@
                         <span x-bind:class="{ 'lq-composer-over': bytes > limit }" x-text="bytes > 0 ? '· ' + bytes.toLocaleString() + ' / 1,000' + (bytes > limit ? ': too long for Instagram' : '') : '· Instagram takes up to 1,000 characters'">· Instagram takes up to 1,000 characters</span>
                     @endif
                 </p>
+            @elseif ($isLiveChat)
+                <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> <span class="flex-1">This chat is closed. Reopen it to reply; the visitor can also write again, and it opens by itself.</span></p>
             @else
                 <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> {{ $instagram ? 'Instagram only lets a business' : 'Messenger only lets a Page' }} reply within 24 hours of the person's last message. You can reply again as soon as they write.</p>
             @endif

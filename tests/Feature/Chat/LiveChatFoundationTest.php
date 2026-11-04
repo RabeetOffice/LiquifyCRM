@@ -143,7 +143,7 @@ it('shows a visitor with no details under Visitors, and never as a lead', functi
     expect($chat->lead_id)->toBeNull()
         ->and($chat->displayName())->toBe('Visitor '.$chat->visitor->getKey())
         ->and($chat->channelLabel())->toBe('Live chat')
-        ->and($chat->canReply())->toBeFalse()
+        ->and($chat->canReply())->toBeTrue()
         ->and(Lead::query()->count())->toBe(0);
 
     foreach ([$this->admin, $this->manager, $this->agent] as $person) {

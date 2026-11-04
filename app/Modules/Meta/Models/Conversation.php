@@ -40,6 +40,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $unread_count
  * @property-read Lead|null $lead
  * @property-read MetaSource|null $source
+ * @property int|null $chat_assigned_to who looks after a website chat that has no lead (a chat with a lead goes by the lead)
+ * @property string|null $chat_status open or closed, for a website chat
+ * @property CarbonImmutable|null $chat_closed_at
+ * @property CarbonImmutable|null $first_response_at
  * @property-read ChatWidget|null $widget
  * @property-read ChatVisitor|null $visitor
  */
@@ -65,7 +69,7 @@ class Conversation extends Model
 
     protected $fillable = [
         'brand_id', 'lead_id', 'channel', 'contact_external_id', 'contact_name', 'meta_source_id', 'chat_widget_id', 'chat_visitor_id',
-        'last_inbound_at', 'last_message_at', 'last_message_preview', 'unread_count',
+        'chat_assigned_to', 'chat_status', 'chat_closed_at', 'first_response_at', 'last_inbound_at', 'last_message_at', 'last_message_preview', 'unread_count',
     ];
 
     protected $attributes = [
@@ -77,6 +81,8 @@ class Conversation extends Model
     {
         return [
             'contact_synced_at' => 'datetime',
+            'chat_closed_at' => 'datetime',
+            'first_response_at' => 'datetime',
             'last_inbound_at' => 'datetime',
             'last_message_at' => 'datetime',
             'unread_count' => 'integer',
@@ -103,6 +109,12 @@ class Conversation extends Model
     public function isLiveChat(): bool
     {
         return $this->channel === self::CHANNEL_LIVECHAT;
+    }
+
+    /** A website chat the team closed. Read from the raw attributes: the column comes with the second live chat update. */
+    public function isClosed(): bool
+    {
+        return ($this->getAttributes()['chat_status'] ?? 'open') === 'closed';
     }
 
     /** "Messenger", "Instagram" or "Live chat", for the screens. */
@@ -183,6 +195,12 @@ class Conversation extends Model
         return $this->belongsTo(ChatWidget::class, 'chat_widget_id');
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function chatAssignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'chat_assigned_to');
+    }
+
     /** @return BelongsTo<ChatVisitor, $this> */
     public function visitor(): BelongsTo
     {
@@ -260,9 +278,9 @@ class Conversation extends Model
 
     public function canReply(): bool
     {
-        // A website chat has no 24-hour window; the team answers it from the Inbox in a later update.
+        // A website chat has no 24-hour window: it can be answered until the team closes it.
         if ($this->isLiveChat()) {
-            return false;
+            return ! $this->isClosed();
         }
 
         $ends = $this->replyWindowEndsAt();

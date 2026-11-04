@@ -77,10 +77,16 @@ class Message extends Model
         return $this->direction === self::OUT;
     }
 
+    /** text, file, note or event. Read from the raw attributes: the column comes with the live chat update. */
+    public function kindOf(): string
+    {
+        return (string) ($this->getAttributes()['kind'] ?? 'text');
+    }
+
     /** A reply the team wrote on Facebook or Instagram itself, not in LiquifyCRM: it arrived as an echo, so nobody here sent it. */
     public function isFromFacebook(): bool
     {
-        return $this->isOutbound() && $this->sent_by === null && ! empty($this->raw['message']['is_echo']);
+        return $this->isOutbound() && $this->sent_by === null && ! empty($this->raw['message']['is_echo']) && ($this->getAttributes()['sender_type'] ?? null) === null;
     }
 
     /**

@@ -7,6 +7,9 @@ namespace App\Modules\Chat\Actions;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\ChatNotifier;
+use App\Modules\Chat\Support\ChatTyping;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorSpam;
 use App\Modules\Leads\Models\Lead;
@@ -16,14 +19,19 @@ use App\Modules\Meta\Models\Message;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * A visitor writes in the chat. The conversation is started with the first message; it has no lead. When the
  * visitor writes an email address or a phone number and has not given their details yet, the widget is told
- * ("suggest") so it can ask whether that is the best way to reach them: only their yes makes a lead.
+ * ("suggest") so it can ask whether that is the best way to reach them: only their yes makes a lead. A chat
+ * the team closed opens again, and the team is told: the first message of a chat rings for everybody who may
+ * answer it, a later one only for the person who has it.
  */
 final class SendVisitorMessage
 {
+    public function __construct(private readonly ReplyToVisitor $lines, private readonly ChatNotifier $notifier) {}
+
     /**
      * @return array{message: Message, conversation: Conversation, suggest: array{email?: string, phone?: string}|null}
      *
@@ -45,8 +53,14 @@ final class SendVisitorMessage
             throw new RuntimeException('Please send one link at a time.');
         }
 
-        [$conversation, $message] = DB::transaction(function () use ($widget, $visitor, $body): array {
+        $started = false;
+
+        [$conversation, $message] = DB::transaction(function () use ($widget, $visitor, $body, &$started): array {
             $conversation = VisitorChats::conversationFor($visitor, $widget, true) ?? throw new RuntimeException('The chat could not start.');
+
+            // The first thing this visitor wrote, or the first after the team closed the chat: it is a chat for the team to pick up.
+            $started = $conversation->isClosed()
+                || ! Message::query()->where('conversation_id', $conversation->getKey())->where('direction', Message::IN)->exists();
 
             $message = Message::query()->create([
                 'conversation_id' => $conversation->getKey(),
@@ -63,8 +77,15 @@ final class SendVisitorMessage
                 'unread_count' => $conversation->unread_count + 1,
             ])->save();
 
+            if ($conversation->isClosed() && LiveChat::workReady()) {
+                $conversation->forceFill(['chat_status' => 'open', 'chat_closed_at' => null])->save();
+                $this->lines->event($conversation, 'Reopened: the visitor wrote again');
+            }
+
             return [$conversation, $message];
         });
+
+        ChatTyping::stop((int) $conversation->getKey(), visitor: true);
 
         // They wrote again: an archived lead comes back to the lists, and a lead made from the pre-chat form
         // (which had no question) gets their first words as its message.
@@ -76,6 +97,13 @@ final class SendVisitorMessage
             }
 
             $lead?->heardFrom();
+        }
+
+        // A bell that fails to ring must not lose the visitor's message.
+        try {
+            $this->notifier->visitorWrote($conversation, $body, $started);
+        } catch (Throwable $exception) {
+            report($exception);
         }
 
         return ['message' => $message, 'conversation' => $conversation, 'suggest' => $detect && $visitor->lead_id === null ? $this->contactIn($visitor, $body) : null];

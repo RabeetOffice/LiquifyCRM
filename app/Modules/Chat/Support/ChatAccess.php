@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Chat\Support;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Brands\Models\Membership;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\MembershipStatus;
+use Illuminate\Support\Collection;
 
 /**
  * Who sees the live chats of visitors who have not given their details (and so have no lead yet). Admins
@@ -33,6 +35,23 @@ final class ChatAccess
             BrandRole::Agent => ! ChatWidget::query()->forBrand($brandId)->where('agents_see_visitors', false)->exists(),
             default => false,
         };
+    }
+
+    /**
+     * The people of a brand a website chat can be given to: its Managers and Agents who see visitors.
+     *
+     * @return Collection<int, User>
+     */
+    public static function team(int $brandId): Collection
+    {
+        $ids = Membership::query()->acrossBrands()
+            ->where('brand_id', $brandId)
+            ->where('status', MembershipStatus::Active->value)
+            ->pluck('user_id');
+
+        return User::query()->whereIn('id', $ids)->orderBy('name')->get()
+            ->filter(fn (User $user): bool => $user->isActive() && self::canSeeVisitors($user, $brandId))
+            ->values();
     }
 
     /**

@@ -11,6 +11,8 @@ use App\Modules\Chat\Actions\RecordVisit;
 use App\Modules\Chat\Actions\SendVisitorMessage;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\AgentPresence;
+use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
@@ -80,6 +82,7 @@ final class WidgetController
             'config' => $this->settings($widget),
             'visitor' => ['name' => $visitor->name, 'has_details' => $visitor->lead_id !== null || filled($visitor->getRawOriginal('email')) || filled($visitor->getRawOriginal('phone'))],
             'messages' => $conversation !== null ? VisitorChats::messages($conversation) : [],
+            'closed' => $conversation?->isClosed() ?? false,
         ]);
     }
 
@@ -91,7 +94,25 @@ final class WidgetController
         $conversation = VisitorChats::conversationFor($visitor, $widget, false);
         $visitor->forceFill(['last_seen_at' => now()])->saveQuietly();
 
-        return response()->json(['messages' => $conversation !== null ? VisitorChats::messages($conversation, (int) $request->query('after', 0)) : []]);
+        return response()->json([
+            'messages' => $conversation !== null ? VisitorChats::messages($conversation, (int) $request->query('after', 0)) : [],
+            'agent_typing' => $conversation !== null && ChatTyping::agentIsTyping((int) $conversation->getKey()),
+            'closed' => $conversation?->isClosed() ?? false,
+            'online' => AgentPresence::online((int) $widget->brand_id),
+        ]);
+    }
+
+    /** The visitor is typing: the team's open chat shows the dots for a few seconds. */
+    public function typing(Request $request): JsonResponse
+    {
+        [$widget, $visitor] = $this->visitor($request);
+        $conversation = VisitorChats::conversationFor($visitor, $widget, false);
+
+        if ($conversation !== null) {
+            ChatTyping::visitorTypes((int) $widget->brand_id, (int) $conversation->getKey());
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function send(Request $request, SendVisitorMessage $send): JsonResponse
@@ -153,6 +174,8 @@ final class WidgetController
             'title' => $widget->look('title'),
             'welcome' => $widget->look('welcome'),
             'consent' => $widget->look('consent'),
+            'offline' => $widget->look('offline'),
+            'online' => AgentPresence::online((int) $widget->brand_id),
             'prechat' => ['enabled' => $widget->asksFirst(), 'fields' => collect(ChatWidget::PRECHAT_FIELDS)->map(fn (string $label, string $field): bool => $widget->asks($field))->all(), 'labels' => ChatWidget::PRECHAT_FIELDS],
         ];
     }

@@ -23,15 +23,20 @@
                             @endif
                         </button>
                         <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'open']) wire:click="$set('filter', 'open')" role="tab" title="Chats you can still answer: the person wrote in the last 24 hours">Can reply</button>
-                        @if ($hasLiveChat)
+                    </div>
+                    @if ($hasLiveChat)
+                        <div class="lq-seg" role="tablist" aria-label="Website chats">
                             <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'visitors']) wire:click="$set('filter', 'visitors')" role="tab" title="Website visitors who have not given an email address or phone number yet, so they are not leads">
                                 Visitors
                                 @if ($visitors > 0)
                                     <span class="lq-count">{{ $visitors }}</span>
                                 @endif
                             </button>
-                        @endif
-                    </div>
+                            @if ($workReady)
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'closed']) wire:click="$set('filter', 'closed')" role="tab" title="Website chats the team closed">Closed</button>
+                            @endif
+                        </div>
+                    @endif
                     @if ($hasInstagram || $hasLiveChat)
                         <div class="lq-seg" role="tablist" aria-label="Which channel">
                             <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $channel === '']) wire:click="$set('channel', '')" role="tab">Every channel</button>
@@ -117,11 +122,36 @@
                                 <dd>{{ trim(($visitor->browser ?? '').' · '.($visitor->os ?? '').' · '.$visitor->device, ' ·') }}</dd>
                             </div>
                         @endif
+                        @if ($visitor)
+                            <div>
+                                <dt>Visits</dt>
+                                <dd>{{ $visitor->visits_count }}</dd>
+                            </div>
+                        @endif
+                        <div>
+                            <dt>Chat</dt>
+                            <dd>{{ $selected->isClosed() ? 'Closed' : 'Open' }}</dd>
+                        </div>
                         <div>
                             <dt>First wrote</dt>
                             <dd title="{{ $selected->created_at?->format('j M Y, H:i') }}">{{ $selected->created_at?->diffForHumans() }}</dd>
                         </div>
                     </dl>
+                    @if ($workReady)
+                        @if ($canAssignChat)
+                            <label class="lq-inbox-assign">
+                                <span class="lq-inbox-assign-label"><x-heroicon-o-user-plus /> Looked after by</span>
+                                <select class="lq-input lq-input-sm" aria-label="Give this chat to" wire:change="assignChat($event.target.value)" wire:key="assign-chat-{{ $selected->getKey() }}-{{ $selected->chat_assigned_to ?? 'none' }}" wire:loading.attr="disabled" wire:target="assignChat">
+                                    <option value="" @selected($selected->chat_assigned_to === null)>Nobody yet</option>
+                                    @foreach ($chatTeam as $id => $name)
+                                        <option value="{{ $id }}" @selected($selected->chat_assigned_to === $id)>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @else
+                            <p class="lq-help px-4">{{ $selected->chatAssignee ? $selected->chatAssignee->name.' looks after this chat.' : 'Nobody looks after this chat yet: whoever answers it takes it.' }}</p>
+                        @endif
+                    @endif
                     <p class="lq-help px-4 pb-4">This visitor is not a lead. They become one when they give an email address or a phone number, here or in the chat.</p>
                 </aside>
             @endif
@@ -134,11 +164,14 @@
                         <x-ui.avatar :name="$lead->name" :src="$selected->pictureUrl()" size="lg" tone />
                         <h2 class="lq-inbox-side-name">{{ $lead->name }}</h2>
                         <x-ui.status-pill :status="$lead->status" />
-                        @if ($canUpdate)
+                        @if ($canUpdate && ! $selected->isLiveChat())
                             @php $service = $selected->isInstagram() ? 'Instagram' : 'Facebook'; @endphp
                             <button type="button" class="lq-inbox-refresh" wire:click="refreshProfile" wire:loading.attr="disabled" wire:target="refreshProfile" title="Ask {{ $service }} again for this person's name and picture">
                                 <x-heroicon-m-arrow-path wire:loading.class="animate-spin" wire:target="refreshProfile" /> Name and picture from {{ $service }}
                             </button>
+                            @if ($workReady)
+                                <button type="button" @class(['lq-seg-item', 'lq-seg-active' => $filter === 'closed']) wire:click="$set('filter', 'closed')" role="tab" title="Website chats the team closed">Closed</button>
+                            @endif
                         @endif
                     </div>
 
@@ -218,7 +251,7 @@
                             </div>
                         @else
                             <div>
-                                <dt>Page</dt>
+                                <dt>{{ $selected->isLiveChat() ? 'Website' : 'Page' }}</dt>
                                 <dd>{{ $selected->accountName() }}</dd>
                             </div>
                         @endif

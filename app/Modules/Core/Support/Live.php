@@ -26,6 +26,15 @@ final class Live
     /** @var array<string, true> keys changed again inside the quiet time */
     private static array $waiting = [];
 
+    /** @var list<callable(int, ?int): void> told who asked (the person and the brand they look at) after every valid ask */
+    private static array $listeners = [];
+
+    /** Something that wants to know a person has a page open: the live chat's "somebody is here" (AgentPresence). */
+    public static function whenSeen(callable $listener): void
+    {
+        self::$listeners[] = $listener;
+    }
+
     /** Something of this brand changed: a lead, a note, a task, a sale, a chat, a member. */
     public static function touch(?int $brandId): void
     {
@@ -117,7 +126,13 @@ final class Live
             return null;
         }
 
-        return self::stamps(ctype_digit($scope) ? (int) $scope : null, (int) $userId, $scope === 'all');
+        $brandId = ctype_digit($scope) ? (int) $scope : null;
+
+        foreach (self::$listeners as $listener) {
+            $listener((int) $userId, $brandId);
+        }
+
+        return self::stamps($brandId, (int) $userId, $scope === 'all');
     }
 
     /** Called when a request or a queued job ends: write the stamps that changed inside the quiet time. */

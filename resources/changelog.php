@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.46.0',
+        'date' => '2026-11-04',
+        'title' => 'Answer the website chat from the Inbox',
+        'changes' => [
+            ['new', 'Reply to a visitor in the Inbox: the answer shows in their chat box within a few seconds, with your first name. A note for the team (the "Note for the team" button above the box) is yellow and the visitor never sees it.'],
+            ['new', 'Close a chat when it is done, and Reopen it. A closed chat leaves the working views and sits under Closed; if the visitor writes again it opens by itself and the chat says why. The chat box tells the visitor the team closed the chat.'],
+            ['new', 'A visitor\'s chat that nobody has belongs to the first person who answers it; a colleague can read it but not answer. Admins and Managers give it to somebody else from the side pane ("Looked after by"), and that person gets a bell. A chat that has a lead goes by the lead, as every chat does.'],
+            ['new', 'A bell, with the sound, desktop alert and push, when a visitor starts a chat: for everybody who may answer it, once per chat every two minutes. Later lines ring only for the person who has the chat.'],
+            ['new', '"Typing…" both ways: the team sees when the visitor types, and the visitor sees when the team does.'],
+            ['new', 'The chat box knows when nobody is here. While a page of the brand is open in a team member\'s browser they count as here. When nobody is, the box says "We are away right now" and shows a form (name, email or phone, message); sending it makes the lead and the first message.'],
+            ['improved', 'Visitors and Closed have their own row of buttons in the Inbox, so the list header fits.'],
+        ],
+    ],
+    [
         'version' => '1.45.0',
         'date' => '2026-11-04',
         'title' => 'The live chat box on the websites: visitors can write, and become a lead only when they give an email or phone number',

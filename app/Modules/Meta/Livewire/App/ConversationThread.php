@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Livewire\App;
 
+use App\Modules\Auth\Models\User;
+use App\Modules\Chat\Actions\ChangeChat;
+use App\Modules\Chat\Actions\ReplyToVisitor;
+use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Meta\Actions\ReplyOnMessenger;
@@ -15,6 +19,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use RuntimeException;
 
 /**
  * One Messenger or Instagram thread: the messages, how long the 24-hour
@@ -33,6 +38,9 @@ final class ConversationThread extends Component
     public bool $inbox = false;
 
     public string $reply = '';
+
+    /** In a website chat: reply to the visitor, or note for the team only. */
+    public string $mode = 'reply';
 
     public function mount(int $conversationId, bool $inbox = false): void
     {
@@ -63,6 +71,13 @@ final class ConversationThread extends Component
     public function send(ReplyOnMessenger $action): void
     {
         $conversation = $this->conversation();
+
+        if ($conversation->isLiveChat()) {
+            $this->sendInLiveChat($conversation);
+
+            return;
+        }
+
         $this->authorize('reply', $conversation);
 
         $this->validate(['reply' => ['required', 'string']], attributes: ['reply' => 'message']);
@@ -85,6 +100,62 @@ final class ConversationThread extends Component
         $this->dispatch('conversation-updated');
     }
 
+    /** An answer to the visitor, or a note the visitor never sees. */
+    private function sendInLiveChat(Conversation $conversation): void
+    {
+        $this->authorize('reply', $conversation);
+        $this->validate(['reply' => ['required', 'string']], attributes: ['reply' => 'message']);
+
+        $lines = app(ReplyToVisitor::class);
+
+        try {
+            $this->mode === 'note' ? $lines->note($conversation, $this->user(), $this->reply) : $lines->reply($conversation, $this->user(), $this->reply);
+        } catch (RuntimeException $exception) {
+            $this->addError('reply', $exception->getMessage());
+
+            return;
+        }
+
+        $this->reply = '';
+        $this->dispatch('conversation-updated');
+    }
+
+    public function close(ChangeChat $changes): void
+    {
+        $conversation = $this->conversation();
+        $this->authorize('work', $conversation);
+
+        $changes->close($conversation, $this->user());
+        $this->dispatch('conversation-updated');
+    }
+
+    public function reopen(ChangeChat $changes): void
+    {
+        $conversation = $this->conversation();
+        $this->authorize('work', $conversation);
+
+        $changes->reopen($conversation, $this->user());
+        $this->dispatch('conversation-updated');
+    }
+
+    /** Who has the chat: its lead's owner, or for a visitor with no lead the person who took it. */
+    private function owner(Conversation $conversation): ?string
+    {
+        if ($conversation->lead !== null) {
+            return $conversation->lead->assignee?->name;
+        }
+
+        return $conversation->isLiveChat() && LiveChat::workReady() && $conversation->chatAssignee !== null ? $conversation->chatAssignee->name : null;
+    }
+
+    private function user(): User
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        return $user;
+    }
+
     public function render(): View
     {
         $conversation = $this->conversation();
@@ -98,7 +169,12 @@ final class ConversationThread extends Component
             'canReply' => (bool) auth()->user()?->can('reply', $conversation),
             // Front sales: a free chat is taken before it is answered; a colleague's is only read.
             'canTake' => $conversation->lead !== null && (bool) auth()->user()?->can('take', $conversation->lead),
-            'owner' => $conversation->lead?->assignee?->name,
+            'owner' => $this->owner($conversation),
+            'typingUrl' => $conversation->isLiveChat() && ($brand = app(CurrentBrand::class)->get()) !== null ? route('brand.conversations.typing', ['brand' => $brand->slug, 'conversation' => $conversation->getKey()]) : null,
+            'isLiveChat' => $conversation->isLiveChat(),
+            'closed' => $conversation->isClosed(),
+            'canWork' => $conversation->isLiveChat() && (bool) auth()->user()?->can('work', $conversation),
+            'visitorTyping' => $conversation->isLiveChat() && ChatTyping::visitorIsTyping((int) $conversation->getKey()),
             // The Inbox head's Assign button, for screens too narrow for the side pane: only for who may assign the lead.
             'canAssign' => $conversation->lead !== null && (bool) auth()->user()?->can('assign', $conversation->lead),
             'leadUrl' => $this->leadUrl($conversation),
@@ -119,6 +195,6 @@ final class ConversationThread extends Component
 
     private function conversation(): Conversation
     {
-        return Conversation::query()->with(['lead.status', 'source', ...(LiveChat::ready() ? ['visitor', 'widget'] : [])])->findOrFail($this->conversationId);
+        return Conversation::query()->with(['lead.status', 'source', ...(LiveChat::ready() ? ['visitor', 'widget'] : []), ...(LiveChat::workReady() ? ['chatAssignee'] : [])])->findOrFail($this->conversationId);
     }
 }

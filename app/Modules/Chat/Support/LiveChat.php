@@ -15,9 +15,17 @@ final class LiveChat
 {
     private static bool $ready = false;
 
+    private static bool $workReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
         return self::$ready = self::$ready || (Schema::hasTable('chat_widgets') && Schema::hasColumn('messages', 'sender_type'));
+    }
+
+    /** The team can work a website chat (answer, assign, close): the columns of the second update are there. */
+    public static function workReady(): bool
+    {
+        return self::$workReady = self::$workReady || (self::ready() && Schema::hasColumn('conversations', 'first_response_at'));
     }
 }

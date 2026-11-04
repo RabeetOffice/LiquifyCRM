@@ -122,6 +122,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   the lead gate (through `CreateLead`, `LeadSource::LiveChat`), `SendVisitorMessage` the spam checks. The column is
   `messages.sender_type`, never `sender` (that is `Message::sender()`, the agent). Visitor text is shown with `textContent` only.
   Chat leads are not yet routed by widget (`lead_routes`): they land unassigned.
+  Phase 3 (1.46.0, the team side): `ReplyToVisitor` / `ChangeChat` (answer, note, close, reopen, assign), `ChatNotifier` (bell),
+  `ChatTyping`, `AgentPresence` (cache only; noted from `Live::read` through `Live::whenSeen`, so a brand page open in somebody's
+  browser is "here"). Message `kind` is text, note or event: notes and events never go to the visitor. A visitor's chat with no
+  lead is assigned on `conversations.chat_assigned_to`; one with a lead goes by the lead. New columns are behind
+  `LiveChat::workReady()`. Canned replies and files (spec Stage 8) are not built.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

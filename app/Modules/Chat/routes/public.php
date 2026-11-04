@@ -18,5 +18,6 @@ Route::prefix('chat/api')->group(function (): void {
     Route::post('init', [WidgetController::class, 'init'])->middleware('throttle:chat-init')->name('chat.widget.init');
     Route::get('messages', [WidgetController::class, 'messages'])->middleware('throttle:chat-poll')->name('chat.widget.messages');
     Route::post('messages', [WidgetController::class, 'send'])->middleware('throttle:chat-send')->name('chat.widget.send');
+    Route::post('typing', [WidgetController::class, 'typing'])->middleware('throttle:chat-typing')->name('chat.widget.typing');
     Route::post('details', [WidgetController::class, 'details'])->middleware('throttle:chat-details')->name('chat.widget.details');
 });

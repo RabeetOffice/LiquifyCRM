@@ -35,14 +35,32 @@ final class ConversationPolicy
 
     public function reply(User $user, Conversation $conversation): bool
     {
-        // Answering a website chat comes with the next update; Messenger and Instagram replies are untouched.
-        if ($conversation->isLiveChat()) {
-            return false;
+        // A website chat with no lead: Admins and the brand's Managers always; an Agent when nobody looks after it or it is theirs.
+        if ($conversation->isLiveChat() && $conversation->lead_id === null) {
+            if (! LiveChat::workReady() || ! ChatAccess::canSeeVisitors($user, (int) $conversation->brand_id)) {
+                return false;
+            }
+
+            return $user->isGlobalAdmin() || $user->isManagerIn((int) $conversation->brand_id)
+                || $conversation->chat_assigned_to === null || $conversation->chat_assigned_to === $user->getKey();
         }
 
         $lead = $this->lead($conversation);
 
         return $lead !== null && $user->can('update', $lead);
+    }
+
+    /** Close, reopen and leave notes: whoever may answer the chat. */
+    public function work(User $user, Conversation $conversation): bool
+    {
+        return $conversation->isLiveChat() && $this->reply($user, $conversation);
+    }
+
+    /** Give a visitor's chat to somebody: Admins and the brand's Managers. */
+    public function assignChat(User $user, Conversation $conversation): bool
+    {
+        return $conversation->isLiveChat() && $conversation->lead_id === null && LiveChat::workReady()
+            && ($user->isGlobalAdmin() || $user->isManagerIn((int) $conversation->brand_id));
     }
 
     private function lead(Conversation $conversation): ?Lead

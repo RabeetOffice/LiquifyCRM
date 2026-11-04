@@ -211,3 +211,37 @@ tables, each arrives with the phase that uses it.
   (Phase 3), live visitors, page trail and invites (Phase 6), AI (Phase 5), Ably pings (Phase 4).
 - Tests: tests/Feature/Chat/LiveChatWidgetTest.php (14). Checked by eye on a stand-in website page (desktop, phone, returning
   visitor, pre-chat form, suggestion card).
+
+## Phase 3 built (4 Nov 2026, version 1.46.0)
+Scope as the spec's Stage 4 (agent inbox): answering, notes, close and reopen, assigning, alerts, typing, agent presence and the offline
+form. Canned replies and files are the spec's Stage 8 and are not built yet; read receipts and a manual Online/Away/Offline switch
+are not either.
+- Columns on `conversations`: `chat_assigned_to`, `chat_status` (open or closed), `chat_closed_at`, `first_response_at` (second
+  migration, behind `LiveChat::workReady()`). A chat with a lead is assigned through the lead; `chat_assigned_to` is only for a
+  visitor with no lead. Messages: `kind` text, note or event; notes and events never reach the visitor (`VisitorChats::messages`).
+- Actions: `ReplyToVisitor` (reply, note, event line), `ChangeChat` (close, reopen, assign), `SendVisitorMessage` (reopens a closed
+  chat, rings the bell). `ConversationPolicy::reply` for a visitor's chat: Admins and the brand's Managers; an Agent when nobody has
+  it or it is theirs; `work` (close, notes) and `assignChat` (Admins, Managers) are new.
+- `ChatNotifier` (bell through `AppNotification`, no email), `ChatTyping` and `AgentPresence` live in the cache only. Presence is
+  noted from `Live::read` (every page of a brand asks `/api/live` every few seconds; `Live::whenSeen` is the hook), so nothing runs
+  in the background; the chat box's `online` answer is worked out at most every 10 seconds per brand.
+- Widget: typing both ways, a closed note, the offline form when `online` is false.
+- Tests: tests/Feature/Chat/LiveChatTeamTest.php (10). Whole suite 554 tests pass. Checked by eye: the offline form, an answer and a
+  note from the Inbox, close and reopen, the visitor seeing the answer and the closed line.
+
+## Phase 3 built (4 Nov 2026, version 1.46.0)
+Scope as the spec's Stage 4 (agent inbox): answering, notes, close and reopen, assigning, alerts, typing, agent presence and the offline
+form. Canned replies and files are the spec's Stage 8 and are not built yet; read receipts and a manual Online/Away/Offline switch
+are not either.
+- Columns on `conversations`: `chat_assigned_to`, `chat_status` (open or closed), `chat_closed_at`, `first_response_at` (second
+  migration, behind `LiveChat::workReady()`). A chat with a lead is assigned through the lead; `chat_assigned_to` is only for a
+  visitor with no lead. Messages: `kind` text, note or event; notes and events never reach the visitor (`VisitorChats::messages`).
+- Actions: `ReplyToVisitor` (reply, note, event line), `ChangeChat` (close, reopen, assign), `SendVisitorMessage` (reopens a closed
+  chat, rings the bell). `ConversationPolicy::reply` for a visitor's chat: Admins and the brand's Managers; an Agent when nobody has
+  it or it is theirs; `work` (close, notes) and `assignChat` (Admins, Managers) are new.
+- `ChatNotifier` (bell through `AppNotification`, no email), `ChatTyping` and `AgentPresence` live in the cache only. Presence is
+  noted from `Live::read` (every page of a brand asks `/api/live` every few seconds; `Live::whenSeen` is the hook), so nothing runs
+  in the background; the chat box's `online` answer is worked out at most every 10 seconds per brand.
+- Widget: typing both ways, a closed note, the offline form when `online` is false.
+- Tests: tests/Feature/Chat/LiveChatTeamTest.php (10). Whole suite 554 tests pass. Checked by eye: the offline form, an answer and a
+  note from the Inbox, close and reopen, the visitor seeing the answer and the closed line.

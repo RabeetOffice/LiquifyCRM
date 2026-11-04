@@ -12483,4 +12483,87 @@ button.lq-perday-row:hover {
     font-size: 0.875rem;
 }
 
+/* ------------------------------------------------------------ website chat */
+
+/* A note for the team inside a website chat: yellow and dashed, so nobody mistakes it for a reply the visitor sees. */
+.lq-msg-note .lq-bubble {
+    background: var(--lq-warning-tint);
+    border: 1px dashed color-mix(in srgb, var(--lq-warning) 55%, transparent);
+    color: var(--lq-ink);
+}
+
+.lq-msg-note .lq-bubble-meta::before {
+    content: "Note, only your team sees it · ";
+}
+
+/* A line that says what happened in the chat: closed, given to somebody. */
+.lq-thread-event {
+    align-self: center;
+    margin: 0.25rem 0;
+    padding: 0.125rem 0.625rem;
+    border-radius: 999px;
+    background: var(--lq-surface);
+    color: var(--lq-muted);
+    font-size: 0.6875rem;
+}
+
+/* The visitor is typing. */
+.lq-typing {
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    padding: 0.75rem 0.875rem;
+}
+
+.lq-typing span {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: var(--lq-muted);
+    animation: lq-typing-dot 1.2s infinite ease-in-out;
+}
+
+.lq-typing span:nth-child(2) { animation-delay: 0.15s; }
+.lq-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes lq-typing-dot {
+    0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lq-typing span { animation: none; opacity: 0.6; }
+}
+
+/* Reply or note, above the box. */
+.lq-composer-modes {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin: 0 0 0.5rem 0.25rem;
+    padding: 0.125rem;
+    border-radius: 999px;
+    background: var(--lq-surface);
+}
+
+.lq-composer-mode {
+    padding: 0.1875rem 0.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.lq-composer-mode-active {
+    background: var(--lq-panel);
+    color: var(--lq-ink);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+.lq-composer-note .lq-composer-input {
+    background: var(--lq-warning-tint);
+}
+
 } /* @layer components */
