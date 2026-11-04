@@ -15,6 +15,7 @@ use App\Modules\Chat\Support\AgentPresence;
 use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
+use App\Modules\Chat\Support\Realtime;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Core\Support\CurrentBrand;
@@ -120,6 +121,16 @@ final class WidgetController
         return response()->json(['message' => VisitorChats::row($sent['message']->load('chatFiles'))]);
     }
 
+    /** The address the chat box opens to hear "something changed" the moment it happens (empty when that is not switched on). */
+    public function realtime(Request $request): JsonResponse
+    {
+        [, $visitor] = $this->visitor($request);
+
+        $url = Realtime::enabled() ? Realtime::listenUrl(Realtime::visitorChannel($visitor->visitor_token)) : null;
+
+        return response()->json($url === null ? ['enabled' => false] : ['enabled' => true, 'url' => $url, 'refresh_in' => Realtime::refreshInSeconds()])->header('Cache-Control', 'no-store');
+    }
+
     /** The visitor is typing: the team's open chat shows the dots for a few seconds. */
     public function typing(Request $request): JsonResponse
     {
@@ -194,6 +205,7 @@ final class WidgetController
             'consent' => $widget->look('consent'),
             'offline' => $widget->look('offline'),
             'online' => AgentPresence::online((int) $widget->brand_id),
+            'realtime' => Realtime::enabled(),
             'files' => LiveChat::extrasReady() ? ['max_mb' => (int) (ChatFiles::maxBytes($widget) / 1048576), 'accept' => ChatFiles::accept()] : null,
             'prechat' => ['enabled' => $widget->asksFirst(), 'fields' => collect(ChatWidget::PRECHAT_FIELDS)->map(fn (string $label, string $field): bool => $widget->asks($field))->all(), 'labels' => ChatWidget::PRECHAT_FIELDS],
         ];

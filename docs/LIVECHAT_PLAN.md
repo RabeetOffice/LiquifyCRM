@@ -268,3 +268,47 @@ The spec's Stage 8, as the user asked right after Phase 3. Tables `canned_replie
   picture and a PDF, the team's thread with them, the `/pr` menu, a picked reply with the names filled in, the saved replies page.
 - Still open: read receipts, a manual Away switch, page trail and invites (Phase 6), AI (Phase 5), Ably pings (Phase 4), routing
   of live chat leads by widget.
+
+## Phase 4 built (4 Nov 2026, version 1.48.0): instant signals through Ably
+`Chat\Support\Realtime`. Optional: it does nothing without `ABLY_API_KEY` (format `appId.keyId:secret`, from the Ably dashboard,
+an API key with Publish and Subscribe), and everything polls as before when Ably is away.
+- Server → Ably: `POST /channels/{channel}/messages` with Basic auth, body `{"name":"changed","data":"1"}`, never any text. Sent
+  after the response in a web request, at once in a command or test. A brand's chats changed → `Live::whenChatChanged` (hooked in
+  `Live::write`, so at most about once a second) → channel `lq-b-{brandId}`. What a visitor sees changed (an answer, close,
+  reopen, the team starts typing) → `lq-v-{24 hex of an HMAC of the visitor's token}`.
+- Browsers listen with Ably's server-sent events (`EventSource`, no library): `GET {host}/event-stream?channels=…&v=1.2&accessToken=…`.
+  The token comes from a signed TokenRequest (`POST /keys/{keyName}/requestToken`; mac = base64 HMAC-SHA-256 over keyName, ttl,
+  capability, clientId (empty), timestamp, nonce, each followed by a newline), capability `{channel: ["subscribe"]}` only, one hour,
+  kept 50 minutes. The visitor's chat box asks `POST /chat/api/realtime` (visitor headers); a brand page has `data-realtime`
+  on `<main>` pointing at `GET /b/{brand}/realtime` (brand members only; 204 when off or Ably does not answer). A page asks for a
+  new address after 45 minutes or when its connection is gone.
+- In the browser: the CRM's `askLive` rounds run on a signal at once and carry on at their normal pace; the chat box polls every 30
+  seconds instead of 3 while its channel is open (a safety net), and returns to 3 seconds when the channel breaks.
+- Privacy page: Ably is named only while the key is set. `config/liquify.php` `realtime.ably_host` / `ably_scheme` exist only so
+  a stand-in server can be tried locally (Ably's real host is `main.realtime.ably.net`).
+- Tests: tests/Feature/Chat/LiveChatRealtimeTest.php (6; Ably faked with `Http::fake`, the token signature recomputed in the test).
+  Browser code tried against a stand-in Ably server (token, publish, event stream): the chat box opened its channel, then showed
+  the team's answer straight after the publish with no 3-second polling. **Not yet tried against the real Ably** (needs the
+  user's account and key): its token request and event-stream formats follow Ably's published docs.
+
+## Phase 4 built (4 Nov 2026, version 1.48.0): instant signals through Ably
+`Chat\Support\Realtime`. Optional: it does nothing without `ABLY_API_KEY` (format `appId.keyId:secret`, from the Ably dashboard,
+an API key with Publish and Subscribe), and everything polls as before when Ably is away.
+- Server to Ably: `POST /channels/{channel}/messages` with Basic auth, body `{"name":"changed","data":"1"}`, never any text. Sent
+  after the response in a web request, at once in a command or test. A brand's chats changed: `Live::whenChatChanged` (hooked in
+  `Live::write`, so at most about once a second) sends on channel `lq-b-{brandId}`. What a visitor sees changed (an answer, close,
+  reopen, the team starts typing): channel `lq-v-{24 hex of an HMAC of the visitor's token}`.
+- Browsers listen with Ably's server-sent events (`EventSource`, no library): `GET {host}/event-stream?channels=...&v=1.2&accessToken=...`.
+  The token comes from a signed TokenRequest (`POST /keys/{keyName}/requestToken`; mac = base64 HMAC-SHA-256 over keyName, ttl,
+  capability, clientId (empty), timestamp, nonce, each followed by a newline), capability `{channel: ["subscribe"]}` only, one hour,
+  kept 50 minutes. The visitor's chat box asks `POST /chat/api/realtime` (visitor headers); a brand page has `data-realtime`
+  on `<main>` pointing at `GET /b/{brand}/realtime` (brand members only; 204 when off or Ably does not answer). A page asks for a
+  new address after 45 minutes or when its connection is gone.
+- In the browser: the CRM's `askLive` rounds run on a signal at once and carry on at their normal pace; the chat box polls every 30
+  seconds instead of 3 while its channel is open (a safety net), and returns to 3 seconds when the channel breaks.
+- Privacy page: Ably is named only while the key is set. `config/liquify.php` `realtime.ably_host` / `ably_scheme` exist only so
+  a stand-in server can be tried locally (Ably's real host is `main.realtime.ably.net`).
+- Tests: tests/Feature/Chat/LiveChatRealtimeTest.php (6; Ably faked with `Http::fake`, the token signature recomputed in the test).
+  Browser code tried against a stand-in Ably server (token, publish, event stream): the chat box opened its channel, then showed
+  the team's answer straight after the publish with no 3-second polling. Not yet tried against the real Ably (needs the user's
+  account and key): its token request and event-stream formats follow Ably's published docs.

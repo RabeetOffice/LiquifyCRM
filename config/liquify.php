@@ -82,6 +82,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Instant chat signals (Ably)
+    |--------------------------------------------------------------------------
+    | Optional. The hosting cannot hold open connections, so a free Ably account does: the server sends it a
+    | one-word signal ("changed") and the open chat boxes and Inboxes ask for the real thing at once. The key is
+    | "appId.keyId:secret" from the Ably dashboard (an API key with Publish and Subscribe). Empty: no signals,
+    | everything polls every few seconds as before. Only the privacy page's list of companies needs to know.
+    */
+    'realtime' => [
+        'ably_key' => env('ABLY_API_KEY'),
+        'ably_host' => env('ABLY_HOST', 'main.realtime.ably.net'),
+        'ably_scheme' => env('ABLY_SCHEME', 'https'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Live chat on the websites
     |--------------------------------------------------------------------------
     | How long a website chat keeps what visitors send (the privacy pages say so, change them with these):

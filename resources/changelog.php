@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.48.0',
+        'date' => '2026-11-04',
+        'title' => 'Instant delivery in the website chat (optional, with a free Ably account)',
+        'changes' => [
+            ['new', 'With an Ably key in the server\'s settings (ABLY_API_KEY), what happens in a chat shows at once instead of after a few seconds: the team\'s answer, "typing…" and a closed chat in the visitor\'s chat box, and a visitor\'s message in the Inbox and the menu counts of everybody who has a page of the brand open.'],
+            ['new', 'Only a one-word signal ("changed") goes to Ably, never a message, a name, an email address, a phone number or a file; the screens then ask LiquifyCRM for the real thing. Each browser may listen only to its own channel, with a token this server signs for that one channel.'],
+            ['improved', 'Without the key, or when Ably cannot be reached, nothing changes: screens ask every few seconds as before, and no message is ever lost. The privacy page names Ably only while the key is set.'],
+        ],
+    ],
+    [
         'version' => '1.47.0',
         'date' => '2026-11-04',
         'title' => 'Files in the website chat, and saved replies',

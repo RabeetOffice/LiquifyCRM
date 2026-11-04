@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Actions;
 use App\Modules\Auth\Models\User;
 use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
+use App\Modules\Chat\Support\Realtime;
 use App\Modules\Chat\Support\VisitorSpam;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Models\Message;
@@ -35,7 +36,7 @@ final class ReplyToVisitor
             throw new RuntimeException('This chat is closed. Reopen it to reply.');
         }
 
-        return DB::transaction(function () use ($conversation, $by, $body, $file): Message {
+        $message = DB::transaction(function () use ($conversation, $by, $body, $file): Message {
             $message = Message::query()->create([
                 'conversation_id' => $conversation->getKey(),
                 'direction' => Message::OUT,
@@ -66,6 +67,11 @@ final class ReplyToVisitor
 
             return $message;
         });
+
+        // The visitor's chat box hears about the answer at once.
+        Realtime::notifyVisitor($conversation);
+
+        return $message;
     }
 
     /** @throws RuntimeException */

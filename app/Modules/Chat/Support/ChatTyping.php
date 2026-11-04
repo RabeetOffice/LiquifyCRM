@@ -32,7 +32,15 @@ final class ChatTyping
 
     public static function agentTypes(int $conversationId): void
     {
-        Cache::put('chat:typing:agent:'.$conversationId, true, self::SECONDS);
+        $key = 'chat:typing:agent:'.$conversationId;
+        $fresh = ! Cache::has($key);
+
+        Cache::put($key, true, self::SECONDS);
+
+        // The visitor's chat box shows the dots at once, instead of at its next ask.
+        if ($fresh) {
+            Realtime::notifyVisitor($conversationId);
+        }
     }
 
     public static function visitorIsTyping(int $conversationId): bool

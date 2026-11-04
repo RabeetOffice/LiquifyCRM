@@ -20,6 +20,7 @@ use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
 use App\Modules\Chat\Http\Controllers\ChatFileController;
 use App\Modules\Chat\Http\Controllers\ConversationTypingController;
+use App\Modules\Chat\Http\Controllers\RealtimeTokenController;
 use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
 use App\Modules\Chat\Livewire\App\ChatWidgets;
 use App\Modules\Core\Http\Controllers\MenuBadgesController;
@@ -147,6 +148,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/saved-replies', CannedRepliesIndex::class)->name('saved-replies');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
         Route::post('/conversations/{conversation}/typing', ConversationTypingController::class)->name('conversations.typing');
+        Route::get('/realtime', RealtimeTokenController::class)->name('realtime');
         Route::get('/chat-files/{attachment}', [ChatFileController::class, 'team'])->whereNumber('attachment')->name('chat-files.show');
 
         Route::get('/departments', DepartmentsIndex::class)->name('departments.index');

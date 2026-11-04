@@ -91,6 +91,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     var seen = {}, lastId = 0, open = false, unread = 0, page = null, timer = null, failures = 0;
     var started = false, detailsShown = false, detailsDismissed = false, tooltip = null;
     var typingRow = null, lastTyped = 0, closedShown = false;
+    var rt = { source: null, ok: false, refresh: null };
 
     function load() { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }
     function save(value) { try { localStorage.setItem(STORE, JSON.stringify(value)); } catch (e) {} }
@@ -424,8 +425,47 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
 
     function schedule() {
         clearTimeout(timer);
-        var base = open && !document.hidden ? 3000 : 20000;
+        // While the instant channel is open, asking is only a safety net: the news comes by itself.
+        var base = rt.ok ? 30000 : (open && !document.hidden ? 3000 : 20000);
         timer = setTimeout(poll, Math.min(60000, base * (1 + failures)));
+    }
+
+    // Instant delivery (Ably, when the CRM has it switched on): a tiny "something changed" signal arrives on the
+    // visitor's own channel and the chat box asks for what is new at once. Anything that goes wrong closes the
+    // channel and the ordinary asking every few seconds carries on.
+    function closeRealtime() {
+        clearTimeout(rt.refresh);
+        if (rt.source) { rt.source.close(); }
+        rt.source = null;
+        rt.ok = false;
+    }
+
+    function connectRealtime() {
+        if (!config || !config.realtime || typeof EventSource === 'undefined' || !creds) { return; }
+
+        call('POST', '/realtime', {}).then(function (r) {
+            if (r.status !== 200 || !r.json.enabled) { return; }
+
+            closeRealtime();
+
+            var source = new EventSource(r.json.url);
+            rt.source = source;
+            source.onopen = function () { rt.ok = true; schedule(); };
+            source.addEventListener('message', function () { poll(); });
+            source.onerror = function () {
+                rt.ok = false;
+                schedule();
+
+                // The connection is gone for good (an expired token, Ably away): try again later with a new address.
+                if (source.readyState === 2) {
+                    closeRealtime();
+                    rt.refresh = setTimeout(connectRealtime, 20000);
+                }
+            };
+
+            clearTimeout(rt.refresh);
+            rt.refresh = setTimeout(connectRealtime, Math.max(60, r.json.refresh_in || 2700) * 1000);
+        }).catch(function () {});
     }
 
     // ---- start ----------------------------------------------------------------------------------------------
@@ -464,6 +504,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
             }
 
             schedule();
+            connectRealtime();
         }).catch(function () { thread.appendChild(el('div', 'card', 'No connection. Please try again later.')); });
     }
 

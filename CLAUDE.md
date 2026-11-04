@@ -134,6 +134,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   numbers. Whatever else a live chat keeps about a person must be wiped in `ChatErasure` / `DeleteLeadForever`. The saved reply
   picker (`savedReplies` in app.js) sits in every chat's message box, not only the website's. A route outside the web group
   (`Chat/routes/public.php`) has no route model binding: look the model up in the controller.
+  1.48.0: `Realtime` sends Ably one "changed" signal per brand or visitor channel (never text) and signs one-channel subscribe
+  tokens; off without `ABLY_API_KEY`, and a failure must never lose a message or show an error (polling is always still there).
+  Never send a name, text or address to Ably, and never put the key's secret in a response or in JavaScript.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

@@ -1239,6 +1239,55 @@ Livewire.hook('commit', ({ commit, succeed }) => {
 // Back on this tab: look at once instead of waiting for the next round.
 document.addEventListener('visibilitychange', () => { if (! document.hidden) askLive(); });
 document.addEventListener('livewire:navigated', askLive);
+
+// Instant news (live chat, phase 4): when the CRM has an Ably key, a brand page also listens on that brand's channel.
+// A signal carries no data, it only says "something changed": the round above then asks the stamps at once. The
+// rounds keep going as before, so a lost connection costs nothing but a few seconds.
+const realtime = { source: null, url: null, refresh: null };
+
+const closeRealtime = () => {
+    clearTimeout(realtime.refresh);
+    realtime.source?.close();
+    realtime.source = null;
+};
+
+const connectRealtime = async () => {
+    const url = document.querySelector('[data-realtime]')?.dataset.realtime ?? null;
+
+    if (url === realtime.url && (realtime.source !== null || url === null)) return;
+
+    closeRealtime();
+    realtime.url = url;
+
+    if (url === null || typeof EventSource === 'undefined') return;
+
+    try {
+        const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' });
+
+        // 204: not switched on (or Ably does not answer): the rounds above are all there is.
+        if (response.status !== 200 || realtime.url !== url) return;
+
+        const { url: listen, refresh_in: refreshIn } = await response.json();
+        const source = new EventSource(listen);
+
+        realtime.source = source;
+        source.addEventListener('message', () => askLive());
+        source.onerror = () => {
+            // Gone for good (a token that ran out, Ably away): ask for a new address in a little while.
+            if (source.readyState === 2) {
+                closeRealtime();
+                realtime.url = null;
+                realtime.refresh = setTimeout(connectRealtime, 30000);
+            }
+        };
+        realtime.refresh = setTimeout(() => { closeRealtime(); realtime.url = null; connectRealtime(); }, Math.max(60, refreshIn ?? 2700) * 1000);
+    } catch (error) {
+        realtime.url = null;
+    }
+};
+
+connectRealtime();
+document.addEventListener('livewire:navigated', connectRealtime);
 // Keyboard shortcut for search (Ctrl K / ⌘K).
 window.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {

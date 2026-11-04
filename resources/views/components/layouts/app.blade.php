@@ -65,7 +65,7 @@
             $liveEvery = $liveUser instanceof \App\Modules\Auth\Models\User && $liveBrand === null && ($liveUser->isGlobalAdmin() || $liveUser->isWebsiteLeads());
             $liveStamps = $liveUser instanceof \App\Modules\Auth\Models\User ? \App\Modules\Core\Support\Live::stamps($liveBrand, (int) $liveUser->getKey(), $liveEvery) : null;
         @endphp
-        <main class="lq-content" id="main-content" @if ($liveStamps !== null) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveEvery) }}" data-live-at="{{ $liveStamps['b'] }}" data-live-chat-at="{{ $liveStamps['c'] }}" data-live-build="{{ \App\Modules\Core\Support\Live::build() }}" @endif>
+        <main class="lq-content" id="main-content" @if ($liveStamps !== null) data-live="{{ \App\Modules\Core\Support\Live::token((int) $liveUser->getKey(), $liveBrand, $liveEvery) }}" data-live-at="{{ $liveStamps['b'] }}" data-live-chat-at="{{ $liveStamps['c'] }}" data-live-build="{{ \App\Modules\Core\Support\Live::build() }}" @endif @if ($liveStamps !== null && $liveBrand !== null && \App\Modules\Chat\Support\Realtime::enabled()) data-realtime="{{ route('brand.realtime', ['brand' => app(\App\Modules\Core\Support\CurrentBrand::class)->get()?->slug]) }}" @endif>
             {{ $slot }}
         </main>
     </div>

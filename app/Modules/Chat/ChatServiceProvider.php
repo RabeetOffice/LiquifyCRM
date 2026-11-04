@@ -10,6 +10,7 @@ use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Policies\CannedReplyPolicy;
 use App\Modules\Chat\Policies\ChatWidgetPolicy;
 use App\Modules\Chat\Support\AgentPresence;
+use App\Modules\Chat\Support\Realtime;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Core\Support\Live;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -37,6 +38,9 @@ final class ChatServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
+        // The brand's chats changed: one tiny signal to the open pages (Realtime; nothing happens without an Ably key).
+        Live::whenChatChanged(fn (int $brandId) => Realtime::notifyBrand($brandId));
+
         // A page of the brand is open in somebody's browser: somebody is here to answer (AgentPresence).
         Live::whenSeen(function (int $userId, ?int $brandId): void {
             if ($brandId !== null) {

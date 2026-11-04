@@ -29,10 +29,19 @@ final class Live
     /** @var list<callable(int, ?int): void> told who asked (the person and the brand they look at) after every valid ask */
     private static array $listeners = [];
 
+    /** @var list<callable(int): void> told the brand whose chats changed, once its stamp is written (and so at most about once a second) */
+    private static array $chatListeners = [];
+
     /** Something that wants to know a person has a page open: the live chat's "somebody is here" (AgentPresence). */
     public static function whenSeen(callable $listener): void
     {
         self::$listeners[] = $listener;
+    }
+
+    /** Something that wants to hear when a brand's chats change: the instant signal of the live chat (Realtime). */
+    public static function whenChatChanged(callable $listener): void
+    {
+        self::$chatListeners[] = $listener;
     }
 
     /** Something of this brand changed: a lead, a note, a task, a sale, a chat, a member. */
@@ -168,5 +177,12 @@ final class Live
 
         // Milliseconds since 1970: always larger than the last stamp, whichever process wrote it.
         Cache::forever($key, (int) round(microtime(true) * 1000));
+
+        // A brand's chats moved (not the sum over every brand): whoever sends instant signals sends one.
+        if (str_starts_with($key, 'live:chat:') && ctype_digit(substr($key, 10))) {
+            foreach (self::$chatListeners as $listener) {
+                $listener((int) substr($key, 10));
+            }
+        }
     }
 }

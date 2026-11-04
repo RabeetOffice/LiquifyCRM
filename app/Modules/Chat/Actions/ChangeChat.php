@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Actions;
 use App\Modules\Auth\Models\User;
 use App\Modules\Chat\Support\ChatAccess;
 use App\Modules\Chat\Support\ChatNotifier;
+use App\Modules\Chat\Support\Realtime;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Meta\Models\Conversation;
 use RuntimeException;
@@ -28,6 +29,7 @@ final class ChangeChat
         $conversation->forceFill(['chat_status' => 'closed', 'chat_closed_at' => now(), 'unread_count' => 0])->save();
         $this->lines->event($conversation, 'Closed by '.$by->name);
         Audit::log('chat.closed', $conversation, [], 'Live chat closed: '.$conversation->displayName(), brand: $conversation->brand_id, causer: $by, logName: 'chat');
+        Realtime::notifyVisitor($conversation);
     }
 
     public function reopen(Conversation $conversation, User $by, ?string $why = null): void
@@ -39,6 +41,7 @@ final class ChangeChat
         $conversation->forceFill(['chat_status' => 'open', 'chat_closed_at' => null])->save();
         $this->lines->event($conversation, $why ?? 'Reopened by '.$by->name);
         Audit::log('chat.reopened', $conversation, [], 'Live chat reopened: '.$conversation->displayName(), brand: $conversation->brand_id, causer: $by, logName: 'chat');
+        Realtime::notifyVisitor($conversation);
     }
 
     /**
