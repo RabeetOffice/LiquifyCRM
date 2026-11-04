@@ -439,6 +439,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   goes to the form's owner and team (`keeperOf`) and `twins()` offers the pair ("a similar name, 3 minutes apart").
   Instagram chats are not part of it. `ProcessMetaEvent` handles one Page's events at a time (`Cache::lock`
   `meta-page-leads:{page}`, 20 s wait, then goes ahead), because two events of the same moment each started a lead.
+  Contact from the chat (user request, same day): `TakeContactFromChat` puts the first email and real phone number
+  (`ChatContacts`, `PhoneNormalizer::strict`: libphonenumber `isValid`, never an ISBN, never the brand's own email,
+  website domain or company phone) of an incoming Messenger or Instagram message on the lead when it has none, never
+  replacing what is there and never from the team's replies (echoes); the timeline line `leads.contact_from_chat` names
+  what was taken, never the value. `twins()` then offers the other lead by "the same email / phone number" (sure, not
+  joined by itself). `leads:chat-contacts` (03:30 nightly) catches up older chats of open chat leads of 60 days.
+  The privacy page says so.
 - Instagram direct messages (user request, 14 Oct 2026) use Meta's Instagram API with Facebook Login: the same app,
   webhook and Page token as Messenger. `meta_sources.instagram_id` / `instagram_username` is the professional account
   linked to a Page (read by `ConnectFacebook::syncPages`), so the account follows its Page's brand and `lead_routes` row.

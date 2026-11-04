@@ -12,6 +12,7 @@ use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Departments\Models\Department;
 use App\Modules\Leads\Actions\CreateLead;
 use App\Modules\Leads\Actions\MergeLeads;
+use App\Modules\Leads\Actions\TakeContactFromChat;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\LeadMatcher;
@@ -416,6 +417,9 @@ final class ProcessMetaEvent implements ShouldQueue
             ])->save();
 
             $lead->heardFrom();
+
+            // An email or a phone number the person wrote goes on the lead when it has none (4 Nov 2026).
+            app(TakeContactFromChat::class)->handle($lead, $text, $brand);
 
             // CreateLead already told the right people about a new lead.
             if (! $newLead && $lead->assigned_to !== null) {

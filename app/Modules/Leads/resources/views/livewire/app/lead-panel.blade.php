@@ -19,6 +19,7 @@
         'leads.status_changed' => 'heroicon-o-arrow-path',
         'leads.note_added' => 'heroicon-o-pencil-square',
         'leads.note_edited' => 'heroicon-o-pencil',
+        'leads.contact_from_chat' => 'heroicon-o-identification',
         'leads.contact_revealed' => 'heroicon-o-eye',
         'leads.contact_viewed' => 'heroicon-o-eye',
         'leads.follow_up_scheduled' => 'heroicon-o-calendar-days',

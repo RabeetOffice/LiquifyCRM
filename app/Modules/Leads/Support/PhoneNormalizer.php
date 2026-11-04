@@ -27,10 +27,7 @@ final class PhoneNormalizer
             return null;
         }
 
-        $countries = array_values(array_unique(array_filter([
-            self::COUNTRY_BY_CURRENCY[$brand->currency ?? ''] ?? null,
-            'GB', 'AU', 'US', 'NZ', 'CA', 'IE',
-        ])));
+        $countries = self::countries($brand);
 
         try {
             $number = new PhoneNumber($raw, $countries);
@@ -51,5 +48,29 @@ final class PhoneNormalizer
         }
 
         return preg_replace('/[^\d+]/', '', $raw) ?: null;
+    }
+
+    /**
+     * A real phone number only, in E.164, or null: for numbers found in free
+     * text (a chat), where a book's ISBN or an order number must not pass.
+     */
+    public static function strict(string $raw, ?Brand $brand = null): ?string
+    {
+        try {
+            $number = new PhoneNumber(trim($raw), self::countries($brand));
+
+            return $number->isValid() ? $number->formatE164() : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @return list<string> the brand's home country first */
+    private static function countries(?Brand $brand): array
+    {
+        return array_values(array_unique(array_filter([
+            self::COUNTRY_BY_CURRENCY[$brand->currency ?? ''] ?? null,
+            'GB', 'AU', 'US', 'NZ', 'CA', 'IE',
+        ])));
     }
 }

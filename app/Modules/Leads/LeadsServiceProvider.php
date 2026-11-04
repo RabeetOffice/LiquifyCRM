@@ -7,6 +7,7 @@ namespace App\Modules\Leads;
 use App\Modules\Brands\Events\MemberRemoved;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\ModuleServiceProvider;
+use App\Modules\Leads\Console\ChatContactsCommand;
 use App\Modules\Leads\Console\EmptyBinCommand;
 use App\Modules\Leads\Console\LeadDigestCommand;
 use App\Modules\Leads\Console\RemindFollowUpsCommand;
@@ -23,6 +24,7 @@ final class LeadsServiceProvider extends ModuleServiceProvider
     protected string $module = 'Leads';
 
     protected array $commands = [
+        ChatContactsCommand::class,
         EmptyBinCommand::class,
         LeadDigestCommand::class,
         RemindFollowUpsCommand::class,

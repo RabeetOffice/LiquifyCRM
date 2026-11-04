@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.43.0',
+        'date' => '2026-11-04',
+        'title' => 'An email or phone number written in the chat goes on the lead',
+        'changes' => [
+            ['new', 'When somebody writes their email address or phone number in a Messenger or Instagram message, it goes on their lead if the lead has none yet. The timeline says "Phone number taken from the chat" (the number itself stays masked for whoever sees contacts masked).'],
+            ['new', 'A lead of the same person with that email or number (their Facebook form, say) then shows "This person has another lead · the same phone number" with a Merge button.'],
+            ['improved', 'Only real phone numbers count: a book\'s ISBN, word counts, prices and the brand\'s own email or number are left out. What a lead already has is never replaced, and the team\'s own replies are never read.'],
+            ['improved', 'Chats from before this update are read once a night, so the leads already there get their details too.'],
+        ],
+    ],
+    [
         'version' => '1.42.1',
         'date' => '2026-11-04',
         'title' => 'The Messenger lead also names its lead form',
