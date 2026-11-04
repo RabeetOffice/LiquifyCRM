@@ -10693,6 +10693,129 @@ a.lq-file-main:hover .lq-file-name {
     }
 }
 
+/* What they asked for, part by part under where it came from: the form's answers, and what they wrote in
+   Messenger or Instagram as a chat (user report, 4 Nov 2026: a merged lead's chat looked like the form). */
+.lq-ask + .lq-ask {
+    margin-top: 1.125rem;
+    padding-top: 1.125rem;
+    border-top: 1px dashed var(--lq-card-border);
+}
+
+.lq-ask-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    color: var(--lq-muted);
+}
+
+.lq-ask-mark {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--lq-raised);
+    box-shadow: inset 0 0 0 1px var(--lq-card-border);
+    color: var(--lq-ink-soft);
+}
+
+.lq-ask-mark svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-ask-mark-facebook {
+    background: #1877f2;
+    box-shadow: none;
+    color: #fff;
+}
+
+.lq-ask-mark-messenger {
+    background: linear-gradient(135deg, #00b2ff 0%, #006aff 55%, #a033ff 100%);
+    box-shadow: none;
+    color: #fff;
+}
+
+.lq-ask-mark-instagram {
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+    box-shadow: none;
+    color: #fff;
+}
+
+.lq-ask-title {
+    font-weight: 600;
+    color: var(--lq-ink);
+}
+
+.lq-ask-detail {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lq-ask-at {
+    margin-inline-start: auto;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+/* The chat part reads as a chat: the person's bubble on the left of a soft pane, like the Messenger tab below. */
+.lq-ask-thread {
+    display: flex;
+    padding: 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: color-mix(in srgb, var(--lq-ink) 4%, transparent);
+}
+
+.lq-ask-bubble {
+    max-width: min(38rem, 92%);
+    margin: 0;
+    padding: 0.625rem 0.9375rem;
+    border-radius: 18px 18px 18px 6px;
+    background: var(--lq-surface);
+    box-shadow: 0 0 0 1px var(--lq-card-border), 0 1px 2px rgb(0 0 0 / 0.04);
+    color: var(--lq-ink);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dark .lq-ask-bubble {
+    background: rgb(255 255 255 / 0.08);
+    box-shadow: none;
+}
+
+.lq-ask-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.625rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--lq-orange-deep);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.lq-ask-open svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    transition: transform 150ms ease;
+}
+
+.lq-ask-open:hover svg {
+    transform: translateX(2px);
+}
+
 /* One person, two leads. */
 .lq-twins {
     display: flex;

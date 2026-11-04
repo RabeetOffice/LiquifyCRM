@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Support;
 
+use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
+use Carbon\CarbonInterface;
 
 /**
  * What a lead's form carried, sorted for reading. The extra fields of a
@@ -107,6 +109,82 @@ final class LeadEnquiry
         }
 
         return $facts;
+    }
+
+    /**
+     * What they asked for, by where each part came from (user report, 4 Nov
+     * 2026: after a form and a chat became one lead, nobody could tell the
+     * Messenger message from the form's answers). The form's answers (and a
+     * website's or a form's own message) are one part; the chat's message is
+     * another, shown as a chat. Oldest first, the form first when a time is
+     * missing. `$chat` is the lead's chat: the person's first message in it,
+     * and whether the lead's message is one of theirs.
+     *
+     * @param  array{channel: string, icon: string, first: ?string, firstAt: ?CarbonInterface, hasMessage: bool}|null  $chat
+     * @return list<array{kind: string, title: string, detail: ?string, icon: string, brand: bool, at: ?CarbonInterface, message: ?string, answers: list<array{label: string, value: string}>}>
+     */
+    public static function parts(Lead $lead, ?array $chat = null, ?CarbonInterface $formAt = null): array
+    {
+        $answers = self::answers($lead);
+        $message = filled($lead->message) ? (string) $lead->message : null;
+        $chatLead = in_array($lead->source_type, [LeadSource::Messenger, LeadSource::Instagram], true);
+        $fromChat = $message !== null && ($chatLead || ($chat['hasMessage'] ?? false));
+        $parts = [];
+
+        if ($answers !== [] || ($message !== null && ! $fromChat)) {
+            $parts[] = [
+                'kind' => 'form',
+                ...self::formLabel($lead, $chatLead),
+                'at' => $formAt,
+                'message' => $fromChat ? null : $message,
+                'answers' => $answers,
+            ];
+        }
+
+        $said = $fromChat ? $message : ($chat['first'] ?? null);
+
+        if ($said !== null && $said !== '') {
+            $instagram = ($chat['icon'] ?? null) === 'instagram' || ($chat === null && $lead->source_type === LeadSource::Instagram);
+
+            $parts[] = [
+                'kind' => 'chat',
+                'title' => $chat['channel'] ?? ($instagram ? 'Instagram' : 'Messenger'),
+                'detail' => null,
+                'icon' => $instagram ? 'instagram' : 'messenger',
+                'brand' => true,
+                'at' => $chat['firstAt'] ?? null,
+                'message' => $said,
+                'answers' => [],
+            ];
+        }
+
+        if (count($parts) === 2 && $parts[0]['at'] !== null && $parts[1]['at'] !== null && $parts[1]['at']->lt($parts[0]['at'])) {
+            $parts = [$parts[1], $parts[0]];
+        }
+
+        return $parts;
+    }
+
+    /**
+     * What the form part is called: the lead form of Facebook or Instagram
+     * (also when it joined a chat's lead), the website's form, or how the lead
+     * was added.
+     *
+     * @return array{title: string, detail: ?string, icon: string, brand: bool}
+     */
+    private static function formLabel(Lead $lead, bool $chatLead): array
+    {
+        $fields = (array) $lead->fields;
+        $form = self::text($fields['form'] ?? null);
+        $instagram = mb_strtolower(self::text($fields['platform'] ?? null)) === 'ig';
+
+        return match (true) {
+            $lead->source_type === LeadSource::Facebook, $chatLead => ['title' => ($instagram ? 'Instagram' : 'Facebook').' lead form', 'detail' => $form !== '' ? $form : null, 'icon' => $instagram ? 'instagram' : 'facebook', 'brand' => true],
+            $lead->source_type === LeadSource::Website => ['title' => 'Website form', 'detail' => self::text($fields['website'] ?? null) ?: null, 'icon' => 'heroicon-o-globe-alt', 'brand' => false],
+            $lead->source_type === LeadSource::Manual => ['title' => 'Added by hand', 'detail' => null, 'icon' => 'heroicon-o-pencil-square', 'brand' => false],
+            $lead->source_type === LeadSource::Import => ['title' => 'Imported', 'detail' => null, 'icon' => 'heroicon-o-arrow-up-tray', 'brand' => false],
+            default => ['title' => $lead->source_type->getLabel(), 'detail' => null, 'icon' => 'heroicon-o-inbox-arrow-down', 'brand' => false],
+        };
     }
 
     /** The lead's chat in the Page's own inbox on Facebook, when the form named it. */

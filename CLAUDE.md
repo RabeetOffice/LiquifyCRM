@@ -446,6 +446,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   what was taken, never the value. `twins()` then offers the other lead by "the same email / phone number" (sure, not
   joined by itself). `leads:chat-contacts` (03:30 nightly) catches up older chats of open chat leads of 60 days.
   The privacy page says so.
+  "What they asked for" is in parts by origin (user report, same day: a merged lead's Messenger message looked like the
+  form): `LeadEnquiry::parts()` gives a form part (answers, and the lead's message unless it was written in the chat)
+  and a chat part (the message as a bubble, `lq-ask-bubble`, "Open the … chat"), oldest first. `LeadPanel::chatSaid()`
+  reads the person's first message and whether `leads.message` is one of theirs; `formArrivedAt()` takes the lead's
+  `created_at`, or for a chat's lead the `leads.form_joined` / form `leads.created` line of the loaded timeline.
 - Instagram direct messages (user request, 14 Oct 2026) use Meta's Instagram API with Facebook Login: the same app,
   webhook and Page token as Messenger. `meta_sources.instagram_id` / `instagram_username` is the professional account
   linked to a Page (read by `ConnectFacebook::syncPages`), so the account follows its Page's brand and `lead_routes` row.

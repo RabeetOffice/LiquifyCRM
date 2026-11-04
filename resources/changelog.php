@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.43.1',
+        'date' => '2026-11-04',
+        'title' => 'A lead shows what came from the form and what came from Messenger',
+        'changes' => [
+            ['improved', '"What they asked for" is now in parts, each under where it came from: "Facebook lead form · Free consultation" with its answers, and "Messenger" with the message as a chat bubble, each with its time, the one that came first on top. Before, a lead made of a form and a chat showed the Messenger message as if it were part of the form.'],
+            ['new', '"Open the Messenger chat" under the message goes straight to the chat on the lead.'],
+        ],
+    ],
+    [
         'version' => '1.43.0',
         'date' => '2026-11-04',
         'title' => 'An email or phone number written in the chat goes on the lead',

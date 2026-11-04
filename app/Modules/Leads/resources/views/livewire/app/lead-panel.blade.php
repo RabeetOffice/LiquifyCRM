@@ -213,25 +213,57 @@
             </div>
         @endif
 
-        {{-- What they asked for: the message and every answer of the form, in view without a click. --}}
+        {{-- What they asked for, in view without a click, each part under where it came from: the form's answers,
+             and what they wrote in the chat as a chat (user report, 4 Nov 2026: the two looked the same). --}}
         <section class="lq-lead-section lq-enquiry">
             <h3 class="lq-lead-heading"><x-heroicon-o-chat-bubble-bottom-center-text /> What they asked for</h3>
-            @if ($lead->message)
-                <blockquote class="lq-quote">{{ $lead->message }}</blockquote>
-            @endif
-            @if ($answers !== [])
-                <dl class="lq-answers">
-                    @foreach ($answers as $answer)
-                        <div>
-                            <dt>{{ $answer['label'] }}</dt>
-                            <dd>{{ $answer['value'] }}</dd>
+            @forelse ($enquiry as $part)
+                <div @class(['lq-ask', 'lq-ask-chat' => $part['kind'] === 'chat']) wire:key="ask-{{ $part['kind'] }}">
+                    <div class="lq-ask-head">
+                        <span class="lq-ask-mark lq-ask-mark-{{ $part['brand'] ? $part['icon'] : 'plain' }}">
+                            @if ($part['brand'])
+                                <x-ui.brand-icon :name="$part['icon']" />
+                            @else
+                                @svg($part['icon'])
+                            @endif
+                        </span>
+                        <span class="lq-ask-title">{{ $part['title'] }}</span>
+                        @if ($part['detail'])
+                            <span class="lq-ask-detail">· {{ $part['detail'] }}</span>
+                        @endif
+                        @if ($part['at'])
+                            <x-ui.received :at="$part['at']" inline class="lq-ask-at" />
+                        @endif
+                    </div>
+                    @if ($part['kind'] === 'chat')
+                        <div class="lq-ask-thread">
+                            <p class="lq-ask-bubble">{{ $part['message'] }}</p>
                         </div>
-                    @endforeach
-                </dl>
-            @endif
-            @if (! $lead->message && $answers === [])
+                        @if ($conversationId)
+                            <button type="button" class="lq-ask-open"
+                                x-on:click="const lead = $el.closest('.lq-lead'); $wire.$set('tab', 'chat').then(() => lead?.querySelector('.lq-lead-main')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))">
+                                Open the {{ $chatChannel }} chat <x-heroicon-m-arrow-right />
+                            </button>
+                        @endif
+                    @else
+                        @if ($part['message'])
+                            <blockquote class="lq-quote">{{ $part['message'] }}</blockquote>
+                        @endif
+                        @if ($part['answers'] !== [])
+                            <dl class="lq-answers">
+                                @foreach ($part['answers'] as $answer)
+                                    <div>
+                                        <dt>{{ $answer['label'] }}</dt>
+                                        <dd>{{ $answer['value'] }}</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                        @endif
+                    @endif
+                </div>
+            @empty
                 <p class="lq-help">{{ $conversationId ? 'This lead began as a chat. The conversation is under '.$chatChannel.' below.' : 'This lead came with no message and no answers.' }}</p>
-            @endif
+            @endforelse
         </section>
 
         {{-- Notes, follow-ups, the chat and the history --}}

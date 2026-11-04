@@ -23,6 +23,7 @@ use App\Modules\Leads\Actions\MergeLeads;
 use App\Modules\Leads\Actions\RevealLeadContact;
 use App\Modules\Leads\Actions\ScheduleFollowUp;
 use App\Modules\Leads\Actions\SendLeadToDepartment;
+use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Exceptions\LeadIsWon;
 use App\Modules\Leads\Exceptions\RevealLimitReached;
 use App\Modules\Leads\Livewire\Concerns\EditsLeadDetails;
@@ -39,6 +40,7 @@ use App\Modules\Leads\Support\NoteEdits;
 use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Jobs\LearnProfileName;
 use App\Modules\Meta\Models\Conversation;
+use App\Modules\Meta\Models\Message;
 use App\Modules\Sales\Actions\HandOverClient;
 use App\Modules\Sales\Actions\RecordSale;
 use App\Modules\Sales\Actions\StoreClientFile;
@@ -706,6 +708,9 @@ final class LeadPanel extends Component
         // The lead's chat (Messenger or Instagram), its latest if there are two.
         $chat = Conversation::query()->where('lead_id', $lead->getKey())->latest('last_message_at')->first(['id', 'channel']);
 
+        // What they asked for, by where it came from: the form's answers apart from what they wrote in the chat.
+        $enquiry = LeadEnquiry::parts($lead, $chat !== null ? $this->chatSaid($lead, $chat) : null, $this->formArrivedAt($lead, $timeline));
+
         // The name on their Facebook or Instagram profile, asked for once in a while until Meta gives it.
         LearnProfileName::soon($lead);
 
@@ -732,7 +737,7 @@ final class LeadPanel extends Component
             'chatChannel' => $chat?->channelLabel() ?? 'Messenger',
             'statuses' => $statuses,
             'path' => $this->path($statuses, $lead),
-            'answers' => LeadEnquiry::answers($lead),
+            'enquiry' => $enquiry,
             'copyText' => LeadEnquiry::copyText($lead, $canSeeFull),
             'sourceFacts' => LeadEnquiry::source($lead),
             'inboxUrl' => LeadEnquiry::inboxUrl($lead),
@@ -781,6 +786,46 @@ final class LeadPanel extends Component
                 default => 'todo',
             },
         ])->all();
+    }
+
+    /**
+     * The lead's chat as LeadEnquiry::parts() reads it: the person's first
+     * message, and whether the lead's own message was written in the chat.
+     *
+     * @return array{channel: string, icon: string, first: ?string, firstAt: ?CarbonImmutable, hasMessage: bool}
+     */
+    private function chatSaid(Lead $lead, Conversation $chat): array
+    {
+        $chats = Conversation::query()->where('lead_id', $lead->getKey())->pluck('id');
+        $theirs = fn () => Message::query()->whereIn('conversation_id', $chats)->where('direction', Message::IN);
+        $first = $theirs()->whereNotNull('body')->where('body', '!=', '')->oldest('created_at')->oldest('id')->first(['body', 'created_at']);
+
+        return [
+            'channel' => $chat->channelLabel(),
+            'icon' => $chat->isInstagram() ? 'instagram' : 'messenger',
+            'first' => $first?->body,
+            'firstAt' => $first?->created_at !== null ? CarbonImmutable::instance($first->created_at) : null,
+            'hasMessage' => filled($lead->message) && $theirs()->where('body', (string) $lead->message)->exists(),
+        ];
+    }
+
+    /**
+     * When the lead's form came in: the lead's own arrival for a form lead,
+     * or, for a chat's lead, when a form joined it (or the merged form lead
+     * arrived), from the timeline already loaded.
+     *
+     * @param  Collection<int, Activity>  $timeline
+     */
+    private function formArrivedAt(Lead $lead, Collection $timeline): ?CarbonImmutable
+    {
+        if (! in_array($lead->source_type, [LeadSource::Messenger, LeadSource::Instagram], true)) {
+            return $lead->created_at;
+        }
+
+        $entry = $timeline->first(fn (Activity $entry): bool => $entry->event === 'leads.form_joined'
+            || ($entry->event === 'leads.created' && ($entry->properties['source'] ?? null) === LeadSource::Facebook->value));
+
+        return $entry?->created_at !== null ? CarbonImmutable::instance($entry->created_at) : null;
     }
 
     private function lead(): Lead
