@@ -312,3 +312,9 @@ an API key with Publish and Subscribe), and everything polls as before when Ably
   Browser code tried against a stand-in Ably server (token, publish, event stream): the chat box opened its channel, then showed
   the team's answer straight after the publish with no 3-second polling. Not yet tried against the real Ably (needs the user's
   account and key): its token request and event-stream formats follow Ably's published docs.
+
+Real Ably check (4 Nov 2026, after the user's key was in the local .env): the signed token request was accepted (HTTP 201), a
+subscriber on `lq-b-2` received both published "changed" messages (with `Accept: text/event-stream` the stream is real SSE,
+`event: message` and a JSON `data:`, which is what `EventSource` sends), and in the browser the chat box opened its channel and
+showed the team's answer straight after the publish. The first token request of the session once timed out after 8 seconds
+(network on the dev machine); it worked on every retry, and a failure only means polling, as designed.
