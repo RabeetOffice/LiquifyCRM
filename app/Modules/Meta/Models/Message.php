@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $conversation_id
  * @property string $direction
+ * @property string $kind text, file, note or event (a website chat's; Messenger and Instagram messages are text)
+ * @property string|null $sender_type visitor, agent, ai or system, for a website chat
  * @property string|null $body
  * @property string|null $external_id
  * @property MessageStatus $status
@@ -33,7 +35,7 @@ class Message extends Model
 
     public const OUT = 'out';
 
-    protected $fillable = ['conversation_id', 'direction', 'kind', 'sender', 'body', 'external_id', 'status', 'error', 'sent_by', 'raw', 'created_at'];
+    protected $fillable = ['conversation_id', 'direction', 'kind', 'sender_type', 'body', 'external_id', 'status', 'error', 'sent_by', 'raw', 'created_at'];
 
     protected $attributes = ['status' => 'sent', 'external_id' => null, 'error' => null, 'sent_by' => null, 'raw' => null];
 

@@ -115,6 +115,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   what a channel can do instead of testing for Messenger or Instagram. Free AI only (Groq, then Cloudflare Workers AI are the
   candidates; never Gemini's free tier for UK/EU visitors), contacts never sent to the AI. Hostinger Node apps cannot take
   inbound WebSockets (120 s request limit, no workers): real-time is polling, later Ably's free tier for pings only.
+  Phase 2 (1.45.0, the chat box): `/chat/widget.js` (source `app/Modules/Chat/resources/widget/widget.js`), the iframe page
+  `/chat/frame/{key}` and the calls under `/chat/api/*` are in `Chat/routes/public.php` with NO middleware (no session or cookie
+  for another website's visitors, and not under `/api/*`, where the framework's CORS answers every website). A visitor is a
+  browser token plus its HMAC (`VisitorToken`); headers `X-Chat-Key` / `X-Chat-Token` / `X-Chat-Sig`. `CaptureVisitorDetails` is
+  the lead gate (through `CreateLead`, `LeadSource::LiveChat`), `SendVisitorMessage` the spam checks. The column is
+  `messages.sender_type`, never `sender` (that is `Message::sender()`, the agent). Visitor text is shown with `textContent` only.
+  Chat leads are not yet routed by widget (`lead_routes`): they land unassigned.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

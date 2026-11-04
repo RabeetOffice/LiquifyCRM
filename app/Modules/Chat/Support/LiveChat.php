@@ -18,6 +18,6 @@ final class LiveChat
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || (Schema::hasTable('chat_widgets') && Schema::hasColumn('messages', 'sender'));
+        return self::$ready = self::$ready || (Schema::hasTable('chat_widgets') && Schema::hasColumn('messages', 'sender_type'));
     }
 }

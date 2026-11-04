@@ -150,7 +150,7 @@ final class LeadEnquiry
                 'kind' => 'chat',
                 'title' => $chat['channel'] ?? ($instagram ? 'Instagram' : 'Messenger'),
                 'detail' => null,
-                'icon' => $instagram ? 'instagram' : 'messenger',
+                'icon' => $instagram ? 'instagram' : ($chat['icon'] ?? 'messenger'),
                 'brand' => true,
                 'at' => $chat['firstAt'] ?? null,
                 'message' => $said,

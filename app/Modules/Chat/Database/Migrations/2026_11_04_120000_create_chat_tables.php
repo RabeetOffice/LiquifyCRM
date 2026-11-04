@@ -61,17 +61,17 @@ return new class extends Migration
             $table->foreignId('chat_visitor_id')->nullable()->after('chat_widget_id')->constrained('chat_visitors')->nullOnDelete();
         });
 
-        // Last, so that LiveChat::ready() finding `messages.sender` means everything above is there.
+        // Last, so that LiveChat::ready() finding `messages.sender_type` means everything above is there.
         Schema::table('messages', function (Blueprint $table): void {
             $table->string('kind', 10)->default('text')->after('direction');
-            $table->string('sender', 10)->nullable()->after('kind');
+            $table->string('sender_type', 10)->nullable()->after('kind');
         });
     }
 
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table): void {
-            $table->dropColumn(['kind', 'sender']);
+            $table->dropColumn(['kind', 'sender_type']);
         });
 
         Schema::table('conversations', function (Blueprint $table): void {

@@ -802,7 +802,7 @@ final class LeadPanel extends Component
 
         return [
             'channel' => $chat->channelLabel(),
-            'icon' => $chat->isInstagram() ? 'instagram' : 'messenger',
+            'icon' => $chat->isInstagram() ? 'instagram' : ($chat->isLiveChat() ? 'livechat' : 'messenger'),
             'first' => $first?->body,
             'firstAt' => $first?->created_at !== null ? CarbonImmutable::instance($first->created_at) : null,
             'hasMessage' => filled($lead->message) && $theirs()->where('body', (string) $lead->message)->exists(),

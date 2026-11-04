@@ -51,6 +51,8 @@ final class ChatWidgets extends Component
 
     public string $offline = '';
 
+    public string $consent = '';
+
     public bool $askFirst = false;
 
     /** @var array<string, bool> */
@@ -71,7 +73,7 @@ final class ChatWidgets extends Component
         $this->authorize('create', ChatWidget::class);
 
         $this->resetErrorBag();
-        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
+        $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'askFirst', 'agentsSeeVisitors', 'active', 'position');
         $this->name = $this->brand->name;
         $this->color = $this->brand->primaryColor() ?? ChatWidget::DEFAULT_APPEARANCE['color'];
         $this->fields = ['name' => true, 'email' => true, 'phone' => false, 'message' => false];
@@ -93,6 +95,7 @@ final class ChatWidgets extends Component
         $this->title = (string) (($widget->appearance ?? [])['title'] ?? '');
         $this->welcome = (string) (($widget->appearance ?? [])['welcome'] ?? '');
         $this->offline = (string) (($widget->appearance ?? [])['offline'] ?? '');
+        $this->consent = (string) (($widget->appearance ?? [])['consent'] ?? '');
         $this->askFirst = $widget->asksFirst();
         $this->fields = [];
         foreach (array_keys(ChatWidget::PRECHAT_FIELDS) as $field) {
@@ -121,6 +124,7 @@ final class ChatWidgets extends Component
             'title' => ['nullable', 'string', 'max:60'],
             'welcome' => ['nullable', 'string', 'max:300'],
             'offline' => ['nullable', 'string', 'max:300'],
+            'consent' => ['nullable', 'string', 'max:300'],
         ], [
             'domains.required' => 'List the website this chat runs on, for example example.com.',
             'color.regex' => 'Choose a colour.',
@@ -154,6 +158,7 @@ final class ChatWidgets extends Component
                 'title' => trim($this->title),
                 'welcome' => trim($this->welcome),
                 'offline' => trim($this->offline),
+                'consent' => trim($this->consent),
             ],
             'prechat' => ['enabled' => $this->askFirst, 'fields' => $fields],
             'agents_see_visitors' => $this->agentsSeeVisitors,

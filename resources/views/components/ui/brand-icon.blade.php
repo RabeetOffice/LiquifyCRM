@@ -10,6 +10,9 @@
     @case('instagram')
         <svg {{ $attributes }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3.1" y="3.1" width="17.8" height="17.8" rx="5.2"/><circle cx="12" cy="12" r="4.1"/><circle cx="17.4" cy="6.6" r="1.25" fill="currentColor" stroke="none"/></svg>
         @break
+    @case('livechat')
+        <x-heroicon-o-chat-bubble-oval-left-ellipsis {{ $attributes }} />
+        @break
     @default
         <x-heroicon-o-globe-alt {{ $attributes }} />
 @endswitch

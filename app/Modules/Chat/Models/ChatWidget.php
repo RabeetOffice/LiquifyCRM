@@ -39,6 +39,7 @@ class ChatWidget extends Model
         'title' => 'Chat with us',
         'welcome' => 'Hi! How can we help you today?',
         'offline' => 'We are away right now. Leave your details and we will get back to you.',
+        'consent' => 'Your messages are kept so our team can reply. We do not share them.',
     ];
 
     /** What the visitor may be asked before the chat starts. Name and email or phone are what make a lead. */
@@ -83,6 +84,15 @@ class ChatWidget extends Model
         $value = ($this->appearance ?? [])[$key] ?? null;
 
         return is_string($value) && $value !== '' ? $value : self::DEFAULT_APPEARANCE[$key];
+    }
+
+    /** Text on the widget's colour: black or white, whichever reads better. */
+    public function onColor(): string
+    {
+        $hex = ltrim($this->look('color'), '#');
+        $luma = (0.299 * hexdec(substr($hex, 0, 2)) + 0.587 * hexdec(substr($hex, 2, 2)) + 0.114 * hexdec(substr($hex, 4, 2))) / 255;
+
+        return $luma > 0.62 ? '#111111' : '#ffffff';
     }
 
     /** Whether the widget asks for this field before the chat starts. */

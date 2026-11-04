@@ -242,7 +242,7 @@
                         @if ($conversationId)
                             <button type="button" class="lq-ask-open"
                                 x-on:click="const lead = $el.closest('.lq-lead'); $wire.$set('tab', 'chat').then(() => lead?.querySelector('.lq-lead-main')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))">
-                                Open the {{ $chatChannel }} chat <x-heroicon-m-arrow-right />
+                                Open the {{ $chatChannel === 'Live chat' ? 'live' : $chatChannel }} chat <x-heroicon-m-arrow-right />
                             </button>
                         @endif
                     @else

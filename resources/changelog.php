@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.45.0',
+        'date' => '2026-11-04',
+        'title' => 'The live chat box on the websites: visitors can write, and become a lead only when they give an email or phone number',
+        'changes' => [
+            ['new', 'The chat box works. One line in a website\'s footer shows a round button in the brand\'s colour; a visitor opens it, reads the welcome message and writes. It keeps the conversation across pages and fills the screen on a phone. It appears only on the websites listed for that chat.'],
+            ['new', 'A visitor is not a lead. A lead is made only when they give an email address or a phone number: in the form before the chat, in a card the chat offers after their first message, or by answering yes to "Is this the best way to reach you?" when they write one in a message. A name alone is kept on the visitor and makes no lead. Made-up addresses (throw-away mail services) and numbers that are not real are refused.'],
+            ['new', 'A person who is already one of the brand\'s leads (the same email or phone number) gets the chat on their lead; no second lead is made. The lead\'s source is "Live chat", its message is what the visitor wrote first, and its timeline says the chat started it.'],
+            ['new', 'The chat is protected: a message of more than 2,000 characters, with more than two links, or sent too fast is refused; a hidden field catches robots; a banned visitor gets nothing. The visitor\'s email and phone are stored encrypted.'],
+            ['new', 'Live chat settings gets a privacy line, shown under the welcome message.'],
+            ['fixed', 'The Inbox thread and the lead page named the chat "Messenger" for a website chat; they now say "Live chat".'],
+            ['improved', 'Answering from the Inbox, the visitor card with the pages they read, and alerts come in the next updates; until then a website chat is read only.'],
+        ],
+    ],
+    [
         'version' => '1.44.0',
         'date' => '2026-11-04',
         'title' => 'Live chat settings, and a place in the Inbox for website visitors',

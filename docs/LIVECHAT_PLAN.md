@@ -55,7 +55,7 @@ One `ChannelCapabilities` map decides what each channel's thread and side pane s
 | Forms / cards in chat (details, book intake, booking) | – | – | yes |
 | Rating, transcript email | – | – | yes |
 Inbox tabs: Open · Mine · Unassigned · **Visitors** (no details yet) · AI handling · Closed; channel chip filter.
-Message gets `kind` (text, file, note, event, card) and `sender` (visitor, agent, ai, system) columns.
+Message gets `kind` (text, file, note, event, card) and `sender_type` (visitor, agent, ai, system) columns.
 
 ## Real-time on Hostinger shared hosting
 Transport order, the widget and the Inbox try in turn: WebSocket (Node relay) → SSE (Node relay) → polling (Laravel).
@@ -181,7 +181,7 @@ Phase 1 (foundation) is next; stop for review after it.
 
 ## Phase 1 built (4 Nov 2026, version 1.44.0)
 `app/Modules/Chat`: `ChatWidget` and `ChatVisitor` (tables `chat_widgets`, `chat_visitors`; `conversations.chat_widget_id` /
-`chat_visitor_id`; `messages.kind` / `sender`), all behind `LiveChat::ready()`; the settings screen `/b/{brand}/live-chat`
+`chat_visitor_id`; `messages.kind` / `sender_type`; the column is not called `sender` because `Message::sender()` is the agent who wrote it), all behind `LiveChat::ready()`; the settings screen `/b/{brand}/live-chat`
 (Admins and the brand's Managers: websites, colour, position, texts, pre-chat fields, "Agents see visitors", on/off, the
 one-line snippet with a copy button; `ChatWidgetPolicy`); `ChannelCapabilities` (what each channel can do);
 `ChatAccess` (who sees visitors with no lead); `Conversation::CHANNEL_LIVECHAT`, `scopeVisibleTo` / `listedFor` now also
@@ -194,3 +194,20 @@ tables, each arrives with the phase that uses it.
 ## Open questions for the user
 - Anonymous chats kept 14 days by default (not answered, this is the default).
 - Which free AI to try first (decided in Phase 0 after checking real limits)?
+
+## Phase 2 built (4 Nov 2026, version 1.45.0)
+- Launcher `GET /chat/widget.js` (source `app/Modules/Chat/resources/widget/widget.js`, one hour of browser cache) and chat box
+  `GET /chat/frame/{key}?o=<origin>` (Blade page with its own CSS and JS, `Content-Security-Policy: frame-ancestors` of the
+  widget's websites, no cookie). Both in `routes/public.php` with no middleware at all: framework CORS answers every website on
+  `/api/*`, so the widget's calls live under `/chat/api/*` (config, init, messages GET and POST, details), each with its own
+  rate limit (`ChatServiceProvider`).
+- A visitor's browser holds a token plus its HMAC signature (`VisitorToken`); requests carry `X-Chat-Key`, `X-Chat-Token`,
+  `X-Chat-Sig`. The launcher's `config` call is answered only to an allowed `Origin`, with that origin as the CORS header.
+- Lead gate: `CaptureVisitorDetails` (valid email or phone, disposable email list, `PhoneNormalizer::strict`, `CreateLead` with
+  `LeadSource::LiveChat`, which also de-duplicates by email or phone). `SendVisitorMessage` refuses empty, over 2,000
+  characters, over 2 links; `ChatContacts` finds an email or phone in a message and the widget asks before using it.
+- Left for later phases: routing of live chat leads by widget (`lead_routes`, Distribute screen) so they land unassigned for now,
+  the offline form and agent presence (Phase 3), typing, files, read receipts, sound, canned replies, replying from the Inbox
+  (Phase 3), live visitors, page trail and invites (Phase 6), AI (Phase 5), Ably pings (Phase 4).
+- Tests: tests/Feature/Chat/LiveChatWidgetTest.php (14). Checked by eye on a stand-in website page (desktop, phone, returning
+  visitor, pre-chat form, suggestion card).

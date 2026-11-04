@@ -14,6 +14,7 @@ enum LeadSource: string implements HasColor, HasIcon, HasLabel
     case Facebook = 'facebook';
     case Messenger = 'messenger';
     case Instagram = 'instagram';
+    case LiveChat = 'livechat';
     case Manual = 'manual';
     case Import = 'import';
     case Api = 'api';
@@ -25,6 +26,7 @@ enum LeadSource: string implements HasColor, HasIcon, HasLabel
             self::Facebook => 'Facebook',
             self::Messenger => 'Messenger',
             self::Instagram => 'Instagram',
+            self::LiveChat => 'Live chat',
             self::Manual => 'Added by hand',
             self::Import => 'Imported',
             self::Api => 'API',
@@ -35,7 +37,7 @@ enum LeadSource: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::Website => 'info',
-            self::Facebook, self::Messenger, self::Instagram => 'primary',
+            self::Facebook, self::Messenger, self::Instagram, self::LiveChat => 'primary',
             self::Manual => 'gray',
             self::Import => 'warning',
             self::Api => 'success',
@@ -49,6 +51,7 @@ enum LeadSource: string implements HasColor, HasIcon, HasLabel
             self::Facebook => 'heroicon-o-megaphone',
             self::Messenger => 'heroicon-o-chat-bubble-left-right',
             self::Instagram => 'heroicon-o-camera',
+            self::LiveChat => 'heroicon-o-chat-bubble-oval-left-ellipsis',
             self::Manual => 'heroicon-o-pencil-square',
             self::Import => 'heroicon-o-arrow-up-tray',
             self::Api => 'heroicon-o-bolt',

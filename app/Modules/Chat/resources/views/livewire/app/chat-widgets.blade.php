@@ -52,7 +52,7 @@
                         <x-ui.button size="sm" variant="secondary" icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText($refs.text.innerText); copied = true; setTimeout(() => copied = false, 2000)"><span x-text="copied ? 'Copied' : 'Copy'">Copy</span></x-ui.button>
                     </div>
                 </x-ui.field>
-                <p class="lq-help mt-3">Paste it into the website's footer, just before the closing body tag, on every page. The chat box itself is switched on in a coming update: you can set everything up now.</p>
+                <p class="lq-help mt-3">Paste it into the website's footer, just before the closing body tag, on every page. Once it is there, the chat box appears on the website.</p>
             </x-ui.card>
         @endforeach
     @endif
@@ -85,6 +85,10 @@
             </x-ui.field>
             <x-ui.field label="When nobody is here" name="offline">
                 <x-ui.textarea wire:model="offline" name="offline" rows="2" :placeholder="$defaults['offline']"></x-ui.textarea>
+            </x-ui.field>
+
+            <x-ui.field label="Privacy line" name="consent" help="Shown under the welcome message.">
+                <x-ui.textarea wire:model="consent" name="consent" rows="2" :placeholder="$defaults['consent']"></x-ui.textarea>
             </x-ui.field>
 
             <x-ui.checkbox wire:model.live="askFirst" label="Ask for details before the chat starts" />
