@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.54.0',
+        'date' => '2026-11-12',
+        'title' => 'Chat boxes for Admins, and the unread chats on the Live chat tab',
+        'changes' => [
+            ['improved', 'Only Admins set up the chat on the websites (Live chat › Chat boxes: adding one, its look and liquify-chat.php). Managers and Agents keep Chats, Live visitors and Saved replies.'],
+            ['new', 'The Live chat tab in the menu shows the number of unread chats while it is closed, so you see new chats without opening it.'],
+            ['fixed', 'In “On the website now” above the chats, a visitor’s initials sat outside their circle.'],
+        ],
+    ],
+    [
         'version' => '1.53.0',
         'date' => '2026-11-12',
         'title' => 'Who is on the website, right in Chats, and VPNs caught',

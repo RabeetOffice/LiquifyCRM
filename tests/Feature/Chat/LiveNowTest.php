@@ -79,3 +79,17 @@ it('keeps one visitor for one browser, however often the chat box opens', functi
 
     expect(ChatVisitor::query()->count())->toBe(1);
 });
+
+it('shows the unread chats on the Live chat tab itself, and gives Managers and Agents no Chat boxes', function (): void {
+    $creds = $this->postJson('/chat/api/init', [], ['X-Chat-Key' => $this->widget->widget_key])->assertOk();
+    $headers = ['X-Chat-Key' => $this->widget->widget_key, 'X-Chat-Token' => $creds->json('token'), 'X-Chat-Sig' => $creds->json('sig')];
+    $this->postJson('/chat/api/messages', ['body' => 'Hello?'], $headers)->assertOk();
+    $this->postJson('/chat/api/messages', ['body' => 'Anyone there?'], $headers)->assertOk();
+
+    $page = $this->actingAs($this->agent)->get('/b/awb/live-chat/chats')->assertOk()->getContent();
+    expect($page)->toMatch('~lq-side-parent-badge.*?<span class="lq-badge lq-badge-primary">2</span>~s')->not->toContain('Chat boxes');
+
+    auth()->logout();
+    $this->actingAs(managerOf(department($this->brand, ['name' => 'Sales 2'])))->get('/b/awb/live-chat/chats')->assertOk()->assertDontSee('Chat boxes');
+    $this->get('/b/awb/live-chat')->assertForbidden();
+});

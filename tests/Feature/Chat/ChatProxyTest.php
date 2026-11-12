@@ -82,12 +82,14 @@ it('limits each visitor by their own address, not the website server that passes
 it('gives liquify-chat.php only to people who may change the chat box, with the key, the secret and LiquifyCRM’s address in it', function (): void {
     $url = route('brand.live-chat.proxy-file', ['brand' => 'iph', 'widget' => $this->widget->getKey()]);
 
-    $file = $this->actingAs(managerOf($this->front))->get($url)->assertOk()->assertHeader('Content-Disposition', 'attachment; filename="liquify-chat.php"')->getContent();
+    $file = $this->actingAs(admin())->get($url)->assertOk()->assertHeader('Content-Disposition', 'attachment; filename="liquify-chat.php"')->getContent();
     expect($file)->toContain("const LIQUIFY_CHAT_KEY     = '".$this->widget->widget_key."'")
         ->toContain("const LIQUIFY_CHAT_SECRET  = '".$this->secret."'")
         ->toContain("const LIQUIFY_CHAT_CRM     = '".rtrim(url('/'), '/')."'")
         ->and($this->widget->refresh()->proxySecret())->toBe($this->secret);
 
+    auth()->logout();
+    $this->actingAs(managerOf($this->front))->get($url)->assertForbidden();
     auth()->logout();
     $this->actingAs(agentOf($this->front))->get($url)->assertForbidden();
     auth()->logout();
@@ -105,7 +107,7 @@ it('ships a file that is plain, valid PHP for the brand websites', function (): 
 });
 
 it('links the download on Chat boxes with the brand’s own address', function (): void {
-    $this->actingAs(managerOf($this->front))->get('/b/iph/live-chat')->assertOk()
+    $this->actingAs(admin())->get('/b/iph/live-chat')->assertOk()
         ->assertSee('/b/iph/live-chat/boxes/'.$this->widget->getKey().'/liquify-chat.php', false)
         ->assertDontSee('/b/'.$this->brand->getKey().'/live-chat/boxes/', false);
 });

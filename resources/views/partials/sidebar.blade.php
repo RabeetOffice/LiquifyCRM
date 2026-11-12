@@ -84,7 +84,13 @@
                                    x-on:click.prevent="$store.sidebar.open ? open = ! open : (Livewire.navigate('{{ $item['url'] }}'), $store.sidebar.closeMobile())">
                                     @svg($item['icon'], 'lq-side-icon')
                                     <span class="lq-side-label">{{ $item['label'] }}</span>
-                                    <x-heroicon-m-chevron-down class="lq-side-chevron" x-bind:class="{ 'lq-side-chevron-open': open }" />
+                                    <span class="lq-side-end">
+                                        @if (array_key_exists('badge', $item))
+                                            {{-- The tab's number (unread chats), while its list is closed: open, it shows on Chats. --}}
+                                            <span class="lq-side-parent-badge" x-show="! open"><span @class(['lq-side-badge', 'lq-side-badge-none' => ! $item['badge']]) data-badge-for="{{ $item['url'] }}"><span class="lq-badge lq-badge-primary">{{ $item['badge'] }}</span></span></span>
+                                        @endif
+                                        <x-heroicon-m-chevron-down class="lq-side-chevron" x-bind:class="{ 'lq-side-chevron-open': open }" />
+                                    </span>
                                 </a>
                                 <ul class="lq-side-sub" x-show="open" x-cloak>
                                     @foreach ($item['children'] as $child)

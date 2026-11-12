@@ -202,7 +202,7 @@ it('puts everything of the website chat inside one Live chat tab', function (): 
     ChatSession::query()->create(['brand_id' => $this->brand->getKey(), 'vid' => VID_ONE, 'last_seen_at' => now()]);
 
     $manager = $this->actingAs($this->manager)->get('/b/dpp/inbox')->assertOk();
-    $manager->assertSee('lq-side-parent', false)->assertSee('Live visitors')->assertSee('Saved replies')->assertSee('Chat boxes');
+    $manager->assertSee('lq-side-parent', false)->assertSee('Live visitors')->assertSee('Saved replies')->assertDontSee('Chat boxes');
     // The old places are gone: Saved replies is not a top-level item any more, and Settings has no Live chat entry.
     expect(substr_count($manager->getContent(), 'Saved replies'))->toBeLessThanOrEqual(2);
 

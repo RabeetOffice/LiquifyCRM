@@ -18,7 +18,7 @@ use Livewire\Livewire;
 beforeEach(function (): void {
     Cache::flush();
     $this->brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
-    $this->manager = managerOf(department($this->brand, ['name' => 'Front Sales']));
+    $this->manager = admin();
     $this->widget = ChatWidget::query()->create([
         'brand_id' => $this->brand->getKey(), 'name' => 'UK site', 'widget_key' => ChatWidget::newKey(),
         'allowed_domains' => ['ukpublishinghouse.co.uk'],

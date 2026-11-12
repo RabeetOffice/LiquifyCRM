@@ -191,6 +191,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   chat box updates its online line from each poll. Beside a visitor chat with no lead, whoever may `reply` gets "Add their
   details" (`Inbox::saveVisitorDetails` through `CaptureVisitorDetails`, the lead gate) and "Ask in the chat"
   (`ReplyToVisitor::askForDetails`, a team message with `raw.ask = details`; the chat box shows its details form under it).
+  1.54.0 (user decision, 12 Nov 2026): Chat boxes (`ChatWidgetPolicy`, the designer, liquify-chat.php) are for Admins only;
+  Managers and Agents chat. The Live chat tab carries the Chats badge (`Menu::liveChatTab` badge, shown by the sidebar while
+  the tab is closed; same URL key, so app.js refreshes both).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

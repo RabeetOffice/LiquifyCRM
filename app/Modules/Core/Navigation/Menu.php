@@ -312,7 +312,8 @@ final class Menu
             $children[] = self::item('Saved replies', 'heroicon-o-bolt', route('brand.saved-replies', $params), $isActive('brand.saved-replies'));
         }
 
-        if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
+        // Setting up the chat on the websites is for Admins only (user decision, 12 Nov 2026); Managers and Agents chat.
+        if ($user->isGlobalAdmin()) {
             $children[] = self::item('Chat boxes', 'heroicon-o-cog-6-tooth', route('brand.live-chat', $params), $isActive('brand.live-chat'));
         }
 
@@ -325,7 +326,8 @@ final class Menu
             'icon' => 'heroicon-o-chat-bubble-oval-left-ellipsis',
             'url' => $children[0]['url'],
             'active' => in_array(true, array_column($children, 'active'), true),
-            'badge' => null,
+            // The unread chats show on the tab itself too, while it is closed (the sidebar draws it).
+            'badge' => $children[0]['label'] === 'Chats' ? $children[0]['badge'] : null,
             'children' => $children,
         ];
     }

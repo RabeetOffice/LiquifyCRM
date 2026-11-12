@@ -137,7 +137,8 @@ it('opens each chat screen only for the roles that should have it (role crawl)',
     $expected = [
         'super' => [200, 200, 200, 200],
         'admin' => [200, 200, 200, 200],
-        'manager' => [200, 200, 200, 200],
+        // Chat boxes (live-chat) are set up by Admins only (12 Nov 2026).
+        'manager' => [200, 200, 200, 403],
         // Agents answer chats but do not set the chat boxes up.
         'agent' => [200, 200, 200, 403],
         // Website visitors are front sales' business, not Upsell's.

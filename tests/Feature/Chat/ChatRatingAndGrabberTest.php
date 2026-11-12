@@ -21,7 +21,7 @@ beforeEach(function (): void {
     Cache::flush();
     $this->brand = brand(['name' => 'UK Publishing House', 'slug' => 'ukph']);
     $this->front = department($this->brand, ['name' => 'Front Sales']);
-    $this->manager = managerOf($this->front);
+    $this->manager = admin();
     $this->widget = ChatWidget::query()->create([
         'brand_id' => $this->brand->getKey(), 'name' => 'UK site', 'widget_key' => ChatWidget::newKey(), 'allowed_domains' => ['ukpublishinghouse.co.uk'],
     ]);

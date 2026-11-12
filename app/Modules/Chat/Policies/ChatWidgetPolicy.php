@@ -18,7 +18,8 @@ final class ChatWidgetPolicy
     {
         $brand = app(CurrentBrand::class)->get();
 
-        return LiveChat::ready() && $user->isActive() && $brand !== null && ($user->isGlobalAdmin() || $user->isManagerIn($brand));
+        // Admins only (user decision, 12 Nov 2026): Managers and Agents answer the chats but do not set up the chat boxes.
+        return LiveChat::ready() && $user->isActive() && $brand !== null && $user->isGlobalAdmin();
     }
 
     public function view(User $user, ChatWidget $widget): bool

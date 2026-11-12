@@ -42,8 +42,8 @@ function visitorChat(object $test, array $attributes = []): Conversation
     ]);
 }
 
-it('lets a Manager add a live chat with a key, the websites it runs on and the line for the website', function (): void {
-    Livewire::actingAs($this->manager)
+it('lets an Admin add a live chat with a key, the websites it runs on and the line for the website', function (): void {
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->assertSee('No live chat yet')
         ->call('create')
@@ -61,19 +61,19 @@ it('lets a Manager add a live chat with a key, the websites it runs on and the l
         ->and($widget->look('title'))->toBe('Chat with us')
         ->and($widget->snippet())->toBe('<script src="'.url('/chat/widget.js').'" data-key="'.$widget->widget_key.'" async></script>');
 
-    $this->actingAs($this->manager)->get('/b/dpp/live-chat')->assertOk()->assertSee($widget->widget_key);
+    $this->actingAs($this->admin)->get('/b/dpp/live-chat')->assertOk()->assertSee($widget->widget_key);
     $this->assertDatabaseHas('activity_log', ['event' => 'chat.widget_created', 'subject_id' => $widget->getKey()]);
 });
 
 it('refuses something that is not a website address', function (): void {
-    Livewire::actingAs($this->manager)
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->call('create')
         ->set('domains', 'not a website')
         ->call('save')
         ->assertHasErrors('domains');
 
-    Livewire::actingAs($this->manager)
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->call('create')
         ->set('domains', '')
@@ -83,12 +83,12 @@ it('refuses something that is not a website address', function (): void {
     expect(ChatWidget::query()->count())->toBe(0);
 });
 
-it('keeps the live chat settings to Admins and the brand\'s Managers', function (): void {
+it('keeps the live chat settings to Admins (user decision, 12 Nov 2026)', function (): void {
     $this->actingAs($this->agent)->get('/b/dpp/live-chat')->assertForbidden();
     $this->flushSession();
     $this->actingAs($this->otherManager)->get('/b/dpp/live-chat')->assertNotFound();
     $this->flushSession();
-    $this->actingAs($this->manager)->get('/b/dpp/live-chat')->assertOk();
+    $this->actingAs($this->manager)->get('/b/dpp/live-chat')->assertForbidden();
     $this->flushSession();
     $this->actingAs($this->admin)->get('/b/dpp/live-chat')->assertOk();
 
@@ -96,7 +96,9 @@ it('keeps the live chat settings to Admins and the brand\'s Managers', function 
 
     // The menu says so too.
     $this->flushSession();
-    $this->actingAs($this->manager)->get('/b/dpp/inbox')->assertOk()->assertSee('Live chat')->assertSee('Chat boxes');
+    $this->actingAs($this->manager)->get('/b/dpp/inbox')->assertOk()->assertSee('Live chat')->assertDontSee('Chat boxes');
+    $this->flushSession();
+    $this->actingAs($this->admin)->get('/b/dpp/inbox')->assertOk()->assertSee('Chat boxes');
     $this->flushSession();
     // An Agent has the Live chat tab (saved replies, visitors) but not the settings of the chat boxes inside it.
     $this->actingAs($this->agent)->get('/b/dpp/inbox')->assertOk()->assertDontSee('Chat boxes');
@@ -105,21 +107,21 @@ it('keeps the live chat settings to Admins and the brand\'s Managers', function 
 it('switches a live chat off and on, and removes it', function (): void {
     $widget = ChatWidget::query()->create(['brand_id' => $this->brand->getKey(), 'name' => 'Dublin site', 'widget_key' => ChatWidget::newKey(), 'allowed_domains' => ['dublinpublishingpress.ie']]);
 
-    Livewire::actingAs($this->manager)
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->call('toggle', $widget->getKey());
     expect($widget->fresh()->is_active)->toBeFalse();
 
-    Livewire::actingAs($this->manager)
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->call('toggle', $widget->getKey());
     expect($widget->fresh()->is_active)->toBeTrue();
 
     // Somebody else's brand's widget cannot be reached by id.
     $foreign = ChatWidget::query()->create(['brand_id' => $this->other->getKey(), 'name' => 'UK site', 'widget_key' => ChatWidget::newKey(), 'allowed_domains' => ['ukph.co.uk']]);
-    Livewire::actingAs($this->manager)->test(ChatWidgets::class, ['brand' => $this->brand])->call('toggle', $foreign->getKey())->assertNotFound();
+    Livewire::actingAs($this->admin)->test(ChatWidgets::class, ['brand' => $this->brand])->call('toggle', $foreign->getKey())->assertNotFound();
 
-    Livewire::actingAs($this->manager)
+    Livewire::actingAs($this->admin)
         ->test(ChatWidgets::class, ['brand' => $this->brand])
         ->call('remove', $widget->getKey());
     expect(ChatWidget::query()->count())->toBe(0);
