@@ -40,36 +40,138 @@
 
     function build(config) {
         var left = config.position === 'left';
+        var side = left ? 'left' : 'right';
         var phone = window.matchMedia('(max-width: 480px)');
+        var small = window.matchMedia('(max-width: 768px)').matches || (window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(max-width: 1024px)').matches);
+
+        // The brand chose where the chat shows: on computers only, on phones only, or on both.
+        if ((config.show_on === 'desktop' && small) || (config.show_on === 'phone' && !small)) { return; }
+
         var frame = null;
         var isOpen = false;
         var unread = 0;
         var ready = false;
+        var font = '-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,sans-serif';
+        var ease = 'cubic-bezier(.2,.8,.2,1)';
+        var offsetX = Math.max(0, Math.min(160, parseInt(config.offset_x, 10) || 0));
+        var offsetY = Math.max(0, Math.min(160, parseInt(config.offset_y, 10) || 0));
+        var width = Math.max(320, Math.min(440, parseInt(config.width, 10) || 380));
+        var radius = Math.max(0, Math.min(28, parseInt(config.radius, 10) || 16));
+        var dark = config.theme === 'dark' || (config.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var style = config.style === 'pill' || config.style === 'card' ? config.style : 'bubble';
+        var ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.12 2.99 2.7 3.22 1.1.16 2.2.28 3.3.35.5.03.98.24 1.33.6l2.67 2.67 2.67-2.67c.35-.36.83-.57 1.33-.6 1.1-.07 2.2-.19 3.3-.35 1.58-.23 2.7-1.62 2.7-3.22V6.74c0-1.6-1.12-2.99-2.7-3.22A48.4 48.4 0 0 0 12 3c-2.4 0-4.76.17-7.05.52C3.37 3.75 2.25 5.14 2.25 6.74v6.02Z"/></svg>';
+        var CHEVRON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
         var root = document.createElement('div');
         root.setAttribute('data-lq-chat', '');
-        root.style.cssText = 'all:initial;position:fixed;z-index:2147483000;bottom:20px;' + (left ? 'left' : 'right') + ':20px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;';
+        root.style.cssText = 'all:initial;position:fixed;z-index:2147483000;bottom:' + offsetY + 'px;' + side + ':' + offsetX + 'px;font-family:' + font + ';';
 
         var button = document.createElement('button');
         button.type = 'button';
         button.setAttribute('aria-label', 'Open chat: ' + config.title);
-        button.style.cssText = 'all:initial;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;cursor:pointer;background:' + config.color + ';color:' + config.on + ';box-shadow:0 8px 24px rgba(0,0,0,.22);transition:transform .15s ease;';
-        button.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.12 2.99 2.7 3.22 1.1.16 2.2.28 3.3.35.5.03.98.24 1.33.6l2.67 2.67 2.67-2.67c.35-.36.83-.57 1.33-.6 1.1-.07 2.2-.19 3.3-.35 1.58-.23 2.7-1.62 2.7-3.22V6.74c0-1.6-1.12-2.99-2.7-3.22A48.4 48.4 0 0 0 12 3c-2.4 0-4.76.17-7.05.52C3.37 3.75 2.25 5.14 2.25 6.74v6.02Z"/></svg>';
-        button.onmouseenter = function () { button.style.transform = 'scale(1.06)'; };
-        button.onmouseleave = function () { button.style.transform = ''; };
 
-        var badge = document.createElement('span');
-        badge.style.cssText = 'all:initial;position:absolute;top:-4px;' + (left ? 'right' : 'left') + ':-4px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:10px;background:#e5484d;color:#fff;font:700 12px/20px system-ui,sans-serif;text-align:center;display:none;';
-        button.appendChild(badge);
+        function node(tag, css, text) {
+            var n = document.createElement(tag);
+            n.style.cssText = 'all:initial;box-sizing:border-box;' + css;
+            if (text !== undefined) { n.textContent = text; }
+            return n;
+        }
+
+        // The launcher's face. Round button: just the icon. Pill: the brand's colour with the icon in an accent circle, the
+        // words and a line saying whether somebody is here. Card: a light card with the status as a small heading.
+        var face = node('span', 'display:flex;align-items:center;gap:12px;');
+        var status = config.online ? config.online_sub : config.offline_sub;
+        var dot = function (ring) { return node('span', 'position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:' + (config.online ? '#30d158' : '#a1a1a6') + ';box-shadow:0 0 0 2.5px ' + ring + ';'); };
+
+        if (style === 'bubble') {
+            var bubbleIcon = node('span', 'display:flex;color:inherit;');
+            bubbleIcon.innerHTML = ICON;
+            face.appendChild(bubbleIcon);
+        } else {
+            var circle = node('span', 'position:relative;display:flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border-radius:50%;'
+                + (style === 'pill' ? 'background:' + config.accent + ';color:' + config.on_accent + ';' : 'background:' + config.color + ';color:' + config.on + ';'));
+            circle.innerHTML = ICON;
+            circle.appendChild(dot(style === 'pill' ? config.color : '#ffffff'));
+
+            var words = node('span', 'display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding-right:6px;text-align:left;');
+
+            if (style === 'pill') {
+                words.appendChild(node('span', 'font:650 15px/1.2 ' + font + ';letter-spacing:-.01em;color:' + config.on + ';white-space:nowrap;', config.label));
+                if (status) { words.appendChild(node('span', 'font:400 12px/1.3 ' + font + ';color:' + config.on + ';opacity:.78;white-space:nowrap;', status)); }
+            } else {
+                if (status) { words.appendChild(node('span', 'font:600 10px/1.3 ' + font + ';letter-spacing:.12em;text-transform:uppercase;color:#6e6e73;white-space:nowrap;', status)); }
+                words.appendChild(node('span', 'font:650 15px/1.25 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;white-space:nowrap;', config.label));
+            }
+
+            face.appendChild(circle);
+            face.appendChild(words);
+        }
+
+        var closer = node('span', 'display:none;color:inherit;');
+        closer.innerHTML = CHEVRON;
+        button.appendChild(face);
+        button.appendChild(closer);
+
+        var shadow = '0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08)';
+        var shadowUp = '0 14px 36px rgba(0,0,0,.22),0 3px 8px rgba(0,0,0,.1)';
+
+        function paint() {
+            var round = isOpen || style === 'bubble';
+            var base = 'all:initial;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:' + font + ';transition:transform .25s ' + ease + ',box-shadow .25s ' + ease + ',width .3s ' + ease + ';-webkit-tap-highlight-color:transparent;';
+
+            face.style.display = isOpen ? 'none' : 'flex';
+            closer.style.display = isOpen ? 'flex' : 'none';
+
+            if (round) {
+                button.style.cssText = base + 'width:60px;height:60px;border-radius:50%;background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
+            } else if (style === 'pill') {
+                button.style.cssText = base + 'height:60px;padding:8px 18px 8px 8px;border-radius:30px;background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
+            } else {
+                button.style.cssText = base + 'height:62px;padding:8px 18px 8px 9px;border-radius:20px;background:rgba(255,255,255,.92);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:#1d1d1f;box-shadow:' + shadow + ',inset 0 0 0 1px rgba(0,0,0,.06);';
+            }
+
+            button.appendChild(badge);
+        }
+
+        button.onmouseenter = function () { button.style.transform = 'translateY(-2px)'; button.style.boxShadow = shadowUp; };
+        button.onmouseleave = function () { button.style.transform = ''; button.style.boxShadow = shadow; };
+        button.onmousedown = function () { button.style.transform = 'scale(.97)'; };
+        button.onmouseup = function () { button.style.transform = 'translateY(-2px)'; };
+
+        var badge = node('span', 'position:absolute;top:-4px;' + (left ? 'right' : 'left') + ':-4px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#ff3b30;color:#fff;font:700 12px/20px ' + font + ';text-align:center;display:none;box-shadow:0 0 0 2px #fff;');
+        paint();
         root.appendChild(button);
+
+        var hideTimer = null;
 
         function layout() {
             if (!frame) { return; }
 
-            frame.style.cssText = phone.matches
-                ? 'all:initial;position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;z-index:2147483001;'
-                : 'all:initial;position:fixed;bottom:92px;' + (left ? 'left' : 'right') + ':20px;width:380px;height:min(640px,calc(100vh - 112px));border:0;border-radius:16px;background:#fff;box-shadow:0 16px 48px rgba(0,0,0,.28);z-index:2147483001;color-scheme:light;';
-            frame.style.display = isOpen ? 'block' : 'none';
+            var bg = dark ? '#1c1c1e' : '#ffffff';
+            var bottom = offsetY + 60 + 14;
+            var place = phone.matches
+                ? 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;'
+                : 'position:fixed;bottom:' + bottom + 'px;' + side + ':' + offsetX + 'px;width:' + width + 'px;max-width:calc(100vw - 24px);height:min(680px,calc(100vh - ' + (bottom + 20) + 'px));border-radius:' + radius + 'px;box-shadow:0 24px 64px rgba(0,0,0,.24),0 4px 16px rgba(0,0,0,.08);';
+            var shown = isOpen ? 'opacity:1;transform:none;' : 'opacity:0;transform:translateY(16px) scale(.96);pointer-events:none;';
+
+            frame.style.cssText = 'all:initial;' + place + 'border:0;background:' + bg + ';z-index:2147483001;color-scheme:' + (dark ? 'dark' : 'light') + ';transform-origin:bottom ' + side + ';transition:opacity .22s ease,transform .32s ' + ease + ';' + shown;
+            frame.style.display = frame.getAttribute('data-shown') === '1' ? 'block' : 'none';
+        }
+
+        function reveal(open) {
+            if (!frame) { return; }
+
+            clearTimeout(hideTimer);
+
+            if (open) {
+                frame.setAttribute('data-shown', '1');
+                isOpen = false; layout(); isOpen = true;
+                // One frame later, so the browser animates from the closed look.
+                requestAnimationFrame(function () { requestAnimationFrame(layout); });
+            } else {
+                layout();
+                hideTimer = setTimeout(function () { if (!isOpen) { frame.setAttribute('data-shown', '0'); layout(); } }, 320);
+            }
         }
 
         function post(message) {
@@ -125,14 +227,15 @@
             var card = document.createElement('div');
             card.setAttribute('role', 'dialog');
             card.setAttribute('aria-label', 'Message from ' + data.from);
-            card.style.cssText = 'all:initial;position:absolute;bottom:74px;' + (left ? 'left' : 'right') + ':0;width:264px;box-sizing:border-box;padding:12px 38px 12px 14px;border-radius:14px;background:#fff;color:#1c1b19;box-shadow:0 10px 30px rgba(0,0,0,.22);font:14px/1.4 system-ui,sans-serif;cursor:pointer;';
+            card.style.cssText = 'all:initial;position:absolute;bottom:76px;' + side + ':0;width:272px;box-sizing:border-box;padding:13px 40px 13px 15px;border-radius:18px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:#1d1d1f;box-shadow:0 14px 40px rgba(0,0,0,.18),inset 0 0 0 1px rgba(0,0,0,.05);font:14px/1.4 ' + font + ';cursor:pointer;opacity:0;transform:translateY(8px) scale(.97);transform-origin:bottom ' + side + ';transition:opacity .25s ease,transform .35s ' + ease + ';';
+            setTimeout(function () { card.style.opacity = '1'; card.style.transform = 'none'; }, 20);
 
             var who = document.createElement('div');
-            who.style.cssText = 'all:initial;display:block;font:700 12px/1.3 system-ui,sans-serif;color:' + config.color + ';margin-bottom:2px;';
+            who.style.cssText = 'all:initial;display:block;font:650 12px/1.3 ' + font + ';color:#6e6e73;margin-bottom:3px;';
             who.textContent = data.from;
 
             var words = document.createElement('div');
-            words.style.cssText = 'all:initial;display:block;font:14px/1.4 system-ui,sans-serif;color:#1c1b19;';
+            words.style.cssText = 'all:initial;display:block;font:14px/1.4 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;';
             words.textContent = data.text;
 
             var close = document.createElement('button');
@@ -188,7 +291,8 @@
             frame = document.createElement('iframe');
             frame.title = config.title;
             frame.src = config.frame + '?o=' + encodeURIComponent(location.origin);
-            frame.setAttribute('allow', 'clipboard-write');
+            frame.setAttribute('allow', 'clipboard-write; autoplay');
+            frame.setAttribute('data-shown', '0');
             document.body.appendChild(frame);
             layout();
         }
@@ -204,7 +308,8 @@
                 badge.style.display = 'none';
             }
 
-            layout();
+            paint();
+            reveal(open);
             post({ type: 'visible', open: open });
             button.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
@@ -239,5 +344,17 @@
         }
 
         if (config.track) { track(); }
+
+        // A greeting by the button after a few seconds, once a visit, for a visitor who has not written yet.
+        var greetAfter = Math.max(0, Math.min(120, parseInt(config.greet_after, 10) || 0));
+        var greetKey = 'lq_chat_greeted_' + key;
+
+        if (greetAfter > 0 && config.welcome && storage('localStorage', startedKey) !== '1' && storage('sessionStorage', greetKey) !== '1') {
+            setTimeout(function () {
+                if (isOpen) { return; }
+                storage('sessionStorage', greetKey, '1');
+                invite({ text: config.welcome, from: config.title });
+            }, greetAfter * 1000);
+        }
     }
 })();

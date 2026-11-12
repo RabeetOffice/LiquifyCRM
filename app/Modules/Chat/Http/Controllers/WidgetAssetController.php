@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat\Http\Controllers;
 
+use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\LiveChat;
 use Illuminate\Http\Request;
@@ -52,14 +53,22 @@ final class WidgetAssetController
         return response()->view('chat::frame', [
             'key' => $widget->widget_key,
             'origin' => $origin,
-            'color' => $widget->look('color'),
-            'on' => $widget->onColor(),
+            'design' => $widget->design(),
             'title' => $widget->look('title'),
+            'logo' => $widget->look('logo') === '1' ? $this->logo($widget) : null,
         ], 200, [
             'Content-Security-Policy' => 'frame-ancestors '.$ancestors->implode(' '),
             'Cache-Control' => 'no-store',
             'Referrer-Policy' => 'no-referrer',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /** The brand's mark for the chat box's header: its icon, else its logo, as an address of this CRM. */
+    private function logo(ChatWidget $widget): ?string
+    {
+        $url = Brand::query()->find($widget->brand_id)?->avatarUrl();
+
+        return $url !== null && str_starts_with($url, url('/')) ? $url : null;
     }
 }

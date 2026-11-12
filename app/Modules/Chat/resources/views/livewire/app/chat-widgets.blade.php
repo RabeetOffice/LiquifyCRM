@@ -1,4 +1,7 @@
-<div class="flex flex-col gap-6" data-live-refresh>
+<div class="flex flex-col gap-6" @unless ($showForm) data-live-refresh @endunless>
+    @if ($showForm)
+        @include("chat::partials.designer")
+    @else
     <x-ui.page-header title="Live chat" :subtitle="'The chat box for the websites of '.$brand->name.'. Add one line to a website and visitors can write to you from it.'">
         <x-slot:actions>
             <x-ui.button variant="primary" icon="heroicon-o-plus" wire:click="create">Add live chat</x-ui.button>
@@ -28,7 +31,7 @@
                     </div>
                     <div>
                         <dt>Looks</dt>
-                        <dd class="flex items-center gap-2"><span style="display: inline-block; width: 1rem; height: 1rem; border-radius: 9999px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); background: {{ $widget->look('color') }}"></span> {{ $widget->look('title') }} · {{ $widget->look('position') === 'left' ? 'bottom left' : 'bottom right' }}</dd>
+                        <dd class="flex items-center gap-2"><span style="display: inline-block; width: 1rem; height: 1rem; border-radius: 9999px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); background: {{ $widget->look('color') }}"></span> <span style="display: inline-block; width: 1rem; height: 1rem; border-radius: 9999px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); background: {{ $widget->accent() }}"></span> {{ $choices['style'][$widget->choice('style')] }} · {{ $widget->look('position') === 'left' ? 'bottom left' : 'bottom right' }} · {{ $choices['theme'][$widget->choice('theme')] }}</dd>
                     </div>
                     <div>
                         <dt>Asks first</dt>
@@ -57,63 +60,7 @@
         @endforeach
     @endif
 
-    <x-ui.modal model="showForm" :title="$editing ? 'Change live chat' : 'Add live chat'" description="Where the chat runs, how it looks and what it asks." size="md">
-        <form wire:submit="save" class="lq-form" id="chat-widget-form">
-            <x-ui.field label="Name" name="name" required help="Only your team sees this.">
-                <x-ui.input wire:model="name" name="name" />
-            </x-ui.field>
-            <x-ui.field label="Websites" name="domains" required help="One a line, like example.com. The chat works only on these (and their subpages and subdomains).">
-                <x-ui.textarea wire:model="domains" name="domains" rows="3" placeholder="dublinpublishingpress.ie"></x-ui.textarea>
-            </x-ui.field>
-
-            <div class="lq-form-grid lq-form-grid-2">
-                <x-ui.field label="Colour" name="color">
-                    <input type="color" class="lq-input" style="width: 5rem; padding: 0.25rem; cursor: pointer;" wire:model="color" name="color" id="color">
-                </x-ui.field>
-                <x-ui.field label="Where on the page" name="position">
-                    <x-ui.select wire:model="position" name="position">
-                        <option value="right">Bottom right</option>
-                        <option value="left">Bottom left</option>
-                    </x-ui.select>
-                </x-ui.field>
-            </div>
-            <x-ui.field label="Title" name="title" help="Leave empty for “{{ $defaults['title'] }}”.">
-                <x-ui.input wire:model="title" name="title" :placeholder="$defaults['title']" />
-            </x-ui.field>
-            <x-ui.field label="Welcome message" name="welcome" help="The first thing the visitor reads.">
-                <x-ui.textarea wire:model="welcome" name="welcome" rows="2" :placeholder="$defaults['welcome']"></x-ui.textarea>
-            </x-ui.field>
-            <x-ui.field label="When nobody is here" name="offline">
-                <x-ui.textarea wire:model="offline" name="offline" rows="2" :placeholder="$defaults['offline']"></x-ui.textarea>
-            </x-ui.field>
-
-            <x-ui.checkbox wire:model="track" label="Show the team who is on the website now (Live visitors)" />
-            <p class="lq-help">The chat button then tells us, every half minute, which page of the website is open (without anything after a ?), its title and where the person came from. Pages are kept for 30 days.</p>
-            <x-ui.field label="Largest file (MB)" name="maxMb" help="Visitors can send pictures, PDF, Word documents and text files up to this size. At most 25 MB.">
-                <x-ui.input type="number" min="1" max="25" wire:model="maxMb" name="maxMb" />
-            </x-ui.field>
-            <x-ui.field label="Privacy line" name="consent" help="Shown under the welcome message.">
-                <x-ui.textarea wire:model="consent" name="consent" rows="2" :placeholder="$defaults['consent']"></x-ui.textarea>
-            </x-ui.field>
-
-            <x-ui.checkbox wire:model.live="askFirst" label="Ask for details before the chat starts" />
-            @if ($askFirst)
-                <div class="flex flex-wrap gap-x-5 gap-y-2">
-                    @foreach ($prechatFields as $field => $label)
-                        <x-ui.checkbox wire:model="fields.{{ $field }}" :label="$label" wire:key="ask-{{ $field }}" />
-                    @endforeach
-                </div>
-            @endif
-            <p class="lq-help">A visitor becomes a lead only once they give an email address or a phone number, here or in the chat. Until then they stay under Live chat › Chats, in Visitors.</p>
-
-            <x-ui.checkbox wire:model="agentsSeeVisitors" label="Agents see visitors who have not given their details" />
-            <x-ui.checkbox wire:model="active" label="Chat is on" />
-        </form>
-        <x-slot:footer>
-            <x-ui.button variant="ghost" wire:click="$set('showForm', false)">Cancel</x-ui.button>
-            <x-ui.button type="submit" form="chat-widget-form" variant="primary" wire:loading.attr="disabled" wire:target="save">{{ $editing ? 'Save' : 'Add live chat' }}</x-ui.button>
-        </x-slot:footer>
-    </x-ui.modal>
+    @endif
 
     <x-ui.confirm :confirm="$confirm" />
 </div>

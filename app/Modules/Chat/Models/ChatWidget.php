@@ -40,7 +40,39 @@ class ChatWidget extends Model
         'welcome' => 'Hi! How can we help you today?',
         'offline' => 'We are away right now. Leave your details and we will get back to you.',
         'consent' => 'Your messages are kept so our team can reply. We do not share them.',
+        // The customiser (12 Nov 2026). An older chat box keeps the round button it had.
+        'style' => 'bubble',
+        'accent' => '',
+        'label' => 'Live chat',
+        'online_sub' => 'We’re online, say hi',
+        'offline_sub' => 'Leave us a message',
+        'reply_time' => 'We usually reply in a few minutes',
+        'theme' => 'light',
+        'header' => 'solid',
+        'corners' => 'standard',
+        'size' => 'standard',
+        'offset_x' => '20',
+        'offset_y' => '20',
+        'show_on' => 'all',
+        'greet_after' => '0',
+        'sound' => '1',
+        'logo' => '0',
     ];
+
+    /** The choices of the customiser, each with the words the screen shows. */
+    public const CHOICES = [
+        'style' => ['bubble' => 'Round button', 'pill' => 'Pill with words', 'card' => 'Light card'],
+        'theme' => ['light' => 'Light', 'dark' => 'Dark', 'auto' => 'Follow the visitor'],
+        'header' => ['solid' => 'Solid', 'gradient' => 'Gradient', 'glass' => 'Glass'],
+        'corners' => ['round' => 'Round', 'standard' => 'Soft', 'square' => 'Crisp'],
+        'size' => ['compact' => 'Compact', 'standard' => 'Standard', 'large' => 'Large'],
+        'show_on' => ['all' => 'Computers and phones', 'desktop' => 'Computers only', 'phone' => 'Phones only'],
+    ];
+
+    /** Window width and corner radius, in pixels, for each choice. */
+    public const SIZES = ['compact' => 340, 'standard' => 380, 'large' => 420];
+
+    public const RADII = ['round' => 24, 'standard' => 16, 'square' => 8];
 
     /** What the visitor may be asked before the chat starts. Name and email or phone are what make a lead. */
     public const PRECHAT_FIELDS = [
@@ -89,7 +121,77 @@ class ChatWidget extends Model
     /** Text on the widget's colour: black or white, whichever reads better. */
     public function onColor(): string
     {
-        $hex = ltrim($this->look('color'), '#');
+        return self::textOn($this->look('color'));
+    }
+
+    /** The accent (the launcher's icon circle, the send button): the main colour when none was chosen. */
+    public function accent(): string
+    {
+        $accent = $this->look('accent');
+
+        return preg_match('/^#[0-9a-f]{6}$/i', $accent) === 1 ? strtolower($accent) : $this->look('color');
+    }
+
+    /** One of the customiser's choices, never a value outside the list. */
+    public function choice(string $key): string
+    {
+        $value = $this->look($key);
+
+        return array_key_exists($value, self::CHOICES[$key]) ? $value : self::DEFAULT_APPEARANCE[$key];
+    }
+
+    /** A number of the customiser, kept between its bounds. */
+    public function number(string $key, int $min, int $max): int
+    {
+        return max($min, min($max, (int) $this->look($key)));
+    }
+
+    /**
+     * Everything the launcher and the chat box draw themselves with. Colours are checked hex codes and the rest come from
+     * fixed lists or bounded numbers, because they go into the website's page as styles; words are set as text only.
+     *
+     * @return array<string, string|int|bool>
+     */
+    public function design(): array
+    {
+        $color = preg_match('/^#[0-9a-f]{6}$/i', $this->look('color')) === 1 ? strtolower($this->look('color')) : self::DEFAULT_APPEARANCE['color'];
+        $accent = $this->accent();
+        $accent = preg_match('/^#[0-9a-f]{6}$/i', $accent) === 1 ? $accent : $color;
+
+        return [
+            'color' => $color,
+            'on' => self::textOn($color),
+            'accent' => $accent,
+            'on_accent' => self::textOn($accent),
+            'position' => $this->look('position') === 'left' ? 'left' : 'right',
+            'style' => $this->choice('style'),
+            'theme' => $this->choice('theme'),
+            'header' => $this->choice('header'),
+            'corners' => $this->choice('corners'),
+            'radius' => self::RADII[$this->choice('corners')],
+            'size' => $this->choice('size'),
+            'width' => self::SIZES[$this->choice('size')],
+            'offset_x' => $this->number('offset_x', 0, 160),
+            'offset_y' => $this->number('offset_y', 0, 160),
+            'show_on' => $this->choice('show_on'),
+            'greet_after' => $this->number('greet_after', 0, 120),
+            'sound' => $this->look('sound') !== '0',
+            'label' => $this->look('label'),
+            'online_sub' => $this->look('online_sub'),
+            'offline_sub' => $this->look('offline_sub'),
+            'reply_time' => $this->look('reply_time'),
+        ];
+    }
+
+    /** Black or white, whichever reads better on this colour. */
+    public static function textOn(string $color): string
+    {
+        $hex = ltrim($color, '#');
+
+        if (preg_match('/^[0-9a-f]{6}$/i', $hex) !== 1) {
+            return '#ffffff';
+        }
+
         $luma = (0.299 * hexdec(substr($hex, 0, 2)) + 0.587 * hexdec(substr($hex, 2, 2)) + 0.114 * hexdec(substr($hex, 4, 2))) / 255;
 
         return $luma > 0.62 ? '#111111' : '#ffffff';

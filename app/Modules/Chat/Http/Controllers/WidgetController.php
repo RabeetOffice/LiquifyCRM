@@ -58,17 +58,18 @@ final class WidgetController
 
         return response()->json([
             'active' => true,
-            'color' => $widget->look('color'),
-            'on' => $widget->onColor(),
-            'position' => $widget->look('position'),
+            ...$widget->design(),
             'title' => $widget->look('title'),
+            'welcome' => $widget->look('welcome'),
+            // Whether somebody of the team is here: the launcher's line under its words says so.
+            'online' => AgentPresence::online((int) $widget->brand_id),
             // Whether the launcher tells the server which page it is on (Live visitors).
             'track' => LiveChat::trackingReady() && $widget->tracks(),
             'frame' => url('/chat/frame/'.$widget->widget_key),
         ], 200, [
             'Access-Control-Allow-Origin' => $origin,
             'Vary' => 'Origin',
-            'Cache-Control' => 'public, max-age=300',
+            'Cache-Control' => 'public, max-age=60',
         ]);
     }
 

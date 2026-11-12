@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.51.0',
+        'date' => '2026-11-12',
+        'title' => 'Design your website chat',
+        'changes' => [
+            ['new', 'Live chat › Chat boxes now opens a full designer with a live preview of your website, on a computer and on a phone, with the chat open or closed. Nothing changes on the website until you save.'],
+            ['new', 'Match the website: one click reads the colours your website uses and dresses the chat in them, a main colour and an accent, with the other colours offered as swatches.'],
+            ['new', 'Three buttons for the website: the round button, a pill with words and a line saying whether you are online, or a light card.'],
+            ['new', 'The chat window can be light, dark or follow the visitor’s setting, with a solid, gradient or glass header, round, soft or crisp corners, three widths and the brand’s mark beside the title.'],
+            ['new', 'Move the button away from the corner (for example above a WhatsApp button), show the chat on computers only or phones only, pop the welcome message up beside the button after a few seconds, and choose whether visitors hear a soft sound for answers.'],
+            ['improved', 'The chat window has a new, cleaner look: an online or away line under the title, rounder bubbles, a smoother opening and closing, and the button turns into a close button while the chat is open.'],
+        ],
+    ],
+    [
         'version' => '1.50.1',
         'date' => '2026-11-12',
         'title' => 'The website chat, made harder to misuse',

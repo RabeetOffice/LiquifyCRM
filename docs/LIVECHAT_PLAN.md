@@ -359,3 +359,19 @@ Fixed:
 - Tests used the real Ably key from .env (minutes per run); phpunit.xml blanks it.
 
 Left as known limits: `CF-IPCountry` is trusted when present (it only fills the country shown); a script outside a browser can still talk to the public API within the limits, as with any website form.
+
+## Chat box designer built (12 Nov 2026, version 1.51.0)
+
+The user asked for a modern, Apple-like customiser, with the widget dressed in the website's colours automatically, and
+showed the brands' own chat buttons (a dark pill with an accent icon circle, a light card with "We're online").
+
+- Live chat › Chat boxes › Change opens a full-page designer: Setup, Look, Window, Words, Behaviour on the left, a live
+  preview of a website (computer or phone, chat open or closed) on the right. Nothing reaches the website until Save.
+- Look: "Match colours" reads the first website (`WebsiteLook`), main colour and accent with swatches, three launcher styles
+  (round button, pill with words and status, light card), side and distance from the corner.
+- Window: light, dark or follow the visitor; solid, gradient or glass header; round, soft or crisp corners; three widths;
+  the brand's mark in the header. Words: button words, online and away lines, title, reply time, welcome, away message,
+  privacy line. Behaviour: computers and/or phones, greeting by the button after N seconds (once a visit, not after the
+  visitor wrote), sound for answers, Live visitors, details first, largest file.
+- Compared with Tidio, LiveChat, Tawk.to, Intercom and Crisp, still not built: a team photo row, custom launcher icon,
+  per-page rules for the greeting, business hours, language, hide the button until scrolled.

@@ -151,6 +151,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   through `ChatWidget::originFor()` (https only, http for localhost, no login part) and only that clean value is echoed (CORS
   header, the frame's `data-origin`). Upsell-only people (`CareTeams::onlyHome`) never see visitor chats (`ChatAccess`) and get
   no Chats item. Tests: `LiveChatHardeningTest` (with the role crawl). phpunit.xml blanks `ABLY_API_KEY`; run pest with `</dev/null`.
+  1.51.0 (user request, 12 Nov 2026, "chat widget customizer, modern Apple style, colours from the website"): Chat boxes'
+  Change / Add opens a full-page designer (`chat::partials.designer` inside `ChatWidgets`, `$tab`) with a live preview that
+  reads `$wire` in the browser. Every look setting is a string in `chat_widgets.appearance` (no migration): `style`, `accent`,
+  `theme`, `header`, `corners`, `size`, `offset_x/y`, `show_on`, `greet_after`, `sound`, `logo`, the button words. Choices live
+  in `ChatWidget::CHOICES`; the launcher (config endpoint) and the frame get them only through `ChatWidget::design()`, which
+  re-checks every value (hex, list, bounded number) because they become styles on another website's page: never send a raw
+  `appearance` value there. An older widget keeps the round button (`style` default `bubble`). "Match colours" is
+  `WebsiteLook` (theme-color, brand-named CSS variables, button/header backgrounds weigh most; greys dropped; libraries'
+  sheets skipped; 10 minutes cached): main = heaviest dark colour, accent = a lively one apart from it. Tests: `ChatWidgetDesignTest`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

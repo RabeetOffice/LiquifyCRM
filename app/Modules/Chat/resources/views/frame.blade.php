@@ -9,61 +9,77 @@
 @verbatim
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1c1b19;background:#fff;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
-button,input,textarea{font:inherit;color:inherit}
-header{flex:none;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--c);color:var(--on)}
-header .t{flex:1;min-width:0;font-weight:650;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header .s{display:block;font-weight:400;font-size:12px;opacity:.85}
-header button{all:unset;cursor:pointer;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;color:var(--on)}
-header button:hover{background:rgba(127,127,127,.25)}
-header button:focus-visible,.send:focus-visible,.btn:focus-visible{outline:2px solid var(--c);outline-offset:2px}
-main{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#f6f5f3}
-.row{display:flex;flex-direction:column;max-width:84%}
+/* Light and dark: the chat box takes the visitor's choice when the brand left it to them (theme-auto). */
+body{--bg:#fff;--thread:#f5f5f7;--text:#1d1d1f;--muted:#6e6e73;--line:rgba(0,0,0,.08);--bubble:#fff;--field:#fff;--fieldline:#d2d2d7;--soft:#ececf0;
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,Roboto,sans-serif;letter-spacing:-.01em;color:var(--text);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative;-webkit-font-smoothing:antialiased}
+body.theme-dark{--bg:#1c1c1e;--thread:#111113;--text:#f5f5f7;--muted:#98989d;--line:rgba(255,255,255,.1);--bubble:#2c2c2e;--field:#2c2c2e;--fieldline:#3a3a3c;--soft:#2c2c2e;color-scheme:dark}
+@media (prefers-color-scheme:dark){body.theme-auto{--bg:#1c1c1e;--thread:#111113;--text:#f5f5f7;--muted:#98989d;--line:rgba(255,255,255,.1);--bubble:#2c2c2e;--field:#2c2c2e;--fieldline:#3a3a3c;--soft:#2c2c2e;color-scheme:dark}}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+header{flex:none;display:flex;align-items:center;gap:12px;padding:14px 14px 14px 16px;background:var(--c);color:var(--on);z-index:2}
+body.h-gradient header{background:linear-gradient(135deg,var(--c) 0%,color-mix(in srgb,var(--c) 62%,var(--a)) 100%)}
+body.h-glass header{position:absolute;inset:0 0 auto;background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:var(--text);border-bottom:1px solid var(--line)}
+body.h-glass main{padding-top:84px}
+.av{position:relative;flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:var(--ona);font-weight:650;font-size:16px}
+.av img{width:100%;height:100%;border-radius:50%;object-fit:contain;background:#fff;padding:5px}
+.av i{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#a1a1a6;box-shadow:0 0 0 2px var(--c)}
+body.h-glass .av i{box-shadow:0 0 0 2px var(--bg)}
+.av i.on{background:#30d158}
+header .t{flex:1;min-width:0;font-weight:650;font-size:16px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .s{display:block;font-weight:400;font-size:12px;letter-spacing:0;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header button{all:unset;cursor:pointer;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:inherit;background:rgba(127,127,127,.18);transition:background .15s}
+header button:hover{background:rgba(127,127,127,.3)}
+header button:focus-visible,.send:focus-visible,.btn:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+main{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px;background:var(--thread);scroll-behavior:smooth}
+.row{display:flex;flex-direction:column;max-width:82%}
 .row.visitor{align-self:flex-end;align-items:flex-end}
 .row.team,.row.ai{align-self:flex-start}
-.bubble{padding:9px 13px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
-.visitor .bubble{background:var(--c);color:var(--on);border-bottom-right-radius:5px}
-.team .bubble,.ai .bubble{background:#fff;border:1px solid #e7e4df;border-bottom-left-radius:5px}
-.meta{font-size:11px;color:#8a857d;margin:3px 4px 0}
-.card{background:#fff;border:1px solid #e7e4df;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
-.card h2{margin:0;font-size:14px}
-.card p{margin:0;font-size:13px;color:#5f5a52}
-label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#5f5a52}
-input[type=text],input[type=email],input[type=tel],textarea{width:100%;border:1px solid #d9d5ce;border-radius:10px;padding:9px 11px;background:#fff;outline:none}
-input:focus,textarea:focus{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.bubble{padding:9px 14px;border-radius:20px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.visitor .bubble{background:var(--c);color:var(--on);border-bottom-right-radius:6px}
+.team .bubble,.ai .bubble{background:var(--bubble);color:var(--text);border-bottom-left-radius:6px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.meta{font-size:11px;color:var(--muted);margin:3px 6px 4px}
+.card{background:var(--bubble);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{margin:0;font-size:15px;letter-spacing:-.02em}
+.card p{margin:0;font-size:13px;color:var(--muted)}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=email],input[type=tel],textarea{width:100%;border:1px solid var(--fieldline);border-radius:12px;padding:10px 12px;background:var(--field);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus{border-color:var(--a);box-shadow:0 0 0 4px color-mix(in srgb,var(--a) 20%,transparent)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .actions{display:flex;gap:8px}
-.btn{all:unset;cursor:pointer;text-align:center;padding:9px 14px;border-radius:10px;font-weight:600;font-size:14px;background:var(--c);color:var(--on)}
-.btn.ghost{background:transparent;color:#5f5a52}
+.btn{all:unset;cursor:pointer;text-align:center;padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;background:var(--a);color:var(--ona);transition:filter .15s,transform .1s}
+.btn:hover{filter:brightness(1.06)}.btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;color:var(--muted)}
 .btn:disabled{opacity:.55;cursor:default}
-.err{color:#b42318;font-size:12px;margin:0}
-.consent{font-size:11px;color:#8a857d;text-align:center;margin:2px 8px 0}
-form.composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e7e4df;background:#fff}
-form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:1.35}
-.attach{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:#8a857d}
-.attach:hover{background:#f1efec;color:#1c1b19}
-.attach:focus-visible{outline:2px solid var(--c);outline-offset:2px}
-.pic{display:block;max-width:220px;margin-bottom:4px;border-radius:12px;overflow:hidden;border:1px solid #e7e4df;background:#fff}
+.err{color:#ff453a;font-size:12px;margin:0}
+.consent{font-size:11px;color:var(--muted);text-align:center;margin:4px 12px 0}
+form.composer{flex:none;display:flex;align-items:flex-end;gap:6px;padding:10px 10px 12px;border-top:1px solid var(--line);background:var(--bg)}
+form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:1.35;border-radius:20px;padding:9px 14px;background:var(--soft);border-color:transparent}
+form.composer textarea:focus{background:var(--field);border-color:var(--a)}
+.attach{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:var(--muted)}
+.attach:hover{background:var(--soft);color:var(--text)}
+.attach:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.pic{display:block;max-width:220px;margin-bottom:4px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bubble)}
 .pic img{display:block;width:100%;height:auto;max-height:240px;object-fit:cover}
-.doc{display:flex;gap:8px;align-items:center;max-width:240px;margin-bottom:4px;padding:9px 12px;border-radius:12px;border:1px solid #e7e4df;background:#fff;color:inherit;text-decoration:none;font-size:13px}
+.doc{display:flex;gap:8px;align-items:center;max-width:240px;margin-bottom:4px;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:var(--bubble);color:inherit;text-decoration:none;font-size:13px}
 .doc span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.doc small{margin-left:auto;color:#8a857d;white-space:nowrap}
+.doc small{margin-left:auto;color:var(--muted);white-space:nowrap}
 .visitor .doc,.visitor .pic{border-color:transparent}
-.send{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--c);color:var(--on)}
-.send:disabled{opacity:.5;cursor:default}
+.send{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--a);color:var(--ona);transition:transform .12s,opacity .15s}
+.send:active{transform:scale(.92)}
+.send:disabled{opacity:.45;cursor:default}
 /* typing dots */
-.typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
-.typing span{width:6px;height:6px;border-radius:50%;background:#a39d93;animation:dot 1.2s infinite ease-in-out}
+.typing{display:flex;gap:4px;align-items:center;padding:13px 14px}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1.2s infinite ease-in-out}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 .hidden{display:none!important}
-@media (prefers-reduced-motion:no-preference){.row,.card{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
+@media (prefers-reduced-motion:no-preference){.row,.card{animation:in .28s cubic-bezier(.2,.8,.2,1)}@keyframes in{from{opacity:0;transform:translateY(6px) scale(.98)}}}
 @endverbatim
 </style>
 </head>
-<body style="--c: {{ $color }}; --on: {{ $on }}" data-key="{{ $key }}" data-origin="{{ $origin }}">
+<body class="theme-{{ $design['theme'] }} h-{{ $design['header'] }}" style="--c: {{ $design['color'] }}; --on: {{ $design['on'] }}; --a: {{ $design['accent'] }}; --ona: {{ $design['on_accent'] }}" data-key="{{ $key }}" data-origin="{{ $origin }}" data-sound="{{ $design['sound'] ? '1' : '0' }}">
 <header>
-    <div class="t"><span id="title">{{ $title }}</span><span class="s" id="sub"></span></div>
+    <div class="av" aria-hidden="true">@if ($logo)<img src="{{ $logo }}" alt="">@else{{ mb_strtoupper(mb_substr($title, 0, 1)) }}@endif<i id="dot"></i></div>
+    <div class="t"><span id="title">{{ $title }}</span><span class="s" id="sub" data-reply="{{ $design['reply_time'] }}"></span></div>
     <button type="button" id="close" aria-label="Close chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
 <main id="thread" aria-live="polite" aria-label="Conversation"></main>
@@ -90,7 +106,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
     var creds = null, config = null, visitor = null;
     var seen = {}, lastId = 0, open = false, unread = 0, page = null, timer = null, failures = 0;
     var started = false, detailsShown = false, detailsDismissed = false, tooltip = null;
-    var typingRow = null, lastTyped = 0, closedShown = false;
+    var typingRow = null, lastTyped = 0, closedShown = false, loaded = false;
     var rt = { source: null, ok: false, refresh: null };
 
     function load() { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }
@@ -159,10 +175,26 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
         scroll();
 
         if (m.from !== 'visitor') {
+            if (loaded && (!open || document.hidden)) { chime(); }
             if (!open) { unread += 1; tell({ type: 'unread', count: unread }); }
         } else if (!started) {
             started = true; tell({ type: 'started' });
         }
+    }
+
+    // A soft two-note sound for an answer while the box is closed or the tab is behind another (made here, no file).
+    var audio = null;
+    function chime() {
+        if (body.getAttribute('data-sound') !== '1') { return; }
+        try {
+            audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+            [[880, 0], [1320, 0.12]].forEach(function (note) {
+                var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + note[1];
+                o.type = 'sine'; o.frequency.value = note[0];
+                g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+                o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + 0.4);
+            });
+        } catch (e) {}
     }
 
     function clearTooltip() { if (tooltip && tooltip.parentNode) { tooltip.parentNode.removeChild(tooltip); } tooltip = null; }
@@ -478,6 +510,10 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
             creds = { token: r.json.token, sig: r.json.sig }; save(creds);
             config = r.json.config; visitor = r.json.visitor;
             $('title').textContent = config.title;
+            // Under the title: whether somebody is here, and how soon they usually answer.
+            var sub = $('sub');
+            sub.textContent = config.online ? (sub.getAttribute('data-reply') || 'Online now') : 'Away right now. Leave a message.';
+            $('dot').className = config.online ? 'on' : '';
 
             if (config.files) {
                 fileInput.accept = config.files.accept;
@@ -492,6 +528,7 @@ form.composer textarea{resize:none;max-height:120px;min-height:40px;line-height:
             }
 
             messages.forEach(function (m) { addMessage(m); });
+            loaded = true;
             unread = 0; tell({ type: 'unread', count: 0 });
             setClosed(!!r.json.closed);
 
