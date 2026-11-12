@@ -346,3 +346,16 @@ showed the team's answer straight after the publish. The first token request of 
 ### Chats inside the Live chat tab (4 Nov 2026, same version)
 
 The user asked that a website visitor's chat never needs the Inbox. `LiveChats` (`/b/{brand}/live-chat/chats`, first child of the tab, with the unread count) is the Inbox screen kept to `channel = livechat`, views All, Unread, Visitors, Closed. The Inbox is now Messenger and Instagram only (views All, Unread, Can reply; channel row only once Instagram is there, which also fixed the row sticking out of the card). `ChatNotifier` links to the new screen; `ChatErasure` deletes bell entries of both addresses.
+
+## Phase 8 built (12 Nov 2026, version 1.50.1): hardening
+
+Reviewed every public chat call, the chat box and frame, and the team side. Sound already: tokens are HMAC-signed, notes and events never reach the visitor, visitor text is drawn with textContent, files are checked by content and served with a sandbox CSP, Ably channels carry no words and the visitor's channel is not guessable, every team action asks the policy, and the lead gate gives nothing of an existing lead back to the visitor.
+
+Fixed:
+- Limits keyed by the visitor token were open to a script that fetches new tokens: each now has a per-address ceiling (poll 1,200, send 60, upload 20, typing 300, details 15 a minute).
+- New visitors per address (10 a minute) and new browsers in Live visitors (20 a minute); one browser code pings at most 20 times a minute.
+- Origins: https only (http for localhost copies), no login part, and only the cleaned origin is echoed.
+- Role crawl: an Upsell-only Agent could open Live visitors and answer visitors; website visitors are front sales' now (`ChatAccess`).
+- Tests used the real Ably key from .env (minutes per run); phpunit.xml blanks it.
+
+Left as known limits: `CF-IPCountry` is trusted when present (it only fills the country shown); a script outside a browser can still talk to the public API within the limits, as with any website form.

@@ -9,12 +9,13 @@ use App\Modules\Brands\Models\Membership;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Core\Enums\BrandRole;
 use App\Modules\Core\Enums\MembershipStatus;
+use App\Modules\Sales\Support\CareTeams;
 use Illuminate\Support\Collection;
 
 /**
  * Who sees the live chats of visitors who have not given their details (and so have no lead yet). Admins
  * see them everywhere and a brand's Managers in their brand; an Agent sees them unless the brand's widget is
- * set so only Managers do. Once a chat has a lead, the lead decides who sees it, as for every chat.
+ * set so only Managers do; never somebody who works only on Upsell teams. Once a chat has a lead, the lead decides who sees it, as for every chat.
  */
 final class ChatAccess
 {
@@ -27,6 +28,12 @@ final class ChatAccess
         $membership = $user->membershipFor($brandId);
 
         if ($membership === null || $membership->status !== MembershipStatus::Active) {
+            return false;
+        }
+
+        // Somebody who works only on Upsell teams looks after clients: a website visitor is a new enquiry, front sales'
+        // business, as leads are (role audit of the live chat, 12 Nov 2026).
+        if (CareTeams::onlyHome($user, $brandId)) {
             return false;
         }
 

@@ -301,7 +301,8 @@ final class Menu
             return $count > 0 ? (string) $count : null;
         };
 
-        $children = [self::item('Chats', 'heroicon-o-chat-bubble-left-ellipsis', route('brand.live-chat.chats', $params), $isActive('brand.live-chat.chats'), $unread)];
+        // Not for somebody who works only on Upsell teams: website visitors are front sales' (ChatAccess).
+        $children = CareTeams::onlyHome($user, $brand) ? [] : [self::item('Chats', 'heroicon-o-chat-bubble-left-ellipsis', route('brand.live-chat.chats', $params), $isActive('brand.live-chat.chats'), $unread)];
 
         if (LiveChat::trackingReady() && ChatAccess::canSeeVisitors($user, (int) $brand->getKey())) {
             $children[] = self::item('Live visitors', 'heroicon-o-eye', route('brand.live-chat.visitors', $params), $isActive('brand.live-chat.visitors'));
@@ -313,6 +314,10 @@ final class Menu
 
         if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
             $children[] = self::item('Chat boxes', 'heroicon-o-cog-6-tooth', route('brand.live-chat', $params), $isActive('brand.live-chat'));
+        }
+
+        if ($children === []) {
+            return null;
         }
 
         return [

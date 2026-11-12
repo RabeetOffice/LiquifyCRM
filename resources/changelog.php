@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.50.1',
+        'date' => '2026-11-12',
+        'title' => 'The website chat, made harder to misuse',
+        'changes' => [
+            ['fixed', 'The chat box on a website can no longer be flooded by a script: each address gets a fair number of new visitors, messages, files and contact forms a minute, enough for a busy office of real people.'],
+            ['fixed', 'Live visitors can no longer be filled with made-up browsers: each address reports a few new visitors a minute, and a browser that reports itself far more often than the chat button does is ignored.'],
+            ['fixed', 'The chat box shows only on the secure (https) address of your website. A copy of the website on your own computer still works.'],
+            ['improved', 'Somebody who works only on an Upsell team no longer sees or answers website visitors, and has no Chats item under Live chat: a website visitor is a new enquiry, for front sales, as leads are.'],
+        ],
+    ],
+    [
         'version' => '1.50.0',
         'date' => '2026-11-12',
         'title' => 'Each brand\'s own pipeline stages',

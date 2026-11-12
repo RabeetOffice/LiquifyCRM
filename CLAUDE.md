@@ -145,6 +145,12 @@ in the document's weekly phases; never skip a phase or silently change the desig
   pinging every 30 s, address kept without the query, the website's own localStorage holds its `vid`); `RecordPing` / `InviteVisitor`.
   A page address, title or referrer from a visitor is data: show it escaped, never link it blindly. A new thing the chat stores about
   a visitor is wiped in `ChatErasure` / `chat:prune` and named on the privacy page.
+  1.50.1 (phase 8 hardening): every token-keyed chat limit also has a per-IP ceiling (`ChatServiceProvider`, a token is free
+  from `init`); `init` without a valid token is capped per IP (`WidgetController::NEW_VISITORS_PER_MINUTE`), a ping that starts a
+  new browser too (`NEW_SESSIONS_PER_MINUTE`, in `RecordPing`), and one `vid` pings at most 20 a minute. A website's origin goes
+  through `ChatWidget::originFor()` (https only, http for localhost, no login part) and only that clean value is echoed (CORS
+  header, the frame's `data-origin`). Upsell-only people (`CareTeams::onlyHome`) never see visitor chats (`ChatAccess`) and get
+  no Chats item. Tests: `LiveChatHardeningTest` (with the role crawl). phpunit.xml blanks `ABLY_API_KEY`; run pest with `</dev/null`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

@@ -118,21 +118,42 @@ class ChatWidget extends Model
      */
     public function allowsOrigin(string $origin): bool
     {
-        $host = parse_url($origin, PHP_URL_HOST);
+        return $this->originFor($origin) !== null;
+    }
 
-        if (! is_string($host) || $host === '') {
-            return false;
+    /**
+     * The website's origin as the browser names it (scheme, host and port, nothing else) when it is one of the widget's
+     * websites; null otherwise. Only https: a page on plain http can be changed on the way, so the chat box is not shown
+     * there. A copy of a website on this computer (localhost) may use http. What the browser or the launcher sent is never
+     * echoed back as it came (hardening, 12 Nov 2026).
+     */
+    public function originFor(string $origin): ?string
+    {
+        if (mb_strlen($origin) > 300 || preg_match('/[\s"\'<>\\\\]/', $origin) === 1) {
+            return null;
         }
 
-        $host = strtolower($host);
+        $parts = parse_url($origin);
+        $host = is_array($parts) && is_string($parts['host'] ?? null) ? strtolower($parts['host']) : '';
+        $scheme = is_array($parts) && is_string($parts['scheme'] ?? null) ? strtolower($parts['scheme']) : '';
+
+        if ($host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+
+        $local = in_array($host, ['localhost', '127.0.0.1'], true) || str_ends_with($host, '.localhost');
+
+        if ($scheme !== 'https' && ! ($scheme === 'http' && $local)) {
+            return null;
+        }
 
         foreach ($this->allowed_domains ?? [] as $domain) {
             if ($host === $domain || str_ends_with($host, '.'.$domain)) {
-                return true;
+                return $scheme.'://'.$host.(isset($parts['port']) ? ':'.(int) $parts['port'] : '');
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

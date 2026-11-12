@@ -38,9 +38,9 @@ final class WidgetAssetController
             ? ChatWidget::query()->withoutGlobalScopes()->where('widget_key', $key)->where('is_active', true)->first()
             : null;
 
-        $origin = (string) $request->query('o', '');
+        $origin = $widget?->originFor((string) $request->query('o', ''));
 
-        abort_if($widget === null || ! $widget->allowsOrigin($origin), 404);
+        abort_if($widget === null || $origin === null, 404);
 
         $ancestors = collect($widget->allowed_domains ?? [])->flatMap(fn (string $domain): array => ['https://'.$domain, 'https://*.'.$domain]);
 

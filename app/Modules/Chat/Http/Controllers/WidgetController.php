@@ -24,6 +24,7 @@ use App\Modules\Core\Support\CurrentBrand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\RateLimiter;
 use RuntimeException;
 
 /**
@@ -36,6 +37,12 @@ final class WidgetController
     /** The code the launcher keeps in the website's own storage for a browser: a UUID. */
     private const VID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/';
 
+    /** New visitors (browsers without a token) one address may start in a minute. */
+    public const NEW_VISITORS_PER_MINUTE = 10;
+
+    /** New browsers on the website (Live visitors) one address may report in a minute. */
+    public const NEW_SESSIONS_PER_MINUTE = 20;
+
     /**
      * The launcher on the website asks this first, from the website itself: only a website the widget is set
      * up for gets an answer (and the browser's permission to read it), so the chat box appears nowhere else.
@@ -43,9 +50,9 @@ final class WidgetController
     public function config(Request $request): JsonResponse
     {
         $widget = $this->widget((string) $request->query('key'));
-        $origin = (string) ($request->headers->get('Origin') ?? $request->query('o', ''));
+        $origin = $widget?->originFor((string) ($request->headers->get('Origin') ?? $request->query('o', '')));
 
-        if ($widget === null || ! $widget->allowsOrigin($origin)) {
+        if ($widget === null || $origin === null) {
             return response()->json(['active' => false], 404);
         }
 
@@ -90,6 +97,14 @@ final class WidgetController
             $sig = VisitorToken::sign($token);
         }
 
+        // A browser without a token gets a new visitor: a script asking again and again would fill the table, so an address
+        // gets a few new visitors a minute (an office of real people opens the chat far less often than that).
+        if (! VisitorToken::valid($token, $sig)) {
+            $newKey = 'chat-new-visitor:'.$request->ip();
+            abort_if(RateLimiter::tooManyAttempts($newKey, self::NEW_VISITORS_PER_MINUTE), 429);
+            RateLimiter::hit($newKey, 60);
+        }
+
         $visitor = $visit->handle($widget, $token, $sig, [
             'ip' => $request->ip(),
             'country' => self::country($request),
@@ -125,10 +140,10 @@ final class WidgetController
         $data = json_decode((string) $request->getContent(), true);
         $data = is_array($data) ? $data : [];
         $widget = $this->widget((string) ($data['key'] ?? ''));
-        $origin = (string) $request->headers->get('Origin');
+        $origin = $widget?->originFor((string) $request->headers->get('Origin'));
         $vid = (string) ($data['vid'] ?? '');
 
-        if ($widget === null || ! LiveChat::trackingReady() || ! $widget->allowsOrigin($origin) || preg_match(self::VID, $vid) !== 1) {
+        if ($widget === null || $origin === null || ! LiveChat::trackingReady() || preg_match(self::VID, $vid) !== 1) {
             return response()->noContent(204);
         }
 
@@ -142,6 +157,7 @@ final class WidgetController
         $device = Device::of($request);
 
         $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
+            'new_key' => 'chat-new-session:'.$request->ip(),
             'country' => self::country($request),
             'device' => $device->kind->value,
             'browser' => array_pad(explode(' · ', $device->name, 2), 2, null)[1],

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat\Actions;
 
+use App\Modules\Chat\Http\Controllers\WidgetController;
 use App\Modules\Chat\Models\ChatPageView;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatWidget;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * The chat box's launcher on a website tells the server, every half minute, that this browser is there and which
@@ -19,7 +21,7 @@ final class RecordPing
 {
     /**
      * @param  array{url?: mixed, title?: mixed, referrer?: mixed}  $page
-     * @param  array{country?: ?string, device?: ?string, browser?: ?string}  $info
+     * @param  array{new_key?: string, country?: ?string, device?: ?string, browser?: ?string}  $info
      * @return array{text: string, from: string}|null
      */
     public function handle(ChatWidget $widget, string $vid, array $page, array $info): ?array
@@ -39,6 +41,15 @@ final class RecordPing
         ], fn (mixed $value): bool => $value !== null);
 
         if ($session === null) {
+            // A script making up browser codes would fill Live visitors: an address reports a few new browsers a minute.
+            if (isset($info['new_key'])) {
+                if (RateLimiter::tooManyAttempts($info['new_key'], WidgetController::NEW_SESSIONS_PER_MINUTE)) {
+                    return null;
+                }
+
+                RateLimiter::hit($info['new_key'], 60);
+            }
+
             try {
                 $session = ChatSession::query()->create([
                     ...$seen,

@@ -55,11 +55,26 @@ final class ChatServiceProvider extends ModuleServiceProvider
         // generous for people and short for a script. A page view asks `config` once; polling asks `messages`.
         RateLimiter::for('chat-config', fn (Request $request): Limit => Limit::perMinute(300)->by('chat-config:'.$request->ip()));
         RateLimiter::for('chat-init', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-init:'.$request->ip()));
-        RateLimiter::for('chat-poll', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-poll:'.($request->header('X-Chat-Token') ?: $request->ip())));
-        RateLimiter::for('chat-send', fn (Request $request): Limit => Limit::perMinute(20)->by('chat-send:'.($request->header('X-Chat-Token') ?: $request->ip())));
-        RateLimiter::for('chat-ping', fn (Request $request): Limit => Limit::perMinute(600)->by('chat-ping:'.$request->ip()));
-        RateLimiter::for('chat-upload', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-upload:'.($request->header('X-Chat-Token') ?: $request->ip())));
-        RateLimiter::for('chat-typing', fn (Request $request): Limit => Limit::perMinute(30)->by('chat-typing:'.($request->header('X-Chat-Token') ?: $request->ip())));
-        RateLimiter::for('chat-details', fn (Request $request): Limit => Limit::perMinute(6)->by('chat-details:'.($request->header('X-Chat-Token') ?: $request->ip())));
+        // A script can get a new token from `init` whenever it likes, so a limit per token alone stops nothing: every one also
+        // has a ceiling per address, high enough for a busy office of real visitors (hardening, 12 Nov 2026).
+        $both = fn (string $name, int $perToken, int $perAddress): \Closure => fn (Request $request): array => [
+            Limit::perMinute($perToken)->by($name.':t:'.($request->header('X-Chat-Token') ?: $request->ip())),
+            Limit::perMinute($perAddress)->by($name.':ip:'.$request->ip()),
+        ];
+        RateLimiter::for('chat-poll', $both('chat-poll', 60, 1200));
+        RateLimiter::for('chat-send', $both('chat-send', 20, 60));
+        RateLimiter::for('chat-upload', $both('chat-upload', 6, 20));
+        RateLimiter::for('chat-typing', $both('chat-typing', 30, 300));
+        RateLimiter::for('chat-details', $both('chat-details', 6, 15));
+        // The launcher pings every 30 seconds and on a page change: a browser (its "vid") that asks more often is a script.
+        RateLimiter::for('chat-ping', function (Request $request): array {
+            $data = json_decode(mb_substr((string) $request->getContent(), 0, 4096), true);
+            $vid = is_array($data) && is_string($data['vid'] ?? null) ? mb_substr($data['vid'], 0, 40) : '';
+
+            return [
+                Limit::perMinute(600)->by('chat-ping:ip:'.$request->ip()),
+                Limit::perMinute(20)->by('chat-ping:vid:'.$request->ip().'|'.$vid),
+            ];
+        });
     }
 }
