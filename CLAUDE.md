@@ -145,6 +145,14 @@ in the document's weekly phases; never skip a phase or silently change the desig
   pinging every 30 s, address kept without the query, the website's own localStorage holds its `vid`); `RecordPing` / `InviteVisitor`.
   A page address, title or referrer from a visitor is data: show it escaped, never link it blindly. A new thing the chat stores about
   a visitor is wiped in `ChatErasure` / `chat:prune` and named on the privacy page.
+- Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
+  `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
+  `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's
+  Managers (`LeadStatusPolicy`, same rights for both, user decision). Every change goes through `ChangePipelineStages`
+  (add after an open stage, rename, colour from `LeadStatus::PALETTE`, move, remove); `resequence()` keeps New first and Won,
+  Lost last. A stage with any lead, Bin included (`LeadStatus::leadCountsFor`), is never removed (`StageInUse`; the FK
+  restricts it too); New, Won and Lost (`isFixed()`) are never removed or moved, only renamed. Code goes by `is_default` /
+  `is_won` / `is_lost`, never by a stage's name or slug: keep it that way.
 - Audit trail: always log through `App\Modules\Core\Support\Audit::log(...)`.
 - Website leads (`app/Modules/Sites`): `POST /api/v1/ingest/site/{site_key}` only verifies and stores an
   `InboundEvent`; the `IngestLead` job normalises it and calls `CreateLead`. Pull mode and health checks

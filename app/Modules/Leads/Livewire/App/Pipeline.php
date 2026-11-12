@@ -163,6 +163,7 @@ final class Pipeline extends Component
             'movable' => $movable,
             'agent' => $agent,
             'team' => $team,
+            'canManageStages' => $user->can('viewAny', LeadStatus::class),
             'agentOptions' => $agent ? [] : app(AssignableAgents::class)->for($user, $this->brand),
             'summary' => [
                 'open' => $open->count(),

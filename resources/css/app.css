@@ -12853,4 +12853,216 @@ button.lq-perday-row:hover {
     color: var(--lq-muted);
 }
 
+/* Pipeline stages (12 Nov 2026): the brand's steps as a numbered track, with a way in between two of them. */
+.lq-stages {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.lq-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.625rem 1rem 0.625rem 1.25rem;
+    transition: background-color 150ms var(--lq-ease);
+}
+
+.lq-stage:hover {
+    background: var(--lq-raised);
+}
+
+/* The line that joins the steps, behind the numbers. */
+.lq-stage::before {
+    content: '';
+    position: absolute;
+    left: calc(1.25rem + 0.9375rem - 1px);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--lq-card-border);
+}
+
+.lq-stages > .lq-stage:first-child::before { top: 50%; }
+.lq-stages > .lq-stage:last-child::before { bottom: 50%; }
+
+.lq-stage-step {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 999px;
+    background: var(--lq-panel);
+    box-shadow: inset 0 0 0 2px var(--pill-color);
+    color: var(--pill-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .lq-stage-step {
+    color: color-mix(in srgb, var(--pill-color) 55%, white);
+}
+
+.lq-stage-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.lq-stage-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+}
+
+.lq-stage-lock {
+    display: inline-flex;
+    color: var(--lq-muted);
+}
+
+.lq-stage-lock svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-stage-meta {
+    color: var(--lq-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lq-stage .lq-btn-icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.lq-stage-held {
+    opacity: 0.45;
+}
+
+/* "Add a stage between X and Y": quiet until the row is pointed at or reached with the keyboard. */
+.lq-stage-gap {
+    position: relative;
+    display: flex;
+    padding: 0 1rem 0 calc(1.25rem + 1.875rem + 0.875rem);
+    height: 0.75rem;
+    align-items: center;
+    transition: height 150ms var(--lq-ease);
+}
+
+.lq-stage-gap::before {
+    content: '';
+    position: absolute;
+    left: calc(1.25rem + 0.9375rem - 1px);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--lq-card-border);
+}
+
+.lq-stage-insert {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px dashed transparent;
+    border-radius: var(--lq-radius-control);
+    background: transparent;
+    color: var(--lq-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 150ms var(--lq-ease), color 150ms var(--lq-ease), border-color 150ms var(--lq-ease), background-color 150ms var(--lq-ease);
+}
+
+.lq-stage-insert svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.lq-stage-gap:hover,
+.lq-stage-gap:focus-within {
+    height: 2.25rem;
+}
+
+.lq-stage-gap:hover .lq-stage-insert,
+.lq-stage-gap:focus-within .lq-stage-insert {
+    opacity: 1;
+    border-color: color-mix(in srgb, var(--lq-orange) 45%, transparent);
+    color: var(--lq-orange-deep);
+}
+
+.lq-stage-insert:hover {
+    background: var(--lq-orange-tint);
+}
+
+/* On a touch screen there is no pointing: the way in stays visible. */
+@media (hover: none) {
+    .lq-stage-gap { height: 2.25rem; }
+    .lq-stage-insert { opacity: 1; border-color: var(--lq-card-border); }
+}
+
+.lq-stage-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    padding: 4px;
+}
+
+.lq-stage-swatch {
+    position: relative;
+    display: inline-flex;
+    cursor: pointer;
+}
+
+.lq-stage-swatch input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.lq-stage-swatch-dot {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--swatch);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+    transition: box-shadow 150ms var(--lq-ease), transform 150ms var(--lq-ease);
+}
+
+.lq-stage-swatch:hover .lq-stage-swatch-dot {
+    transform: scale(1.08);
+}
+
+.lq-stage-swatch input:checked + .lq-stage-swatch-dot {
+    box-shadow: 0 0 0 2px var(--lq-panel), 0 0 0 4px var(--swatch);
+}
+
+.lq-stage-swatch input:focus-visible + .lq-stage-swatch-dot {
+    box-shadow: 0 0 0 2px var(--lq-panel), 0 0 0 4px var(--lq-orange);
+}
+
+.lq-stage-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: var(--lq-radius-inner);
+    background: var(--lq-raised);
+}
+
 } /* @layer components */
