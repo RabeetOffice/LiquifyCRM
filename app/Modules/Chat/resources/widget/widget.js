@@ -379,7 +379,7 @@
 
             var zone = '';
             try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500), tz: zone.slice(0, 64) });
+            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500), tz: zone.slice(0, 64), human: human });
 
             // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
             fetch(chatUrl('api/ping'), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
@@ -388,7 +388,27 @@
                 .catch(function () {});
         }
 
+        // A person scrolls, taps, clicks, types or moves the mouse; a program that only loads the page usually does not.
+        var human = false;
+        var moved = 0, lastX = null, lastY = null;
+
+        function noticePerson() {
+            if (human) { return; }
+            human = true;
+            ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll', 'mousemove'].forEach(function (name) { window.removeEventListener(name, onSign, true); });
+            ping();
+        }
+
+        function onSign(event) {
+            if (event.type !== 'mousemove') { noticePerson(); return; }
+            // A real hand moves the mouse a little here and there; one jump is not enough.
+            if (lastX !== null) { moved += Math.abs(event.clientX - lastX) + Math.abs(event.clientY - lastY); }
+            lastX = event.clientX; lastY = event.clientY;
+            if (moved > 60) { noticePerson(); }
+        }
+
         function track() {
+            ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll', 'mousemove'].forEach(function (name) { window.addEventListener(name, onSign, { capture: true, passive: true }); });
             var lastPath = location.pathname;
             var soon = null;
             var changed = function () { clearTimeout(soon); soon = setTimeout(function () { if (location.pathname !== lastPath) { lastPath = location.pathname; ping(); } }, 400); };

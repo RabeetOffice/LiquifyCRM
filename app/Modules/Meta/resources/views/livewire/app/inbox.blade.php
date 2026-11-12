@@ -74,16 +74,16 @@
                         </div>
                         <div class="lq-livenow-list">
                             @foreach ($liveNow as $session)
-                                @php $nowChat = $liveChats[$session->getKey()] ?? null; @endphp
+                                @php $nowChat = $liveChats[$session->getKey()] ?? null; $nowKind = \App\Modules\Chat\Support\VisitorKind::of($session, $nowChat !== null); @endphp
                                 @if ($nowChat)
                                     <button type="button" class="lq-livenow-item lq-livenow-chatting" wire:click="open({{ $nowChat }})" title="Open the chat · {{ $session->path() }}">
                                         <x-ui.avatar :name="$session->displayName()" size="sm" tone />
-                                        <span class="lq-livenow-text"><strong>{{ $session->displayName() }}</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
+                                        <span class="lq-livenow-text"><strong>{{ $session->displayName() }}@if ($nowKind === 'bot') <em>Bot?</em>@endif</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
                                     </button>
                                 @else
-                                    <a href="{{ $liveVisitorsUrl }}?start={{ $session->getKey() }}" class="lq-livenow-item" wire:navigate title="Start a chat · {{ $session->path() }}">
+                                    <a href="{{ $liveVisitorsUrl }}?start={{ $session->getKey() }}" @class(['lq-livenow-item', 'lq-livenow-bot' => $nowKind === 'bot']) wire:navigate title="Start a chat · {{ $session->path() }}">
                                         <x-ui.avatar :name="$session->displayName()" size="sm" tone />
-                                        <span class="lq-livenow-text"><strong>{{ $session->displayName() }}</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
+                                        <span class="lq-livenow-text"><strong>{{ $session->displayName() }}@if ($nowKind === 'bot') <em>Bot?</em>@endif</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
                                     </a>
                                 @endif
                             @endforeach

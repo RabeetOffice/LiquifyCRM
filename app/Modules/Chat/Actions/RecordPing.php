@@ -24,7 +24,7 @@ final class RecordPing
 {
     /**
      * @param  array{url?: mixed, title?: mixed, referrer?: mixed}  $page
-     * @param  array{new_key?: string, ip?: ?string, tz?: ?string, country?: ?string, device?: ?string, browser?: ?string}  $info
+     * @param  array{new_key?: string, ip?: ?string, tz?: ?string, human?: bool, country?: ?string, device?: ?string, browser?: ?string}  $info
      * @return array{text: string, from: string}|null
      */
     public function handle(ChatWidget $widget, string $vid, array $page, array $info): ?array
@@ -35,12 +35,14 @@ final class RecordPing
         $now = now();
 
         $session = ChatSession::query()->where('brand_id', $widget->brand_id)->where('vid', $vid)->first();
+        $person = LiveChat::humanReady() && ($info['human'] ?? false) === true;
 
         $seen = array_filter([
             'chat_widget_id' => $widget->getKey(),
             'country' => $info['country'] ?? null,
             'device' => $info['device'] ?? null,
             'browser' => $info['browser'] ?? null,
+            'interacted_at' => $person && ($session === null || $session->getAttribute('interacted_at') === null) ? now() : null,
             'ip' => LiveChat::geoReady() ? ($info['ip'] ?? null) : null,
             // Only a real time zone name is kept.
             'browser_tz' => LiveChat::tzReady() && in_array($info['tz'] ?? null, timezone_identifiers_list(), true) ? $info['tz'] : null,
@@ -75,6 +77,7 @@ final class RecordPing
             } catch (QueryException) {
                 // Two pings of the same browser at the same moment: the other one made it.
                 $session = ChatSession::query()->where('brand_id', $widget->brand_id)->where('vid', $vid)->first();
+                $person = LiveChat::humanReady() && ($info['human'] ?? false) === true;
             }
 
             return $session !== null ? $this->invite($session) : null;

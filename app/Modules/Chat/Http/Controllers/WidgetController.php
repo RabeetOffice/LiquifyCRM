@@ -181,6 +181,7 @@ final class WidgetController
         $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
             'new_key' => 'chat-new-session:'.ChatProxy::ip($request),
             'tz' => is_string($data['tz'] ?? null) ? $data['tz'] : null,
+            'human' => ($data['human'] ?? false) === true,
             'ip' => ChatProxy::ip($request),
             'country' => self::country($request),
             'device' => $device->kind->value,

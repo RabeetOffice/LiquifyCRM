@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.56.0',
+        'date' => '2026-11-12',
+        'title' => 'Real person or bot',
+        'changes' => [
+            ['new', 'Live visitors, Live chat › Chats and “On the website now” say whether a visitor is a real person: “Real person” once they scroll, tap, click, type or move the mouse on the page, or write in the chat; “Probably a bot” for a visitor from a VPN or data-centre address who has done none of that after 20 seconds. Bots are greyed out in “On the website now”.'],
+        ],
+    ],
+    [
         'version' => '1.55.0',
         'date' => '2026-11-12',
         'title' => 'Visitors see who they are chatting with',

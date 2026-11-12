@@ -31,6 +31,8 @@ final class LiveChat
 
     private static bool $agentCardReady = false;
 
+    private static bool $humanReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -78,6 +80,12 @@ final class LiveChat
     public static function agentCardReady(): bool
     {
         return self::$agentCardReady = self::$agentCardReady || (self::ready() && Schema::hasColumn('users', 'chat_name'));
+    }
+
+    /** The first sign of a person on a browser (chat_sessions.interacted_at): 1.56.0. */
+    public static function humanReady(): bool
+    {
+        return self::$humanReady = self::$humanReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'interacted_at'));
     }
 
     public static function workReady(): bool

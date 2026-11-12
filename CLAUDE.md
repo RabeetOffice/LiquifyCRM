@@ -199,6 +199,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `LiveChat::agentCardReady()`; empty = first name, designation, a 160 px copy of the profile photo). The photo travels as
   a data URI (no request to LiquifyCRM's address, so liquify-chat.php keeps working) and only when the chat box does not
   have it (`messages?agent=`). `chat_photo` is hidden on User. Set on Profile › In the website chat.
+  1.56.0: real person or bot. widget.js notes the first pointerdown / keydown / touchstart / wheel / scroll or 60 px of
+  mouse movement and pings at once with `human: true`; `RecordPing` keeps the first moment in `chat_sessions.interacted_at`
+  (behind `LiveChat::humanReady()`). `VisitorKind::of()`: person (interacted, or wrote), bot (quiet 20 s and a VPN /
+  data-centre address), else undecided. Partial `chat::partials.kind`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

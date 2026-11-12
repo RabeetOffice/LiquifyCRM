@@ -9,7 +9,18 @@
     $browserTz = ! \App\Modules\Chat\Support\LiveChat::tzReady() ? null : ($who instanceof \App\Modules\Chat\Models\ChatSession
         ? $who->browser_tz
         : \App\Modules\Chat\Models\ChatSession::query()->where('chat_visitor_id', $who->getKey())->whereNotNull('browser_tz')->latest('last_seen_at')->value('browser_tz'));
-    $vpn = \App\Modules\Chat\Support\VisitorLocation::vpn($who->getAttribute('is_proxy'), $who->getAttribute('isp'), $who->country, $browserTz);@endphp
+    $vpn = \App\Modules\Chat\Support\VisitorLocation::vpn($who->getAttribute('is_proxy'), $who->getAttribute('isp'), $who->country, $browserTz);
+    // Real person or bot: the browser itself, or the visitor's latest browser and whether they wrote in the chat.
+    $kindSession = $who instanceof \App\Modules\Chat\Models\ChatSession ? $who : (\App\Modules\Chat\Support\LiveChat::trackingReady() ? \App\Modules\Chat\Models\ChatSession::query()->where('chat_visitor_id', $who->getKey())->latest('last_seen_at')->first() : null);
+    $wrote = $who instanceof \App\Modules\Chat\Models\ChatVisitor && $who->conversations()->whereNotNull('last_inbound_at')->exists();
+    $kind = \App\Modules\Chat\Support\VisitorKind::of($kindSession, $wrote);
+@endphp
+@if ($kind !== null)
+    <div>
+        <dt><x-heroicon-o-finger-print /> Real person?</dt>
+        <dd>@include('chat::partials.kind', ['kind' => $kind, 'long' => true])</dd>
+    </div>
+@endif
 @if ($place !== '')
     <div>
         <dt><x-heroicon-o-map-pin /> Location</dt>

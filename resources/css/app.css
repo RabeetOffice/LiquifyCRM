@@ -13635,4 +13635,9 @@ button.lq-perday-row:hover {
 .lq-chatcard-words small { font-size: 0.75rem; opacity: 0.8; }
 .lq-chatcard-photo { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .lq-chatcard-photo label { cursor: pointer; }
+
+/* A browser that is probably a program, among the people on the website now. */
+.lq-livenow-bot { opacity: 0.55; }
+.lq-livenow-text strong em { font-style: normal; font-weight: 500; color: var(--lq-muted); }
+
 } /* @layer components */

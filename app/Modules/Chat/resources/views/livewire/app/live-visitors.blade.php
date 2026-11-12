@@ -35,7 +35,7 @@
                                     <span class="lq-person">
                                         <x-ui.avatar :name="$session->displayName()" size="sm" tone />
                                         <span class="min-w-0">
-                                            <span class="lq-cell-title truncate">{{ $session->displayName() }}</span>
+                                            <span class="lq-cell-title truncate">{{ $session->displayName() }} @include('chat::partials.kind', ['kind' => \App\Modules\Chat\Support\VisitorKind::of($session, $chatId !== null)])</span>
                                             <span class="lq-cell-sub truncate lq-where lq-where-row" title="{{ \App\Modules\Chat\Support\VisitorLocation::label($session->city, $session->region, $session->country) }}{{ $session->ip ? ' · '.$session->ip : '' }}{{ $session->isp ? ' · '.$session->isp : '' }} · {{ trim(($session->browser ?? '').' · '.ucfirst((string) $session->device), ' ·') }}">@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? (\App\Modules\Chat\Support\VisitorLocation::label(null, null, $session->country) ?: 'Place not known') }}@php $vpn = \App\Modules\Chat\Support\VisitorLocation::vpn($session->is_proxy, $session->isp, $session->country, $session->getAttribute('browser_tz')); @endphp @if ($vpn['vpn']) <x-ui.badge color="danger" :title="$vpn['real'] ? 'Their computer is set to '.\App\Modules\Chat\Support\VisitorLocation::label(null, null, $vpn['real']).' time' : 'A VPN, proxy or data centre address'">VPN detected</x-ui.badge>@endif</span>
                                         </span>
                                     </span>

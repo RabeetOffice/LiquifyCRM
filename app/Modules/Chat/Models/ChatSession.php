@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $timezone
  * @property bool|null $is_proxy
  * @property string|null $browser_tz
+ * @property CarbonImmutable|null $interacted_at
  * @property string|null $device
  * @property string|null $browser
  * @property int $visits_count
@@ -57,7 +58,7 @@ class ChatSession extends Model
     public const NEW_VISIT_MINUTES = 30;
 
     protected $fillable = [
-        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'ip', 'city', 'region', 'isp', 'timezone', 'is_proxy', 'browser_tz', 'device', 'browser',
+        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'ip', 'city', 'region', 'isp', 'timezone', 'is_proxy', 'browser_tz', 'interacted_at', 'device', 'browser',
         'visits_count', 'visit_started_at', 'page_changed_at', 'first_seen_at', 'last_seen_at', 'invite_text', 'invite_from', 'invite_sent_at', 'invite_shown_at',
     ];
 
@@ -72,6 +73,7 @@ class ChatSession extends Model
             'last_seen_at' => 'datetime',
             'invite_sent_at' => 'datetime',
             'invite_shown_at' => 'datetime',
+            'interacted_at' => 'datetime',
         ];
     }
 
