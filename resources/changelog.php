@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.57.0',
+        'date' => '2026-11-12',
+        'title' => 'Where a visitor came from',
+        'changes' => [
+            ['new', '“Came from” now says it plainly: Google Ads, Facebook / Instagram, Microsoft or TikTok Ads, Google search, ChatGPT, a newsletter… with the campaign’s name when the link carries one, read from the advert’s and campaign’s tags in the address they landed on.'],
+            ['new', 'Came from is shown beside a visitor’s chat in Live chat › Chats, and a lead made from a website chat keeps it with the campaign and the page they were on, under where the enquiry came from.'],
+        ],
+    ],
+    [
         'version' => '1.56.0',
         'date' => '2026-11-12',
         'title' => 'Real person or bot',

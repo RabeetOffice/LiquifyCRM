@@ -15,6 +15,12 @@
     $wrote = $who instanceof \App\Modules\Chat\Models\ChatVisitor && $who->conversations()->whereNotNull('last_inbound_at')->exists();
     $kind = \App\Modules\Chat\Support\VisitorKind::of($kindSession, $wrote);
 @endphp
+@if ($kindSession !== null)
+    <div>
+        <dt><x-heroicon-o-arrow-right-end-on-rectangle /> Came from</dt>
+        <dd title="{{ $kindSession->referrer }}">{{ $kindSession->cameFrom() }}</dd>
+    </div>
+@endif
 @if ($kind !== null)
     <div>
         <dt><x-heroicon-o-finger-print /> Real person?</dt>

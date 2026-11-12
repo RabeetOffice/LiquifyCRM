@@ -23,6 +23,7 @@ use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\Realtime;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
+use App\Modules\Chat\Support\VisitSource;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Meta\Models\Conversation;
 use Illuminate\Http\JsonResponse;
@@ -182,6 +183,7 @@ final class WidgetController
             'new_key' => 'chat-new-session:'.ChatProxy::ip($request),
             'tz' => is_string($data['tz'] ?? null) ? $data['tz'] : null,
             'human' => ($data['human'] ?? false) === true,
+            'tags' => is_array($data['tags'] ?? null) ? array_intersect_key($data['tags'], array_flip(VisitSource::TAGS)) : [],
             'ip' => ChatProxy::ip($request),
             'country' => self::country($request),
             'device' => $device->kind->value,

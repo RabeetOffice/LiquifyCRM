@@ -33,6 +33,8 @@ final class LiveChat
 
     private static bool $humanReady = false;
 
+    private static bool $sourceReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -86,6 +88,12 @@ final class LiveChat
     public static function humanReady(): bool
     {
         return self::$humanReady = self::$humanReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'interacted_at'));
+    }
+
+    /** Where a visit came from (chat_sessions.source / campaign): 1.57.0. */
+    public static function sourceReady(): bool
+    {
+        return self::$sourceReady = self::$sourceReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'source'));
     }
 
     public static function workReady(): bool

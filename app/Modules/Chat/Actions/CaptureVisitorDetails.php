@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Chat\Actions;
 
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorSpam;
 use App\Modules\Core\Support\Audit;
@@ -83,6 +85,7 @@ final class CaptureVisitorDetails
             'message' => is_string($first) ? $first : null,
             'source_type' => LeadSource::LiveChat,
             'source_id' => $widget->getKey(),
+            'fields' => self::visitFacts($visitor),
         ]);
 
         $lead = $creation->lead;
@@ -100,5 +103,29 @@ final class CaptureVisitorDetails
         );
 
         return ['lead' => $lead, 'errors' => []];
+    }
+
+    /**
+     * Where the visitor's latest visit came from, for the lead's source facts (Came from, Campaign, Page).
+     *
+     * @return array<string, string>
+     */
+    private static function visitFacts(ChatVisitor $visitor): array
+    {
+        if (! LiveChat::trackingReady()) {
+            return [];
+        }
+
+        $session = ChatSession::query()->where('chat_visitor_id', $visitor->getKey())->latest('last_seen_at')->first();
+
+        if ($session === null) {
+            return [];
+        }
+
+        return array_filter([
+            'came_from' => $session->cameFrom(),
+            'campaign' => LiveChat::sourceReady() ? $session->campaign : null,
+            'page_url' => $session->current_url,
+        ], fn (?string $value): bool => $value !== null && $value !== '');
     }
 }

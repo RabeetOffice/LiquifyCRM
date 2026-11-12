@@ -44,7 +44,7 @@
                                     <span class="lq-cell-title truncate" title="{{ $session->current_url }}">{{ $session->path() }}</span>
                                     <span class="lq-cell-sub truncate">{{ $session->current_title ?? '' }}</span>
                                 </td>
-                                <td class="lq-col-wide">{{ $session->referrer ?? 'Direct or the same website' }}</td>
+                                <td class="lq-col-wide" title="{{ $session->referrer }}">{{ $session->cameFrom() }}</td>
                                 <td title="Since {{ $session->visit_started_at?->format('H:i') }} UTC">{{ $session->visit_started_at?->diffForHumans(['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'short' => true]) ?? '—' }}</td>
                                 <td class="lq-col-wide lq-tabular">{{ $session->visits_count }}</td>
                                 <td>

@@ -24,6 +24,7 @@ final class LeadEnquiry
         'facebook_page' => 'Facebook Page',
         'instagram' => 'Instagram account',
         'website' => 'Website',
+        'came_from' => 'Came from',
         'form' => 'Form',
         'campaign' => 'Campaign',
         'adset' => 'Ad set',

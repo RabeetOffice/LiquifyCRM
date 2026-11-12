@@ -10,6 +10,7 @@ use App\Modules\Chat\Models\ChatPageView;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\LiveChat;
+use App\Modules\Chat\Support\VisitSource;
 use App\Modules\Core\Support\Live;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,7 +25,7 @@ final class RecordPing
 {
     /**
      * @param  array{url?: mixed, title?: mixed, referrer?: mixed}  $page
-     * @param  array{new_key?: string, ip?: ?string, tz?: ?string, human?: bool, country?: ?string, device?: ?string, browser?: ?string}  $info
+     * @param  array{new_key?: string, ip?: ?string, tz?: ?string, human?: bool, tags?: array<string, mixed>, country?: ?string, device?: ?string, browser?: ?string}  $info
      * @return array{text: string, from: string}|null
      */
     public function handle(ChatWidget $widget, string $vid, array $page, array $info): ?array
@@ -66,6 +67,7 @@ final class RecordPing
                     'current_url' => $url,
                     'current_title' => $title,
                     'referrer' => $referrer,
+                    ...$this->source($referrer, $info['tags'] ?? []),
                     'visit_started_at' => $now,
                     'page_changed_at' => $now,
                     'first_seen_at' => $now,
@@ -91,7 +93,7 @@ final class RecordPing
         $session->forceFill([
             ...$seen,
             'last_seen_at' => $now,
-            ...($returned ? ['visits_count' => $session->visits_count + 1, 'visit_started_at' => $now, 'referrer' => $referrer] : []),
+            ...($returned ? ['visits_count' => $session->visits_count + 1, 'visit_started_at' => $now, 'referrer' => $referrer, ...$this->source($referrer, $info['tags'] ?? [])] : []),
             ...($moved || $returned ? ['current_url' => $url ?? $session->current_url, 'current_title' => $title ?? $session->current_title, 'page_changed_at' => $now] : []),
         ])->save();
 
@@ -104,6 +106,17 @@ final class RecordPing
         }
 
         return $this->invite($session);
+    }
+
+    /**
+     * Where this visit came from, worked out once when it starts.
+     *
+     * @param  array<string, mixed>  $tags
+     * @return array{source?: ?string, campaign?: ?string}
+     */
+    private function source(?string $referrer, array $tags): array
+    {
+        return LiveChat::sourceReady() ? VisitSource::from($referrer, $tags) : [];
     }
 
     /**

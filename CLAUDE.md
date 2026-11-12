@@ -203,6 +203,11 @@ in the document's weekly phases; never skip a phase or silently change the desig
   mouse movement and pings at once with `human: true`; `RecordPing` keeps the first moment in `chat_sessions.interacted_at`
   (behind `LiveChat::humanReady()`). `VisitorKind::of()`: person (interacted, or wrote), bot (quiet 20 s and a VPN /
   data-centre address), else undecided. Partial `chat::partials.kind`.
+  1.57.0: where a visit came from. widget.js sends only the landing page's `VisitSource::TAGS` (utm source / medium /
+  campaign; ad click ids as "1", never their value); `RecordPing` works out `chat_sessions.source` / `campaign` when a visit
+  starts (`VisitSource::from`: click id > utm > referrer host by name), behind `LiveChat::sourceReady()`.
+  `ChatSession::cameFrom()` is the label (Live visitors, beside a chat); `CaptureVisitorDetails` puts came_from, campaign
+  and page_url on the lead's `fields` (LeadEnquiry shows "Came from").
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

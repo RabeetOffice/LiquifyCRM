@@ -379,7 +379,7 @@
 
             var zone = '';
             try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500), tz: zone.slice(0, 64), human: human });
+            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500), tz: zone.slice(0, 64), human: human, tags: landingTags });
 
             // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
             fetch(chatUrl('api/ping'), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
@@ -387,6 +387,18 @@
                 .then(function (data) { if (data && data.invite) { invite(data.invite); } })
                 .catch(function () {});
         }
+
+        // The ad and campaign tags of the page the visitor landed on: which ad network (never the click's own code) and the
+        // marketer's source, medium and campaign. Nothing else of the address is sent.
+        var landingTags = (function () {
+            var keep = {}, names = ['utm_source', 'utm_medium', 'utm_campaign'], clicks = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'ttclid', 'li_fat_id', 'twclid', 'epik', 'sccid'];
+            try {
+                var params = new URLSearchParams(location.search);
+                names.forEach(function (n) { var v = params.get(n); if (v) { keep[n] = v.slice(0, 100); } });
+                clicks.forEach(function (n) { if (params.get(n)) { keep[n] = '1'; } });
+            } catch (e) {}
+            return keep;
+        })();
 
         // A person scrolls, taps, clicks, types or moves the mouse; a program that only loads the page usually does not.
         var human = false;
