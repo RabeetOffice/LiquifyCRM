@@ -7,6 +7,7 @@ namespace App\Modules\Auth\Livewire;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Brands\Models\Membership;
+use App\Modules\Chat\Support\AgentCard;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\ViewerTime;
@@ -47,6 +48,13 @@ final class Profile extends Component
 
     public ?TemporaryUploadedFile $avatar = null;
 
+    /** How visitors of the website chat see this person (empty: first name, designation, profile photo). */
+    public string $chatName = '';
+
+    public string $chatTitle = '';
+
+    public ?TemporaryUploadedFile $chatPhoto = null;
+
     public function mount(): void
     {
         $user = $this->user();
@@ -57,6 +65,11 @@ final class Profile extends Component
         $this->phone = (string) $user->phone;
         // Empty is "Automatic": this computer's time zone (ViewerTime).
         $this->timezone = (string) $user->timezone;
+
+        if (AgentCard::ready()) {
+            $this->chatName = (string) $user->chat_name;
+            $this->chatTitle = (string) $user->chat_title;
+        }
     }
 
     public function save(): void
@@ -96,6 +109,48 @@ final class Profile extends Component
         $this->toastSuccess('Photo updated');
     }
 
+    /** The name and title the website chat shows for this person. */
+    public function saveChatProfile(): void
+    {
+        abort_unless(AgentCard::ready(), 404);
+
+        $data = $this->validate([
+            'chatName' => ['nullable', 'string', 'max:60'],
+            'chatTitle' => ['nullable', 'string', 'max:80'],
+        ], attributes: ['chatName' => 'name in the chat', 'chatTitle' => 'title in the chat']);
+
+        $user = $this->user();
+        $user->forceFill(['chat_name' => trim((string) $data['chatName']) ?: null, 'chat_title' => trim((string) $data['chatTitle']) ?: null])->save();
+
+        $this->toastSuccess('Saved', 'Visitors see it in the chat box the next time it asks.');
+    }
+
+    /** The chat photo saves itself as soon as it is chosen, made small and square. */
+    public function updatedChatPhoto(): void
+    {
+        abort_unless(AgentCard::ready(), 404);
+        $this->validate(['chatPhoto' => ['required', 'image', 'max:4096']], attributes: ['chatPhoto' => 'photo']);
+
+        $small = AgentCard::small((string) file_get_contents((string) $this->chatPhoto?->getRealPath()));
+        $this->chatPhoto = null;
+
+        if ($small === null) {
+            $this->addError('chatPhoto', 'That picture could not be read. Try a JPG or PNG.');
+
+            return;
+        }
+
+        $this->user()->forceFill(['chat_photo' => $small])->save();
+        $this->toastSuccess('Chat photo updated');
+    }
+
+    public function removeChatPhoto(): void
+    {
+        abort_unless(AgentCard::ready(), 404);
+        $this->user()->forceFill(['chat_photo' => null])->save();
+        $this->toastSuccess('Chat photo removed', 'The chat shows your profile photo, if you have one.');
+    }
+
     public function removeAvatar(): void
     {
         $this->user()->forceFill(['avatar_path' => null])->save();
@@ -111,6 +166,8 @@ final class Profile extends Component
 
         return view('auth::livewire.profile', [
             'user' => $user,
+            // How this person shows in the website chat, for those who answer it (Admins, Managers, Agents).
+            'chatCard' => AgentCard::ready() && ($user->isGlobalAdmin() || $memberships->isNotEmpty()) ? AgentCard::of($user) : null,
             'memberships' => $memberships,
             'departments' => $user->isGlobalAdmin() ? collect() : $user->departments()->acrossBrands()->orderBy('name')->get(),
             'facts' => $this->facts($user),

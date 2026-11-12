@@ -43,6 +43,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property MembershipStatus $status
  * @property string|null $phone
  * @property string|null $avatar_path
+ * @property string|null $chat_name
+ * @property string|null $chat_title
+ * @property string|null $chat_photo
  * @property string|null $timezone
  * @property string|null $sign_in_network NetworkRule value, null = the rule for everybody
  * @property string|null $sign_in_phones PhoneRule value, null = the rule for everybody
@@ -69,7 +72,7 @@ class User extends Authenticatable
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
+        'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'chat_photo',
     ];
 
     protected function casts(): array

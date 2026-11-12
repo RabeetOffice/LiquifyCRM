@@ -102,6 +102,50 @@
             </form>
         </x-ui.card>
 
+        @if ($chatCard)
+            {{-- How visitors of the website chat see this person: the chat box's header shows whoever looks after the chat. --}}
+            <x-ui.card title="In the website chat" description="Visitors see this at the top of the chat box when you look after their chat. Empty: your first name, your designation and your profile photo.">
+                <div class="lq-chatcard">
+                    <div class="lq-chatcard-preview" aria-hidden="true">
+                        <span class="lq-chatcard-av">
+                            @if ($chatCard['photo'])
+                                <img src="{{ $chatCard['photo'] }}" alt="">
+                            @else
+                                {{ mb_strtoupper(mb_substr($chatCard['name'], 0, 1)) }}
+                            @endif
+                            <i></i>
+                        </span>
+                        <span class="lq-chatcard-words"><strong>{{ $chatCard['name'] }}</strong><small>{{ $chatCard['title'] ?? 'We usually reply in a few minutes' }}</small></span>
+                    </div>
+
+                    <div class="lq-chatcard-photo">
+                        <label class="lq-btn lq-btn-secondary lq-btn-sm">
+                            <x-heroicon-o-camera /> <span wire:loading.remove wire:target="chatPhoto">{{ $user->chat_photo ? 'Change chat photo' : 'Add a chat photo' }}</span><span wire:loading wire:target="chatPhoto">Saving…</span>
+                            <input type="file" wire:model="chatPhoto" accept="image/*" class="sr-only" aria-label="Chat photo">
+                        </label>
+                        @if ($user->chat_photo)
+                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-sm" wire:click="removeChatPhoto">Use my profile photo</button>
+                        @endif
+                    </div>
+                    @error('chatPhoto') <p class="lq-error">{{ $message }}</p> @enderror
+
+                    <form wire:submit="saveChatProfile" class="lq-form">
+                        <div class="lq-form-grid">
+                            <x-ui.field label="Name in the chat" name="chatName">
+                                <x-ui.input wire:model="chatName" name="chatName" maxlength="60" :placeholder="explode(' ', trim($user->name))[0]" />
+                            </x-ui.field>
+                            <x-ui.field label="Title in the chat" name="chatTitle">
+                                <x-ui.input wire:model="chatTitle" name="chatTitle" maxlength="80" :placeholder="$user->designation ?: 'Publishing consultant'" />
+                            </x-ui.field>
+                        </div>
+                        <div class="flex justify-end">
+                            <x-ui.button type="submit" variant="secondary" wire:loading.attr="disabled" wire:target="saveChatProfile">Save</x-ui.button>
+                        </div>
+                    </form>
+                </div>
+            </x-ui.card>
+        @endif
+
         <div class="flex flex-col gap-6">
             @if ($targets !== [])
                 <x-ui.card title="Your target this month" description="{{ now()->format('F Y') }}. Sales you closed count towards it.">

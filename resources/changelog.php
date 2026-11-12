@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.55.0',
+        'date' => '2026-11-12',
+        'title' => 'Visitors see who they are chatting with',
+        'changes' => [
+            ['new', 'The top of the chat box on the website shows the person looking after the chat: their photo, name and title (for example “Rabeet · Publishing consultant · Online”) instead of “Chat with us”. Before anybody has the chat, it shows the chat box’s own title.'],
+            ['new', 'Profile › In the website chat: choose the name, title and photo visitors see. Left empty, the chat uses your first name, your designation and your profile photo. Your name in the chat also shows under your messages.'],
+        ],
+    ],
+    [
         'version' => '1.54.0',
         'date' => '2026-11-12',
         'title' => 'Chat boxes for Admins, and the unread chats on the Live chat tab',

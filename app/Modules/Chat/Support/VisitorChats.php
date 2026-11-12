@@ -73,17 +73,12 @@ final class VisitorChats
             'from' => $from,
             'body' => (string) $message->body,
             'at' => $message->created_at?->toIso8601String() ?? now()->toIso8601String(),
-            'name' => $from === 'team' && $message->sender !== null ? self::firstName($message->sender->name) : null,
+            'name' => $from === 'team' && $message->sender !== null ? AgentCard::of($message->sender, withPhoto: false)['name'] : null,
             'files' => $message->relationLoaded('chatFiles')
                 ? $message->chatFiles->map(fn (ChatAttachment $file): array => ['name' => $file->original_name, 'size' => $file->humanSize(), 'image' => $file->isImage(), 'url' => ChatProxy::url(request(), $file->visitorUrl())])->values()->all()
                 : [],
             // The team asked for the visitor's details: the chat box shows its form under the message.
             'ask' => $from === 'team' && is_array($message->raw) && ($message->raw['ask'] ?? null) === 'details' ? 'details' : null,
         ];
-    }
-
-    private static function firstName(string $name): string
-    {
-        return explode(' ', trim($name))[0];
     }
 }

@@ -14,6 +14,7 @@ use App\Modules\Chat\Actions\SendVisitorMessage;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\AgentCard;
 use App\Modules\Chat\Support\AgentPresence;
 use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatProxy;
@@ -23,6 +24,7 @@ use App\Modules\Chat\Support\Realtime;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Meta\Models\Conversation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -131,7 +133,22 @@ final class WidgetController
             'messages' => $conversation !== null ? VisitorChats::messages($conversation) : [],
             'closed' => $conversation?->isClosed() ?? false,
             'rating' => LiveChat::ratingReady() ? $conversation?->getAttribute('rating') : null,
+            // Who looks after this chat, for the chat box's header (name, title, photo).
+            'agent' => self::agentCard($conversation, null),
         ]);
+    }
+
+    /**
+     * The person looking after the chat as the chat box shows them; the photo only when the chat box does not have it yet
+     * (it says which person it shows), so it is not sent with every ask.
+     *
+     * @return array{id: int, name: string, title: ?string, photo: ?string}|null
+     */
+    private static function agentCard(?Conversation $conversation, ?int $known): ?array
+    {
+        $agent = $conversation !== null ? AgentCard::agentOf($conversation) : null;
+
+        return $agent !== null ? AgentCard::of($agent, withPhoto: $known !== (int) $agent->getKey()) : null;
     }
 
     /**
@@ -201,6 +218,7 @@ final class WidgetController
             'agent_typing' => $conversation !== null && ChatTyping::agentIsTyping((int) $conversation->getKey()),
             'closed' => $conversation?->isClosed() ?? false,
             'online' => AgentPresence::online((int) $widget->brand_id),
+            'agent' => self::agentCard($conversation, $request->integer('agent') ?: null),
         ]);
     }
 

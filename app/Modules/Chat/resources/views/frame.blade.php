@@ -21,6 +21,7 @@ body.h-glass header{position:absolute;inset:0 0 auto;background:color-mix(in srg
 body.h-glass main{padding-top:84px}
 .av{position:relative;flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--a);color:var(--ona);font-weight:650;font-size:16px}
 .av img{width:100%;height:100%;border-radius:50%;object-fit:contain;background:#fff;padding:5px}
+.av img.face{object-fit:cover;padding:0}
 .av i{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#a1a1a6;box-shadow:0 0 0 2px var(--c)}
 body.h-glass .av i{box-shadow:0 0 0 2px var(--bg)}
 .av i.on{background:#30d158}
@@ -357,11 +358,39 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     var detailsForm = null;
 
     // Under the title: whether somebody is here, and how soon they usually answer.
-    function setOnline(online) {
-        var sub = $('sub');
-        sub.textContent = online ? (sub.getAttribute('data-reply') || 'Online now') : 'Away right now. Leave a message.';
-        $('dot').className = online ? 'on' : '';
+    // The header: the person looking after the chat (photo, name, title) once somebody has it, else the chat box's own
+    // title and mark; under it whether somebody is here.
+    var agent = null, online = false, firstTitle = null, firstAvatar = null;
+
+    function paintHeader() {
+        var title = $('title'), sub = $('sub'), av = document.querySelector('header .av'), dot = $('dot');
+        if (firstTitle === null) { firstTitle = title.textContent; firstAvatar = Array.prototype.slice.call(av.childNodes).filter(function (n) { return n !== dot; }); }
+
+        title.textContent = agent ? agent.name : (config && config.title) || firstTitle;
+        sub.textContent = !online ? 'Away right now. Leave a message.' : (agent && agent.title ? agent.title + ' · Online' : (sub.getAttribute('data-reply') || 'Online now'));
+        dot.className = online ? 'on' : '';
+
+        Array.prototype.slice.call(av.childNodes).forEach(function (n) { if (n !== dot) { av.removeChild(n); } });
+        if (agent && agent.photo) {
+            var img = el('img'); img.src = agent.photo; img.alt = ''; img.className = 'face'; av.insertBefore(img, dot);
+        } else if (agent) {
+            av.insertBefore(document.createTextNode(agent.name.charAt(0).toUpperCase()), dot);
+        } else {
+            firstAvatar.forEach(function (n) { av.insertBefore(n, dot); });
+        }
+    }
+
+    function setOnline(value) {
+        online = !!value;
         if (config) { config.online = online; }
+        paintHeader();
+    }
+
+    // A new person, or the same one again (then the photo is not sent twice).
+    function setAgent(card) {
+        if (!card) { if (agent) { agent = null; paintHeader(); } return; }
+        if (agent && agent.id === card.id) { if (card.photo) { agent.photo = card.photo; } agent.name = card.name; agent.title = card.title; paintHeader(); return; }
+        agent = card; paintHeader();
     }
 
     // The details form; the team asking for it (force) shows it again even after "Not now", at the end of the chat.
@@ -489,8 +518,8 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         clearTimeout(timer);
         if (!creds) { return; }
 
-        call('GET', '/messages?after=' + lastId).then(function (r) {
-            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); setTyping(!!r.json.agent_typing); setClosed(!!r.json.closed); if (typeof r.json.online === 'boolean') { setOnline(r.json.online); } }
+        call('GET', '/messages?after=' + lastId + (agent ? '&agent=' + agent.id : '')).then(function (r) {
+            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); setTyping(!!r.json.agent_typing); setClosed(!!r.json.closed); if (typeof r.json.online === 'boolean') { setOnline(r.json.online); } if ('agent' in r.json) { setAgent(r.json.agent); } }
             else if (r.status === 401 || r.status === 404) { return; }
             else { failures += 1; }
             schedule();
@@ -567,6 +596,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             }
 
             rating = r.json.rating || null; paintRating();
+            setAgent(r.json.agent || null);
             messages.forEach(function (m) { addMessage(m); });
             loaded = true;
             unread = 0; tell({ type: 'unread', count: 0 });

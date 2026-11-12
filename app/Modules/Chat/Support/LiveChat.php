@@ -29,6 +29,8 @@ final class LiveChat
 
     private static bool $tzReady = false;
 
+    private static bool $agentCardReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -70,6 +72,12 @@ final class LiveChat
     public static function tzReady(): bool
     {
         return self::$tzReady = self::$tzReady || (self::geoReady() && Schema::hasColumn('chat_sessions', 'browser_tz'));
+    }
+
+    /** The live chat profile of team members (users.chat_name / chat_title / chat_photo): 1.55.0. */
+    public static function agentCardReady(): bool
+    {
+        return self::$agentCardReady = self::$agentCardReady || (self::ready() && Schema::hasColumn('users', 'chat_name'));
     }
 
     public static function workReady(): bool
