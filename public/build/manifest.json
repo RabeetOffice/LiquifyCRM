@@ -1,12 +1,12 @@
 {
-  "node_modules/chart.js/auto/auto.js": {
+  "../../../../../../../../../../xampp/htdocs/LiquifyCRM/node_modules/chart.js/auto/auto.js": {
     "file": "assets/auto-CXsrtjfs.js",
     "name": "auto",
-    "src": "node_modules/chart.js/auto/auto.js",
+    "src": "../../../../../../../../../../xampp/htdocs/LiquifyCRM/node_modules/chart.js/auto/auto.js",
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-CpLOn1G9.css",
+    "file": "assets/app-D5tKix1Z.css",
     "name": "app",
     "names": [
       "app.css"
@@ -20,7 +20,7 @@
     "src": "resources/js/app.js",
     "isEntry": true,
     "dynamicImports": [
-      "node_modules/chart.js/auto/auto.js"
+      "../../../../../../../../../../xampp/htdocs/LiquifyCRM/node_modules/chart.js/auto/auto.js"
     ]
   }
 }

@@ -16,6 +16,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
 use App\Modules\Leads\Policies\LeadPolicy;
+use App\Modules\Leads\Policies\LeadStatusPolicy;
 use App\Modules\Leads\Policies\TaskPolicy;
 use Illuminate\Support\Facades\Event;
 
@@ -32,6 +33,7 @@ final class LeadsServiceProvider extends ModuleServiceProvider
 
     protected array $policies = [
         Lead::class => LeadPolicy::class,
+        LeadStatus::class => LeadStatusPolicy::class,
         Task::class => TaskPolicy::class,
     ];
 

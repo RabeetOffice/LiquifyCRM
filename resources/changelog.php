@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.50.0',
+        'date' => '2026-11-12',
+        'title' => 'Each brand\'s own pipeline stages',
+        'changes' => [
+            ['new', 'Pipeline stages (Settings menu, and the Stages button on the Pipeline): Admins and the brand\'s Managers add a stage anywhere between New and Won, for that brand only. For example "Connected" between Contacted and Qualified. Point between two stages and click "Add a stage between…".'],
+            ['new', 'A new stage shows at once everywhere in the brand: a column on the Pipeline, a step on every lead, the status filter and Change status on Leads, the dashboard chart and Distribute leads. Other brands keep their own stages.'],
+            ['new', 'Rename any stage, give it one of eleven colours, or move it up and down. New stays first, Won and Lost stay last.'],
+            ['new', 'A stage that has leads in it (leads in the Bin count too) cannot be removed: move its leads to another stage first. New, Won and Lost can never be removed, because new leads, sales and closed leads depend on them. Every change is in the Logs.'],
+        ],
+    ],
+    [
         'version' => '1.43.1',
         'date' => '2026-11-04',
         'title' => 'A lead shows what came from the form and what came from Messenger',

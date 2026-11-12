@@ -32,6 +32,7 @@ use App\Modules\Leads\Livewire\App\LeadsBin;
 use App\Modules\Leads\Livewire\App\LeadShow;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
 use App\Modules\Leads\Livewire\App\Pipeline;
+use App\Modules\Leads\Livewire\App\PipelineStages;
 use App\Modules\Leads\Livewire\WebsiteLeadsBoard;
 use App\Modules\Meta\Http\Controllers\ConversationMessageController;
 use App\Modules\Meta\Http\Controllers\FacebookConnectController;
@@ -126,6 +127,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/leads', LeadsIndex::class)->name('leads.index');
         Route::get('/leads/create', LeadForm::class)->name('leads.create');
         Route::get('/leads/pipeline', Pipeline::class)->name('leads.pipeline');
+        Route::get('/leads/stages', PipelineStages::class)->name('leads.stages');
         Route::get('/leads/distribute', DistributePage::class)->name('leads.distribute');
         Route::get('/leads/bin', LeadsBin::class)->name('leads.bin');
         Route::get('/leads/{lead}', LeadShow::class)->name('leads.show');

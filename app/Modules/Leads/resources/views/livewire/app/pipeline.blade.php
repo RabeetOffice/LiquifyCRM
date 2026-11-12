@@ -36,6 +36,9 @@
                 <x-heroicon-o-magnifying-glass />
                 <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search leads" aria-label="Search leads">
             </label>
+            @if ($canManageStages)
+                <x-ui.button variant="secondary" icon="heroicon-o-queue-list" :href="route('brand.leads.stages', ['brand' => $brand->slug])" title="Add, rename, colour or remove the stages of {{ $brand->name }}">Stages</x-ui.button>
+            @endif
         </x-slot:actions>
     </x-ui.page-header>
 

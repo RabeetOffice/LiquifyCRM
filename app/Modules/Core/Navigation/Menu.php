@@ -151,6 +151,8 @@ final class Menu
         if ($user->isGlobalAdmin() || $user->isManagerIn($brand)) {
             $settings = [
                 self::item('Websites', 'heroicon-o-globe-alt', route('brand.sites.index', $params), $isActive('brand.sites.index', 'brand.sites.connect', 'brand.sites.show')),
+                // The brand's own steps of the pipeline (12 Nov 2026).
+                self::item('Pipeline stages', 'heroicon-o-queue-list', route('brand.leads.stages', $params), $isActive('brand.leads.stages')),
             ];
 
             // Logs and the bin of deleted leads are for Admins only.
