@@ -28,6 +28,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $ip
  * @property string|null $country
  * @property string|null $city
+ * @property string|null $region
+ * @property string|null $isp
+ * @property string|null $timezone
+ * @property bool|null $is_proxy
  * @property string|null $browser
  * @property string|null $os
  * @property string|null $device
@@ -41,7 +45,7 @@ class ChatVisitor extends Model
     use BelongsToBrand;
 
     protected $fillable = [
-        'brand_id', 'chat_widget_id', 'visitor_token', 'name', 'email', 'phone', 'lead_id', 'ip', 'country', 'city',
+        'brand_id', 'chat_widget_id', 'visitor_token', 'name', 'email', 'phone', 'lead_id', 'ip', 'country', 'city', 'region', 'isp', 'timezone', 'is_proxy',
         'browser', 'os', 'device', 'visits_count', 'is_banned', 'first_seen_at', 'last_seen_at',
     ];
 
@@ -54,6 +58,7 @@ class ChatVisitor extends Model
             'phone' => 'encrypted',
             'visits_count' => 'integer',
             'is_banned' => 'boolean',
+            'is_proxy' => 'boolean',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

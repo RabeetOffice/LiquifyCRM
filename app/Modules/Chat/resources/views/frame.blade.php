@@ -29,23 +29,25 @@ header .s{display:block;font-weight:400;font-size:12px;letter-spacing:0;opacity:
 header button{all:unset;cursor:pointer;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;color:inherit;background:rgba(127,127,127,.18);transition:background .15s}
 header button:hover{background:rgba(127,127,127,.3)}
 header button:focus-visible,.send:focus-visible,.btn:focus-visible{outline:2px solid var(--a);outline-offset:2px}
-main{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px;background:var(--thread);scroll-behavior:smooth}
+main{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px;background:radial-gradient(120% 60% at 100% 0%,color-mix(in srgb,var(--a) 7%,transparent),transparent 60%),radial-gradient(100% 50% at 0% 100%,color-mix(in srgb,var(--c) 6%,transparent),transparent 60%),var(--thread);scroll-behavior:smooth}
+header{position:relative}header::after{content:'';position:absolute;inset:0 0 auto;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent);pointer-events:none}body.h-glass header{position:absolute}
 .row{display:flex;flex-direction:column;max-width:82%}
 .row.visitor{align-self:flex-end;align-items:flex-end}
 .row.team,.row.ai{align-self:flex-start}
 .bubble{padding:9px 14px;border-radius:20px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
 .visitor .bubble{background:var(--c);color:var(--on);border-bottom-right-radius:6px}
-.team .bubble,.ai .bubble{background:var(--bubble);color:var(--text);border-bottom-left-radius:6px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.team .bubble,.ai .bubble{background:var(--bubble);color:var(--text);border-bottom-left-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 0 0 1px var(--line)}
+.visitor .bubble{box-shadow:0 4px 12px color-mix(in srgb,var(--c) 28%,transparent)}
 .meta{font-size:11px;color:var(--muted);margin:3px 6px 4px}
-.card{background:var(--bubble);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card{background:color-mix(in srgb,var(--bubble) 80%,transparent);-webkit-backdrop-filter:saturate(160%) blur(14px);backdrop-filter:saturate(160%) blur(14px);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
 .card h2{margin:0;font-size:15px;letter-spacing:-.02em}
 .card p{margin:0;font-size:13px;color:var(--muted)}
 label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
-input[type=text],input[type=email],input[type=tel],textarea{width:100%;border:1px solid var(--fieldline);border-radius:12px;padding:10px 12px;background:var(--field);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=email],input[type=tel],textarea{width:100%;border:1px solid transparent;border-radius:12px;padding:10px 12px;background:var(--soft);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
 input:focus,textarea:focus{border-color:var(--a);box-shadow:0 0 0 4px color-mix(in srgb,var(--a) 20%,transparent)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .actions{display:flex;gap:8px}
-.btn{all:unset;cursor:pointer;text-align:center;padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;background:var(--a);color:var(--ona);transition:filter .15s,transform .1s}
+.btn{all:unset;cursor:pointer;text-align:center;padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0)),var(--a);color:var(--ona);box-shadow:0 6px 16px color-mix(in srgb,var(--a) 30%,transparent),inset 0 1px 0 rgba(255,255,255,.25);transition:filter .15s,transform .1s}
 .btn:hover{filter:brightness(1.06)}.btn:active{transform:scale(.98)}
 .btn.ghost{background:transparent;color:var(--muted)}
 .btn:disabled{opacity:.55;cursor:default}
@@ -71,6 +73,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
 .typing span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dot 1.2s infinite ease-in-out}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.rate{display:flex;gap:4px}.rate button{width:30px;height:30px;background:rgba(127,127,127,.16);transition:background .15s,transform .15s}.rate button:active{transform:scale(.9)}.rate .down svg{transform:scale(-1,-1)}.rate button[aria-pressed=true]{background:rgba(255,255,255,.92);color:var(--a)}body.h-glass .rate button[aria-pressed=true]{background:var(--a);color:var(--ona)}
 .hidden{display:none!important}
 @media (prefers-reduced-motion:no-preference){.row,.card{animation:in .28s cubic-bezier(.2,.8,.2,1)}@keyframes in{from{opacity:0;transform:translateY(6px) scale(.98)}}}
 @endverbatim
@@ -80,6 +83,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
 <header>
     <div class="av" aria-hidden="true">@if ($logo)<img src="{{ $logo }}" alt="">@else{{ mb_strtoupper(mb_substr($title, 0, 1)) }}@endif<i id="dot"></i></div>
     <div class="t"><span id="title">{{ $title }}</span><span class="s" id="sub" data-reply="{{ $design['reply_time'] }}"></span></div>
+    <div class="rate hidden" id="rate" role="group" aria-label="Rate this chat"><button type="button" id="rate-up" aria-label="Good chat" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z"/></svg></button><button type="button" id="rate-down" aria-label="Bad chat" aria-pressed="false" class="down"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z"/></svg></button></div>
     <button type="button" id="close" aria-label="Close chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
 <main id="thread" aria-live="polite" aria-label="Conversation"></main>
@@ -107,6 +111,22 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     var seen = {}, lastId = 0, open = false, unread = 0, page = null, timer = null, failures = 0;
     var started = false, detailsShown = false, detailsDismissed = false, tooltip = null;
     var typingRow = null, lastTyped = 0, closedShown = false, loaded = false;
+    var rating = null;
+
+    // Thumbs up or down for the chat, once the team has answered (and when the brand allows it).
+    function showRating() { if (config && config.rating) { $('rate').classList.remove('hidden'); } }
+    function paintRating() {
+        $('rate-up').setAttribute('aria-pressed', rating === 'up' ? 'true' : 'false');
+        $('rate-down').setAttribute('aria-pressed', rating === 'down' ? 'true' : 'false');
+    }
+    function rate(value) {
+        var before = rating;
+        rating = value; paintRating();
+        call('POST', '/rate', { rating: value }).then(function (r) {
+            if (r.status !== 200) { rating = before; paintRating(); return; }
+            addNote(value === 'up' ? 'Thank you! Glad we could help.' : 'Thank you. We will do better.');
+        }).catch(function () { rating = before; paintRating(); });
+    }
     var rt = { source: null, ok: false, refresh: null };
 
     function load() { try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }
@@ -175,6 +195,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         scroll();
 
         if (m.from !== 'visitor') {
+            if (m.from === 'team') { showRating(); }
             if (loaded && (!open || document.hidden)) { chime(); }
             if (!open) { unread += 1; tell({ type: 'unread', count: unread }); }
         } else if (!started) {
@@ -527,6 +548,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
                 thread.appendChild(welcome);
             }
 
+            rating = r.json.rating || null; paintRating();
             messages.forEach(function (m) { addMessage(m); });
             loaded = true;
             unread = 0; tell({ type: 'unread', count: 0 });
@@ -555,6 +577,8 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     attachButton.onclick = function () { fileInput.click(); };
     fileInput.onchange = function () { var file = fileInput.files && fileInput.files[0]; fileInput.value = ''; if (file && config && config.files) { upload(file); } };
     $('close').onclick = function () { tell({ type: 'close' }); };
+    $('rate-up').onclick = function () { rate('up'); };
+    $('rate-down').onclick = function () { rate('down'); };
     document.addEventListener('visibilitychange', schedule);
 
     window.addEventListener('message', function (event) {

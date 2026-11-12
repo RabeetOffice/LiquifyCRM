@@ -113,3 +113,27 @@ it('takes a lively accent rather than a pale tint, and gives up on a grey websit
     $grey = $look->fromHtml('<style>body{color:#333;background:#fff}.btn{background:#111}</style>');
     expect($grey['color'])->toBeNull()->and($grey['error'])->not->toBeNull();
 });
+
+it('gives phones a button of their own, with an icon, a movement, a teaser and the choice to hide while away', function (): void {
+    Livewire::actingAs($this->manager)
+        ->test(ChatWidgets::class, ['brand' => $this->brand])
+        ->call('edit', $this->widget->getKey())
+        ->set('style', 'bar')->set('stylePhone', 'bubble')->set('icon', 'sparkles')->set('motion', 'pulse')
+        ->set('teaser', 'Need help?')->set('awayMode', 'hide')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $this->getJson('/chat/api/config?key='.$this->widget->widget_key, ['Origin' => 'https://ukpublishinghouse.co.uk'])
+        ->assertOk()->assertJson(['style' => 'bar', 'style_phone' => 'bubble', 'icon' => 'sparkles', 'effect' => 'pulse', 'teaser' => 'Need help?', 'away_mode' => 'hide']);
+
+    Livewire::actingAs($this->manager)
+        ->test(ChatWidgets::class, ['brand' => $this->brand])
+        ->call('edit', $this->widget->getKey())
+        ->set('icon', '<svg onload=x>')->set('motion', 'spin')->set('stylePhone', 'giant')->set('teaser', str_repeat('a', 41))
+        ->call('save')
+        ->assertHasErrors(['icon', 'motion', 'stylePhone', 'teaser']);
+
+    // "Same as on computers" is an empty choice and stays one.
+    $this->widget->refresh()->update(['appearance' => [...($this->widget->appearance ?? []), 'style_phone' => '']]);
+    expect($this->widget->refresh()->design()['style_phone'])->toBe('');
+});

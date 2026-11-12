@@ -36,7 +36,7 @@
                                         <x-ui.avatar :name="$session->displayName()" size="sm" tone />
                                         <span class="min-w-0">
                                             <span class="lq-cell-title truncate">{{ $session->displayName() }}</span>
-                                            <span class="lq-cell-sub truncate">{{ $session->flag() }} {{ $session->country ?? 'Country not known' }} · {{ trim(($session->browser ?? '').' · '.ucfirst((string) $session->device), ' ·') ?: 'Device not known' }}</span>
+                                            <span class="lq-cell-sub truncate lq-where lq-where-row">@include('chat::partials.flag', ['code' => $session->country]) {{ \App\Modules\Chat\Support\VisitorLocation::label($session->city, $session->region, $session->country) ?: 'Place not known' }}@if ($session->ip) · <span class="lq-tabular" title="{{ $session->isp }}">{{ $session->ip }}</span>@endif @if ($session->is_proxy)<x-ui.badge color="warning">VPN</x-ui.badge>@endif · {{ trim(($session->browser ?? '').' · '.ucfirst((string) $session->device), ' ·') ?: 'Device not known' }}</span>
                                         </span>
                                     </span>
                                 </td>

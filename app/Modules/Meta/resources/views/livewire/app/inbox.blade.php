@@ -79,7 +79,7 @@
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="lq-inbox-row">
-                                        <span class="lq-inbox-name">{{ $conversation->displayName() }}</span>
+                                        <span class="lq-inbox-name">@if ($conversation->isLiveChat() && $conversation->visitor?->country)@include('chat::partials.flag', ['code' => $conversation->visitor->country]) @endif{{ $conversation->displayName() }}</span>
                                         <span class="lq-inbox-time" title="{{ $conversation->last_message_at?->format('j M Y, H:i') }}">{{ $conversation->last_message_at?->diffForHumans(['short' => true, 'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE]) }}</span>
                                     </span>
                                     <span class="lq-inbox-row">
@@ -118,36 +118,55 @@
                         <x-ui.avatar :name="$selected->displayName()" size="lg" tone />
                         <h2 class="lq-inbox-side-name">{{ $selected->displayName() }}</h2>
                         <x-ui.badge color="gray">No lead yet</x-ui.badge>
+                        @if ($visitor?->country)
+                            {{-- Where they are, at a glance: flag, city and their time. --}}
+                            <span class="lq-visitor-place">
+                                @include('chat::partials.flag', ['code' => $visitor->country])
+                                <span>{{ $visitor->city ?? \App\Modules\Chat\Support\VisitorLocation::label(null, null, $visitor->country) }}</span>
+                                @if ($visitor->getAttribute('timezone'))
+                                    <span class="lq-visitor-place-time">{{ now($visitor->getAttribute('timezone'))->format('H:i') }}</span>
+                                @endif
+                            </span>
+                        @endif
                     </div>
-                    <dl class="lq-kv">
+                    <dl class="lq-kv lq-kv-icons">
                         <div>
-                            <dt>Website</dt>
+                            <dt><x-heroicon-o-window /> Website</dt>
                             <dd>{{ $selected->accountName() }}</dd>
                         </div>
-                        @if ($visitor?->country)
-                            <div>
-                                <dt>Country</dt>
-                                <dd>{{ $visitor->country }}{{ $visitor->city ? ', '.$visitor->city : '' }}</dd>
-                            </div>
+                        @if ($visitor)
+                            @include('chat::partials.where', ['who' => $visitor])
                         @endif
                         @if ($visitor?->device)
                             <div>
-                                <dt>Device</dt>
+                                <dt><x-heroicon-o-computer-desktop /> Device</dt>
                                 <dd>{{ trim(($visitor->browser ?? '').' · '.($visitor->os ?? '').' · '.$visitor->device, ' ·') }}</dd>
                             </div>
                         @endif
                         @if ($visitor)
                             <div>
-                                <dt>Visits</dt>
+                                <dt><x-heroicon-o-arrow-path /> Visits</dt>
                                 <dd>{{ $visitor->visits_count }}</dd>
                             </div>
                         @endif
                         <div>
-                            <dt>Chat</dt>
+                            <dt><x-heroicon-o-chat-bubble-left-right /> Chat</dt>
                             <dd>{{ $selected->isClosed() ? 'Closed' : 'Open' }}</dd>
                         </div>
+                        @if ($selected->getAttribute('rating'))
+                            <div>
+                                <dt><x-heroicon-o-star /> Their rating</dt>
+                                <dd>
+                                    @if ($selected->getAttribute('rating') === 'up')
+                                        <x-ui.badge color="success">👍 Good</x-ui.badge>
+                                    @else
+                                        <x-ui.badge color="danger">👎 Not good</x-ui.badge>
+                                    @endif
+                                </dd>
+                            </div>
+                        @endif
                         <div>
-                            <dt>First wrote</dt>
+                            <dt><x-heroicon-o-calendar /> First wrote</dt>
                             <dd title="{{ $selected->created_at?->format('j M Y, H:i') }}">{{ $selected->created_at?->diffForHumans() }}</dd>
                         </div>
                     </dl>
@@ -276,7 +295,7 @@
                             </div>
                         @endif
                         <div>
-                            <dt>First wrote</dt>
+                            <dt><x-heroicon-o-calendar /> First wrote</dt>
                             <dd title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans() }}</dd>
                         </div>
                     </dl>

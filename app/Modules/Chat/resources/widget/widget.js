@@ -44,8 +44,9 @@
         var phone = window.matchMedia('(max-width: 480px)');
         var small = window.matchMedia('(max-width: 768px)').matches || (window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(max-width: 1024px)').matches);
 
-        // The brand chose where the chat shows: on computers only, on phones only, or on both.
+        // The brand chose where the chat shows: on computers only, on phones only, or on both; and maybe not while away.
         if ((config.show_on === 'desktop' && small) || (config.show_on === 'phone' && !small)) { return; }
+        if (config.away_mode === 'hide' && !config.online && storage('localStorage', 'lq_chat_started_' + key) !== '1') { return; }
 
         var frame = null;
         var isOpen = false;
@@ -58,13 +59,40 @@
         var width = Math.max(320, Math.min(440, parseInt(config.width, 10) || 380));
         var radius = Math.max(0, Math.min(28, parseInt(config.radius, 10) || 16));
         var dark = config.theme === 'dark' || (config.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        var style = config.style === 'pill' || config.style === 'card' ? config.style : 'bubble';
-        var ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.12 2.99 2.7 3.22 1.1.16 2.2.28 3.3.35.5.03.98.24 1.33.6l2.67 2.67 2.67-2.67c.35-.36.83-.57 1.33-.6 1.1-.07 2.2-.19 3.3-.35 1.58-.23 2.7-1.62 2.7-3.22V6.74c0-1.6-1.12-2.99-2.7-3.22A48.4 48.4 0 0 0 12 3c-2.4 0-4.76.17-7.05.52C3.37 3.75 2.25 5.14 2.25 6.74v6.02Z"/></svg>';
-        var CHEVRON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+        var STYLES = ['bubble', 'pill', 'glass', 'card', 'square', 'outline', 'bar', 'tab'];
+        var style = small && STYLES.indexOf(config.style_phone) >= 0 ? config.style_phone : config.style;
+        if (STYLES.indexOf(style) < 0) { style = 'bubble'; }
+        var ICONS = {
+            chat: 'M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z',
+            chats: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155',
+            question: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z',
+            sparkles: 'M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z',
+            hand: 'M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0 .075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.668.668 0 0 1 .198-.471 1.575 1.575 0 1 0-2.228-2.228 3.818 3.818 0 0 0-1.12 2.687M6.9 7.575V12m6.27 4.318A4.49 4.49 0 0 1 16.35 15m.002 0h-.002',
+            envelope: 'M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75'
+        };
+        var iconPath = ICONS[config.icon] || ICONS.chat;
+        var svg = function (path, size, stroke) { return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + stroke + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + path + '"/></svg>'; };
+        var ICON = svg(iconPath, 24, 1.7);
+        var CHEVRON = svg('M6 9l6 6 6-6', 24, 2.2);
+        var status = config.online ? config.online_sub : config.offline_sub;
+        var dotColour = config.online ? '#30d158' : '#a1a1a6';
+
+        // A moving touch for the button (once in a while, never while open, never for people who asked for less motion).
+        var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!calm && config.effect && config.effect !== 'none' && !document.getElementById('lq-chat-motion')) {
+            var motion = document.createElement('style');
+            motion.id = 'lq-chat-motion';
+            motion.textContent = '@keyframes lqchat-pulse{0%{box-shadow:0 0 0 0 var(--lqchat-ring)}70%{box-shadow:0 0 0 16px transparent}100%{box-shadow:0 0 0 0 transparent}}'
+                + '@keyframes lqchat-bounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-10px)}50%{transform:translateY(0)}65%{transform:translateY(-4px)}}'
+                + '@keyframes lqchat-wiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-8deg)}40%{transform:rotate(7deg)}60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}';
+            document.head.appendChild(motion);
+        }
 
         var root = document.createElement('div');
         root.setAttribute('data-lq-chat', '');
-        root.style.cssText = 'all:initial;position:fixed;z-index:2147483000;bottom:' + offsetY + 'px;' + side + ':' + offsetX + 'px;font-family:' + font + ';';
+        root.style.cssText = style === 'tab'
+            ? 'all:initial;position:fixed;z-index:2147483000;top:50%;' + side + ':0;transform:translateY(-50%);font-family:' + font + ';'
+            : 'all:initial;position:fixed;z-index:2147483000;bottom:' + (style === 'bar' ? 0 : offsetY) + 'px;' + side + ':' + offsetX + 'px;font-family:' + font + ';';
 
         var button = document.createElement('button');
         button.type = 'button';
@@ -77,25 +105,29 @@
             return n;
         }
 
-        // The launcher's face. Round button: just the icon. Pill: the brand's colour with the icon in an accent circle, the
-        // words and a line saying whether somebody is here. Card: a light card with the status as a small heading.
+        function iconNode(css) {
+            var n = node('span', 'display:flex;align-items:center;justify-content:center;color:inherit;' + (css || ''));
+            n.innerHTML = ICON;
+            return n;
+        }
+
+        var dot = function (ring) { return node('span', 'position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:' + dotColour + ';box-shadow:0 0 0 2.5px ' + ring + ';'); };
+
+        // The button's face, by style. Words go in as text only.
         var face = node('span', 'display:flex;align-items:center;gap:12px;');
-        var status = config.online ? config.online_sub : config.offline_sub;
-        var dot = function (ring) { return node('span', 'position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:' + (config.online ? '#30d158' : '#a1a1a6') + ';box-shadow:0 0 0 2.5px ' + ring + ';'); };
 
-        if (style === 'bubble') {
-            var bubbleIcon = node('span', 'display:flex;color:inherit;');
-            bubbleIcon.innerHTML = ICON;
-            face.appendChild(bubbleIcon);
-        } else {
-            var circle = node('span', 'position:relative;display:flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border-radius:50%;'
+        if (style === 'bubble' || style === 'square') {
+            face.appendChild(iconNode());
+        } else if (style === 'pill' || style === 'card' || style === 'glass') {
+            var circle = iconNode('position:relative;flex:none;width:44px;height:44px;border-radius:50%;'
                 + (style === 'pill' ? 'background:' + config.accent + ';color:' + config.on_accent + ';' : 'background:' + config.color + ';color:' + config.on + ';'));
-            circle.innerHTML = ICON;
-            circle.appendChild(dot(style === 'pill' ? config.color : '#ffffff'));
-
+            circle.appendChild(dot(style === 'pill' ? config.color : style === 'glass' ? 'rgba(255,255,255,.9)' : '#ffffff'));
             var words = node('span', 'display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding-right:6px;text-align:left;');
 
-            if (style === 'pill') {
+            if (style === 'glass') {
+                words.appendChild(node('span', 'font:650 15px/1.2 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;white-space:nowrap;', config.label));
+                if (status) { words.appendChild(node('span', 'font:500 12px/1.3 ' + font + ';color:#3a3a3c;opacity:.8;white-space:nowrap;', status)); }
+            } else if (style === 'pill') {
                 words.appendChild(node('span', 'font:650 15px/1.2 ' + font + ';letter-spacing:-.01em;color:' + config.on + ';white-space:nowrap;', config.label));
                 if (status) { words.appendChild(node('span', 'font:400 12px/1.3 ' + font + ';color:' + config.on + ';opacity:.78;white-space:nowrap;', status)); }
             } else {
@@ -105,6 +137,23 @@
 
             face.appendChild(circle);
             face.appendChild(words);
+        } else if (style === 'outline') {
+            face.appendChild(iconNode('color:' + config.color + ';'));
+            face.appendChild(node('span', 'font:650 15px/1.2 ' + font + ';letter-spacing:-.01em;color:' + config.color + ';white-space:nowrap;padding-right:4px;', config.label));
+        } else if (style === 'bar') {
+            var barDot = node('span', 'flex:none;width:9px;height:9px;border-radius:50%;background:' + dotColour + ';box-shadow:0 0 0 2px rgba(255,255,255,.35);');
+            var barWords = node('span', 'flex:1;display:flex;flex-direction:column;align-items:flex-start;text-align:left;');
+            barWords.appendChild(node('span', 'font:650 15px/1.2 ' + font + ';color:' + config.on + ';white-space:nowrap;', config.label));
+            if (status) { barWords.appendChild(node('span', 'font:400 12px/1.3 ' + font + ';color:' + config.on + ';opacity:.78;white-space:nowrap;', status)); }
+            var up = node('span', 'display:flex;color:' + config.on + ';transform:rotate(180deg);');
+            up.innerHTML = CHEVRON;
+            face.style.width = '100%';
+            face.appendChild(barDot); face.appendChild(barWords); face.appendChild(up);
+        } else {
+            // Side tab: the words run up the edge of the page.
+            face.style.cssText += 'flex-direction:column;gap:10px;';
+            face.appendChild(iconNode('transform:rotate(' + (left ? 90 : -90) + 'deg);'));
+            face.appendChild(node('span', 'writing-mode:vertical-rl;' + (left ? '' : 'transform:rotate(180deg);') + 'font:650 14px/1 ' + font + ';letter-spacing:.02em;color:' + config.on + ';white-space:nowrap;', config.label));
         }
 
         var closer = node('span', 'display:none;color:inherit;');
@@ -114,33 +163,92 @@
 
         var shadow = '0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08)';
         var shadowUp = '0 14px 36px rgba(0,0,0,.22),0 3px 8px rgba(0,0,0,.1)';
+        var effect = calm ? 'none' : config.effect;
+        var effectTimer = null;
 
         function paint() {
-            var round = isOpen || style === 'bubble';
-            var base = 'all:initial;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:' + font + ';transition:transform .25s ' + ease + ',box-shadow .25s ' + ease + ',width .3s ' + ease + ';-webkit-tap-highlight-color:transparent;';
+            var base = 'all:initial;box-sizing:border-box;position:relative;display:flex;align-items:center;justify-content:center;width:max-content;white-space:nowrap;text-align:left;cursor:pointer;font-family:' + font + ';transition:transform .25s ' + ease + ',box-shadow .25s ' + ease + ';-webkit-tap-highlight-color:transparent;--lqchat-ring:' + config.color + '88;';
 
             face.style.display = isOpen ? 'none' : 'flex';
             closer.style.display = isOpen ? 'flex' : 'none';
 
-            if (round) {
-                button.style.cssText = base + 'width:60px;height:60px;border-radius:50%;background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
+            if (style === 'bar') { root.style.bottom = (isOpen ? offsetY : 0) + 'px'; }
+
+            if (isOpen && style === 'tab') {
+                root.style.top = 'auto'; root.style.bottom = offsetY + 'px'; root.style.transform = 'none'; root.style[side] = offsetX + 'px';
+            } else if (style === 'tab') {
+                root.style.top = '50%'; root.style.bottom = 'auto'; root.style.transform = 'translateY(-50%)'; root.style[side] = '0';
+            }
+
+            if (isOpen || style === 'bubble') {
+                button.style.cssText = base + 'width:60px;height:60px;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,0) 60%),' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ',inset 0 1px 0 rgba(255,255,255,.25);';
+            } else if (style === 'square') {
+                button.style.cssText = base + 'width:60px;height:60px;border-radius:18px;background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
             } else if (style === 'pill') {
-                button.style.cssText = base + 'height:60px;padding:8px 18px 8px 8px;border-radius:30px;background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
-            } else {
+                button.style.cssText = base + 'height:60px;padding:8px 18px 8px 8px;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,0) 55%),' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ',inset 0 1px 0 rgba(255,255,255,.22);';
+            } else if (style === 'glass') {
+                // Frosted: the page shows through, blurred, with a soft light edge, the way glass panels look on a phone.
+                button.style.cssText = base + 'height:60px;padding:8px 18px 8px 8px;border-radius:30px;background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.42));-webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);color:#1d1d1f;box-shadow:' + shadow + ',inset 0 1px 0 rgba(255,255,255,.9),inset 0 0 0 1px rgba(255,255,255,.55);';
+            } else if (style === 'card') {
                 button.style.cssText = base + 'height:62px;padding:8px 18px 8px 9px;border-radius:20px;background:rgba(255,255,255,.92);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:#1d1d1f;box-shadow:' + shadow + ',inset 0 0 0 1px rgba(0,0,0,.06);';
+            } else if (style === 'outline') {
+                button.style.cssText = base + 'height:52px;padding:0 20px 0 16px;border-radius:26px;background:#ffffff;color:' + config.color + ';box-shadow:' + shadow + ',inset 0 0 0 2px ' + config.color + ';';
+            } else if (style === 'bar') {
+                button.style.cssText = base + 'width:' + Math.min(300, window.innerWidth - offsetX * 2) + 'px;height:54px;padding:0 16px 0 18px;border-radius:' + Math.max(radius, 12) + 'px ' + Math.max(radius, 12) + 'px 0 0;background:' + config.color + ';color:' + config.on + ';box-shadow:0 -4px 24px rgba(0,0,0,.16);';
+            } else {
+                button.style.cssText = base + 'width:46px;padding:16px 0;border-radius:' + (left ? '0 14px 14px 0' : '14px 0 0 14px') + ';background:' + config.color + ';color:' + config.on + ';box-shadow:' + shadow + ';';
             }
 
             button.appendChild(badge);
+            animate();
         }
 
-        button.onmouseenter = function () { button.style.transform = 'translateY(-2px)'; button.style.boxShadow = shadowUp; };
-        button.onmouseleave = function () { button.style.transform = ''; button.style.boxShadow = shadow; };
-        button.onmousedown = function () { button.style.transform = 'scale(.97)'; };
-        button.onmouseup = function () { button.style.transform = 'translateY(-2px)'; };
+        // The touch runs every few seconds while the chat is closed, and stops once the visitor opened it.
+        function animate() {
+            clearInterval(effectTimer);
+            button.style.animation = '';
+
+            if (effect === 'none' || isOpen || effect === undefined) { return; }
+
+            var run = function () {
+                button.style.animation = 'none';
+                void button.offsetWidth;
+                button.style.animation = effect === 'pulse' ? 'lqchat-pulse 1.6s ease-out 2' : effect === 'bounce' ? 'lqchat-bounce 1s ' + ease : 'lqchat-wiggle .8s ease-in-out';
+            };
+
+            setTimeout(run, 1200);
+            effectTimer = setInterval(run, 9000);
+        }
+
+        button.onmouseenter = function () { if (style !== 'bar' && style !== 'tab') { button.style.transform = 'translateY(-2px)'; } button.style.boxShadow = shadowUp + (style === 'outline' && !isOpen ? ',inset 0 0 0 2px ' + config.color : ''); };
+        button.onmouseleave = function () { button.style.transform = ''; paint(); };
 
         var badge = node('span', 'position:absolute;top:-4px;' + (left ? 'right' : 'left') + ':-4px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#ff3b30;color:#fff;font:700 12px/20px ' + font + ';text-align:center;display:none;box-shadow:0 0 0 2px #fff;');
         paint();
         root.appendChild(button);
+
+        // A few words above the button ("Need help?"), until the visitor opens the chat or closes them.
+        var teaserKey = 'lq_chat_teaser_' + key;
+        var teaser = null;
+
+        if (config.teaser && style !== 'tab' && storage('sessionStorage', teaserKey) !== '1') {
+            teaser = node('span', 'position:absolute;width:max-content;bottom:' + (style === 'bar' ? 64 : 72) + 'px;' + side + ':0;display:flex;align-items:center;gap:8px;max-width:240px;padding:9px 12px 9px 14px;border-radius:999px;background:#ffffff;color:#1d1d1f;font:600 13px/1.2 ' + font + ';white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.16),inset 0 0 0 1px rgba(0,0,0,.05);cursor:pointer;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .4s ' + ease + ';');
+            var teaserText = node('span', 'overflow:hidden;text-overflow:ellipsis;color:#1d1d1f;font:inherit;', config.teaser);
+            var teaserClose = node('span', 'display:flex;color:#8a8a8e;font:18px/1 ' + font + ';cursor:pointer;', '×');
+            teaserClose.setAttribute('role', 'button');
+            teaserClose.setAttribute('aria-label', 'Dismiss');
+            teaser.appendChild(teaserText); teaser.appendChild(teaserClose);
+            teaser.onclick = function () { dropTeaser(); show(true); };
+            teaserClose.onclick = function (event) { event.stopPropagation(); dropTeaser(); };
+            root.appendChild(teaser);
+            setTimeout(function () { if (teaser) { teaser.style.opacity = '1'; teaser.style.transform = 'none'; } }, 900);
+        }
+
+        function dropTeaser() {
+            storage('sessionStorage', teaserKey, '1');
+            if (teaser && teaser.parentNode) { teaser.parentNode.removeChild(teaser); }
+            teaser = null;
+        }
 
         var hideTimer = null;
 
@@ -304,6 +412,8 @@
             if (open) {
                 ensureFrame();
                 dropInvite();
+                dropTeaser();
+                if (typeof dropGrabber === 'function') { dropGrabber(); }
                 unread = 0;
                 badge.style.display = 'none';
             }
@@ -349,7 +459,61 @@
         var greetAfter = Math.max(0, Math.min(120, parseInt(config.greet_after, 10) || 0));
         var greetKey = 'lq_chat_greeted_' + key;
 
-        if (greetAfter > 0 && config.welcome && storage('localStorage', startedKey) !== '1' && storage('sessionStorage', greetKey) !== '1') {
+        // The attention grabber: a card with a picture, a question and two answers. "Yes" opens the chat; "Just browsing"
+        // puts it away for a day. It takes the place of the plain greeting.
+        var grabberKey = 'lq_chat_grabber_no_' + key;
+        var grabber = null;
+        var browsingSince = parseInt(storage('localStorage', grabberKey) || '0', 10);
+
+        function dropGrabber() {
+            if (grabber && grabber.parentNode) { grabber.parentNode.removeChild(grabber); }
+            grabber = null;
+        }
+
+        function showGrabber() {
+            if (isOpen || grabber || storage('localStorage', startedKey) === '1') { return; }
+
+            storage('sessionStorage', greetKey, '1');
+            dropTeaser();
+
+            var card = node('div', 'position:absolute;width:min(284px,calc(100vw - ' + (offsetX + 12) + 'px));bottom:' + (style === 'bar' ? 64 : style === 'tab' ? 0 : 76) + 'px;' + side + ':' + (style === 'tab' ? 56 : 0) + 'px;overflow:hidden;border-radius:22px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);box-shadow:0 24px 60px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.08),inset 0 0 0 1px rgba(255,255,255,.7);font-family:' + font + ';opacity:0;transform:translateY(12px) scale(.96);transform-origin:bottom ' + side + ';transition:opacity .3s ease,transform .45s ' + ease + ';');
+            card.setAttribute('role', 'dialog');
+            card.setAttribute('aria-label', config.title);
+
+            if (config.grabber_art) {
+                var art = node('div', 'display:flex;align-items:center;justify-content:center;height:104px;background:radial-gradient(120% 120% at 20% 0%,' + config.accent + '33,transparent 60%),radial-gradient(120% 120% at 100% 100%,' + config.color + '2e,transparent 60%),#f5f5f7;font:52px/1 "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;', config.grabber_art);
+                art.setAttribute('aria-hidden', 'true');
+                card.appendChild(art);
+            }
+
+            var body = node('div', 'display:flex;flex-direction:column;gap:12px;padding:14px 16px 16px;');
+            body.appendChild(node('div', 'font:500 14.5px/1.45 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;white-space:normal;', config.grabber_text || config.welcome));
+
+            var row = node('div', 'display:flex;gap:8px;');
+            var yes = node('button', 'flex:1;padding:10px 12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0)),' + config.accent + ';color:' + config.on_accent + ';font:650 13.5px/1.2 ' + font + ';text-align:center;cursor:pointer;box-shadow:0 6px 16px ' + config.accent + '4d,inset 0 1px 0 rgba(255,255,255,.25);', config.grabber_yes || 'Yes, I do');
+            var no = node('button', 'flex:1;padding:10px 12px;border-radius:12px;background:rgba(118,118,128,.12);color:#1d1d1f;font:600 13.5px/1.2 ' + font + ';text-align:center;cursor:pointer;', config.grabber_no || 'Just browsing');
+            yes.type = 'button'; no.type = 'button';
+            row.appendChild(yes); row.appendChild(no);
+            body.appendChild(row);
+            card.appendChild(body);
+
+            var shut = node('button', 'position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.75);color:#6e6e73;font:17px/26px ' + font + ';text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12);', '×');
+            shut.type = 'button';
+            shut.setAttribute('aria-label', 'Dismiss');
+            card.appendChild(shut);
+
+            yes.onclick = function () { dropGrabber(); show(true); };
+            no.onclick = function () { storage('localStorage', grabberKey, String(Date.now())); dropGrabber(); };
+            shut.onclick = no.onclick;
+
+            grabber = card;
+            root.appendChild(card);
+            setTimeout(function () { card.style.opacity = '1'; card.style.transform = 'none'; }, 20);
+        }
+
+        if (config.grabber && Date.now() - browsingSince > 86400000 && storage('sessionStorage', greetKey) !== '1') {
+            setTimeout(showGrabber, (greetAfter > 0 ? greetAfter : 4) * 1000);
+        } else if (!config.grabber && greetAfter > 0 && config.welcome && storage('localStorage', startedKey) !== '1' && storage('sessionStorage', greetKey) !== '1') {
             setTimeout(function () {
                 if (isOpen) { return; }
                 storage('sessionStorage', greetKey, '1');

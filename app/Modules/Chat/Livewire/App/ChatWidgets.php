@@ -107,6 +107,31 @@ final class ChatWidgets extends Component
 
     public bool $logo = false;
 
+    /** The button on phones; empty is the same as on computers. */
+    public string $stylePhone = '';
+
+    public string $icon = 'chat';
+
+    public string $motion = 'none';
+
+    /** A few words above the button, until the visitor opens or dismisses them. */
+    public string $teaser = '';
+
+    public string $awayMode = 'form';
+
+    public bool $grabber = false;
+
+    public string $grabberArt = 'wave';
+
+    public string $grabberText = '';
+
+    public string $grabberYes = '';
+
+    public string $grabberNo = '';
+
+    /** Whether visitors may give the chat a thumb up or down. */
+    public bool $rating = true;
+
     /**
      * Colours read from the website, offered as swatches.
      *
@@ -130,7 +155,8 @@ final class ChatWidgets extends Component
 
         $this->resetErrorBag();
         $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'maxMb', 'track', 'askFirst', 'agentsSeeVisitors', 'active', 'position',
-            'style', 'accent', 'label', 'onlineSub', 'offlineSub', 'replyTime', 'theme', 'header', 'corners', 'size', 'offsetX', 'offsetY', 'showOn', 'greetAfter', 'sound', 'logo', 'palette', 'paletteFrom');
+            'style', 'accent', 'label', 'onlineSub', 'offlineSub', 'replyTime', 'theme', 'header', 'corners', 'size', 'offsetX', 'offsetY', 'showOn', 'greetAfter', 'sound', 'logo', 'palette', 'paletteFrom',
+            'stylePhone', 'icon', 'motion', 'teaser', 'awayMode', 'grabber', 'grabberArt', 'grabberText', 'grabberYes', 'grabberNo', 'rating');
         $this->name = $this->brand->name;
         $this->color = $this->brand->primaryColor() ?? ChatWidget::DEFAULT_APPEARANCE['color'];
         // The brand's own website is the likely first one.
@@ -184,6 +210,17 @@ final class ChatWidgets extends Component
         $this->greetAfter = $widget->number('greet_after', 0, 120);
         $this->sound = ($look['sound'] ?? '1') !== '0';
         $this->logo = ($look['logo'] ?? '0') === '1';
+        $this->stylePhone = $widget->choice('style_phone');
+        $this->icon = $widget->choice('icon');
+        $this->motion = $widget->choice('effect');
+        $this->teaser = (string) ($look['teaser'] ?? '');
+        $this->awayMode = $widget->choice('away_mode');
+        $this->grabber = ($look['grabber'] ?? '0') === '1';
+        $this->grabberArt = $widget->choice('grabber_art');
+        $this->grabberText = (string) ($look['grabber_text'] ?? '');
+        $this->grabberYes = (string) ($look['grabber_yes'] ?? '');
+        $this->grabberNo = (string) ($look['grabber_no'] ?? '');
+        $this->rating = ($look['rating'] ?? '1') !== '0';
         $this->palette = [];
         $this->paletteFrom = null;
         $this->tab = 'look';
@@ -243,8 +280,8 @@ final class ChatWidgets extends Component
             $first = (string) array_key_first($exception->errors());
             $this->tab = match (true) {
                 in_array($first, ['name', 'domains'], true) => 'setup',
-                in_array($first, ['title', 'welcome', 'offline', 'consent', 'label', 'onlineSub', 'offlineSub', 'replyTime'], true) => 'words',
-                in_array($first, ['maxMb', 'showOn', 'greetAfter'], true) => 'behaviour',
+                in_array($first, ['title', 'welcome', 'offline', 'consent', 'label', 'onlineSub', 'offlineSub', 'replyTime', 'teaser'], true) => 'words',
+                in_array($first, ['maxMb', 'showOn', 'greetAfter', 'motion', 'awayMode', 'grabberArt', 'grabberText', 'grabberYes', 'grabberNo'], true) => 'behaviour',
                 in_array($first, ['theme', 'header', 'corners', 'size'], true) => 'window',
                 default => 'look',
             };
@@ -281,6 +318,15 @@ final class ChatWidgets extends Component
             'onlineSub' => ['nullable', 'string', 'max:60'],
             'offlineSub' => ['nullable', 'string', 'max:60'],
             'replyTime' => ['nullable', 'string', 'max:80'],
+            'stylePhone' => ['nullable', Rule::in(array_keys(ChatWidget::CHOICES['style_phone']))],
+            'icon' => ['required', Rule::in(array_keys(ChatWidget::CHOICES['icon']))],
+            'motion' => ['required', Rule::in(array_keys(ChatWidget::CHOICES['effect']))],
+            'awayMode' => ['required', Rule::in(array_keys(ChatWidget::CHOICES['away_mode']))],
+            'teaser' => ['nullable', 'string', 'max:40'],
+            'grabberArt' => ['required', Rule::in(array_keys(ChatWidget::CHOICES['grabber_art']))],
+            'grabberText' => ['nullable', 'string', 'max:120'],
+            'grabberYes' => ['nullable', 'string', 'max:24'],
+            'grabberNo' => ['nullable', 'string', 'max:24'],
         ], [
             'domains.required' => 'List the website this chat runs on, for example example.com.',
             'color.regex' => 'Choose a colour.',
@@ -342,6 +388,17 @@ final class ChatWidgets extends Component
                 'greet_after' => (string) $this->greetAfter,
                 'sound' => $this->sound ? '1' : '0',
                 'logo' => $this->logo ? '1' : '0',
+                'style_phone' => $this->stylePhone,
+                'icon' => $this->icon,
+                'effect' => $this->motion,
+                'teaser' => trim($this->teaser),
+                'away_mode' => $this->awayMode,
+                'grabber' => $this->grabber ? '1' : '0',
+                'grabber_art' => $this->grabberArt,
+                'grabber_text' => trim($this->grabberText),
+                'grabber_yes' => trim($this->grabberYes),
+                'grabber_no' => trim($this->grabberNo),
+                'rating' => $this->rating ? '1' : '0',
             ],
             'prechat' => ['enabled' => $this->askFirst, 'fields' => $fields],
             'agents_see_visitors' => $this->agentsSeeVisitors,

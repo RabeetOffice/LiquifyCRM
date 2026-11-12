@@ -20,6 +20,24 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.52.0',
+        'date' => '2026-11-12',
+        'title' => 'More chat buttons, a clickable preview, and where visitors are',
+        'changes' => [
+            ['new', 'Live chat › Chats and Live visitors show where a website visitor is: the country’s flag, the city and region, their IP address (marked when it is a VPN or proxy), their network and the time where they are.'],
+            ['new', 'Four more buttons for the website: a rounded square, an outline pill, a bar along the bottom and a tab on the side of the page. Phones can have a button of their own, for example the round button on phones and the pill on computers.'],
+            ['new', 'Choose the button’s icon, let it pulse, bounce or wiggle now and then, and float a few words above it such as “Need help?”.'],
+            ['new', 'When nobody of the team is here, the chat can show its message form as before or hide itself until somebody is back.'],
+            ['new', 'An attention grabber: a card above the button with a picture, your question and two answers (“Yes, I do” opens the chat, “Just browsing” puts it away for a day).'],
+            ['new', 'Visitors can rate a chat with a thumb up or down once the team has answered. The rating shows beside the chat and as a line in it.'],
+            ['new', 'A frosted glass button for the website, and the “Ask for details first” choices are now tap-on, tap-off chips.'],
+            ['improved', 'The designer’s preview is now clickable: open and close the chat with its button, switch between online and away, and see the form for a message, the “Ask for details first” form and every text you type, as visitors will see them.'],
+            ['fixed', 'The top corners of the chat window in the preview are now rounded like the rest.'],
+            ['fixed', 'The pill and light card buttons no longer cut their words short, and the preview shows the button’s movement.'],
+            ['improved', 'A cleaner, glassier chat window: softly lit background, frosted forms, filled fields and buttons with a light edge. The visitor’s details beside a chat have an icon on each line and their city and time under the name.'],
+        ],
+    ],
+    [
         'version' => '1.51.0',
         'date' => '2026-11-12',
         'title' => 'Design your website chat',

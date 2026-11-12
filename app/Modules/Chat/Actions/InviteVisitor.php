@@ -8,6 +8,7 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Core\Support\Audit;
@@ -57,6 +58,7 @@ final class InviteVisitor
                 'chat_widget_id' => $widget->getKey(),
                 'visitor_token' => VisitorToken::issue()['token'],
                 'country' => $session->country,
+                ...(LiveChat::geoReady() ? ['ip' => $session->ip, 'city' => $session->city, 'region' => $session->region, 'isp' => $session->isp, 'timezone' => $session->timezone, 'is_proxy' => $session->is_proxy] : []),
                 'device' => $session->device,
                 'browser' => $session->browser,
                 'first_seen_at' => now(),

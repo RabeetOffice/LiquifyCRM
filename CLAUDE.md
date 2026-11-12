@@ -160,6 +160,22 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `appearance` value there. An older widget keeps the round button (`style` default `bubble`). "Match colours" is
   `WebsiteLook` (theme-color, brand-named CSS variables, button/header backgrounds weigh most; greys dropped; libraries'
   sheets skipped; 10 minutes cached): main = heaviest dark colour, accent = a lively one apart from it. Tests: `ChatWidgetDesignTest`.
+  1.52.0 (same day): seven launcher styles (`bubble pill card square outline bar tab`), `style_phone` (empty = same), `icon`,
+  `effect` (keyframes injected once as `lqchat-*`, skipped for reduced motion), `teaser`, `away_mode` (`hide` needs `online` in
+  the config answer). The designer's preview sits in `wire:ignore` and its shown/hidden pieces carry x-show on a `lq-pv-wrap`
+  (display: contents) wrapper: an Alpine `:style` string on the same element wipes x-show's display:none. `lq-pv-card` is
+  the light-card launcher class; the preview's forms are `lq-pv-form`. Where a visitor is: `VisitorLocation` (FreeIPAPI, free,
+  no key, business use allowed, named on the privacy page; only the IP, private ones never, cached a week, 40 a minute,
+  `liquify.chat.geo` = none switches it off) run after the answer by `LocateVisitor` from `RecordVisit` / `RecordPing`;
+  columns `chat_visitors.region/isp/timezone/is_proxy` and `chat_sessions.ip/city/region/isp/timezone/is_proxy` behind
+  `LiveChat::geoReady()`. Shown by `chat::partials.where` / `chat::partials.flag` (flagcdn.com picture, no lazy loading: it
+  never loaded in the pane). Tests: `VisitorLocationTest`.
+  Same release: a `glass` launcher style; the attention grabber (`grabber`, `grabber_art` from `CHOICES['grabber_art']` emoji,
+  `grabber_text/yes/no`; it replaces the plain greeting, "just browsing" hides it a day in localStorage); thumbs up/down
+  (`RateChat`, `POST /chat/api/rate`, `conversations.rating` / `rated_at` behind `LiveChat::ratingReady()`, only after a team
+  answer, an event line for the team, shown on the Chats side panel). `$wire.effect` is Alpine's own: the motion setting's
+  property is `motion` (stored as `effect`). A plain `.lq-pv-launcher` rule must never set padding (it overrode each style's).
+  Tests: `ChatRatingAndGrabberTest`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

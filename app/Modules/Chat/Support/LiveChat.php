@@ -21,6 +21,10 @@ final class LiveChat
 
     private static bool $trackingReady = false;
 
+    private static bool $geoReady = false;
+
+    private static bool $ratingReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -40,6 +44,18 @@ final class LiveChat
     }
 
     /** The team can work a website chat (answer, assign, close): the columns of the second update are there. */
+    /** Where visitors are (region, network, time zone, VPN) on visitors and browsers: 1.52.0, after "Update system". */
+    public static function geoReady(): bool
+    {
+        return self::$geoReady = self::$geoReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'ip'));
+    }
+
+    /** Thumbs up or down on a chat (conversations.rating): 1.52.0, after "Update system". */
+    public static function ratingReady(): bool
+    {
+        return self::$ratingReady = self::$ratingReady || (self::workReady() && Schema::hasColumn('conversations', 'rating'));
+    }
+
     public static function workReady(): bool
     {
         return self::$workReady = self::$workReady || (self::ready() && Schema::hasColumn('conversations', 'first_response_at'));

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Chat\Actions;
 
 use App\Modules\Chat\Http\Controllers\WidgetController;
+use App\Modules\Chat\Jobs\LocateVisitor;
 use App\Modules\Chat\Models\ChatPageView;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\LiveChat;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -21,7 +23,7 @@ final class RecordPing
 {
     /**
      * @param  array{url?: mixed, title?: mixed, referrer?: mixed}  $page
-     * @param  array{new_key?: string, country?: ?string, device?: ?string, browser?: ?string}  $info
+     * @param  array{new_key?: string, ip?: ?string, country?: ?string, device?: ?string, browser?: ?string}  $info
      * @return array{text: string, from: string}|null
      */
     public function handle(ChatWidget $widget, string $vid, array $page, array $info): ?array
@@ -38,6 +40,7 @@ final class RecordPing
             'country' => $info['country'] ?? null,
             'device' => $info['device'] ?? null,
             'browser' => $info['browser'] ?? null,
+            'ip' => LiveChat::geoReady() ? ($info['ip'] ?? null) : null,
         ], fn (mixed $value): bool => $value !== null);
 
         if ($session === null) {
@@ -64,6 +67,7 @@ final class RecordPing
                     'last_seen_at' => $now,
                 ]);
                 $this->view($session, $url, $title);
+                LocateVisitor::soon($session, $session->ip);
             } catch (QueryException) {
                 // Two pings of the same browser at the same moment: the other one made it.
                 $session = ChatSession::query()->where('brand_id', $widget->brand_id)->where('vid', $vid)->first();
@@ -75,6 +79,7 @@ final class RecordPing
         // Back after a pause is a new visit, with the place it came from this time.
         $returned = $session->last_seen_at === null || $session->last_seen_at->lt($now->copy()->subMinutes(ChatSession::NEW_VISIT_MINUTES));
         $moved = $url !== null && $url !== $session->current_url;
+        $placeAgain = isset($seen['ip']) && ($seen['ip'] !== $session->ip || ($returned && $session->city === null));
 
         $session->forceFill([
             ...$seen,
@@ -85,6 +90,10 @@ final class RecordPing
 
         if ($moved || ($returned && $url !== null)) {
             $this->view($session, $url, $title);
+        }
+
+        if ($placeAgain) {
+            LocateVisitor::soon($session, $session->ip);
         }
 
         return $this->invite($session);

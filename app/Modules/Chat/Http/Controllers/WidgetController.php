@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Http\Controllers;
 use App\Modules\Auth\Support\Device;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Actions\CaptureVisitorDetails;
+use App\Modules\Chat\Actions\RateChat;
 use App\Modules\Chat\Actions\RecordPing;
 use App\Modules\Chat\Actions\RecordVisit;
 use App\Modules\Chat\Actions\SendVisitorMessage;
@@ -128,6 +129,7 @@ final class WidgetController
             'visitor' => ['name' => $visitor->name, 'has_details' => $visitor->lead_id !== null || filled($visitor->getRawOriginal('email')) || filled($visitor->getRawOriginal('phone'))],
             'messages' => $conversation !== null ? VisitorChats::messages($conversation) : [],
             'closed' => $conversation?->isClosed() ?? false,
+            'rating' => LiveChat::ratingReady() ? $conversation?->getAttribute('rating') : null,
         ]);
     }
 
@@ -159,12 +161,28 @@ final class WidgetController
 
         $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
             'new_key' => 'chat-new-session:'.$request->ip(),
+            'ip' => $request->ip(),
             'country' => self::country($request),
             'device' => $device->kind->value,
             'browser' => array_pad(explode(' · ', $device->name, 2), 2, null)[1],
         ]);
 
         return response()->json(['invite' => $invite], 200, $headers);
+    }
+
+    /** The visitor gives the chat a thumb up or down. */
+    public function rate(Request $request, RateChat $rate): JsonResponse
+    {
+        [$widget, $visitor] = $this->visitor($request);
+        $data = $request->validate(['rating' => ['required', 'in:up,down']]);
+
+        try {
+            $rate->handle($widget, $visitor, $data['rating']);
+        } catch (RuntimeException $exception) {
+            return response()->json(['ok' => false, 'error' => $exception->getMessage()], 422);
+        }
+
+        return response()->json(['ok' => true, 'rating' => $data['rating']]);
     }
 
     /** The chat box asks for what is new since the last message it has. */
@@ -284,6 +302,7 @@ final class WidgetController
             'consent' => $widget->look('consent'),
             'offline' => $widget->look('offline'),
             'online' => AgentPresence::online((int) $widget->brand_id),
+            'rating' => LiveChat::ratingReady() && $widget->look('rating') !== '0',
             'realtime' => Realtime::enabled(),
             'track' => LiveChat::trackingReady() && $widget->tracks(),
             'files' => LiveChat::extrasReady() ? ['max_mb' => (int) (ChatFiles::maxBytes($widget) / 1048576), 'accept' => ChatFiles::accept()] : null,

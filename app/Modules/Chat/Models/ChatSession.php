@@ -24,6 +24,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $current_title
  * @property string|null $referrer
  * @property string|null $country
+ * @property string|null $ip
+ * @property string|null $city
+ * @property string|null $region
+ * @property string|null $isp
+ * @property string|null $timezone
+ * @property bool|null $is_proxy
  * @property string|null $device
  * @property string|null $browser
  * @property int $visits_count
@@ -48,7 +54,7 @@ class ChatSession extends Model
     public const NEW_VISIT_MINUTES = 30;
 
     protected $fillable = [
-        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'device', 'browser',
+        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'ip', 'city', 'region', 'isp', 'timezone', 'is_proxy', 'device', 'browser',
         'visits_count', 'visit_started_at', 'page_changed_at', 'first_seen_at', 'last_seen_at', 'invite_text', 'invite_from', 'invite_sent_at', 'invite_shown_at',
     ];
 
@@ -56,6 +62,7 @@ class ChatSession extends Model
     {
         return [
             'visits_count' => 'integer',
+            'is_proxy' => 'boolean',
             'visit_started_at' => 'datetime',
             'page_changed_at' => 'datetime',
             'first_seen_at' => 'datetime',
