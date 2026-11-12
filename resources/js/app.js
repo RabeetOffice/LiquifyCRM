@@ -1162,7 +1162,7 @@ const askLive = async () => {
     const page = document.querySelector('[data-live]');
     const token = page?.dataset.live ?? null;
 
-    if (token !== null && (! document.hidden || Alpine.store('alerts').listening)) {
+    if (token !== null) {
         // Another page (another brand, another person): count from the stamp it was drawn with. A page
         // fetched before it was shown (a hovered link waits up to 30 seconds, the back button longer)
         // then reloads its data at once when anything changed in between.

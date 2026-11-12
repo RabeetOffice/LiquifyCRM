@@ -6,7 +6,9 @@ namespace App\Modules\Meta\Livewire\App;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Actions\CaptureVisitorDetails;
 use App\Modules\Chat\Actions\ChangeChat;
+use App\Modules\Chat\Actions\ReplyToVisitor;
 use App\Modules\Chat\Models\ChatPageView;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Support\ChatAccess;
@@ -50,6 +52,15 @@ class Inbox extends Component
 
     #[Url(except: '')]
     public string $chat = '';
+
+    /** The "Add their details" form beside a website visitor's chat. */
+    public bool $showVisitorDetails = false;
+
+    public string $visitorName = '';
+
+    public string $visitorEmail = '';
+
+    public string $visitorPhone = '';
 
     #[Url(except: '')]
     public string $search = '';
@@ -143,6 +154,83 @@ class Inbox extends Component
     }
 
     /** Ask Facebook (or Instagram) again for this person's name and picture, and say plainly what came back. */
+    /** The website visitor's chat open now, when it has no lead yet and this person may answer it. */
+    private function visitorChat(): Conversation
+    {
+        $conversation = $this->chat === '' ? null : Conversation::query()->visibleTo($this->user())->with(['visitor', 'widget'])->find((int) $this->chat);
+
+        abort_if($conversation === null || ! $conversation->isLiveChat(), 404);
+        $this->authorize('reply', $conversation);
+
+        return $conversation;
+    }
+
+    /** Somebody of the team writes down what the visitor told them: with an email or a phone number it makes the lead. */
+    public function openVisitorDetails(): void
+    {
+        $visitor = $this->visitorChat()->visitor;
+
+        $this->resetErrorBag();
+        $this->visitorName = (string) ($visitor->name ?? '');
+        $this->visitorEmail = '';
+        $this->visitorPhone = '';
+        $this->showVisitorDetails = true;
+    }
+
+    public function saveVisitorDetails(CaptureVisitorDetails $capture): void
+    {
+        $conversation = $this->visitorChat();
+        $this->resetErrorBag();
+
+        if ($conversation->lead !== null || $conversation->visitor === null || $conversation->widget === null) {
+            $this->showVisitorDetails = false;
+
+            return;
+        }
+
+        if (trim($this->visitorEmail) === '' && trim($this->visitorPhone) === '') {
+            $this->addError('visitorEmail', 'Add an email address or a phone number: that is what makes the lead.');
+
+            return;
+        }
+
+        $result = $capture->handle($conversation->widget, $conversation->visitor, ['name' => $this->visitorName, 'email' => $this->visitorEmail, 'phone' => $this->visitorPhone]);
+
+        foreach ($result['errors'] as $field => $message) {
+            $this->addError(match ($field) {
+                'phone' => 'visitorPhone', 'name' => 'visitorName', default => 'visitorEmail'
+            }, str_replace(['your email', 'your phone'], ['the email', 'the phone'], $message));
+        }
+
+        if ($result['errors'] !== []) {
+            return;
+        }
+
+        $this->showVisitorDetails = false;
+        $this->reset('visitorName', 'visitorEmail', 'visitorPhone');
+        $this->toastSuccess($result['lead'] !== null ? 'Lead made' : 'Details saved', $result['lead'] !== null ? 'The chat is now on the lead '.$result['lead']->name.'.' : null);
+    }
+
+    /** Ask the visitor in the chat: a message, with the chat box's details form under it. */
+    public function askVisitorDetails(ReplyToVisitor $replies): void
+    {
+        $conversation = $this->visitorChat();
+
+        if ($conversation->lead !== null) {
+            return;
+        }
+
+        try {
+            $replies->askForDetails($conversation, $this->user());
+        } catch (RuntimeException $exception) {
+            $this->toastWarning($exception->getMessage());
+
+            return;
+        }
+
+        $this->toastSuccess('Asked in the chat', 'The visitor sees a form for their name and email or phone number.');
+    }
+
     /** Give a visitor's chat (one with no lead yet) to somebody of the team, or back to everybody with "". */
     public function assignChat(string $userId, ChangeChat $changes): void
     {

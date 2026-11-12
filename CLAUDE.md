@@ -185,7 +185,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   signature (5 minutes, base on one of the widget's websites, a plain .php path): then `ChatProxy::ip()` is the visitor's
   address (every chat limiter and controller uses it, never `$request->ip()`) and `ChatProxy::url()` turns every chat
   address handed to the browser (frame, file links, the frame's `data-api`) into the website's file; the brand mark is
-  inlined. widget.js goes through the file when its own src ends in .php. Keep the stub PHP 7.4-safe. Tests: `ChatProxyTest`.- Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
+  inlined. widget.js goes through the file when its own src ends in .php. Keep the stub PHP 7.4-safe. Tests: `ChatProxyTest`.
+  1.52.0: `AgentPresence::seen` renews its note every 20 s (it used to wait for the minute to run out, leaving gaps), every
+  page asks `/api/live` also from a background tab (every 15 s) so a person working in another tab stays "here", and the
+  chat box updates its online line from each poll. Beside a visitor chat with no lead, whoever may `reply` gets "Add their
+  details" (`Inbox::saveVisitorDetails` through `CaptureVisitorDetails`, the lead gate) and "Ask in the chat"
+  (`ReplyToVisitor::askForDetails`, a team message with `raw.ask = details`; the chat box shows its details form under it).
+- Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's
   Managers (`LeadStatusPolicy`, same rights for both, user decision). Every change goes through `ChangePipelineStages`

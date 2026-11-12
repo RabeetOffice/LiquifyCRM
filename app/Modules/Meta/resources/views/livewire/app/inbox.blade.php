@@ -118,6 +118,13 @@
                         <x-ui.avatar :name="$selected->displayName()" size="lg" tone />
                         <h2 class="lq-inbox-side-name">{{ $selected->displayName() }}</h2>
                         <x-ui.badge color="gray">No lead yet</x-ui.badge>
+                        @can('reply', $selected)
+                            {{-- Make the lead from here: write down what they said, or ask them in the chat. --}}
+                            <div class="lq-visitor-actions">
+                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-user-plus" wire:click="openVisitorDetails">Add their details</x-ui.button>
+                                <x-ui.button size="sm" variant="ghost" icon="heroicon-o-identification" wire:click="askVisitorDetails" wire:loading.attr="disabled" wire:target="askVisitorDetails">Ask in the chat</x-ui.button>
+                            </div>
+                        @endcan
                         @if ($visitor?->country)
                             {{-- Where they are, at a glance: flag, city and their time. --}}
                             <span class="lq-visitor-place">
@@ -343,6 +350,26 @@
             <x-slot:footer>
                 <x-ui.button variant="ghost" wire:click="$set('showAssign', false)">Cancel</x-ui.button>
                 <x-ui.button type="submit" form="inbox-assign-form" variant="primary">Assign</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if ($inChats ?? false)
+        <x-ui.modal model="showVisitorDetails" title="Add their details" description="An email address or a phone number makes this visitor a lead, with this chat on it. If they are already a lead, the chat joins it." size="sm">
+            <form wire:submit="saveVisitorDetails" class="lq-form" id="visitor-details-form">
+                <x-ui.field label="Name" name="visitorName">
+                    <x-ui.input wire:model="visitorName" name="visitorName" autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field label="Email" name="visitorEmail">
+                    <x-ui.input type="email" wire:model="visitorEmail" name="visitorEmail" autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field label="Phone number" name="visitorPhone" help="With the country code if they are abroad.">
+                    <x-ui.input type="tel" wire:model="visitorPhone" name="visitorPhone" autocomplete="off" />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="ghost" wire:click="$set('showVisitorDetails', false)">Cancel</x-ui.button>
+                <x-ui.button type="submit" form="visitor-details-form" variant="primary" wire:loading.attr="disabled" wire:target="saveVisitorDetails">Make the lead</x-ui.button>
             </x-slot:footer>
         </x-ui.modal>
     @endif

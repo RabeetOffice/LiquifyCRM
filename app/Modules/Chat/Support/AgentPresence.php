@@ -29,10 +29,16 @@ final class AgentPresence
     public static function seen(int $userId, int $brandId): void
     {
         $key = self::key($brandId, $userId);
+        $since = Cache::get($key);
 
-        // Written once a minute, not on every ask.
-        if (! Cache::has($key)) {
-            Cache::put($key, true, self::SECONDS);
+        // Renewed every 20 seconds while the page keeps asking (not on every ask), so a person who is here never drops out
+        // for a moment when the note would run out. Coming back after being away tells the chat boxes at once.
+        if (! is_int($since) || $since < time() - 20) {
+            Cache::put($key, time(), self::SECONDS);
+
+            if (! is_int($since)) {
+                self::forget($brandId);
+            }
         }
     }
 
@@ -49,7 +55,7 @@ final class AgentPresence
 
             $keys = $team->merge($admins)->unique()->map(fn (mixed $id): string => self::key($brandId, (int) $id))->values()->all();
 
-            return $keys !== [] && collect(Cache::many($keys))->filter()->isNotEmpty();
+            return $keys !== [] && collect(Cache::many($keys))->filter(fn (mixed $value): bool => $value !== null && $value !== false)->isNotEmpty();
         });
     }
 

@@ -88,6 +88,18 @@ final class ReplyToVisitor
     }
 
     /** A line in the chat that says what happened ("Closed by Sami"); only the team sees it. */
+    /**
+     * Ask the visitor for their name and email or phone number: a message from the person asking, and the chat box shows
+     * its details form under it, even when the visitor said "Not now" before.
+     */
+    public function askForDetails(Conversation $conversation, User $by): Message
+    {
+        $message = $this->reply($conversation, $by, 'Could you share your name and your email address or phone number, so we can get back to you?');
+        $message->forceFill(['raw' => ['ask' => 'details']])->save();
+
+        return $message;
+    }
+
     public function event(Conversation $conversation, string $text): Message
     {
         return Message::query()->create([

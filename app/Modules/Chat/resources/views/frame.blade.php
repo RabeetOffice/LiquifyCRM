@@ -202,6 +202,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
 
         if (m.from !== 'visitor') {
             if (m.from === 'team') { showRating(); }
+            if (m.ask === 'details' && visitor && !visitor.has_details) { setTimeout(function () { detailsCard(true); }, 0); }
             if (loaded && (!open || document.hidden)) { chime(); }
             if (!open) { unread += 1; tell({ type: 'unread', count: unread }); }
         } else if (!started) {
@@ -353,11 +354,25 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         thread.appendChild(form);
     }
 
-    function detailsCard() {
-        if (detailsShown || detailsDismissed || visitor.has_details) { return; }
+    var detailsForm = null;
+
+    // Under the title: whether somebody is here, and how soon they usually answer.
+    function setOnline(online) {
+        var sub = $('sub');
+        sub.textContent = online ? (sub.getAttribute('data-reply') || 'Online now') : 'Away right now. Leave a message.';
+        $('dot').className = online ? 'on' : '';
+        if (config) { config.online = online; }
+    }
+
+    // The details form; the team asking for it (force) shows it again even after "Not now", at the end of the chat.
+    function detailsCard(force) {
+        if (!visitor || visitor.has_details) { return; }
+        if (force && detailsForm && detailsForm.parentNode) { thread.appendChild(detailsForm); scroll(); return; }
+        if (!force && (detailsShown || detailsDismissed)) { return; }
         detailsShown = true;
 
         var form = el('form', 'card');
+        detailsForm = form;
         form.appendChild(el('h2', '', 'Want a reply by email or phone?'));
         form.appendChild(el('p', '', 'Leave your details and we can reach you if you close this page.'));
         form.appendChild(field('Name', 'text', 'name', 'Your name', false));
@@ -475,7 +490,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         if (!creds) { return; }
 
         call('GET', '/messages?after=' + lastId).then(function (r) {
-            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); setTyping(!!r.json.agent_typing); setClosed(!!r.json.closed); }
+            if (r.status === 200) { failures = 0; (r.json.messages || []).forEach(addMessage); setTyping(!!r.json.agent_typing); setClosed(!!r.json.closed); if (typeof r.json.online === 'boolean') { setOnline(r.json.online); } }
             else if (r.status === 401 || r.status === 404) { return; }
             else { failures += 1; }
             schedule();
@@ -537,10 +552,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             creds = { token: r.json.token, sig: r.json.sig }; save(creds);
             config = r.json.config; visitor = r.json.visitor;
             $('title').textContent = config.title;
-            // Under the title: whether somebody is here, and how soon they usually answer.
-            var sub = $('sub');
-            sub.textContent = config.online ? (sub.getAttribute('data-reply') || 'Online now') : 'Away right now. Leave a message.';
-            $('dot').className = config.online ? 'on' : '';
+            setOnline(!!config.online);
 
             if (config.files) {
                 fileInput.accept = config.files.accept;

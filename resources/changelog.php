@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.52.0',
+        'date' => '2026-11-12',
+        'title' => 'Make the lead from a website chat',
+        'changes' => [
+            ['new', 'Beside a website visitor’s chat (Live chat › Chats), whoever answers it, Agents included, can click “Add their details”: write the name and the email or phone number the visitor gave, and the lead is made with the chat on it. If they are already a lead, the chat joins it.'],
+            ['new', '“Ask in the chat” sends the visitor a message with a form for their name and email or phone number, right in their chat box, even if they said “Not now” before.'],
+            ['fixed', 'The chat box could say “Away right now” while somebody of the team was online. It now stays online while a LiquifyCRM page is open, in the front or in a background tab, and changes by itself when that changes.'],
+        ],
+    ],
+    [
         'version' => '1.51.2',
         'date' => '2026-11-12',
         'title' => 'Pictures and “typing…” in the website chat',
