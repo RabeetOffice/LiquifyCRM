@@ -6,9 +6,11 @@ namespace App\Modules\Chat\Http\Controllers;
 
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\ChatProxy;
 use App\Modules\Chat\Support\LiveChat;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * The two pieces a website loads: the small launcher script (`widget.js`, the one line the website carries)
@@ -55,7 +57,9 @@ final class WidgetAssetController
             'origin' => $origin,
             'design' => $widget->design(),
             'title' => $widget->look('title'),
-            'logo' => $widget->look('logo') === '1' ? $this->logo($widget) : null,
+            'logo' => $widget->look('logo') === '1' ? $this->logo($widget, ChatProxy::base($request) !== null) : null,
+            // Through liquify-chat.php the window calls the website's file, never LiquifyCRM's address.
+            'api' => ChatProxy::base($request) !== null ? ChatProxy::base($request).'?p=api' : '/chat/api',
         ], 200, [
             'Content-Security-Policy' => 'frame-ancestors '.$ancestors->implode(' '),
             'Cache-Control' => 'no-store',
@@ -64,11 +68,34 @@ final class WidgetAssetController
         ]);
     }
 
-    /** The brand's mark for the chat box's header: its icon, else its logo, as an address of this CRM. */
-    private function logo(ChatWidget $widget): ?string
+    /**
+     * The brand's mark for the chat box's header: its icon, else its logo, as an address of this CRM; written into the page
+     * itself (a small picture only) when the chat is served from the brand's website, so LiquifyCRM's address never shows.
+     */
+    private function logo(ChatWidget $widget, bool $inline = false): ?string
     {
-        $url = Brand::query()->find($widget->brand_id)?->avatarUrl();
+        $brand = Brand::query()->find($widget->brand_id);
+        $url = $brand?->avatarUrl();
 
-        return $url !== null && str_starts_with($url, url('/')) ? $url : null;
+        if ($url === null || ! str_starts_with($url, url('/'))) {
+            return null;
+        }
+
+        if (! $inline) {
+            return $url;
+        }
+
+        $path = $brand->favicon_path ?? $brand->logo_path;
+        $disk = Storage::disk('public');
+
+        if (! is_string($path) || ! $disk->exists($path) || $disk->size($path) > 150_000) {
+            return null;
+        }
+
+        $mime = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer((string) $disk->get($path));
+
+        return in_array($mime, ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'], true)
+            ? 'data:'.$mime.';base64,'.base64_encode((string) $disk->get($path))
+            : null;
     }
 }

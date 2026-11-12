@@ -10,6 +10,7 @@ use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Policies\CannedReplyPolicy;
 use App\Modules\Chat\Policies\ChatWidgetPolicy;
 use App\Modules\Chat\Support\AgentPresence;
+use App\Modules\Chat\Support\ChatProxy;
 use App\Modules\Chat\Support\Realtime;
 use App\Modules\Core\ModuleServiceProvider;
 use App\Modules\Core\Support\Live;
@@ -53,13 +54,13 @@ final class ChatServiceProvider extends ModuleServiceProvider
 
         // A visitor is told apart by the token they carry, an address (an office, a school) by its IP: the limits are
         // generous for people and short for a script. A page view asks `config` once; polling asks `messages`.
-        RateLimiter::for('chat-config', fn (Request $request): Limit => Limit::perMinute(300)->by('chat-config:'.$request->ip()));
-        RateLimiter::for('chat-init', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-init:'.$request->ip()));
+        RateLimiter::for('chat-config', fn (Request $request): Limit => Limit::perMinute(300)->by('chat-config:'.ChatProxy::ip($request)));
+        RateLimiter::for('chat-init', fn (Request $request): Limit => Limit::perMinute(60)->by('chat-init:'.ChatProxy::ip($request)));
         // A script can get a new token from `init` whenever it likes, so a limit per token alone stops nothing: every one also
         // has a ceiling per address, high enough for a busy office of real visitors (hardening, 12 Nov 2026).
         $both = fn (string $name, int $perToken, int $perAddress): \Closure => fn (Request $request): array => [
-            Limit::perMinute($perToken)->by($name.':t:'.($request->header('X-Chat-Token') ?: $request->ip())),
-            Limit::perMinute($perAddress)->by($name.':ip:'.$request->ip()),
+            Limit::perMinute($perToken)->by($name.':t:'.($request->header('X-Chat-Token') ?: ChatProxy::ip($request))),
+            Limit::perMinute($perAddress)->by($name.':ip:'.ChatProxy::ip($request)),
         ];
         RateLimiter::for('chat-poll', $both('chat-poll', 60, 1200));
         RateLimiter::for('chat-send', $both('chat-send', 20, 60));
@@ -72,8 +73,8 @@ final class ChatServiceProvider extends ModuleServiceProvider
             $vid = is_array($data) && is_string($data['vid'] ?? null) ? mb_substr($data['vid'], 0, 40) : '';
 
             return [
-                Limit::perMinute(600)->by('chat-ping:ip:'.$request->ip()),
-                Limit::perMinute(20)->by('chat-ping:vid:'.$request->ip().'|'.$vid),
+                Limit::perMinute(600)->by('chat-ping:ip:'.ChatProxy::ip($request)),
+                Limit::perMinute(20)->by('chat-ping:vid:'.ChatProxy::ip($request).'|'.$vid),
             ];
         });
     }

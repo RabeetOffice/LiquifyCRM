@@ -25,6 +25,8 @@ final class LiveChat
 
     private static bool $ratingReady = false;
 
+    private static bool $proxyReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -54,6 +56,12 @@ final class LiveChat
     public static function ratingReady(): bool
     {
         return self::$ratingReady = self::$ratingReady || (self::workReady() && Schema::hasColumn('conversations', 'rating'));
+    }
+
+    /** The chat served through liquify-chat.php on the brand's website (chat_widgets.proxy_secret): 1.52.0. */
+    public static function proxyReady(): bool
+    {
+        return self::$proxyReady = self::$proxyReady || (self::ready() && Schema::hasColumn('chat_widgets', 'proxy_secret'));
     }
 
     public static function workReady(): bool

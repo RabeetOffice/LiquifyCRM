@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
  * @property array<string, mixed>|null $prechat
  * @property bool $agents_see_visitors
  * @property bool $is_active
+ * @property string|null $proxy_secret
  * @property int|null $created_by
  * @property CarbonImmutable|null $created_at
  * @property-read User|null $creator
@@ -110,6 +111,7 @@ class ChatWidget extends Model
             'prechat' => 'array',
             'agents_see_visitors' => 'boolean',
             'is_active' => 'boolean',
+            'proxy_secret' => 'encrypted',
         ];
     }
 
@@ -121,6 +123,36 @@ class ChatWidget extends Model
         } while (self::query()->withoutGlobalScopes()->where('widget_key', $key)->exists());
 
         return $key;
+    }
+
+    /** Never in an array or JSON of the widget. */
+    protected $hidden = ['proxy_secret'];
+
+    /** The secret liquify-chat.php signs with: made the first time it is asked for. */
+    public function proxySecret(): string
+    {
+        if (! is_string($this->proxy_secret) || $this->proxy_secret === '') {
+            $this->forceFill(['proxy_secret' => Str::random(48)])->save();
+        }
+
+        return (string) $this->proxy_secret;
+    }
+
+    /** liquify-chat.php for this widget, with LiquifyCRM's address, the widget's key and its secret written in. */
+    public function proxyFile(): string
+    {
+        return strtr((string) file_get_contents(app_path('Modules/Chat/resources/stubs/liquify-chat.php.stub')), [
+            '{{NAME}}' => str_replace(['*/', "\n", "\r"], '', $this->name),
+            '{{CRM}}' => addcslashes(rtrim(url('/'), '/'), "'\\"),
+            '{{KEY}}' => addcslashes($this->widget_key, "'\\"),
+            '{{SECRET}}' => addcslashes($this->proxySecret(), "'\\"),
+        ]);
+    }
+
+    /** The line for a website that carries liquify-chat.php in its root. */
+    public function proxySnippet(): string
+    {
+        return '<script src="/liquify-chat.php" data-key="'.$this->widget_key.'" async></script>';
     }
 
     /** The one line the website's footer carries. */

@@ -176,7 +176,16 @@ in the document's weekly phases; never skip a phase or silently change the desig
   answer, an event line for the team, shown on the Chats side panel). `$wire.effect` is Alpine's own: the motion setting's
   property is `motion` (stored as `effect`). A plain `.lq-pv-launcher` rule must never set padding (it overrode each style's).
   Tests: `ChatRatingAndGrabberTest`.
-- Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
+  Chat through the brand's website (user request, same day: hide luminocrm.online; brand domains are not on Hostinger, so
+  no subdomains): `liquify-chat.php` (stub `Chat/resources/stubs/liquify-chat.php.stub`, `ChatWidget::proxyFile()`, download
+  `brand.live-chat.proxy-file`, `ChatProxyFileController`, for whoever may `update` the box) sits in the site's root and passes
+  only the chat's own paths (`widget.js`, `frame/…`, `api/…`, `files/…`) to LiquifyCRM, rebuilding uploads (PHP empties
+  php://input for multipart) and reading Cloudflare's real address only from Cloudflare's ranges. It signs key|ip|base|time
+  with `chat_widgets.proxy_secret` (encrypted, hidden, behind `LiveChat::proxyReady()`). `ChatProxy` believes only a valid
+  signature (5 minutes, base on one of the widget's websites, a plain .php path): then `ChatProxy::ip()` is the visitor's
+  address (every chat limiter and controller uses it, never `$request->ip()`) and `ChatProxy::url()` turns every chat
+  address handed to the browser (frame, file links, the frame's `data-api`) into the website's file; the brand mark is
+  inlined. widget.js goes through the file when its own src ends in .php. Keep the stub PHP 7.4-safe. Tests: `ChatProxyTest`.- Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's
   Managers (`LeadStatusPolicy`, same rights for both, user decision). Every change goes through `ChangePipelineStages`

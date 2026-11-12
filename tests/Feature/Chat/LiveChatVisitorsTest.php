@@ -237,7 +237,7 @@ it('deletes old visits and the pages they read, and a deleted lead takes its bro
 
 it('serves the launcher that pings, and tells the privacy page about it', function (): void {
     $script = $this->get('/chat/widget.js')->assertOk()->getContent();
-    expect($script)->toContain('/chat/api/ping')->toContain('text/plain')->toContain('lq_vid_');
+    expect($script)->toContain("chatUrl('api/ping')")->toContain('text/plain')->toContain('lq_vid_');
 
     $this->get('/privacy')->assertOk()->assertSee('Who is on a business')->assertSee('30 days after the browser was last there');
 });

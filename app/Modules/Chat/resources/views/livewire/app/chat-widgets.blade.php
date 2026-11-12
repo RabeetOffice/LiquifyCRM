@@ -49,13 +49,44 @@
                     </div>
                 </dl>
 
-                <x-ui.field label="The line for the website" class="mt-4">
-                    <div class="lq-copy" x-data="{ copied: false }">
-                        <pre class="lq-log" x-ref="text">{{ $widget->snippet() }}</pre>
-                        <x-ui.button size="sm" variant="secondary" icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText($refs.text.innerText); copied = true; setTimeout(() => copied = false, 2000)"><span x-text="copied ? 'Copied' : 'Copy'">Copy</span></x-ui.button>
+                @php($throughSite = $proxyReady && auth()->user()?->can('update', $widget))
+                <div class="lq-install mt-4" x-data="{ way: '{{ $throughSite ? 'site' : 'direct' }}' }">
+                    @if ($throughSite)
+                        <div class="lq-seg" role="tablist" aria-label="How to add the chat">
+                            <button type="button" role="tab" class="lq-seg-item" :class="way === 'site' && 'lq-seg-active'" x-on:click="way = 'site'"><x-heroicon-o-shield-check /> From your website</button>
+                            <button type="button" role="tab" class="lq-seg-item" :class="way === 'direct' && 'lq-seg-active'" x-on:click="way = 'direct'"><x-heroicon-o-link /> Direct line</button>
+                        </div>
+
+                        {{-- Served by liquify-chat.php on the brand's website: visitors never see LiquifyCRM's address. --}}
+                        <ol class="lq-install-steps" x-show="way === 'site'">
+                            <li>
+                                <div><strong>Download the file</strong><span>Made for this chat box, with its secret inside. Keep it to the website.</span></div>
+                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-down-tray" :navigate="false" :href="route('brand.live-chat.proxy-file', ['brand' => $brand, 'widget' => $widget->getKey()])">liquify-chat.php</x-ui.button>
+                            </li>
+                            <li>
+                                <div><strong>Upload it to the website’s root folder</strong><span>Next to index.php, the same place as liquify.php.</span></div>
+                            </li>
+                            <li class="lq-install-step-wide">
+                                <div><strong>Put this line before &lt;/body&gt; on every page</strong><span>In place of the direct line, if the website has it.</span></div>
+                                <div class="lq-copy" x-data="{ copied: false }">
+                                    <pre class="lq-log" x-ref="text">{{ $widget->proxySnippet() }}</pre>
+                                    <x-ui.button size="sm" variant="secondary" icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText($refs.text.innerText); copied = true; setTimeout(() => copied = false, 2000)"><span x-text="copied ? 'Copied' : 'Copy'">Copy</span></x-ui.button>
+                                </div>
+                            </li>
+                            <p class="lq-help">The chat, its window and every message then come from the website’s own address: LiquifyCRM’s address does not appear in the page or in the browser.</p>
+                        </ol>
+                    @endif
+
+                    <div x-show="way === 'direct'" @if ($throughSite) x-cloak @endif>
+                        <x-ui.field label="The line for the website">
+                            <div class="lq-copy" x-data="{ copied: false }">
+                                <pre class="lq-log" x-ref="text">{{ $widget->snippet() }}</pre>
+                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText($refs.text.innerText); copied = true; setTimeout(() => copied = false, 2000)"><span x-text="copied ? 'Copied' : 'Copy'">Copy</span></x-ui.button>
+                            </div>
+                        </x-ui.field>
+                        <p class="lq-help mt-3">Paste it into the website's footer, just before the closing body tag, on every page. Visitors can see LiquifyCRM’s address in it.</p>
                     </div>
-                </x-ui.field>
-                <p class="lq-help mt-3">Paste it into the website's footer, just before the closing body tag, on every page. Once it is there, the chat box appears on the website.</p>
+                </div>
             </x-ui.card>
         @endforeach
     @endif

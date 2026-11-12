@@ -1,0 +1,203 @@
+<?php
+/* =============================================================================
+   liquify-chat.php: the live chat of {{NAME}}, served from this website.
+   Made by LiquifyCRM for this website. Nothing to edit.
+
+   Upload it to the website's root folder (next to index.php), then put this
+   one line before </body> on every page, instead of the older chat line:
+
+       <script src="/liquify-chat.php" data-key="{{KEY}}" async></script>
+
+   The visitor's browser then talks only to this website: the chat box, its
+   window and every message pass through this file to LiquifyCRM, server to
+   server. It forwards only the chat's own addresses, nothing else, and tells
+   LiquifyCRM the visitor's address with a signature made with this website's
+   secret, so nobody can pretend to be another visitor.
+   It needs PHP 7.4 or later with cURL (or allow_url_fopen).
+============================================================================= */
+
+const LIQUIFY_CHAT_CRM     = '{{CRM}}';
+const LIQUIFY_CHAT_KEY     = '{{KEY}}';
+const LIQUIFY_CHAT_SECRET  = '{{SECRET}}';
+const LIQUIFY_CHAT_VERSION = '1.0';
+
+liquify_chat_run();
+
+function liquify_chat_run()
+{
+    $path = isset($_GET['p']) && is_string($_GET['p']) ? $_GET['p'] : 'widget.js';
+
+    // Only the chat's own addresses pass; anything else is refused here.
+    $allowed = '~^(widget\.js|frame/wk_[A-Za-z0-9]{24}|api/(config|init|messages|realtime|typing|ping|upload|details|rate)|files/[0-9]{1,12})$~';
+
+    if (!preg_match($allowed, $path)) {
+        liquify_chat_fail(404, 'Not found');
+    }
+
+    $query = $_GET;
+    unset($query['p']);
+    $url = rtrim(LIQUIFY_CHAT_CRM, '/') . '/chat/' . $path . ($query ? '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986) : '');
+
+    $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : 'GET';
+    if (!in_array($method, array('GET', 'POST', 'OPTIONS'), true)) {
+        liquify_chat_fail(405, 'Method not allowed');
+    }
+
+    $body = $method === 'POST' ? (string) file_get_contents('php://input', false, null, 0, 27 * 1048576) : '';
+    $contentType = null;
+
+    // A file the visitor sends arrives as an upload, which PHP takes apart before this file runs: put it back together.
+    if ($method === 'POST' && !empty($_FILES)) {
+        $boundary = 'liquify' . bin2hex(random_bytes(12));
+        $body = '';
+        foreach ($_POST as $name => $value) {
+            if (is_string($value)) {
+                $body .= '--' . $boundary . "\r\nContent-Disposition: form-data; name=\"" . str_replace(array('"', "\r", "\n"), '', $name) . "\"\r\n\r\n" . $value . "\r\n";
+            }
+        }
+        foreach ($_FILES as $name => $file) {
+            if (!is_array($file) || !isset($file['tmp_name']) || !is_string($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+                continue;
+            }
+            $filename = str_replace(array('"', "\r", "\n"), '', (string) $file['name']);
+            $type = preg_match('~^[A-Za-z0-9.+/-]{3,100}$~', (string) $file['type']) ? (string) $file['type'] : 'application/octet-stream';
+            $body .= '--' . $boundary . "\r\nContent-Disposition: form-data; name=\"" . str_replace(array('"', "\r", "\n"), '', $name) . '"; filename="' . $filename . "\"\r\nContent-Type: " . $type . "\r\n\r\n"
+                . (string) file_get_contents($file['tmp_name']) . "\r\n";
+        }
+        $body .= '--' . $boundary . "--\r\n";
+        $contentType = 'multipart/form-data; boundary=' . $boundary;
+    }
+
+    // What the browser sent that the chat needs, and nothing else (no cookies of this website).
+    $headers = array();
+    $pass = array('CONTENT_TYPE' => 'Content-Type', 'HTTP_ACCEPT' => 'Accept', 'HTTP_ACCEPT_LANGUAGE' => 'Accept-Language', 'HTTP_USER_AGENT' => 'User-Agent', 'HTTP_ORIGIN' => 'Origin',
+        'HTTP_X_CHAT_KEY' => 'X-Chat-Key', 'HTTP_X_CHAT_TOKEN' => 'X-Chat-Token', 'HTTP_X_CHAT_SIG' => 'X-Chat-Sig', 'HTTP_IF_NONE_MATCH' => 'If-None-Match');
+    foreach ($pass as $server => $name) {
+        if ($server === 'CONTENT_TYPE' && $contentType !== null) {
+            $headers[] = 'Content-Type: ' . $contentType;
+        } elseif (isset($_SERVER[$server]) && $_SERVER[$server] !== '') {
+            $headers[] = $name . ': ' . str_replace(array("\r", "\n"), '', (string) $_SERVER[$server]);
+        }
+    }
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') ? 'https' : 'http';
+    $host = isset($_SERVER['HTTP_HOST']) ? preg_replace('~[^A-Za-z0-9.:-]~', '', (string) $_SERVER['HTTP_HOST']) : '';
+    $self = isset($_SERVER['SCRIPT_NAME']) ? preg_replace('~[^A-Za-z0-9._/-]~', '', (string) $_SERVER['SCRIPT_NAME']) : '/liquify-chat.php';
+    $base = $scheme . '://' . $host . $self;
+    $ip = liquify_chat_visitor_ip();
+    $time = (string) time();
+
+    $headers[] = 'X-Liquify-Proxy-Key: ' . LIQUIFY_CHAT_KEY;
+    $headers[] = 'X-Liquify-Proxy-Ip: ' . $ip;
+    $headers[] = 'X-Liquify-Proxy-Base: ' . $base;
+    $headers[] = 'X-Liquify-Proxy-Ts: ' . $time;
+    $headers[] = 'X-Liquify-Proxy-Sig: ' . hash_hmac('sha256', LIQUIFY_CHAT_KEY . '|' . $ip . '|' . $base . '|' . $time, LIQUIFY_CHAT_SECRET);
+    $headers[] = 'X-Liquify-Proxy-Version: ' . LIQUIFY_CHAT_VERSION;
+
+    list($status, $responseHeaders, $responseBody) = liquify_chat_send($method, $url, $headers, $body);
+
+    if ($status === 0) {
+        liquify_chat_fail(502, 'The chat is not reachable right now.');
+    }
+
+    http_response_code($status);
+    $keep = array('content-type', 'cache-control', 'content-security-policy', 'x-content-type-options', 'referrer-policy', 'content-disposition', 'retry-after', 'etag', 'vary');
+    foreach ($responseHeaders as $line) {
+        $parts = explode(':', $line, 2);
+        if (count($parts) === 2 && in_array(strtolower(trim($parts[0])), $keep, true)) {
+            header(trim($parts[0]) . ': ' . trim($parts[1]), true);
+        }
+    }
+    header('X-Robots-Tag: noindex');
+
+    echo $responseBody;
+    exit;
+}
+
+/** @return array{0: int, 1: string[], 2: string} */
+function liquify_chat_send($method, $url, array $headers, $body)
+{
+    if (function_exists('curl_init')) {
+        $responseHeaders = array();
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HEADERFUNCTION => function ($ch, $line) use (&$responseHeaders) { $responseHeaders[] = rtrim($line, "\r\n"); return strlen($line); },
+        ));
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+        $responseBody = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        return array($responseBody === false ? 0 : $status, $responseHeaders, $responseBody === false ? '' : (string) $responseBody);
+    }
+
+    $context = stream_context_create(array('http' => array(
+        'method' => $method, 'header' => implode("\r\n", $headers), 'content' => $body, 'timeout' => 60, 'ignore_errors' => true, 'follow_location' => 0,
+    )));
+    $responseBody = @file_get_contents($url, false, $context);
+    $responseHeaders = isset($http_response_header) ? $http_response_header : array();
+    $status = 0;
+    if (isset($responseHeaders[0]) && preg_match('~\s(\d{3})\s?~', $responseHeaders[0], $match)) {
+        $status = (int) $match[1];
+    }
+
+    return array($responseBody === false ? 0 : $status, $responseHeaders, $responseBody === false ? '' : (string) $responseBody);
+}
+
+/**
+ * The visitor's address. A website behind Cloudflare sees Cloudflare's address; then, and only when the call really comes
+ * from one of Cloudflare's published ranges, the visitor's own address is the one Cloudflare passes on.
+ */
+function liquify_chat_visitor_ip()
+{
+    $remote = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+    $forwarded = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? trim((string) $_SERVER['HTTP_CF_CONNECTING_IP']) : '';
+
+    if ($forwarded === '' || filter_var($forwarded, FILTER_VALIDATE_IP) === false) {
+        return $remote;
+    }
+
+    $ranges = array('173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20',
+        '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32');
+    $address = @inet_pton($remote);
+
+    foreach ($ranges as $range) {
+        list($subnet, $bits) = explode('/', $range);
+        $net = @inet_pton($subnet);
+
+        if ($address === false || $net === false || strlen($address) !== strlen($net)) {
+            continue;
+        }
+
+        $bits = (int) $bits;
+        $bytes = intdiv($bits, 8);
+        $rest = $bits % 8;
+
+        if (substr($address, 0, $bytes) !== substr($net, 0, $bytes)) {
+            continue;
+        }
+
+        if ($rest === 0 || ((ord($address[$bytes]) ^ ord($net[$bytes])) & (0xFF << (8 - $rest)) & 0xFF) === 0) {
+            return $forwarded;
+        }
+    }
+
+    return $remote;
+}
+
+function liquify_chat_fail($status, $message)
+{
+    http_response_code($status);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo $message;
+    exit;
+}

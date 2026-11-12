@@ -75,7 +75,7 @@ final class VisitorChats
             'at' => $message->created_at?->toIso8601String() ?? now()->toIso8601String(),
             'name' => $from === 'team' && $message->sender !== null ? self::firstName($message->sender->name) : null,
             'files' => $message->relationLoaded('chatFiles')
-                ? $message->chatFiles->map(fn (ChatAttachment $file): array => ['name' => $file->original_name, 'size' => $file->humanSize(), 'image' => $file->isImage(), 'url' => $file->visitorUrl()])->values()->all()
+                ? $message->chatFiles->map(fn (ChatAttachment $file): array => ['name' => $file->original_name, 'size' => $file->humanSize(), 'image' => $file->isImage(), 'url' => ChatProxy::url(request(), $file->visitorUrl())])->values()->all()
                 : [],
         ];
     }

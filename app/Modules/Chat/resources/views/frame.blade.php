@@ -79,7 +79,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
 @endverbatim
 </style>
 </head>
-<body class="theme-{{ $design['theme'] }} h-{{ $design['header'] }}" style="--c: {{ $design['color'] }}; --on: {{ $design['on'] }}; --a: {{ $design['accent'] }}; --ona: {{ $design['on_accent'] }}" data-key="{{ $key }}" data-origin="{{ $origin }}" data-sound="{{ $design['sound'] ? '1' : '0' }}">
+<body class="theme-{{ $design['theme'] }} h-{{ $design['header'] }}" style="--c: {{ $design['color'] }}; --on: {{ $design['on'] }}; --a: {{ $design['accent'] }}; --ona: {{ $design['on_accent'] }}" data-key="{{ $key }}" data-origin="{{ $origin }}" data-api="{{ $api }}" data-sound="{{ $design['sound'] ? '1' : '0' }}">
 <header>
     <div class="av" aria-hidden="true">@if ($logo)<img src="{{ $logo }}" alt="">@else{{ mb_strtoupper(mb_substr($title, 0, 1)) }}@endif<i id="dot"></i></div>
     <div class="t"><span id="title">{{ $title }}</span><span class="s" id="sub" data-reply="{{ $design['reply_time'] }}"></span></div>
@@ -101,7 +101,13 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     var body = document.body;
     var KEY = body.getAttribute('data-key');
     var ORIGIN = body.getAttribute('data-origin');
-    var API = '/chat/api';
+    var API = body.getAttribute('data-api') || '/chat/api';
+    // Through liquify-chat.php the address is "…/liquify-chat.php?p=api", so "/messages?after=3" becomes "…?p=api/messages&after=3".
+    function api(path) {
+        if (API.indexOf('?') < 0) { return API + path; }
+        var cut = path.indexOf('?');
+        return API + (cut < 0 ? path : path.slice(0, cut) + '&' + path.slice(cut + 1));
+    }
     var STORE = 'lq_v_' + KEY;
     var $ = function (id) { return document.getElementById(id); };
     var thread = $('thread'), composer = $('composer'), box = $('box'), sendButton = $('send');
@@ -140,7 +146,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     }
 
     function call(method, path, data) {
-        return fetch(API + path, { method: method, headers: headers(), body: data ? JSON.stringify(data) : undefined, credentials: 'omit' })
+        return fetch(api(path), { method: method, headers: headers(), body: data ? JSON.stringify(data) : undefined, credentials: 'omit' })
             .then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (json) { return { status: response.status, json: json }; });
             });
@@ -435,7 +441,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         thread.appendChild(pending); scroll();
         attachButton.disabled = true;
 
-        return fetch(API + '/upload', { method: 'POST', headers: h, body: data, credentials: 'omit' })
+        return fetch(api('/upload'), { method: 'POST', headers: h, body: data, credentials: 'omit' })
             .then(function (response) { return response.json().catch(function () { return {}; }).then(function (json) { return { status: response.status, json: json }; }); })
             .then(function (r) {
                 attachButton.disabled = false;

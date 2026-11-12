@@ -16,6 +16,7 @@ use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\AgentPresence;
 use App\Modules\Chat\Support\ChatFiles;
+use App\Modules\Chat\Support\ChatProxy;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\Realtime;
@@ -66,7 +67,7 @@ final class WidgetController
             'online' => AgentPresence::online((int) $widget->brand_id),
             // Whether the launcher tells the server which page it is on (Live visitors).
             'track' => LiveChat::trackingReady() && $widget->tracks(),
-            'frame' => url('/chat/frame/'.$widget->widget_key),
+            'frame' => ChatProxy::url($request, url('/chat/frame/'.$widget->widget_key)),
         ], 200, [
             'Access-Control-Allow-Origin' => $origin,
             'Vary' => 'Origin',
@@ -102,13 +103,13 @@ final class WidgetController
         // A browser without a token gets a new visitor: a script asking again and again would fill the table, so an address
         // gets a few new visitors a minute (an office of real people opens the chat far less often than that).
         if (! VisitorToken::valid($token, $sig)) {
-            $newKey = 'chat-new-visitor:'.$request->ip();
+            $newKey = 'chat-new-visitor:'.ChatProxy::ip($request);
             abort_if(RateLimiter::tooManyAttempts($newKey, self::NEW_VISITORS_PER_MINUTE), 429);
             RateLimiter::hit($newKey, 60);
         }
 
         $visitor = $visit->handle($widget, $token, $sig, [
-            'ip' => $request->ip(),
+            'ip' => ChatProxy::ip($request),
             'country' => self::country($request),
             'kind' => $device->kind->value,
             'os' => $os,
@@ -160,8 +161,8 @@ final class WidgetController
         $device = Device::of($request);
 
         $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
-            'new_key' => 'chat-new-session:'.$request->ip(),
-            'ip' => $request->ip(),
+            'new_key' => 'chat-new-session:'.ChatProxy::ip($request),
+            'ip' => ChatProxy::ip($request),
             'country' => self::country($request),
             'device' => $device->kind->value,
             'browser' => array_pad(explode(' · ', $device->name, 2), 2, null)[1],

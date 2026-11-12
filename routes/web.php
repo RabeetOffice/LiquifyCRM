@@ -19,6 +19,7 @@ use App\Modules\Brands\Livewire\App\EmailSettings;
 use App\Modules\Brands\Livewire\App\MemberForm;
 use App\Modules\Brands\Livewire\App\MembersIndex;
 use App\Modules\Chat\Http\Controllers\ChatFileController;
+use App\Modules\Chat\Http\Controllers\ChatProxyFileController;
 use App\Modules\Chat\Http\Controllers\ConversationTypingController;
 use App\Modules\Chat\Http\Controllers\RealtimeTokenController;
 use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/live-chat', ChatWidgets::class)->name('live-chat');
         Route::get('/live-chat/visitors', LiveVisitors::class)->name('live-chat.visitors');
         Route::get('/live-chat/chats', LiveChats::class)->name('live-chat.chats');
+        Route::get('/live-chat/boxes/{widget}/liquify-chat.php', ChatProxyFileController::class)->whereNumber('widget')->name('live-chat.proxy-file');
         Route::get('/saved-replies', CannedRepliesIndex::class)->name('saved-replies');
         Route::post('/conversations/{conversation}/messages', ConversationMessageController::class)->name('conversations.messages');
         Route::post('/conversations/{conversation}/typing', ConversationTypingController::class)->name('conversations.typing');

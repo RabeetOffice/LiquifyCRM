@@ -7,6 +7,7 @@ namespace App\Modules\Chat\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Models\ChatWidget;
+use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\WebsiteLook;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
@@ -454,6 +455,7 @@ final class ChatWidgets extends Component
             'widgets' => ChatWidget::query()->orderBy('name')->get(),
             'defaults' => ChatWidget::DEFAULT_APPEARANCE,
             'choices' => ChatWidget::CHOICES,
+            'proxyReady' => LiveChat::proxyReady(),
             'logoUrl' => $this->brand->avatarUrl(),
             'prechatFields' => ChatWidget::PRECHAT_FIELDS,
         ]);

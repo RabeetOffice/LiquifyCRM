@@ -24,6 +24,7 @@ return [
         'date' => '2026-11-12',
         'title' => 'More chat buttons, a clickable preview, and where visitors are',
         'changes' => [
+            ['new', 'The chat can now be served from the brand’s own website: download liquify-chat.php under Live chat › Chat boxes, upload it next to liquify.php and use the short line shown there. Visitors then see only the website’s address, never LiquifyCRM’s.'],
             ['new', 'Live chat › Chats and Live visitors show where a website visitor is: the country’s flag, the city and region, their IP address (marked when it is a VPN or proxy), their network and the time where they are.'],
             ['new', 'Four more buttons for the website: a rounded square, an outline pill, a bar along the bottom and a tab on the side of the page. Phones can have a button of their own, for example the round button on phones and the pill on computers.'],
             ['new', 'Choose the button’s icon, let it pulse, bounce or wiggle now and then, and float a few words above it such as “Need help?”.'],

@@ -20,7 +20,18 @@
 
     var base;
 
-    try { base = new URL(script.src).origin; } catch (e) { return; }
+    var through = null;
+
+    try {
+        var source = new URL(script.src);
+        base = source.origin;
+        // Served by liquify-chat.php on the brand's own website: the chat's calls go through it, never to LiquifyCRM directly.
+        if (/\.php$/.test(source.pathname)) { through = source.origin + source.pathname; }
+    } catch (e) { return; }
+
+    function chatUrl(path, query) {
+        return through ? through + '?p=' + path + (query ? '&' + query : '') : base + '/chat/' + path + (query ? '?' + query : '');
+    }
 
     var openKey = 'lq_chat_open_' + key;
     var startedKey = 'lq_chat_started_' + key;
@@ -33,7 +44,7 @@
         } catch (e) { return null; }
     };
 
-    fetch(base + '/chat/api/config?key=' + encodeURIComponent(key) + '&o=' + encodeURIComponent(location.origin), { credentials: 'omit' })
+    fetch(chatUrl('api/config', 'key=' + encodeURIComponent(key) + '&o=' + encodeURIComponent(location.origin)), { credentials: 'omit' })
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (config) { if (config && config.active) { build(config); } })
         .catch(function () {});
@@ -369,7 +380,7 @@
             var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500) });
 
             // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
-            fetch(base + '/chat/api/ping', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
+            fetch(chatUrl('api/ping'), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
                 .then(function (response) { return response.status === 200 ? response.json() : null; })
                 .then(function (data) { if (data && data.invite) { invite(data.invite); } })
                 .catch(function () {});
@@ -398,7 +409,7 @@
 
             frame = document.createElement('iframe');
             frame.title = config.title;
-            frame.src = config.frame + '?o=' + encodeURIComponent(location.origin);
+            frame.src = config.frame + (config.frame.indexOf('?') < 0 ? '?' : '&') + 'o=' + encodeURIComponent(location.origin);
             frame.setAttribute('allow', 'clipboard-write; autoplay');
             frame.setAttribute('data-shown', '0');
             document.body.appendChild(frame);

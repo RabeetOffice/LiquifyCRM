@@ -13575,4 +13575,17 @@ button.lq-perday-row:hover {
 .lq-pv-launcher.lq-pv-bar { padding: 0 1rem 0 1.125rem; }
 .lq-pv-launcher.lq-pv-tab { padding: 0.875rem 0; }
 
+
+/* Adding the chat to a website: from the website's own file (recommended) or the direct line. */
+.lq-install { display: flex; flex-direction: column; gap: 0.875rem; }
+.lq-install > .lq-seg { align-self: flex-start; }
+.lq-install-steps { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: lq-step; }
+.lq-install-steps li { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.875rem 0 0.875rem 2.5rem; counter-increment: lq-step; }
+.lq-install-steps li + li { border-top: 1px solid var(--lq-card-border); }
+.lq-install-steps li::before { content: counter(lq-step); position: absolute; left: 0; top: 0.875rem; display: grid; place-items: center; width: 1.625rem; height: 1.625rem; border-radius: 50%; background: color-mix(in srgb, var(--lq-orange) 14%, transparent); color: var(--lq-orange); font-size: 0.8125rem; font-weight: 700; }
+.lq-install-steps li > div:first-child { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.lq-install-steps strong { font-size: 0.875rem; font-weight: 600; color: var(--lq-ink); }
+.lq-install-steps span { font-size: 0.75rem; color: var(--lq-muted); }
+.lq-install-step-wide { flex-direction: column; align-items: stretch !important; }
+.lq-install-step-wide .lq-copy { width: 100%; }
 } /* @layer components */
