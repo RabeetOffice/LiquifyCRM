@@ -303,7 +303,10 @@ class Brand extends Model
     {
         $url = Storage::disk('public')->url($path);
 
-        return str_contains($path, '/fetched-') && $this->identity_fetched_at !== null ? $url.'?v='.$this->identity_fetched_at->getTimestamp() : $url;
+        // A brand loaded with a few columns only has no fetch time: then the address goes without it.
+        $fetched = array_key_exists('identity_fetched_at', $this->getAttributes()) ? $this->identity_fetched_at : null;
+
+        return str_contains($path, '/fetched-') && $fetched !== null ? $url.'?v='.$fetched->getTimestamp() : $url;
     }
 
     /** Small image for the brand chip: favicon, else logo, else nothing (the chip shows the initial). */

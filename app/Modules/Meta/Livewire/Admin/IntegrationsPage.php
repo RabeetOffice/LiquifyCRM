@@ -213,7 +213,7 @@ final class IntegrationsPage extends Component
             'verifyTokenSet' => MetaApp::verifyToken() !== '',
             'connection' => $connection,
             'pages' => MetaSource::query()->with('brand')->orderBy('name')->get(),
-            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug', 'logo_path', 'favicon_path', 'colors']),
+            'brands' => Brand::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug', 'logo_path', 'favicon_path', 'colors', 'identity_fetched_at']),
             'events' => InboundEvent::query()
                 ->with('lead')
                 ->when($this->eventSource !== '', fn ($query) => $query->where('source', $this->eventSource))
