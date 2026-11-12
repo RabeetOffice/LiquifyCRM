@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Actions;
 
+use App\Modules\Core\Support\KnownSchema;
 use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Models\Conversation;
 use App\Modules\Meta\Support\Instagram;
 use App\Modules\Meta\Support\MetaGraph;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * The name and picture of the person in a Messenger or Instagram chat (and
@@ -42,7 +42,7 @@ final class SyncContactProfile
 
         // Until "Update system" has added the two columns, only the name is kept, as before.
         static $ready = null;
-        $ready ??= Schema::hasColumn('conversations', 'contact_picture');
+        $ready ??= KnownSchema::column('conversations', 'contact_picture');
 
         if (! $force) {
             $synced = $ready ? $conversation->contact_synced_at : null;

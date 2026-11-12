@@ -6,12 +6,12 @@ namespace App\Modules\Leads\Support;
 
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Core\Support\KnownSchema;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * The website leads dashboard (user request, 27 Oct 2026): one screen with the
@@ -26,7 +26,7 @@ final class WebsiteLeads
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasTable('website_lead_brands');
+        return self::$ready = self::$ready || KnownSchema::table('website_lead_brands');
     }
 
     public static function canOpen(User $user): bool

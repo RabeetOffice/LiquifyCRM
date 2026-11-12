@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Sites\Support;
 
+use App\Modules\Core\Support\KnownSchema;
 use App\Modules\Sites\Enums\SitePlatform;
 use App\Modules\Sites\Models\Site;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * What kind of website a site is, when a person chose it (user request,
@@ -21,7 +21,7 @@ final class PlatformChoice
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasColumn('sites', 'platform_chosen_at');
+        return self::$ready = self::$ready || KnownSchema::column('sites', 'platform_chosen_at');
     }
 
     public static function isChosen(Site $site): bool

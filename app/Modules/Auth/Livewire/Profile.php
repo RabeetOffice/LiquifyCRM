@@ -10,6 +10,7 @@ use App\Modules\Brands\Models\Membership;
 use App\Modules\Chat\Support\AgentCard;
 use App\Modules\Core\Livewire\Concerns\WithToasts;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Core\Support\SmallPhoto;
 use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Sales\Models\Sale;
@@ -103,7 +104,8 @@ final class Profile extends Component
         $this->validate(['avatar' => ['required', 'image', 'max:2048']], attributes: ['avatar' => 'photo']);
 
         $user = $this->user();
-        $user->forceFill(['avatar_path' => $this->avatar?->store('avatars', 'public')])->save();
+        // Kept small: the photo is shown at a few dozen pixels all over the app.
+        $user->forceFill(['avatar_path' => $this->avatar !== null ? SmallPhoto::store((string) $this->avatar->get(), $this->avatar->extension()) : null])->save();
         $this->avatar = null;
 
         $this->toastSuccess('Photo updated');

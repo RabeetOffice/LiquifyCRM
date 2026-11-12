@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Resources\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Resources need their own table. The code reaches the server before an
@@ -17,6 +17,6 @@ final class BrandResources
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasTable('resources');
+        return self::$ready = self::$ready || KnownSchema::table('resources');
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * A follow-up set in another time zone keeps that zone on tasks.timezone.
@@ -18,6 +18,6 @@ final class FollowUpZones
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasColumn('tasks', 'timezone');
+        return self::$ready = self::$ready || KnownSchema::column('tasks', 'timezone');
     }
 }

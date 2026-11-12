@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Sales\Support;
 
+use App\Modules\Core\Support\KnownSchema;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Throwable;
 
@@ -40,7 +40,7 @@ final class ExchangeRates
     /** The columns of the update are there ("Update system" was clicked). */
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasColumn('sales', 'exchange_rate');
+        return self::$ready = self::$ready || KnownSchema::column('sales', 'exchange_rate');
     }
 
     public static function supports(string $currency): bool

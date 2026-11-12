@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Sales\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Invoices need their table. The code reaches the server before an Admin
@@ -17,6 +17,6 @@ final class Invoices
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasTable('invoices');
+        return self::$ready = self::$ready || KnownSchema::table('invoices');
     }
 }

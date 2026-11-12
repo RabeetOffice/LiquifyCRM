@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Sales\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Lead routing, Upsell departments and the client's hand-over, upsells and
@@ -19,6 +19,6 @@ final class ClientCare
     public static function ready(): bool
     {
         // The last table of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || Schema::hasTable('client_notes');
+        return self::$ready = self::$ready || KnownSchema::table('client_notes');
     }
 }

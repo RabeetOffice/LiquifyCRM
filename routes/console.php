@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Sites\Models\InboundEvent;
 use Illuminate\Support\Facades\Schedule;
+use Spatie\Health\Models\HealthCheckResultHistoryItem;
 use Spatie\ScheduleMonitor\Models\MonitoredScheduledTaskLogItem;
 
 /*
@@ -51,8 +52,9 @@ Schedule::command('backup:run')->dailyAt('02:00')->graceTimeInMinutes(60);
 Schedule::command('logs:archive')->dailyAt('00:40')->graceTimeInMinutes(60);
 
 // Raw copies of received leads: done ones go after 14 days, failed ones after 30. The schedule monitor's own log
-// goes after its configured days too (version 4 of the package has no clean-log command any more).
-Schedule::command('model:prune', ['--model' => [InboundEvent::class, MonitoredScheduledTaskLogItem::class]])->dailyAt('00:55')->doNotMonitor();
+// goes after its configured days too (version 4 of the package has no clean-log command any more), and so do the
+// health checks' results (five days are kept: a row per check every five minutes was the largest table on the server).
+Schedule::command('model:prune', ['--model' => [InboundEvent::class, MonitoredScheduledTaskLogItem::class, HealthCheckResultHistoryItem::class]])->dailyAt('00:55')->doNotMonitor();
 
 // Follow-ups: the owner hears 10, 5 and 1 minutes before (bell, chime, desktop alert, push).
 Schedule::command('followups:remind')->everyMinute()->withoutOverlapping(5)->runInBackground()->doNotMonitor();
@@ -70,5 +72,6 @@ Schedule::command('chat:prune')->dailyAt('00:58')->doNotMonitor();
 Schedule::command('leads:chat-contacts')->dailyAt('03:30')->withoutOverlapping(60)->runInBackground()->doNotMonitor();
 
 // Housekeeping.
+Schedule::command('liquify:tidy')->dailyAt('01:05')->doNotMonitor();
 Schedule::command('queue:prune-failed --hours=720')->daily();
 Schedule::command('queue:prune-batches --hours=48')->daily();

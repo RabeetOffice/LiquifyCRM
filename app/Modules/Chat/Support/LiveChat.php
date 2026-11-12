@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Live chat needs its own tables and a few columns on the chat tables. The code reaches the server before an
@@ -38,66 +38,66 @@ final class LiveChat
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || (Schema::hasTable('chat_widgets') && Schema::hasColumn('messages', 'sender_type'));
+        return self::$ready = self::$ready || (KnownSchema::table('chat_widgets') && KnownSchema::column('messages', 'sender_type'));
     }
 
     /** Files in a chat and saved replies: the tables of the third update are there. */
     public static function extrasReady(): bool
     {
-        return self::$extrasReady = self::$extrasReady || (self::workReady() && Schema::hasTable('canned_replies') && Schema::hasTable('chat_attachments'));
+        return self::$extrasReady = self::$extrasReady || (self::workReady() && KnownSchema::table('canned_replies') && KnownSchema::table('chat_attachments'));
     }
 
     /** Who is on the website now and the pages they read: the tables of the fourth update are there. */
     public static function trackingReady(): bool
     {
-        return self::$trackingReady = self::$trackingReady || (self::workReady() && Schema::hasTable('chat_sessions') && Schema::hasTable('chat_page_views'));
+        return self::$trackingReady = self::$trackingReady || (self::workReady() && KnownSchema::table('chat_sessions') && KnownSchema::table('chat_page_views'));
     }
 
     /** The team can work a website chat (answer, assign, close): the columns of the second update are there. */
     /** Where visitors are (region, network, time zone, VPN) on visitors and browsers: 1.52.0, after "Update system". */
     public static function geoReady(): bool
     {
-        return self::$geoReady = self::$geoReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'ip'));
+        return self::$geoReady = self::$geoReady || (self::trackingReady() && KnownSchema::column('chat_sessions', 'ip'));
     }
 
     /** Thumbs up or down on a chat (conversations.rating): 1.52.0, after "Update system". */
     public static function ratingReady(): bool
     {
-        return self::$ratingReady = self::$ratingReady || (self::workReady() && Schema::hasColumn('conversations', 'rating'));
+        return self::$ratingReady = self::$ratingReady || (self::workReady() && KnownSchema::column('conversations', 'rating'));
     }
 
     /** The chat served through liquify-chat.php on the brand's website (chat_widgets.proxy_secret): 1.52.0. */
     public static function proxyReady(): bool
     {
-        return self::$proxyReady = self::$proxyReady || (self::ready() && Schema::hasColumn('chat_widgets', 'proxy_secret'));
+        return self::$proxyReady = self::$proxyReady || (self::ready() && KnownSchema::column('chat_widgets', 'proxy_secret'));
     }
 
     /** The time zone of the visitor's own computer on a browser (chat_sessions.browser_tz): 1.52.1. */
     public static function tzReady(): bool
     {
-        return self::$tzReady = self::$tzReady || (self::geoReady() && Schema::hasColumn('chat_sessions', 'browser_tz'));
+        return self::$tzReady = self::$tzReady || (self::geoReady() && KnownSchema::column('chat_sessions', 'browser_tz'));
     }
 
     /** The live chat profile of team members (users.chat_name / chat_title / chat_photo): 1.55.0. */
     public static function agentCardReady(): bool
     {
-        return self::$agentCardReady = self::$agentCardReady || (self::ready() && Schema::hasColumn('users', 'chat_name'));
+        return self::$agentCardReady = self::$agentCardReady || (self::ready() && KnownSchema::column('users', 'chat_name'));
     }
 
     /** The first sign of a person on a browser (chat_sessions.interacted_at): 1.56.0. */
     public static function humanReady(): bool
     {
-        return self::$humanReady = self::$humanReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'interacted_at'));
+        return self::$humanReady = self::$humanReady || (self::trackingReady() && KnownSchema::column('chat_sessions', 'interacted_at'));
     }
 
     /** Where a visit came from (chat_sessions.source / campaign): 1.57.0. */
     public static function sourceReady(): bool
     {
-        return self::$sourceReady = self::$sourceReady || (self::trackingReady() && Schema::hasColumn('chat_sessions', 'source'));
+        return self::$sourceReady = self::$sourceReady || (self::trackingReady() && KnownSchema::column('chat_sessions', 'source'));
     }
 
     public static function workReady(): bool
     {
-        return self::$workReady = self::$workReady || (self::ready() && Schema::hasColumn('conversations', 'first_response_at'));
+        return self::$workReady = self::$workReady || (self::ready() && KnownSchema::column('conversations', 'first_response_at'));
     }
 }

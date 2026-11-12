@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.57.1',
+        'date' => '2026-11-12',
+        'title' => 'Faster screens, a tidier database',
+        'changes' => [
+            ['improved', 'Every screen asks the database fewer questions: the Leads list about a third fewer, and the website chat’s “I am here” signal about half. The server now remembers which parts of an update are installed instead of checking on every click.'],
+            ['improved', 'A profile photo is made small when it is uploaded (it is shown small everywhere), and photos uploaded before are made small overnight. Pages with many people on them load faster.'],
+            ['improved', 'The database is tidied every night: results of the system’s own health checks older than five days, bell notifications read more than 90 days ago (unread ones stay), and cache entries that ran out.'],
+            ['fixed', 'The logs table kept two of its indexes twice, so every log line was written with extra work.'],
+        ],
+    ],
+    [
         'version' => '1.57.0',
         'date' => '2026-11-12',
         'title' => 'Where a visitor came from',

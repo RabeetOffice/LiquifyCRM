@@ -9,8 +9,8 @@ use App\Modules\Auth\Enums\PhoneRule;
 use App\Modules\Auth\Models\SignInAddress;
 use App\Modules\Auth\Models\User;
 use App\Modules\Auth\Settings\SignInSettings;
+use App\Modules\Core\Support\KnownSchema;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Throwable;
 
@@ -42,7 +42,7 @@ final readonly class SignInRules
     {
         static $ready = false;
 
-        return $ready = $ready || Schema::hasTable('sign_in_devices');
+        return $ready = $ready || KnownSchema::table('sign_in_devices');
     }
 
     /** Whether the rules are checked at all. */

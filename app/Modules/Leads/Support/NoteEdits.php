@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Correcting a note (user request, 4 Nov 2026). `lead_notes.edited_at` /
@@ -17,6 +17,6 @@ final class NoteEdits
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasColumn('lead_notes', 'edited_at');
+        return self::$ready = self::$ready || KnownSchema::column('lead_notes', 'edited_at');
     }
 }

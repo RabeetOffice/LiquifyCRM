@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Meta\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Instagram direct messages need two new columns (the account linked to a
@@ -19,6 +19,6 @@ final class Instagram
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || Schema::hasColumn('conversations', 'contact_handle');
+        return self::$ready = self::$ready || KnownSchema::column('conversations', 'contact_handle');
     }
 }

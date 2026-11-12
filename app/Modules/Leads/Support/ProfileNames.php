@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Support;
 
+use App\Modules\Core\Support\KnownSchema;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Models\Lead;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * The name on the person's Facebook or Instagram profile, beside the name the
@@ -22,7 +22,7 @@ final class ProfileNames
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasColumn('leads', 'profile_name');
+        return self::$ready = self::$ready || KnownSchema::column('leads', 'profile_name');
     }
 
     /**

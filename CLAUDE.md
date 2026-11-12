@@ -300,6 +300,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   **Every push that changes what a person sees adds its lines to `resources/changelog.php`** (new version on top:
   last number for fixes, middle number for features). Never cache config or routes on the server: a later
   deploy would run against the stale cache.
+- Load audit (12 Nov 2026, 1.57.1; live database read through phpMyAdmin, 64 MiB, nothing wrong): a `ready()` check asks
+  `KnownSchema::table()` / `column()`, never `Schema::hasTable` (15 information_schema questions a page before): a yes
+  is kept for good in the cache entry `schema:known` (one read a request), a no is asked again, "Update system" clears
+  it. `liquify:tidy` (01:05, `TidyDatabaseCommand`) deletes run-out rows of the database cache, bell entries read over 90
+  days ago (unread stay) and shrinks heavy profile photos; `model:prune` also takes `HealthCheckResultHistoryItem` (it was
+  the largest table). A profile photo is stored through `SmallPhoto::store()` (512 px WebP). A new table that grows by
+  itself needs its clean-up in the schedule. Tests: `tests/Feature/System/TidyAndSpeedTest.php`.
 - Dashboard numbers go through `DashboardCache` (60 seconds, flushed by the lead events). After changing lead queries run
   `php artisan liquify:speed-check`.
 - Design system: `resources/css/app.css` (tokens from the document, plain-CSS `lq-*` components in

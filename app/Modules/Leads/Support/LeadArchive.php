@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Leads\Support;
 
-use Illuminate\Support\Facades\Schema;
+use App\Modules\Core\Support\KnownSchema;
 
 /**
  * Archived leads need two new columns on leads. The code reaches the server
@@ -19,6 +19,6 @@ final class LeadArchive
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || Schema::hasColumn('leads', 'archived_by');
+        return self::$ready = self::$ready || KnownSchema::column('leads', 'archived_by');
     }
 }

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Sales\Support;
 
+use App\Modules\Core\Support\KnownSchema;
 use App\Modules\Sales\Models\Sale;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * Part payments need the sale_payments table and sales.amount_paid. The code
@@ -24,7 +24,7 @@ final class SalePayments
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
-        return self::$ready = self::$ready || Schema::hasColumn('sales', 'amount_paid');
+        return self::$ready = self::$ready || KnownSchema::column('sales', 'amount_paid');
     }
 
     /**

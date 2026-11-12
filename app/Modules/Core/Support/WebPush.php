@@ -8,7 +8,6 @@ use App\Modules\Core\Models\PushSubscription;
 use App\Modules\Core\Settings\PushSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Minishlink\WebPush\VAPID;
 use Throwable;
 
@@ -26,7 +25,7 @@ final class WebPush
 
     public static function ready(): bool
     {
-        return self::$ready = self::$ready || Schema::hasTable('push_subscriptions');
+        return self::$ready = self::$ready || KnownSchema::table('push_subscriptions');
     }
 
     /** Whether a new bell entry of this person has anywhere to go. */
