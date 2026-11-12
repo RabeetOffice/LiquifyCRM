@@ -61,7 +61,7 @@
                         <ol class="lq-install-steps" x-show="way === 'site'">
                             <li>
                                 <div><strong>Download the file</strong><span>Made for this chat box, with its secret inside. Keep it to the website.</span></div>
-                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-down-tray" :navigate="false" :href="route('brand.live-chat.proxy-file', ['brand' => $brand, 'widget' => $widget->getKey()])">liquify-chat.php</x-ui.button>
+                                <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-down-tray" :navigate="false" :href="route('brand.live-chat.proxy-file', ['brand' => $brand->slug, 'widget' => $widget->getKey()])">liquify-chat.php</x-ui.button>
                             </li>
                             <li>
                                 <div><strong>Upload it to the website’s root folder</strong><span>Next to index.php, the same place as liquify.php.</span></div>

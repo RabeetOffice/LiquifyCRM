@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.51.1',
+        'date' => '2026-11-12',
+        'title' => 'Downloading liquify-chat.php works',
+        'changes' => [
+            ['fixed', 'The liquify-chat.php button under Live chat › Chat boxes opened “This page is not here” instead of downloading the file.'],
+            ['fixed', 'Integrations › Websites could fail to open for a brand whose logo was read from its website.'],
+        ],
+    ],
+    [
         'version' => '1.51.0',
         'date' => '2026-11-12',
         'title' => 'Live chat on your websites',

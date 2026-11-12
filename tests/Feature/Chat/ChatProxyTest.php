@@ -103,3 +103,9 @@ it('ships a file that is plain, valid PHP for the brand websites', function (): 
     expect(fn () => token_get_all($code, TOKEN_PARSE))->not->toThrow(ParseError::class)
         ->and($code)->toContain("'~^(widget\.js|frame/wk_[A-Za-z0-9]{24}|api/(config|init|messages|realtime|typing|ping|upload|details|rate)|files/[0-9]{1,12})$~'");
 });
+
+it('links the download on Chat boxes with the brand’s own address', function (): void {
+    $this->actingAs(managerOf($this->front))->get('/b/iph/live-chat')->assertOk()
+        ->assertSee('/b/iph/live-chat/boxes/'.$this->widget->getKey().'/liquify-chat.php', false)
+        ->assertDontSee('/b/'.$this->brand->getKey().'/live-chat/boxes/', false);
+});
