@@ -10,6 +10,7 @@ use App\Modules\Chat\Models\ChatPageView;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\LiveChat;
+use App\Modules\Core\Support\Live;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -23,7 +24,7 @@ final class RecordPing
 {
     /**
      * @param  array{url?: mixed, title?: mixed, referrer?: mixed}  $page
-     * @param  array{new_key?: string, ip?: ?string, country?: ?string, device?: ?string, browser?: ?string}  $info
+     * @param  array{new_key?: string, ip?: ?string, tz?: ?string, country?: ?string, device?: ?string, browser?: ?string}  $info
      * @return array{text: string, from: string}|null
      */
     public function handle(ChatWidget $widget, string $vid, array $page, array $info): ?array
@@ -41,6 +42,8 @@ final class RecordPing
             'device' => $info['device'] ?? null,
             'browser' => $info['browser'] ?? null,
             'ip' => LiveChat::geoReady() ? ($info['ip'] ?? null) : null,
+            // Only a real time zone name is kept.
+            'browser_tz' => LiveChat::tzReady() && in_array($info['tz'] ?? null, timezone_identifiers_list(), true) ? $info['tz'] : null,
         ], fn (mixed $value): bool => $value !== null);
 
         if ($session === null) {
@@ -68,6 +71,7 @@ final class RecordPing
                 ]);
                 $this->view($session, $url, $title);
                 LocateVisitor::soon($session, $session->ip);
+                Live::touchChat((int) $widget->brand_id);
             } catch (QueryException) {
                 // Two pings of the same browser at the same moment: the other one made it.
                 $session = ChatSession::query()->where('brand_id', $widget->brand_id)->where('vid', $vid)->first();

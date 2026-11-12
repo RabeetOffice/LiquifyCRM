@@ -68,7 +68,7 @@ it('shows the place, address, network and their time beside a visitor’s chat',
 
     $this->actingAs(admin())->get('/b/ukph/live-chat/chats?chat='.$visitor->conversations()->value('id'))->assertOk()
         ->assertSee('London, England, United Kingdom')->assertSee('81.2.69.142')->assertSee('Andrews &amp; Arnold Ltd', false)
-        ->assertSee('VPN or proxy')->assertSee('Their time');
+        ->assertSee('VPN detected')->assertSee('Their time');
 });
 
 it('leaves a visitor that moved to another address for that address’s own lookup', function (): void {
@@ -78,4 +78,28 @@ it('leaves a visitor that moved to another address for that address’s own look
 
     expect($visitor->refresh()->city)->toBeNull();
     Http::assertNothingSent();
+});
+
+it('catches a VPN by the computer’s own clock, by a hosting company’s address, or by the lookup', function (): void {
+    // Browsec: an address in Ashburn, a computer set to Pakistan time.
+    expect(VisitorLocation::vpn(false, 'Leaseweb USA, Inc.', 'US', 'Asia/Karachi'))->toBe(['vpn' => true, 'real' => 'PK'])
+        ->and(VisitorLocation::vpn(false, 'Some Hosting', 'US', 'America/New_York'))->toBe(['vpn' => false, 'real' => null])
+        ->and(VisitorLocation::vpn(false, 'Leaseweb USA, Inc.', 'US', 'America/New_York')['vpn'])->toBeTrue()
+        ->and(VisitorLocation::vpn(true, 'Cyber Internet Services', 'PK', 'Asia/Karachi')['vpn'])->toBeTrue()
+        ->and(VisitorLocation::vpn(false, 'Cyber Internet Services', 'PK', 'Asia/Karachi')['vpn'])->toBeFalse()
+        ->and(VisitorLocation::vpn(false, null, 'PK', 'Not/AZone')['vpn'])->toBeFalse();
+});
+
+it('keeps the computer’s time zone a browser reports, and shows "VPN detected" on Live visitors', function (): void {
+    $this->withServerVariables(['REMOTE_ADDR' => '162.210.194.10'])
+        ->call('POST', '/chat/api/ping', [], [], [], ['HTTP_ORIGIN' => 'https://ukpublishinghouse.co.uk', 'CONTENT_TYPE' => 'text/plain', 'HTTP_USER_AGENT' => 'Mozilla/5.0 Chrome/130'],
+            json_encode(['key' => $this->widget->widget_key, 'vid' => (string) Str::uuid(), 'url' => 'https://ukpublishinghouse.co.uk/', 'tz' => 'Asia/Karachi']))
+        ->assertOk();
+
+    $session = ChatSession::query()->sole();
+    expect($session->browser_tz)->toBe('Asia/Karachi');
+
+    $session->forceFill(['country' => 'US', 'city' => 'Ashburn', 'isp' => 'Leaseweb USA, Inc.', 'is_proxy' => false])->save();
+
+    $this->actingAs(admin())->get('/b/ukph/live-chat/visitors')->assertOk()->assertSee('VPN detected');
 });

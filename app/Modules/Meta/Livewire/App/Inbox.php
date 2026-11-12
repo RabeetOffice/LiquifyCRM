@@ -368,7 +368,15 @@ class Inbox extends Component
         $lead = $selected?->lead;
         $canAssign = $lead !== null && $user->can('assign', $lead);
 
+        // Live chat › Chats: who is on the website now, to open their chat or start one (user request, 12 Nov 2026).
+        $liveNow = $inChats && $seesVisitors && LiveChat::trackingReady()
+            ? ChatSession::query()->online()->with('visitor')->orderByDesc('page_changed_at')->limit(12)->get()
+            : new Collection;
+
         return view('meta::livewire.app.inbox', [
+            'liveNow' => $liveNow,
+            'liveChats' => ChatSession::chatsOf($liveNow, $user),
+            'liveVisitorsUrl' => $this->brand->url('live-chat/visitors'),
             'conversations' => $conversations,
             'selected' => $selected,
             'inChats' => $inChats,

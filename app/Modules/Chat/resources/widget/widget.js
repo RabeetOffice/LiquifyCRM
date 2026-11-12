@@ -377,7 +377,9 @@
         function ping() {
             if (document.hidden) { return; }
 
-            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500) });
+            var zone = '';
+            try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+            var body = JSON.stringify({ key: key, vid: vidValue(), url: location.origin + location.pathname, title: (document.title || '').slice(0, 200), referrer: (document.referrer || '').slice(0, 500), tz: zone.slice(0, 64) });
 
             // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
             fetch(chatUrl('api/ping'), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })

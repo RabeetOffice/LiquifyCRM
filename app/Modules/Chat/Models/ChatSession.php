@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Chat\Models;
 
+use App\Modules\Auth\Models\User;
 use App\Modules\Core\Concerns\BelongsToBrand;
+use App\Modules\Meta\Models\Conversation;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $isp
  * @property string|null $timezone
  * @property bool|null $is_proxy
+ * @property string|null $browser_tz
  * @property string|null $device
  * @property string|null $browser
  * @property int $visits_count
@@ -54,7 +57,7 @@ class ChatSession extends Model
     public const NEW_VISIT_MINUTES = 30;
 
     protected $fillable = [
-        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'ip', 'city', 'region', 'isp', 'timezone', 'is_proxy', 'device', 'browser',
+        'brand_id', 'chat_widget_id', 'vid', 'chat_visitor_id', 'current_url', 'current_title', 'referrer', 'country', 'ip', 'city', 'region', 'isp', 'timezone', 'is_proxy', 'browser_tz', 'device', 'browser',
         'visits_count', 'visit_started_at', 'page_changed_at', 'first_seen_at', 'last_seen_at', 'invite_text', 'invite_from', 'invite_sent_at', 'invite_shown_at',
     ];
 
@@ -84,6 +87,44 @@ class ChatSession extends Model
     }
 
     /** What the team calls them: the name they gave in the chat, else "Visitor 1234". */
+    /**
+     * The website chat of each of these browsers that the person may see, by session id (only browsers whose visitor has
+     * a chat).
+     *
+     * @param  iterable<ChatSession>  $sessions
+     * @return array<int, int>
+     */
+    public static function chatsOf(iterable $sessions, User $viewer): array
+    {
+        $byVisitor = [];
+
+        foreach ($sessions as $session) {
+            if ($session->chat_visitor_id !== null) {
+                $byVisitor[(int) $session->chat_visitor_id][] = (int) $session->getKey();
+            }
+        }
+
+        if ($byVisitor === []) {
+            return [];
+        }
+
+        $chats = Conversation::query()->visibleTo($viewer)
+            ->where('channel', Conversation::CHANNEL_LIVECHAT)
+            ->whereIn('chat_visitor_id', array_keys($byVisitor))
+            ->orderBy('id')
+            ->pluck('id', 'chat_visitor_id');
+
+        $found = [];
+
+        foreach ($chats as $visitorId => $chatId) {
+            foreach ($byVisitor[(int) $visitorId] ?? [] as $sessionId) {
+                $found[$sessionId] = (int) $chatId;
+            }
+        }
+
+        return $found;
+    }
+
     public function displayName(): string
     {
         return $this->visitor !== null ? $this->visitor->displayName() : 'Visitor '.$this->getKey();

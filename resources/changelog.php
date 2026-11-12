@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.53.0',
+        'date' => '2026-11-12',
+        'title' => 'Who is on the website, right in Chats, and VPNs caught',
+        'changes' => [
+            ['new', 'Live chat › Chats shows who is on the website now, above the chats. Click somebody to open their chat, or to start one when they have none.'],
+            ['improved', 'Live visitors: “Chatting” only for somebody who really has a chat, with Open chat beside them; for the others Start chat, and after sending your first message you land in that chat, where their answer appears.'],
+            ['new', '“VPN detected” beside a visitor when their address is a VPN, a proxy or a data centre, or when their computer’s clock is set to another country than their address (it then says which country, for example Pakistan time). Browsec and similar VPNs are caught this way.'],
+            ['fixed', 'Crawlers, page testers and scripts are no longer counted as visitors on the website.'],
+            ['fixed', 'The calendar icon beside “First wrote” on a lead’s chat was far too big.'],
+        ],
+    ],
+    [
         'version' => '1.52.0',
         'date' => '2026-11-12',
         'title' => 'Make the lead from a website chat',

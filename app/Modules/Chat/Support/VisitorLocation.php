@@ -65,12 +65,38 @@ final class VisitorLocation
             'isp' => $text($data['asnOrganization'] ?? null, 120),
             // A country of several time zones gives the visitor's own only when there is one.
             'timezone' => count($zones) === 1 && is_string($zones[0]) && in_array($zones[0], timezone_identifiers_list(), true) ? $zones[0] : null,
-            'is_proxy' => isset($data['isProxy']) ? (bool) $data['isProxy'] : null,
+            // A VPN or proxy, or an address of a hosting company (a computer in a data centre: test tools, crawlers).
+            'is_proxy' => (bool) ($data['isProxy'] ?? false) || preg_match('/amazon|aws|google cloud|google llc|microsoft|azure|digitalocean|hetzner|ovh|linode|akamai|vultr|choopa|oracle|cloudflare|alibaba|tencent|contabo|leaseweb|hostinger|m247|datacamp|cdn77|fastly/i', (string) ($data['asnOrganization'] ?? '')) === 1,
         ];
 
         Cache::put($key, $found, now()->addWeek());
 
         return $found;
+    }
+
+    /**
+     * Whether the visitor is behind a VPN or proxy: the address lookup said so, the address belongs to a hosting company (a
+     * computer in a data centre), or the visitor's own computer is set to the time of another country than the address
+     * (Browsec and most VPNs: the address is abroad, the clock at home). `real` is the country the computer's clock
+     * points to, when it differs.
+     *
+     * @return array{vpn: bool, real: ?string}
+     */
+    public static function vpn(?bool $isProxy, ?string $isp, ?string $country, ?string $browserTz): array
+    {
+        $real = null;
+
+        if ($browserTz !== null && $browserTz !== '' && in_array($browserTz, timezone_identifiers_list(), true) && $country !== null) {
+            $code = (new \DateTimeZone($browserTz))->getLocation()['country_code'] ?? '??';
+
+            if (preg_match('/^[A-Z]{2}$/', $code) === 1 && $code !== strtoupper($country)) {
+                $real = $code;
+            }
+        }
+
+        $hosting = $isp !== null && preg_match('/amazon|aws|google cloud|microsoft|azure|digitalocean|hetzner|ovh|linode|akamai|vultr|choopa|oracle|alibaba|tencent|contabo|leaseweb|m247|datacamp|cdn77|fastly|hostinger/i', $isp) === 1;
+
+        return ['vpn' => (bool) $isProxy || $hosting || $real !== null, 'real' => $real];
     }
 
     /** "Dublin, Leinster, Ireland" from what is known. */

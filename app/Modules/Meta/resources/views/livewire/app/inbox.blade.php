@@ -5,7 +5,7 @@
         <x-ui.page-header title="Inbox" subtitle="Messenger and Instagram chats of your leads. The website's chats are under Live chat. Reply here or from the lead page." />
     @endif
 
-    @if ($total === 0)
+    @if ($total === 0 && ($liveNow ?? collect())->isEmpty())
         <x-ui.card>
             @if ($inChats)
                 <x-ui.empty title="No website chats yet" description="When somebody writes in the chat box on one of this brand's websites, the chat appears here. They become a lead only when they give an email address or a phone number." icon="heroicon-o-chat-bubble-oval-left-ellipsis" />
@@ -64,6 +64,32 @@
                         @endif
                     @endif
                 </div>
+
+                @if (($liveNow ?? collect())->isNotEmpty())
+                    {{-- Who is on the website now: open their chat, or start one. --}}
+                    <div class="lq-livenow" aria-label="On the website now">
+                        <div class="lq-livenow-head">
+                            <span><i class="lq-livenow-dot"></i> On the website now · {{ $liveNow->count() }}</span>
+                            <a href="{{ $liveVisitorsUrl }}" wire:navigate>See all</a>
+                        </div>
+                        <div class="lq-livenow-list">
+                            @foreach ($liveNow as $session)
+                                @php $nowChat = $liveChats[$session->getKey()] ?? null; @endphp
+                                @if ($nowChat)
+                                    <button type="button" class="lq-livenow-item lq-livenow-chatting" wire:click="open({{ $nowChat }})" title="Open the chat · {{ $session->path() }}">
+                                        <x-ui.avatar :name="$session->displayName()" size="sm" tone />
+                                        <span><strong>{{ $session->displayName() }}</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
+                                    </button>
+                                @else
+                                    <a href="{{ $liveVisitorsUrl }}?start={{ $session->getKey() }}" class="lq-livenow-item" wire:navigate title="Start a chat · {{ $session->path() }}">
+                                        <x-ui.avatar :name="$session->displayName()" size="sm" tone />
+                                        <span><strong>{{ $session->displayName() }}</strong><small>@include('chat::partials.flag', ['code' => $session->country]) {{ $session->city ?? $session->path() }}</small></span>
+                                    </a>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 <ul class="lq-inbox-items">
                     @forelse ($conversations as $conversation)
@@ -302,7 +328,7 @@
                             </div>
                         @endif
                         <div>
-                            <dt><x-heroicon-o-calendar /> First wrote</dt>
+                            <dt>First wrote</dt>
                             <dd title="{{ $lead->created_at?->format('j M Y, H:i') }}">{{ $lead->created_at?->diffForHumans() }}</dd>
                         </div>
                     </dl>

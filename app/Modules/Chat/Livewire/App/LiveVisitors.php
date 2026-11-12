@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use RuntimeException;
 
@@ -46,10 +47,20 @@ final class LiveVisitors extends Component
 
     public string $invitation = '';
 
+    /** A browser to start a chat with, from Live chat › Chats ("On the website now"). */
+    #[Url(as: 'start', except: '')]
+    public string $start = '';
+
     public function mount(Brand $brand): void
     {
         $this->brand = $brand;
         abort_unless(LiveChat::trackingReady() && ChatAccess::canSeeVisitors($this->user(), (int) $brand->getKey()), 403);
+
+        if (ctype_digit($this->start) && $this->online()->whereKey((int) $this->start)->exists()) {
+            $this->invite((int) $this->start);
+        }
+
+        $this->start = '';
     }
 
     public function toggle(int $sessionId): void
@@ -76,7 +87,7 @@ final class LiveVisitors extends Component
         }
 
         try {
-            $invite->handle($session, $this->user(), $this->invitation);
+            $chat = $invite->handle($session, $this->user(), $this->invitation);
         } catch (RuntimeException $exception) {
             $this->addError('invitation', $exception->getMessage());
 
@@ -85,7 +96,9 @@ final class LiveVisitors extends Component
 
         $this->showInvite = false;
         $this->reset('inviting');
-        $this->toastSuccess('Invitation sent', 'They see it by the chat button. If they open it, the chat appears under Live chat › Chats.');
+
+        // Straight into the chat: their answer shows there.
+        $this->redirect($this->brand->url('live-chat/chats').'?chat='.$chat->getKey(), navigate: true);
     }
 
     public function render(): View
@@ -94,6 +107,8 @@ final class LiveVisitors extends Component
 
         return view('chat::livewire.app.live-visitors', [
             'sessions' => $sessions,
+            'chats' => ChatSession::chatsOf($sessions, $this->user()),
+            'chatsUrl' => $this->brand->url('live-chat/chats'),
             'trail' => $this->open !== null ? $this->trailOf($this->open) : new Collection,
             'inboxUrl' => $this->brand->url('inbox'),
         ]);

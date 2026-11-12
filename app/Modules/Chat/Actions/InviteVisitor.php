@@ -12,6 +12,7 @@ use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Chat\Support\VisitorChats;
 use App\Modules\Chat\Support\VisitorToken;
 use App\Modules\Core\Support\Audit;
+use App\Modules\Meta\Models\Conversation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -30,7 +31,7 @@ final class InviteVisitor
     public function __construct(private readonly ReplyToVisitor $replies) {}
 
     /** @throws RuntimeException when the invitation is refused; its words are for the person inviting */
-    public function handle(ChatSession $session, User $by, string $text): void
+    public function handle(ChatSession $session, User $by, string $text): Conversation
     {
         $text = trim((string) preg_replace('/\s+/u', ' ', strip_tags($text)));
 
@@ -52,7 +53,7 @@ final class InviteVisitor
 
         $widget = $session->widget ?? ChatWidget::query()->where('is_active', true)->first() ?? throw new RuntimeException('This website has no live chat switched on.');
 
-        DB::transaction(function () use ($session, $by, $text, $widget): void {
+        return DB::transaction(function () use ($session, $by, $text, $widget): Conversation {
             $visitor = $session->visitor ?? ChatVisitor::query()->create([
                 'brand_id' => $session->brand_id,
                 'chat_widget_id' => $widget->getKey(),
@@ -83,6 +84,8 @@ final class InviteVisitor
             ])->save();
 
             Audit::log('chat.invited', $conversation, ['page' => $session->path(), 'message_id' => $message->getKey()], 'Visitor invited to chat from '.$session->path(), brand: $session->brand_id, causer: $by, logName: 'chat');
+
+            return $conversation;
         });
     }
 }

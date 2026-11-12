@@ -153,7 +153,8 @@ final class WidgetController
 
         $headers = ['Access-Control-Allow-Origin' => $origin, 'Vary' => 'Origin', 'Cache-Control' => 'no-store'];
 
-        if (! $widget->tracks()) {
+        // Crawlers, page testers and scripts are not visitors: Live visitors shows people.
+        if (! $widget->tracks() || self::isBot((string) $request->userAgent())) {
             return response()->noContent(204, $headers);
         }
 
@@ -162,6 +163,7 @@ final class WidgetController
 
         $invite = $record->handle($widget, $vid, ['url' => $data['url'] ?? null, 'title' => $data['title'] ?? null, 'referrer' => $data['referrer'] ?? null], [
             'new_key' => 'chat-new-session:'.ChatProxy::ip($request),
+            'tz' => is_string($data['tz'] ?? null) ? $data['tz'] : null,
             'ip' => ChatProxy::ip($request),
             'country' => self::country($request),
             'device' => $device->kind->value,
@@ -348,6 +350,12 @@ final class WidgetController
     }
 
     /** The country the CDN saw, when it says (two letters). */
+    /** A crawler, a page tester or a script rather than a person in a browser. */
+    public static function isBot(string $agent): bool
+    {
+        return $agent === '' || preg_match('/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|gtmetrix|pingdom|uptime|monitor|facebookexternalhit|whatsapp|telegram|curl|wget|python|scrapy|axios|node-fetch|okhttp|go-http|java\/|phantom|puppeteer|playwright|selenium|screenshot|prerender/i', $agent) === 1;
+    }
+
     private static function country(Request $request): ?string
     {
         foreach (['CF-IPCountry', 'X-Country-Code'] as $header) {

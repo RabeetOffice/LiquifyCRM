@@ -5,11 +5,21 @@
 @php
     $place = \App\Modules\Chat\Support\VisitorLocation::label($who->city, $who->getAttribute('region'), $who->country);
     $zone = $who->getAttribute('timezone');
-@endphp
+    // The computer's own time zone: on a browser itself, or on the visitor's latest browser on the website.
+    $browserTz = ! \App\Modules\Chat\Support\LiveChat::tzReady() ? null : ($who instanceof \App\Modules\Chat\Models\ChatSession
+        ? $who->browser_tz
+        : \App\Modules\Chat\Models\ChatSession::query()->where('chat_visitor_id', $who->getKey())->whereNotNull('browser_tz')->latest('last_seen_at')->value('browser_tz'));
+    $vpn = \App\Modules\Chat\Support\VisitorLocation::vpn($who->getAttribute('is_proxy'), $who->getAttribute('isp'), $who->country, $browserTz);@endphp
 @if ($place !== '')
     <div>
         <dt><x-heroicon-o-map-pin /> Location</dt>
         <dd class="lq-where">@include('chat::partials.flag', ['code' => $who->country]) <span>{{ $place }}</span></dd>
+    </div>
+@endif
+@if ($vpn['vpn'])
+    <div class="lq-vpn-row">
+        <dt><x-heroicon-o-shield-exclamation /> VPN detected</dt>
+        <dd>@if ($vpn['real'])Their computer is set to @include('chat::partials.flag', ['code' => $vpn['real']]) {{ \App\Modules\Chat\Support\VisitorLocation::label(null, null, $vpn['real']) }} time @else The address belongs to a VPN, proxy or data centre @endif</dd>
     </div>
 @endif
 @if ($who->getAttribute('ip'))
@@ -17,8 +27,8 @@
         <dt><x-heroicon-o-globe-alt /> IP address</dt>
         <dd class="lq-where">
             <span class="lq-tabular">{{ $who->getAttribute('ip') }}</span>
-            @if ($who->getAttribute('is_proxy'))
-                <x-ui.badge color="warning" title="The address belongs to a VPN, proxy or hosting company: the place may not be where the person is.">VPN or proxy</x-ui.badge>
+            @if ($vpn['vpn'])
+                <x-ui.badge color="danger" title="The place of this address may not be where the person is.">VPN</x-ui.badge>
             @endif
         </dd>
     </div>

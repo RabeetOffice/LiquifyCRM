@@ -27,6 +27,8 @@ final class LiveChat
 
     private static bool $proxyReady = false;
 
+    private static bool $tzReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -62,6 +64,12 @@ final class LiveChat
     public static function proxyReady(): bool
     {
         return self::$proxyReady = self::$proxyReady || (self::ready() && Schema::hasColumn('chat_widgets', 'proxy_secret'));
+    }
+
+    /** The time zone of the visitor's own computer on a browser (chat_sessions.browser_tz): 1.52.1. */
+    public static function tzReady(): bool
+    {
+        return self::$tzReady = self::$tzReady || (self::geoReady() && Schema::hasColumn('chat_sessions', 'browser_tz'));
     }
 
     public static function workReady(): bool
