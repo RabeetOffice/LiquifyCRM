@@ -19,7 +19,9 @@ final class ConversationTypingController
     {
         abort_unless($conversation->isLiveChat() && (bool) auth()->user()?->can('reply', $conversation), 403);
 
-        ChatTyping::agentTypes((int) $conversation->getKey());
+        request()->boolean('stop')
+            ? ChatTyping::agentStops((int) $conversation->getKey())
+            : ChatTyping::agentTypes((int) $conversation->getKey());
 
         return response()->json(['ok' => true]);
     }

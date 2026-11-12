@@ -1,6 +1,6 @@
 {{-- `sending` holds what was just typed: its bubble shows the moment Send is clicked, and gives way to the real one.
      `bytes` counts the reply as Instagram does (an emoji is four), against `limit` (0: no count shown). --}}
-<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], busy: false, file: '', bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }}, lastTyped: 0, ping(url) { if (! url || Date.now() - this.lastTyped < 4000) return; this.lastTyped = Date.now(); fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'Accept': 'application/json' } }).catch(() => {}); } }">
+<div class="lq-thread" wire:poll.30s.visible data-live-refresh="chat" x-data="{ sending: [], busy: false, file: '', bytes: 0, limit: {{ $conversation->isInstagram() ? \App\Modules\Meta\Models\Conversation::INSTAGRAM_MAX_BYTES : 0 }}, lastTyped: 0, ping(url, empty) { if (! url) return; if (empty) { if (! this.lastTyped) return; this.lastTyped = 0; } else { if (Date.now() - this.lastTyped < 3000) return; this.lastTyped = Date.now(); } fetch(url + (empty ? '?stop=1' : ''), { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'Accept': 'application/json' } }).catch(() => {}); } }">
     @php
         $ends = $conversation->replyWindowEndsAt();
         $open = $conversation->canReply();
@@ -86,7 +86,7 @@
                 @foreach ($message->attachments() as $file)
                     @if ($file['type'] === 'image')
                         <a href="{{ $file['url'] }}" class="lq-attach lq-attach-image" target="_blank" rel="noopener noreferrer" title="Open the picture">
-                            <img src="{{ $file['url'] }}" alt="Picture" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('lq-attach-gone'); this.replaceWith(document.createTextNode('This picture is no longer kept by {{ $instagram ? 'Instagram' : 'Facebook' }}.'))">
+                            <img src="{{ $file['url'] }}" alt="Picture" decoding="async" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('lq-attach-gone'); this.replaceWith(document.createTextNode('This picture is no longer kept by {{ $instagram ? 'Instagram' : 'Facebook' }}.'))">
                         </a>
                     @elseif ($file['type'] === 'video')
                         <video class="lq-attach lq-attach-video" controls preload="metadata" src="{{ $file['url'] }}"></video>
@@ -106,7 +106,7 @@
                         @php $fileUrl = route('brand.chat-files.show', ['brand' => $brandSlug, 'attachment' => $chatFile->getKey()]); @endphp
                         @if ($chatFile->isImage())
                             <a href="{{ $fileUrl }}" class="lq-attach lq-attach-image" target="_blank" rel="noopener noreferrer" title="{{ $chatFile->original_name }}">
-                                <img src="{{ $fileUrl }}" alt="{{ $chatFile->original_name }}" loading="lazy">
+                                <img src="{{ $fileUrl }}" alt="{{ $chatFile->original_name }}" decoding="async">
                             </a>
                         @else
                             <a href="{{ $fileUrl }}" class="lq-attach lq-attach-file" rel="noopener noreferrer" title="Download {{ $chatFile->original_name }}">
@@ -145,7 +145,7 @@
         @endforelse
 
         @if ($visitorTyping)
-            <div class="lq-msg lq-msg-last" wire:key="visitor-typing"><div class="lq-bubble lq-typing" aria-label="The visitor is typing"><span></span><span></span><span></span></div></div>
+            <div class="lq-msg lq-msg-last" wire:key="visitor-typing-{{ now()->timestamp }}" x-data x-init="setTimeout(() => $el.remove(), 6000)"><div class="lq-bubble lq-typing" aria-label="The visitor is typing"><span></span><span></span><span></span></div></div>
         @endif
 
         {{-- What was just typed, until the answer brings the real bubble. Livewire leaves this block alone. --}}
@@ -224,7 +224,7 @@
                         placeholder="{{ $isLiveChat && $mode === 'note' ? 'Write a note only your team sees…' : 'Write a reply…' }}"
                         aria-label="Reply"
                         x-data
-                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'; bytes = new TextEncoder().encode($el.value).length;@if ($isLiveChat && $mode === 'reply' && $typingUrl) ping('{{ $typingUrl }}') @endif"
+                        x-on:input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 160) + 'px'; bytes = new TextEncoder().encode($el.value).length;@if ($isLiveChat && $mode === 'reply' && $typingUrl) ping('{{ $typingUrl }}', $el.value.trim() === '') @endif"
                         x-on:conversation-updated.window="$el.style.height = 'auto'"
                         x-on:keydown.ctrl.enter.prevent="$el.form.requestSubmit()"
                         x-on:keydown.meta.enter.prevent="$el.form.requestSubmit()"

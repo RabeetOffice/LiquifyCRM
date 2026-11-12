@@ -14,18 +14,17 @@ use Illuminate\Support\Facades\Cache;
  */
 final class ChatTyping
 {
-    private const SECONDS = 6;
+    private const SECONDS = 5;
 
-    private const TELL_EVERY = 4;
+    private const TELL_EVERY = 3;
 
     public static function visitorTypes(int $brandId, int $conversationId): void
     {
-        $key = 'chat:typing:visitor:'.$conversationId;
-        $fresh = Cache::has($key);
+        Cache::put('chat:typing:visitor:'.$conversationId, true, self::SECONDS);
 
-        Cache::put($key, true, self::SECONDS);
-
-        if (! $fresh && Cache::add('chat:typing:told:'.$conversationId, true, self::TELL_EVERY)) {
+        // The team's open chat is told now and then while the visitor keeps typing; its dots hide by themselves soon
+        // after the last word (conversation-thread), so they never outlive the typing.
+        if (Cache::add('chat:typing:told:'.$conversationId, true, self::TELL_EVERY)) {
             Live::touchChat($brandId);
         }
     }
@@ -51,6 +50,23 @@ final class ChatTyping
     public static function agentIsTyping(int $conversationId): bool
     {
         return Cache::has('chat:typing:agent:'.$conversationId);
+    }
+
+    /** The visitor emptied their box: the team's dots go at once. */
+    public static function visitorStops(int $brandId, int $conversationId): void
+    {
+        if (Cache::pull('chat:typing:visitor:'.$conversationId) !== null) {
+            Cache::forget('chat:typing:told:'.$conversationId);
+            Live::touchChat($brandId);
+        }
+    }
+
+    /** The team member emptied their box: the visitor's dots go at once. */
+    public static function agentStops(int $conversationId): void
+    {
+        if (Cache::pull('chat:typing:agent:'.$conversationId) !== null) {
+            Realtime::notifyVisitor($conversationId);
+        }
     }
 
     /** A message was sent: the dots stop. */

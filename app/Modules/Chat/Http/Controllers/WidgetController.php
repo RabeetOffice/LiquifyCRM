@@ -236,7 +236,9 @@ final class WidgetController
         $conversation = VisitorChats::conversationFor($visitor, $widget, false);
 
         if ($conversation !== null) {
-            ChatTyping::visitorTypes((int) $widget->brand_id, (int) $conversation->getKey());
+            $request->boolean('stop')
+                ? ChatTyping::visitorStops((int) $widget->brand_id, (int) $conversation->getKey())
+                : ChatTyping::visitorTypes((int) $widget->brand_id, (int) $conversation->getKey());
         }
 
         return response()->json(['ok' => true]);

@@ -20,6 +20,15 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.51.2',
+        'date' => '2026-11-12',
+        'title' => 'Pictures and “typing…” in the website chat',
+        'changes' => [
+            ['fixed', 'A picture sent in a website chat showed as a broken image in the visitor’s chat box until it was scrolled. Pictures now show at once, in the chat box and in the team’s chat.'],
+            ['fixed', '“Typing…” stopped only 10 to 15 seconds after somebody deleted what they had typed. It now goes as soon as the box is empty, for the visitor and for the team.'],
+        ],
+    ],
+    [
         'version' => '1.51.1',
         'date' => '2026-11-12',
         'title' => 'Downloading liquify-chat.php works',

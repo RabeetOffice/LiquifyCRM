@@ -183,7 +183,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
 
             if (f.image) {
-                var img = el('img'); img.src = url.href; img.alt = f.name; img.loading = 'lazy';
+                var img = el('img'); img.src = url.href; img.alt = f.name; img.decoding = 'async';
                 img.onload = scroll;
                 link.appendChild(img);
             } else {
@@ -577,7 +577,9 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     box.addEventListener('input', function () {
         resize();
         var now = Date.now();
-        if (started && box.value.trim() !== '' && now - lastTyped > 4000) { lastTyped = now; call('POST', '/typing', {}).catch(function () {}); }
+        if (started && box.value.trim() !== '' && now - lastTyped > 3000) { lastTyped = now; call('POST', '/typing', {}).catch(function () {}); }
+        // The box is empty again: the team's dots go at once.
+        else if (started && box.value.trim() === '' && lastTyped > 0) { lastTyped = 0; call('POST', '/typing', { stop: true }).catch(function () {}); }
     });
     box.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); composer.requestSubmit(); } });
     attachButton.onclick = function () { fileInput.click(); };
