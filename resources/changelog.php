@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.60.1',
+        'date' => '2026-11-13',
+        'title' => 'Chat box updates reach every website at once',
+        'changes' => [
+            ['fixed', 'A website that shows the chat through its own address kept handing visitors the old chat button for up to an hour after an update, so the new message cards did not show there. Visitors now get the new one within five minutes.'],
+        ],
+    ],
+    [
         'version' => '1.60.0',
         'date' => '2026-11-13',
         'title' => 'Website chats you cannot miss',

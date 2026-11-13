@@ -19,14 +19,18 @@ use Illuminate\Support\Facades\Storage;
  */
 final class WidgetAssetController
 {
-    /** The launcher. An hour in the browser's cache: a change reaches websites within the hour. */
+    /**
+     * The launcher. Five minutes in the visitor's own browser and nowhere else (`private`): a website that serves it
+     * through liquify-chat.php has a page cache in front (LiteSpeed), which kept a copy marked `public` and went on
+     * handing out the old launcher after an update (13 Nov 2026: the new cards never showed on a brand's website).
+     */
     public function script(): Response
     {
         $source = (string) file_get_contents(app_path('Modules/Chat/resources/widget/widget.js'));
 
         return response($source, 200, [
             'Content-Type' => 'application/javascript; charset=utf-8',
-            'Cache-Control' => 'public, max-age=3600',
+            'Cache-Control' => 'private, max-age=300',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

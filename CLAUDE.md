@@ -249,6 +249,8 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `call-ring` (13 s, looped), played by `play()` in app.js with the Web Audio notes (`beep()`, `tone()`) as the fallback; a
   bell entry about a website chat or a call is not chimed on a page that has the chat desk (its own sound plays). Local `artisan serve` answers one request at a time: a browser
   test of this needs patience. Tests: `LiveChatVisitorsTest` (the chat desk case).
+  1.60.1: `/chat/widget.js` is `Cache-Control: private, max-age=300`. Never `public`: a brand site's LiteSpeed page cache sits
+  in front of liquify-chat.php and kept the old launcher after a deploy (the frame and the API are `no-store`).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

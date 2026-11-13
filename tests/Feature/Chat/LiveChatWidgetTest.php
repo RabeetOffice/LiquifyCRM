@@ -66,6 +66,8 @@ it('answers the launcher only on the websites the widget is set up for', functio
 
 it('serves the launcher script and a chat box that only its websites may frame, with no cookie', function (): void {
     $this->get('/chat/widget.js')->assertOk()->assertHeader('Content-Type', 'application/javascript; charset=utf-8')->assertSee('data-key', false);
+    // Kept by the visitor's browser for a few minutes, never by a website's page cache (it handed out an old launcher).
+    expect((string) $this->get('/chat/widget.js')->headers->get('Cache-Control'))->toContain('private')->toContain('max-age=300')->not->toContain('public');
 
     $frame = $this->get('/chat/frame/'.$this->widget->widget_key.'?o='.urlencode('https://www.dublinpublishingpress.ie'))->assertOk();
     expect($frame->headers->get('Content-Security-Policy'))->toBe('frame-ancestors https://dublinpublishingpress.ie https://*.dublinpublishingpress.ie')
