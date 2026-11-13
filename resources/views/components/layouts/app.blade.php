@@ -73,6 +73,40 @@
     <x-ui.toasts />
 
     @auth
+        {{-- Voice calls from the website chat boxes (docs/CALLS_PLAN.md): a ringing card on whatever screen is open, and
+             the call itself. Kept across wire:navigate, so a call goes on while the person opens another screen. --}}
+        @if (\App\Modules\Chat\Support\LiveChat::callsReady())
+            @persist('call-desk')
+                <div class="lq-calls" x-data="callDesk" x-cloak>
+                    <audio autoplay playsinline hidden></audio>
+                    <template x-for="call in ringing" :key="call.id">
+                        <div class="lq-call lq-call-ringing" role="alertdialog" aria-label="Incoming call">
+                            <span class="lq-call-icon"><x-heroicon-s-phone-arrow-down-left /></span>
+                            <div class="lq-call-who">
+                                <strong x-text="call.name"></strong>
+                                <span x-text="'Calling from ' + (call.brand || 'the website')"></span>
+                            </div>
+                            <button type="button" class="lq-btn lq-btn-ghost lq-btn-sm" x-on:click="dismiss(call)">Ignore</button>
+                            <button type="button" class="lq-btn lq-btn-primary lq-btn-sm" x-on:click="accept(call)" x-bind:disabled="busy || current !== null">Answer</button>
+                        </div>
+                    </template>
+                    <div class="lq-call" x-show="current !== null" role="status">
+                        <span class="lq-call-icon lq-call-icon-live"><x-heroicon-s-phone /></span>
+                        <div class="lq-call-who">
+                            <strong x-text="current?.name"></strong>
+                            <span x-text="current?.talking ? clock : 'Connecting…'"></span>
+                        </div>
+                        <a class="lq-btn lq-btn-ghost lq-btn-sm" x-bind:href="current?.url" wire:navigate>Open chat</a>
+                        <button type="button" class="lq-btn lq-btn-secondary lq-btn-sm" x-on:click="toggleMute()" x-bind:aria-pressed="muted ? 'true' : 'false'" x-text="muted ? 'Unmute' : 'Mute'"></button>
+                        <button type="button" class="lq-btn lq-btn-danger lq-btn-sm" x-on:click="hangUp()">Hang up</button>
+                    </div>
+                    <div class="lq-call lq-call-note" x-show="notice !== ''" x-text="notice" role="status"></div>
+                </div>
+            @endpersist
+        @endif
+    @endauth
+
+    @auth
         @livewire(\App\Modules\Core\Livewire\WelcomeTour::class)
     @endauth
 

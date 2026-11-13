@@ -71,6 +71,8 @@ class ChatWidget extends Model
         'grabber_yes' => 'Yes, I do',
         'grabber_no' => 'Just browsing',
         'rating' => '1',
+        // Voice calls from the chat box (1.58.0): a phone button in its header while somebody of the team is here.
+        'call' => '1',
     ];
 
     /** The choices of the customiser, each with the words the screen shows. */
@@ -235,6 +237,7 @@ class ChatWidget extends Model
             'grabber_yes' => $this->look('grabber_yes'),
             'grabber_no' => $this->look('grabber_no'),
             'rating' => $this->look('rating') !== '0',
+            'call' => $this->look('call') !== '0',
             'greet_after' => $this->number('greet_after', 0, 120),
             'sound' => $this->look('sound') !== '0',
             'label' => $this->look('label'),

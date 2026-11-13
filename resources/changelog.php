@@ -20,6 +20,20 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.58.0',
+        'date' => '2026-11-13',
+        'title' => 'Voice calls from the website chat',
+        'changes' => [
+            ['new', 'A visitor can call you from the chat box: a phone button in its header while somebody of the team is here. The visitor allows their microphone and the call rings in LiquifyCRM.'],
+            ['new', 'A ringing card shows on whatever screen you have open, with the visitor’s name, for everybody who works the brand’s website visitors. The first to press Answer talks to the visitor; the others see who answered. Mute and Hang up are on the card, and the call goes on while you open other screens.'],
+            ['new', 'Invite to a call, in the head of a website chat: the visitor gets a message with a button that starts the call.'],
+            ['new', 'Each call leaves lines in the chat (the visitor is calling, who answered, how long it lasted) and a call nobody answered goes to the bell as a missed call.'],
+            ['new', 'Chat boxes › Window has a “Visitors can call you” switch for each chat box. It is on to begin with.'],
+            ['improved', 'Calls are not recorded. The sound goes from the visitor’s browser to yours; the privacy page says what a call keeps.'],
+            ['improved', 'A website that serves the chat through liquify-chat.php needs the new file (Chat boxes › download) before its chat box shows the phone button; until then everything else works as before.'],
+        ],
+    ],
+    [
         'version' => '1.57.1',
         'date' => '2026-11-12',
         'title' => 'Faster screens, a tidier database',

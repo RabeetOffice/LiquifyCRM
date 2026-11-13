@@ -78,7 +78,8 @@ final class VisitorChats
                 ? $message->chatFiles->map(fn (ChatAttachment $file): array => ['name' => $file->original_name, 'size' => $file->humanSize(), 'image' => $file->isImage(), 'url' => ChatProxy::url(request(), $file->visitorUrl())])->values()->all()
                 : [],
             // The team asked for the visitor's details: the chat box shows its form under the message.
-            'ask' => $from === 'team' && is_array($message->raw) && ($message->raw['ask'] ?? null) === 'details' ? 'details' : null,
+            // … or invited them to a voice call: a button to start it.
+            'ask' => $from === 'team' && is_array($message->raw) && in_array($message->raw['ask'] ?? null, ['details', 'call'], true) ? $message->raw['ask'] : null,
         ];
     }
 }

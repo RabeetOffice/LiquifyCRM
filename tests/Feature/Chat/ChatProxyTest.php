@@ -103,7 +103,7 @@ it('ships a file that is plain, valid PHP for the brand websites', function (): 
     $code = $this->widget->proxyFile();
 
     expect(fn () => token_get_all($code, TOKEN_PARSE))->not->toThrow(ParseError::class)
-        ->and($code)->toContain("'~^(widget\.js|frame/wk_[A-Za-z0-9]{24}|api/(config|init|messages|realtime|typing|ping|upload|details|rate)|files/[0-9]{1,12})$~'");
+        ->and($code)->toContain("'~^(widget\.js|frame/wk_[A-Za-z0-9]{24}|api/(config|init|messages|realtime|typing|ping|upload|details|rate|call|call/ice|call/[0-9]{1,12}|call/[0-9]{1,12}/end)|files/[0-9]{1,12})$~'");
 });
 
 it('links the download on Chat boxes with the brand’s own address', function (): void {

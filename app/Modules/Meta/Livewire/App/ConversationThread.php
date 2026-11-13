@@ -7,7 +7,9 @@ namespace App\Modules\Meta\Livewire\App;
 use App\Modules\Auth\Models\User;
 use App\Modules\Chat\Actions\ChangeChat;
 use App\Modules\Chat\Actions\ReplyToVisitor;
+use App\Modules\Chat\Actions\StartCall;
 use App\Modules\Chat\Models\CannedReply;
+use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
@@ -141,6 +143,39 @@ final class ConversationThread extends Component
         $this->dispatch('conversation-updated');
     }
 
+    /**
+     * Invite the visitor to a voice call (user request, 13 Nov 2026): a message with a button in the chat box. Only the
+     * visitor starts a call; this asks them to.
+     */
+    public function inviteToCall(ReplyToVisitor $replies): void
+    {
+        $conversation = $this->conversation();
+        $this->authorize('reply', $conversation);
+        abort_unless($this->callsOffered($conversation), 404);
+
+        try {
+            $replies->inviteToCall($conversation, $this->user());
+        } catch (RuntimeException $exception) {
+            $this->addError('reply', $exception->getMessage());
+
+            return;
+        }
+
+        $this->dispatch('conversation-updated');
+    }
+
+    /** Whether this chat's box on the website has the phone button. */
+    private function callsOffered(Conversation $conversation): bool
+    {
+        if (! $conversation->isLiveChat() || ! LiveChat::callsReady() || $conversation->chat_widget_id === null) {
+            return false;
+        }
+
+        $widget = ChatWidget::query()->withoutGlobalScopes()->find($conversation->chat_widget_id);
+
+        return $widget !== null && StartCall::offered($widget);
+    }
+
     public function reopen(ChangeChat $changes): void
     {
         $conversation = $this->conversation();
@@ -210,6 +245,7 @@ final class ConversationThread extends Component
             'isLiveChat' => $conversation->isLiveChat(),
             'closed' => $conversation->isClosed(),
             'canWork' => $conversation->isLiveChat() && (bool) auth()->user()?->can('work', $conversation),
+            'canInviteCall' => $this->callsOffered($conversation) && (bool) auth()->user()?->can('reply', $conversation),
             'visitorTyping' => $conversation->isLiveChat() && ChatTyping::visitorIsTyping((int) $conversation->getKey()),
             // The Inbox head's Assign button, for screens too narrow for the side pane: only for who may assign the lead.
             'canAssign' => $conversation->lead !== null && (bool) auth()->user()?->can('assign', $conversation->lead),

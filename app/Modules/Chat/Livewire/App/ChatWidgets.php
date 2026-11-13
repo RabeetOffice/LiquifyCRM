@@ -133,6 +133,9 @@ final class ChatWidgets extends Component
     /** Whether visitors may give the chat a thumb up or down. */
     public bool $rating = true;
 
+    /** Whether the chat box has the phone button (a voice call to the team). Not `call`: that is Livewire's own. */
+    public bool $voice = true;
+
     /**
      * Colours read from the website, offered as swatches.
      *
@@ -157,7 +160,7 @@ final class ChatWidgets extends Component
         $this->resetErrorBag();
         $this->reset('editing', 'domains', 'title', 'welcome', 'offline', 'consent', 'maxMb', 'track', 'askFirst', 'agentsSeeVisitors', 'active', 'position',
             'style', 'accent', 'label', 'onlineSub', 'offlineSub', 'replyTime', 'theme', 'header', 'corners', 'size', 'offsetX', 'offsetY', 'showOn', 'greetAfter', 'sound', 'logo', 'palette', 'paletteFrom',
-            'stylePhone', 'icon', 'motion', 'teaser', 'awayMode', 'grabber', 'grabberArt', 'grabberText', 'grabberYes', 'grabberNo', 'rating');
+            'stylePhone', 'icon', 'motion', 'teaser', 'awayMode', 'grabber', 'grabberArt', 'grabberText', 'grabberYes', 'grabberNo', 'rating', 'voice');
         $this->name = $this->brand->name;
         $this->color = $this->brand->primaryColor() ?? ChatWidget::DEFAULT_APPEARANCE['color'];
         // The brand's own website is the likely first one.
@@ -222,6 +225,7 @@ final class ChatWidgets extends Component
         $this->grabberYes = (string) ($look['grabber_yes'] ?? '');
         $this->grabberNo = (string) ($look['grabber_no'] ?? '');
         $this->rating = ($look['rating'] ?? '1') !== '0';
+        $this->voice = ($look['call'] ?? '1') !== '0';
         $this->palette = [];
         $this->paletteFrom = null;
         $this->tab = 'look';
@@ -400,6 +404,7 @@ final class ChatWidgets extends Component
                 'grabber_yes' => trim($this->grabberYes),
                 'grabber_no' => trim($this->grabberNo),
                 'rating' => $this->rating ? '1' : '0',
+                'call' => $this->voice ? '1' : '0',
             ],
             'prechat' => ['enabled' => $this->askFirst, 'fields' => $fields],
             'agents_see_visitors' => $this->agentsSeeVisitors,

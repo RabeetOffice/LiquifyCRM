@@ -13640,4 +13640,20 @@ button.lq-perday-row:hover {
 .lq-livenow-bot { opacity: 0.55; }
 .lq-livenow-text strong em { font-style: normal; font-weight: 500; color: var(--lq-muted); }
 
+/* Voice calls from the website chat (docs/CALLS_PLAN.md): the ringing card and the call, bottom right on every screen. */
+.lq-calls { position: fixed; right: 1rem; bottom: 1rem; z-index: 90; display: flex; flex-direction: column; gap: 0.5rem; width: min(31rem, calc(100vw - 2rem)); pointer-events: none; }
+.lq-call { pointer-events: auto; display: flex; align-items: center; gap: 0.625rem; padding: 0.75rem 0.875rem; border-radius: var(--lq-radius-card); background: var(--lq-panel); border: 1px solid var(--lq-card-border); box-shadow: var(--lq-shadow-float); animation: lq-rise 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.lq-call-ringing { border-color: color-mix(in srgb, var(--lq-success) 45%, transparent); }
+.lq-call-icon { flex: none; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--lq-success-tint); color: var(--lq-success); }
+.lq-call-icon svg { width: 1.25rem; height: 1.25rem; }
+.lq-call-ringing .lq-call-icon { animation: lq-call-ring 1.2s ease-in-out infinite; }
+.lq-call-icon-live { background: var(--lq-success); color: #fff; }
+.lq-call-who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.lq-call-who strong { font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lq-call-who span { font-size: 0.8125rem; color: var(--lq-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.lq-call-note { font-size: 0.875rem; color: var(--lq-ink); }
+@keyframes lq-call-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lq-success) 40%, transparent); } 50% { box-shadow: 0 0 0 0.625rem transparent; } }
+@media (prefers-reduced-motion: reduce) { .lq-call, .lq-call-ringing .lq-call-icon { animation: none; } }
+@media (max-width: 480px) { .lq-call { flex-wrap: wrap; } .lq-call-who { flex-basis: calc(100% - 3.5rem); } }
+
 } /* @layer components */

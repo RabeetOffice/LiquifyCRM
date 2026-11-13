@@ -24,6 +24,9 @@
             @else
                 <x-ui.badge color="success" icon="heroicon-m-chat-bubble-oval-left">Open</x-ui.badge>
             @endif
+            @if ($canInviteCall && ! $closed)
+                <x-ui.button size="sm" variant="ghost" icon="heroicon-o-phone" wire:click="inviteToCall" wire:loading.attr="disabled" wire:target="inviteToCall" title="Send the visitor a button that starts a voice call with you">Invite to a call</x-ui.button>
+            @endif
             @if ($canWork)
                 @if ($closed)
                     <x-ui.button size="sm" variant="secondary" icon="heroicon-o-arrow-path" wire:click="reopen" wire:loading.attr="disabled" wire:target="reopen">Reopen</x-ui.button>

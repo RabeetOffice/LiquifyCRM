@@ -75,6 +75,17 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 .rate{display:flex;gap:4px}.rate button{width:30px;height:30px;background:rgba(127,127,127,.16);transition:background .15s,transform .15s}.rate button:active{transform:scale(.9)}.rate .down svg{transform:scale(-1,-1)}.rate button[aria-pressed=true]{background:rgba(255,255,255,.92);color:var(--a)}body.h-glass .rate button[aria-pressed=true]{background:var(--a);color:var(--ona)}
+/* a voice call: the bar under the header while it rings and while they talk */
+.callbar{position:absolute;left:10px;right:10px;top:74px;z-index:3;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:18px;background:var(--bubble);color:var(--text);border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.callbar .who{flex:1;min-width:0;font-weight:650;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.callbar .who small{display:block;font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.callbar button{all:unset;cursor:pointer;flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--soft);color:var(--text);transition:transform .12s}
+.callbar button:active{transform:scale(.92)}
+.callbar button:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.callbar .mute[aria-pressed=true]{background:var(--text);color:var(--bg)}
+.callbar .hang{background:#ff3b30;color:#fff}
+.callbar .hang svg{transform:rotate(135deg)}
+.row .btn{margin:2px 0 4px;align-self:flex-start}
 .hidden{display:none!important}
 @media (prefers-reduced-motion:no-preference){.row,.card{animation:in .28s cubic-bezier(.2,.8,.2,1)}@keyframes in{from{opacity:0;transform:translateY(6px) scale(.98)}}}
 @endverbatim
@@ -85,8 +96,15 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     <div class="av" aria-hidden="true">@if ($logo)<img src="{{ $logo }}" alt="">@else{{ mb_strtoupper(mb_substr($title, 0, 1)) }}@endif<i id="dot"></i></div>
     <div class="t"><span id="title">{{ $title }}</span><span class="s" id="sub" data-reply="{{ $design['reply_time'] }}"></span></div>
     <div class="rate hidden" id="rate" role="group" aria-label="Rate this chat"><button type="button" id="rate-up" aria-label="Good chat" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z"/></svg></button><button type="button" id="rate-down" aria-label="Bad chat" aria-pressed="false" class="down"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z"/></svg></button></div>
+    <button type="button" id="callbtn" class="hidden" aria-label="Start a voice call" title="Voice call"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg></button>
     <button type="button" id="close" aria-label="Close chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </header>
+<div class="callbar hidden" id="callbar" role="status" aria-live="polite">
+    <div class="who"><span id="callwho">Calling…</span><small id="callsub"></small></div>
+    <button type="button" class="mute" id="callmute" aria-label="Mute your microphone" aria-pressed="false" title="Mute"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"/></svg></button>
+    <button type="button" class="hang" id="callhang" aria-label="Hang up" title="Hang up"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg></button>
+</div>
+<audio id="callaudio" autoplay playsinline class="hidden"></audio>
 <main id="thread" aria-live="polite" aria-label="Conversation"></main>
 <form class="composer hidden" id="composer" autocomplete="off">
     <button class="attach hidden" id="attach" type="button" aria-label="Attach a file" title="Attach a file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/></svg></button>
@@ -196,6 +214,11 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         });
 
         if (m.body) { row.appendChild(el('div', 'bubble', m.body)); }
+        // The team invited the visitor to talk: a button that starts the call (the visitor calls, never the team).
+        if (m.ask === 'call' && m.from === 'team' && callPossible()) {
+            var go = el('button', 'btn', 'Start voice call'); go.type = 'button'; go.onclick = startCall;
+            row.appendChild(go);
+        }
         row.appendChild(el('div', 'meta', (m.from === 'team' && m.name ? m.name + ' · ' : m.from === 'ai' ? 'Virtual assistant · ' : '') + clock(m.at)));
         row.setAttribute('data-id', m.id);
         thread.insertBefore(row, tooltip && tooltip.parentNode === thread ? tooltip : (typingRow && typingRow.parentNode === thread ? typingRow : null));
@@ -384,6 +407,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         online = !!value;
         if (config) { config.online = online; }
         paintHeader();
+        paintCallButton();
     }
 
     // A new person, or the same one again (then the photo is not sent twice).
@@ -570,6 +594,171 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             rt.refresh = setTimeout(connectRealtime, Math.max(60, r.json.refresh_in || 2700) * 1000);
         }).catch(function () {});
     }
+
+    // ---- a voice call ---------------------------------------------------------------------------------------
+    // The visitor presses the phone button: the browser asks for the microphone, makes its description of the call and
+    // sends it; the CRM rings. When somebody answers, their description comes back and the two browsers talk to each
+    // other directly (or through the relay the CRM names). The sound never passes through the CRM and is not recorded.
+    var callBtn = $('callbtn'), callBar = $('callbar'), callWho = $('callwho'), callSub = $('callsub'), callAudio = $('callaudio');
+    var phone = null, ringTimer = null;
+
+    function callPossible() { return !!(config && config.call && window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+    function paintCallButton() { callBtn.classList.toggle('hidden', !(callPossible() && online && !phone)); }
+    function callSay(title, sub) { callWho.textContent = title; callSub.textContent = sub || ''; }
+    function mmss(seconds) { return Math.floor(seconds / 60) + ':' + ('0' + (seconds % 60)).slice(-2); }
+
+    // The tone a caller hears while it rings on the other side (made here, no file).
+    function ringBack(on) {
+        clearInterval(ringTimer); ringTimer = null;
+        if (!on) { return; }
+        var tone = function () {
+            try {
+                audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+                var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+                o.type = 'sine'; o.frequency.value = 425;
+                g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05, t + 0.05); g.gain.setValueAtTime(0.05, t + 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t + 1);
+                o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + 1.05);
+            } catch (e) {}
+        };
+        tone(); ringTimer = setInterval(tone, 3000);
+    }
+
+    // The browser has found the ways it can be reached (or three seconds have passed): its description is complete.
+    function gathered(pc) {
+        return new Promise(function (resolve) {
+            if (pc.iceGatheringState === 'complete') { resolve(); return; }
+            var done = false, finish = function () { if (!done) { done = true; resolve(); } };
+            pc.addEventListener('icegatheringstatechange', function () { if (pc.iceGatheringState === 'complete') { finish(); } });
+            setTimeout(finish, 3000);
+        });
+    }
+
+    function stopCall(note) {
+        var mine = phone; phone = null;
+        ringBack(false);
+        if (mine) {
+            clearTimeout(mine.poll); clearInterval(mine.tick);
+            if (mine.stream) { mine.stream.getTracks().forEach(function (track) { track.stop(); }); }
+            if (mine.pc) { try { mine.pc.close(); } catch (e) {} }
+        }
+        callAudio.srcObject = null;
+        callBar.classList.add('hidden');
+        paintCallButton();
+        if (note) { addNote(note); }
+    }
+
+    function hangUp() {
+        var mine = phone;
+        if (!mine) { return; }
+        if (mine.id) { call('POST', '/call/' + mine.id + '/end', {}).catch(function () {}); }
+        stopCall(mine.since ? 'Call ended · ' + mmss(Math.round((Date.now() - mine.since) / 1000)) : 'Call cancelled.');
+    }
+
+    function watchCall(mine) {
+        if (phone !== mine) { return; }
+        call('GET', '/call/' + mine.id).then(function (r) {
+            if (phone !== mine) { return; }
+            if (r.status === 404 || r.status === 401) { stopCall('The call ended.'); return; }
+
+            if (r.status === 200) {
+                if (r.json.name) { mine.name = r.json.name; }
+
+                if (r.json.status === 'active' && r.json.answer && !mine.answered) {
+                    mine.answered = true; ringBack(false);
+                    callSay(mine.name ? mine.name + ' answered' : 'Answered', 'Connecting…');
+                    mine.pc.setRemoteDescription({ type: 'answer', sdp: r.json.answer }).catch(function () {
+                        if (phone !== mine) { return; }
+                        call('POST', '/call/' + mine.id + '/end', {}).catch(function () {});
+                        stopCall('The call could not connect. Please try again, or write to us here.');
+                    });
+                }
+                else if (r.json.status === 'missed') { stopCall('Nobody could take your call just now. Write to us here and we will get back to you.'); return; }
+                else if (r.json.status === 'failed') { stopCall('The call could not connect. Please try again, or write to us here.'); return; }
+                else if (r.json.status === 'ended') { stopCall('Call ended' + (r.json.seconds ? ' · ' + mmss(r.json.seconds) : '') + '.'); return; }
+            }
+
+            mine.poll = setTimeout(function () { watchCall(mine); }, mine.answered ? 3000 : 1000);
+        }).catch(function () { if (phone === mine) { mine.poll = setTimeout(function () { watchCall(mine); }, 3000); } });
+    }
+
+    function startCall() {
+        if (phone || !callPossible()) { return; }
+        if (!online) { addNote('Nobody is here to take a call right now. Please leave us a message.'); return; }
+
+        var mine = phone = { id: null, pc: null, stream: null, poll: null, tick: null, since: null, answered: false, name: null };
+        var gone = function () { return phone !== mine; };
+        var stop = function (say) { var error = new Error(say); error.say = say; return error; };
+
+        $('callmute').setAttribute('aria-pressed', 'false');
+        callBar.classList.remove('hidden');
+        callSay('Starting the call…', 'Allow the microphone when your browser asks.');
+        paintCallButton();
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            if (gone()) { stream.getTracks().forEach(function (track) { track.stop(); }); throw stop(''); }
+            mine.stream = stream;
+            return call('POST', '/call/ice', {});
+        }).then(function (r) {
+            if (gone()) { throw stop(''); }
+            if (r.status !== 200) { throw stop(r.json.error || 'Calls are not available right now.'); }
+
+            var pc = mine.pc = new RTCPeerConnection({ iceServers: r.json.iceServers || [] });
+            mine.stream.getTracks().forEach(function (track) { pc.addTrack(track, mine.stream); });
+            pc.ontrack = function (event) {
+                callAudio.srcObject = event.streams[0] || new MediaStream([event.track]);
+                var playing = callAudio.play();
+                if (playing && playing.catch) { playing.catch(function () {}); }
+            };
+            pc.onconnectionstatechange = function () {
+                if (gone()) { return; }
+
+                if (pc.connectionState === 'connected' && !mine.since) {
+                    mine.since = Date.now(); ringBack(false);
+                    var paint = function () { callSay(mine.name ? 'Talking to ' + mine.name : 'On a call', mmss(Math.round((Date.now() - mine.since) / 1000))); };
+                    paint(); mine.tick = setInterval(paint, 1000);
+                }
+
+                if (pc.connectionState === 'failed') {
+                    if (mine.id) { call('POST', '/call/' + mine.id + '/end', {}).catch(function () {}); }
+                    stopCall(mine.since ? 'The call was cut off.' : 'The call could not connect. Please try again, or write to us here.');
+                }
+            };
+
+            return pc.createOffer().then(function (offer) { return pc.setLocalDescription(offer); }).then(function () { return gathered(pc); });
+        }).then(function () {
+            if (gone()) { throw stop(''); }
+            return call('POST', '/call', { sdp: mine.pc.localDescription.sdp });
+        }).then(function (r) {
+            // Hung up while the call was being sent: it must not go on ringing.
+            if (gone()) { if (r.status === 200 && r.json.id) { call('POST', '/call/' + r.json.id + '/end', {}).catch(function () {}); } throw stop(''); }
+            if (r.status !== 200) { throw stop(r.json.error || (r.status === 429 ? 'Please wait a moment before calling again.' : 'The call could not start. Please try again.')); }
+
+            mine.id = r.json.id;
+            callSay('Calling…', 'Waiting for somebody to answer.');
+            ringBack(true);
+            watchCall(mine);
+        }).catch(function (error) {
+            if (gone()) { return; }
+            var name = error && error.name;
+            stopCall(error && error.say ? error.say
+                : (name === 'NotAllowedError' || name === 'SecurityError') ? 'To call us, allow the microphone for this website and try again.'
+                : (name === 'NotFoundError' || name === 'NotReadableError') ? 'No microphone was found on this device.'
+                : 'The call could not start. Please try again.');
+        });
+    }
+
+    callBtn.onclick = startCall;
+    $('callhang').onclick = hangUp;
+    $('callmute').onclick = function () {
+        if (!phone || !phone.stream) { return; }
+        var muted = this.getAttribute('aria-pressed') !== 'true';
+        phone.stream.getAudioTracks().forEach(function (track) { track.enabled = !muted; });
+        this.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    };
+    // The page is closed in the middle of a call: tell the CRM on the way out, so the other side is not left waiting.
+    window.addEventListener('pagehide', function () {
+        if (phone && phone.id) { try { fetch(api('/call/' + phone.id + '/end'), { method: 'POST', headers: headers(), body: '{}', credentials: 'omit', keepalive: true }); } catch (e) {} }
+    });
 
     // ---- start ----------------------------------------------------------------------------------------------
     function begin() {

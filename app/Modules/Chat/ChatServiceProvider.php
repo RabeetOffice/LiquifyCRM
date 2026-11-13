@@ -67,6 +67,9 @@ final class ChatServiceProvider extends ModuleServiceProvider
         RateLimiter::for('chat-upload', $both('chat-upload', 6, 20));
         RateLimiter::for('chat-typing', $both('chat-typing', 30, 300));
         RateLimiter::for('chat-details', $both('chat-details', 6, 15));
+        // A call asks twice to start (servers, then the call); while it rings the chat box asks how it stands every second.
+        RateLimiter::for('chat-call', $both('chat-call', 8, 30));
+        RateLimiter::for('chat-call-poll', $both('chat-call-poll', 90, 1200));
         // The launcher pings every 30 seconds and on a page change: a browser (its "vid") that asks more often is a script.
         RateLimiter::for('chat-ping', function (Request $request): array {
             $data = json_decode(mb_substr((string) $request->getContent(), 0, 4096), true);

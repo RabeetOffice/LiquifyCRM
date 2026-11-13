@@ -1192,6 +1192,8 @@ const askLive = async () => {
 
                 if (stamps.v !== undefined && page.dataset.liveBuild && stamps.v !== page.dataset.liveBuild) markOutdated();
                 if (userMoved) window.dispatchEvent(new CustomEvent('lq-notified'));
+                // A chat changed, by this person or anybody: the call desk looks whether a visitor is calling.
+                if (brandMoved || chatMoved) window.dispatchEvent(new CustomEvent('lq-chat-moved'));
                 if (brandMoved && ! own) live.owed = true;
                 if (chatMoved && ! own) live.owedChat = true;
             }
@@ -1294,6 +1296,296 @@ window.addEventListener('keydown', (event) => {
         event.preventDefault();
         window.dispatchEvent(new CustomEvent('open-search'));
     }
+});
+
+// Voice calls from the website chat boxes (13 Nov 2026, docs/CALLS_PLAN.md). A visitor presses the phone button; the
+// call rings here, on whatever screen is open, for everybody who works the brand's website visitors. Answering asks
+// for the microphone, takes the call on the server (the first person wins) and connects the two browsers: the sound
+// goes between them (or through the relay the server names), never through LiquifyCRM, and is not recorded.
+// The element is kept across wire:navigate (@persist in the layout), so a call goes on from screen to screen.
+Alpine.data('callDesk', () => {
+    // The connection and the microphone live here, never on Alpine's reactive `this` (a proxied object breaks them).
+    let connection = null;
+    let microphone = null;
+    let watching = null;
+    let ticking = null;
+    let ringingTone = null;
+    let askAgain = null;
+    let noticeTimer = null;
+    let asking = false;
+    const ignored = new Set();
+
+    const send = (method, url, data) => fetch(url, {
+        method,
+        credentials: 'same-origin',
+        keepalive: method === 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        },
+        body: data === undefined ? undefined : JSON.stringify(data),
+    });
+
+    // The browser has found the ways it can be reached (or three seconds have passed): its description is complete.
+    const gathered = (peer) => new Promise((resolve) => {
+        if (peer.iceGatheringState === 'complete') return resolve();
+
+        const finish = () => resolve();
+
+        peer.addEventListener('icegatheringstatechange', () => peer.iceGatheringState === 'complete' && finish());
+        setTimeout(finish, 3000);
+    });
+
+    // A telephone's two notes, made in the browser like the chime.
+    const tone = () => {
+        const Context = window.AudioContext ?? window.webkitAudioContext;
+
+        if (! Context || navigator.userActivation?.hasBeenActive === false) return;
+
+        audio ??= new Context();
+        if (audio.state === 'suspended') audio.resume().catch(() => {});
+
+        [0, 0.5].forEach((delay) => [480, 620].forEach((frequency) => {
+            const note = audio.createOscillator();
+            const level = audio.createGain();
+            const start = audio.currentTime + 0.02 + delay;
+
+            note.type = 'sine';
+            note.frequency.value = frequency;
+            level.gain.setValueAtTime(0.0001, start);
+            level.gain.exponentialRampToValueAtTime(0.09, start + 0.03);
+            level.gain.setValueAtTime(0.09, start + 0.32);
+            level.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
+            note.connect(level).connect(audio.destination);
+            note.start(start);
+            note.stop(start + 0.45);
+        }));
+    };
+
+    return {
+        ringing: [],
+        current: null,
+        notice: '',
+        busy: false,
+        muted: false,
+        seconds: 0,
+        off: false,
+
+        init() {
+            const look = () => this.ask();
+
+            window.addEventListener('lq-notified', look);
+            window.addEventListener('lq-chat-moved', look);
+            // The tab is closed in the middle of a call: say so on the way out, so the visitor is not left waiting.
+            window.addEventListener('pagehide', () => {
+                if (this.current !== null) send('POST', `/calls/${this.current.id}/end`, {}).catch(() => {});
+            });
+            this.ask();
+        },
+
+        get clock() {
+            return `${Math.floor(this.seconds / 60)}:${String(this.seconds % 60).padStart(2, '0')}`;
+        },
+
+        // Which calls are ringing for this person. Asked when something changed, and every 3 seconds while one rings
+        // (so a call somebody else answered, or the caller gave up on, leaves the screen).
+        async ask() {
+            if (this.off || asking) return;
+
+            asking = true;
+            clearTimeout(askAgain);
+
+            try {
+                const response = await send('GET', '/calls/incoming');
+
+                if ([401, 403, 419].includes(response.status)) this.off = true;
+                else if (response.ok) {
+                    const { calls } = await response.json();
+
+                    this.ringing = (calls ?? []).filter((call) => ! ignored.has(call.id) && call.id !== this.current?.id);
+                }
+            } catch (error) {
+                // Offline for a moment: the next change asks again.
+            }
+
+            asking = false;
+            this.ring();
+
+            if (this.ringing.length > 0) askAgain = setTimeout(() => this.ask(), 3000);
+        },
+
+        ring() {
+            const on = this.ringing.length > 0 && this.current === null;
+
+            if (on && ringingTone === null) {
+                tone();
+                ringingTone = setInterval(tone, 2500);
+            } else if (! on && ringingTone !== null) {
+                clearInterval(ringingTone);
+                ringingTone = null;
+            }
+        },
+
+        say(text) {
+            this.notice = text;
+            clearTimeout(noticeTimer);
+            noticeTimer = setTimeout(() => { this.notice = ''; }, 8000);
+        },
+
+        dismiss(call) {
+            ignored.add(call.id);
+            this.ringing = this.ringing.filter((other) => other.id !== call.id);
+            this.ring();
+        },
+
+        async accept(call) {
+            if (this.busy || this.current !== null) return;
+
+            this.busy = true;
+
+            // The microphone first: a "no" here must not take the call away from the others.
+            try {
+                microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (error) {
+                this.busy = false;
+                this.say(error?.name === 'NotFoundError' ? 'No microphone was found on this computer.' : 'Allow the microphone for LiquifyCRM to answer calls.');
+
+                return;
+            }
+
+            try {
+                const response = await send('POST', `/calls/${call.id}/accept`, {});
+                const taken = await response.json().catch(() => ({}));
+
+                if (! response.ok) {
+                    this.drop();
+                    this.dismiss(call);
+                    this.say(taken.error ?? 'This call is over.');
+
+                    return;
+                }
+
+                this.current = { id: call.id, name: call.name, url: call.url, talking: false };
+                this.ringing = this.ringing.filter((other) => other.id !== call.id);
+                this.seconds = 0;
+                this.ring();
+
+                const peer = connection = new RTCPeerConnection({ iceServers: taken.iceServers ?? [] });
+
+                microphone.getTracks().forEach((track) => peer.addTrack(track, microphone));
+                peer.ontrack = (event) => {
+                    const speaker = this.speaker();
+
+                    if (speaker === null) return;
+
+                    speaker.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+                    speaker.play()?.catch(() => {});
+                };
+                peer.onconnectionstatechange = () => {
+                    if (connection !== peer || this.current === null) return;
+
+                    if (peer.connectionState === 'connected' && ! this.current.talking) {
+                        this.current.talking = true;
+                        clearInterval(ticking);
+                        ticking = setInterval(() => { this.seconds += 1; }, 1000);
+                    }
+
+                    if (peer.connectionState === 'failed') this.finish(this.current.talking ? 'The call was cut off.' : 'The call could not connect.', true);
+                };
+
+                await peer.setRemoteDescription({ type: 'offer', sdp: taken.offer });
+                await peer.setLocalDescription(await peer.createAnswer());
+                await gathered(peer);
+
+                if (connection !== peer) return;
+
+                const sent = await send('POST', `/calls/${call.id}/answer`, { sdp: peer.localDescription.sdp });
+
+                if (! sent.ok) {
+                    const refused = await sent.json().catch(() => ({}));
+
+                    this.finish(refused.error ?? 'The call could not connect.', false);
+
+                    return;
+                }
+
+                this.watch();
+            } catch (error) {
+                this.finish('The call could not connect.', true);
+            } finally {
+                this.busy = false;
+            }
+        },
+
+        // Every 3 seconds while the call lasts: the server hears that this side is here, and says when the visitor left.
+        watch() {
+            clearTimeout(watching);
+            watching = setTimeout(async () => {
+                if (this.current === null) return;
+
+                try {
+                    const response = await send('GET', `/calls/${this.current.id}`);
+
+                    if (response.ok) {
+                        const { status } = await response.json();
+
+                        if (! ['connecting', 'active'].includes(status)) return this.finish(`Call ended · ${this.clock}`, false);
+                    } else if ([403, 404].includes(response.status)) {
+                        return this.finish('The call ended.', false);
+                    }
+                } catch (error) {
+                    // Offline for a moment: the next round asks again.
+                }
+
+                this.watch();
+            }, 3000);
+        },
+
+        hangUp() {
+            this.finish(`Call ended · ${this.clock}`, true);
+        },
+
+        toggleMute() {
+            this.muted = ! this.muted;
+            microphone?.getAudioTracks().forEach((track) => { track.enabled = ! this.muted; });
+        },
+
+        finish(text, tell) {
+            const id = this.current?.id;
+
+            if (tell && id) send('POST', `/calls/${id}/end`, {}).catch(() => {});
+
+            this.drop();
+            this.current = null;
+            this.muted = false;
+            this.ring();
+
+            if (text) this.say(text);
+        },
+
+        drop() {
+            clearTimeout(watching);
+            clearInterval(ticking);
+            microphone?.getTracks().forEach((track) => track.stop());
+            microphone = null;
+
+            try { connection?.close(); } catch (error) { /* already closed */ }
+
+            connection = null;
+
+            const speaker = this.speaker();
+
+            if (speaker !== null) speaker.srcObject = null;
+        },
+
+        // The <audio> the other side is heard through. Looked up in the page: the element is kept across page changes
+        // (@persist), and a reference taken when the component started does not survive that.
+        speaker() {
+            return document.querySelector('.lq-calls audio');
+        },
+    };
 });
 
 // Saved replies (live chat, 3 Nov 2026): type "/" and the first letters of a shortcut in the message box, pick with

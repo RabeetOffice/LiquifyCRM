@@ -208,6 +208,27 @@ in the document's weekly phases; never skip a phase or silently change the desig
   starts (`VisitSource::from`: click id > utm > referrer host by name), behind `LiveChat::sourceReady()`.
   `ChatSession::cameFrom()` is the label (Live visitors, beside a chat); `CaptureVisitorDetails` puts came_from, campaign
   and page_url on the lead's `fields` (LeadEnquiry shows "Came from").
+  1.58.0 (user request, 12-13 Nov 2026; `docs/CALLS_PLAN.md`): voice calls from the chat box, WebRTC, voice only, not recorded
+  (user decisions; recording "later"). Only the visitor starts a call (`StartCall`, phone button in the frame's header while
+  somebody is online); the team can invite them (`ReplyToVisitor::inviteToCall`, a message with `raw.ask = call`, "Invite to a
+  call" in the thread's head). It rings for everybody who works the brand's website visitors, whoever the chat is given to
+  (`ConversationPolicy::answerCall` = `ChatAccess::canSeeVisitors`; user decision), never Upsell-only people. `chat_calls`
+  (`ChatCall`, behind `LiveChat::callsReady()`): ringing → connecting → active → ended / missed / failed. No trickle ICE: each
+  browser sends one complete description, so a call is two messages (`POST /chat/api/call` with the offer, `AnswerCall::accept`
+  claims it in one UPDATE and returns the offer, `answer` stores the answer; the chat box asks `GET /chat/api/call/{id}` every
+  second while it rings). `offer` / `answer` hold IP addresses: hidden on the model, emptied by `EndCall`, never sent to Ably.
+  `EndCall::settle()` works out time's endings whenever a call is read (rang 60 s, no answer in 40 s, a side silent 25 s; both
+  sides' polls are the heartbeat), so nothing waits for the scheduler. The framework trims request strings and a browser
+  refuses a description whose last line is not ended: store it through `StartCall::sdp()`. The team's addresses are `/calls/*`
+  (`TeamCallController`, outside a brand so a call rings on any screen); the card is `callDesk` in app.js inside
+  `@persist('call-desk')` in the layout (a call goes on across `wire:navigate`; the connection and microphone live in the
+  closure, the `<audio>` is looked up in the page, an `x-ref` did not survive). app.js fires `lq-chat-moved` when a brand or
+  chat stamp moves; the desk then asks `/calls/incoming`. Relay: `CallServers` from `CHAT_TURN_URL` / `_USERNAME` / `_PASSWORD`
+  (ExpressTURN free plan, a fixed sign-in; handed to a browser only by `call/ice` or on accept, never in the frame or config;
+  named on the privacy page while set). The frame's iframe has `allow="microphone"` (widget.js). `appearance.call` ('1' by
+  default, property `voice` in the designer: `$wire.call` is Livewire's own). liquify-chat.php 1.1 passes the call paths; behind
+  an older file the button is hidden (`X-Liquify-Proxy-Version`). Tests: `ChatCallsTest`; a real call in two headless pages
+  with a fake microphone was run on 13 Nov (not yet tried on an iPhone or through liquify-chat.php on a live site).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

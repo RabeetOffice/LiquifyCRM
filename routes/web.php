@@ -22,6 +22,7 @@ use App\Modules\Chat\Http\Controllers\ChatFileController;
 use App\Modules\Chat\Http\Controllers\ChatProxyFileController;
 use App\Modules\Chat\Http\Controllers\ConversationTypingController;
 use App\Modules\Chat\Http\Controllers\RealtimeTokenController;
+use App\Modules\Chat\Http\Controllers\TeamCallController;
 use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
 use App\Modules\Chat\Livewire\App\ChatWidgets;
 use App\Modules\Chat\Livewire\App\LiveChats;
@@ -81,6 +82,16 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
     // This browser's address for desktop alerts with LiquifyCRM closed (Web Push).
     Route::post('/push/subscription', [PushSubscriptionController::class, 'store'])->middleware('throttle:30,1')->name('push.subscribe');
     Route::delete('/push/subscription', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:30,1')->name('push.unsubscribe');
+
+    // Voice calls from the website chat boxes (docs/CALLS_PLAN.md). Outside a brand on purpose: a call rings on whatever
+    // screen the person has open; each address asks the chat's policy (`answerCall`).
+    Route::middleware('throttle:240,1')->prefix('calls')->name('calls.')->group(function (): void {
+        Route::get('/incoming', [TeamCallController::class, 'incoming'])->name('incoming');
+        Route::post('/{call}/accept', [TeamCallController::class, 'accept'])->whereNumber('call')->name('accept');
+        Route::post('/{call}/answer', [TeamCallController::class, 'answer'])->whereNumber('call')->name('answer');
+        Route::get('/{call}', [TeamCallController::class, 'show'])->whereNumber('call')->name('show');
+        Route::post('/{call}/end', [TeamCallController::class, 'end'])->whereNumber('call')->name('end');
+    });
 
     // Admin area: everything that is not inside one brand.
     Route::middleware('global-admin')->prefix('admin')->name('admin.')->group(function (): void {

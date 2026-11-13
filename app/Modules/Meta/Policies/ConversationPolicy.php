@@ -56,6 +56,16 @@ final class ConversationPolicy
         return $conversation->isLiveChat() && $this->reply($user, $conversation);
     }
 
+    /**
+     * Answer a voice call from the website chat box: everybody of the brand who works website visitors (Admins,
+     * Managers, front Agents), whoever the chat is given to (user decision, 13 Nov 2026: a call rings for all of them).
+     */
+    public function answerCall(User $user, Conversation $conversation): bool
+    {
+        return $conversation->isLiveChat() && LiveChat::callsReady() && $user->isActive()
+            && ChatAccess::canSeeVisitors($user, (int) $conversation->brand_id);
+    }
+
     /** Give a visitor's chat to somebody: Admins and the brand's Managers. */
     public function assignChat(User $user, Conversation $conversation): bool
     {

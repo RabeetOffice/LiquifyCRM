@@ -236,6 +236,15 @@
                     </div>
                 </section>
                 <section class="lq-group">
+                    <h2 class="lq-group-title">Voice calls</h2>
+                    <div class="lq-group-body lq-group-rows">
+                        <div class="lq-group-row">
+                            <div><strong>Visitors can call you</strong><span>A phone button in the chat box's header while somebody of the team is here. The call rings in LiquifyCRM for everybody who works website visitors; the first to answer talks to the visitor, browser to browser. Calls are not recorded.</span></div>
+                            <button type="button" role="switch" class="lq-switch" :aria-checked="$wire.voice ? 'true' : 'false'" x-on:click="$wire.voice = !$wire.voice; open = true; away = false" aria-label="Visitors can call you"></button>
+                        </div>
+                    </div>
+                </section>
+                <section class="lq-group">
                     <h2 class="lq-group-title">Rating</h2>
                     <div class="lq-group-body lq-group-rows">
                         <div class="lq-group-row">
@@ -459,7 +468,7 @@
                                 <i :style="'background:' + (away ? '#a1a1a6' : '#30d158') + ';box-shadow:0 0 0 2px ' + ($wire.header === 'glass' ? (dark ? '#1c1c1e' : '#fff') : c)"></i>
                             </span>
                             <span class="lq-pv-titles"><strong x-text="text($wire.title, 'title')"></strong><small x-text="away ? 'Away right now. Leave a message.' : text($wire.replyTime, 'reply_time')"></small></span>
-                            <span class="lq-pv-rate" x-show="$wire.rating && !away && !$wire.askFirst"><button type="button" :class="thumb === 'up' && 'lq-pv-rate-on'" x-on:click="thumb = thumb === 'up' ? '' : 'up'" aria-label="Good"><x-heroicon-o-hand-thumb-up /></button><button type="button" :class="thumb === 'down' && 'lq-pv-rate-on'" x-on:click="thumb = thumb === 'down' ? '' : 'down'" aria-label="Bad"><x-heroicon-o-hand-thumb-down /></button></span>
+                            <span class="lq-pv-rate" x-show="$wire.voice && !away"><button type="button" aria-label="Voice call"><x-heroicon-o-phone /></button></span><span class="lq-pv-rate" x-show="$wire.rating && !away && !$wire.askFirst"><button type="button" :class="thumb === 'up' && 'lq-pv-rate-on'" x-on:click="thumb = thumb === 'up' ? '' : 'up'" aria-label="Good"><x-heroicon-o-hand-thumb-up /></button><button type="button" :class="thumb === 'down' && 'lq-pv-rate-on'" x-on:click="thumb = thumb === 'down' ? '' : 'down'" aria-label="Bad"><x-heroicon-o-hand-thumb-down /></button></span>
                             <button type="button" class="lq-pv-x" x-on:click="open = false" aria-label="Close the chat in the preview"><x-heroicon-o-x-mark /></button>
                         </div>
 

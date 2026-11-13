@@ -109,6 +109,13 @@ return [
         'anonymous_days' => (int) env('CHAT_ANONYMOUS_DAYS', 14),
         'page_view_days' => (int) env('CHAT_PAGE_VIEW_DAYS', 30),
         'max_upload_mb' => (int) env('CHAT_MAX_UPLOAD_MB', 10),
+        // The relay for voice calls that cannot connect directly (docs/CALLS_PLAN.md): "host:port", a username and a
+        // password from the relay's dashboard. Empty: calls still work where the two browsers reach each other.
+        'turn' => [
+            'url' => env('CHAT_TURN_URL'),
+            'username' => env('CHAT_TURN_USERNAME'),
+            'password' => env('CHAT_TURN_PASSWORD'),
+        ],
     ],
 
     'sites' => [
@@ -127,7 +134,7 @@ return [
         'name' => env('LIQUIFY_LEGAL_NAME', 'LiquifyCRM'),
         'email' => env('LIQUIFY_LEGAL_EMAIL', 'rabeet0846551@gmail.com'),
         'facebook_app' => env('LIQUIFY_LEGAL_FACEBOOK_APP', 'LiquifyCRM Leads'),
-        'updated' => '2026-11-12',
+        'updated' => '2026-11-13',
     ],
 
     /*

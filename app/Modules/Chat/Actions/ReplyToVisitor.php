@@ -100,6 +100,15 @@ final class ReplyToVisitor
         return $message;
     }
 
+    /** Invite the visitor to a voice call: a message from the person asking, with a button under it that starts the call. */
+    public function inviteToCall(Conversation $conversation, User $by): Message
+    {
+        $message = $this->reply($conversation, $by, 'Would you like to talk? Press the button below to start a voice call with us.');
+        $message->forceFill(['raw' => ['ask' => 'call']])->save();
+
+        return $message;
+    }
+
     public function event(Conversation $conversation, string $text): Message
     {
         return Message::query()->create([

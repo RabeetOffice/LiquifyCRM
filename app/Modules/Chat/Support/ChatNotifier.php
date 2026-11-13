@@ -77,6 +77,33 @@ final class ChatNotifier
     }
 
     /**
+     * A visitor is calling from the chat box: the bell (sound, desktop alert, push) for everybody who may answer, so
+     * it also reaches somebody whose LiquifyCRM is behind another window. The ringing card is drawn by the open pages.
+     */
+    public function calling(Conversation $conversation): void
+    {
+        $this->tellTeam($conversation, 'Incoming call: '.$conversation->displayName(), 'A website visitor is calling. Open LiquifyCRM to answer.', 'heroicon-o-phone-arrow-down-left');
+    }
+
+    /** Nobody answered: the team sees it in the bell and can write to the visitor. */
+    public function missedCall(Conversation $conversation): void
+    {
+        $this->tellTeam($conversation, 'Missed call: '.$conversation->displayName(), 'Nobody answered their call from the website. Write to them in the chat.', 'heroicon-o-phone-x-mark');
+    }
+
+    private function tellTeam(Conversation $conversation, string $title, string $body, string $icon): void
+    {
+        $brand = Brand::query()->find($conversation->brand_id);
+        $team = ChatAccess::team((int) $conversation->brand_id);
+
+        if ($brand === null || $team->isEmpty()) {
+            return;
+        }
+
+        Notification::send($team, new AppNotification($title, $body, 'info', $brand->url('live-chat/chats?chat='.$conversation->getKey()), mail: false, icon: $icon, actionLabel: 'Open chat'));
+    }
+
+    /**
      * The person who looks after the chat; with nobody on it, those who may take it: a lead's team (its Managers, or
      * the Admins), a visitor's chat goes to everybody who sees visitors.
      *

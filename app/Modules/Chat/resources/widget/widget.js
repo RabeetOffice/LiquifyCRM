@@ -444,7 +444,8 @@
             frame = document.createElement('iframe');
             frame.title = config.title;
             frame.src = config.frame + (config.frame.indexOf('?') < 0 ? '?' : '&') + 'o=' + encodeURIComponent(location.origin);
-            frame.setAttribute('allow', 'clipboard-write; autoplay');
+            // The microphone is for a voice call the visitor starts from the chat box (the browser still asks them).
+            frame.setAttribute('allow', 'clipboard-write; autoplay; microphone');
             frame.setAttribute('data-shown', '0');
             document.body.appendChild(frame);
             layout();

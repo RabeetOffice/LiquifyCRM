@@ -28,4 +28,9 @@ Route::prefix('chat/api')->group(function (): void {
     Route::post('upload', [WidgetController::class, 'upload'])->middleware('throttle:chat-upload')->name('chat.widget.upload');
     Route::post('details', [WidgetController::class, 'details'])->middleware('throttle:chat-details')->name('chat.widget.details');
     Route::post('rate', [WidgetController::class, 'rate'])->middleware('throttle:chat-details')->name('chat.widget.rate');
+    // A voice call from the chat box (docs/CALLS_PLAN.md): the servers to set it up with, the call itself, how it stands, hang up.
+    Route::post('call/ice', [WidgetController::class, 'callIce'])->middleware('throttle:chat-call')->name('chat.widget.call.ice');
+    Route::post('call', [WidgetController::class, 'callStart'])->middleware('throttle:chat-call')->name('chat.widget.call.start');
+    Route::get('call/{call}', [WidgetController::class, 'callShow'])->middleware('throttle:chat-call-poll')->whereNumber('call')->name('chat.widget.call.show');
+    Route::post('call/{call}/end', [WidgetController::class, 'callEnd'])->middleware('throttle:chat-call-poll')->whereNumber('call')->name('chat.widget.call.end');
 });

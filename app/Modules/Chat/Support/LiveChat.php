@@ -35,6 +35,8 @@ final class LiveChat
 
     private static bool $sourceReady = false;
 
+    private static bool $callsReady = false;
+
     public static function ready(): bool
     {
         // The last column of the update: when it is there, the rest is too.
@@ -94,6 +96,12 @@ final class LiveChat
     public static function sourceReady(): bool
     {
         return self::$sourceReady = self::$sourceReady || (self::trackingReady() && KnownSchema::column('chat_sessions', 'source'));
+    }
+
+    /** Voice calls from the chat box (the chat_calls table): 1.58.0, after "Update system". */
+    public static function callsReady(): bool
+    {
+        return self::$callsReady = self::$callsReady || (self::workReady() && KnownSchema::table('chat_calls'));
     }
 
     public static function workReady(): bool

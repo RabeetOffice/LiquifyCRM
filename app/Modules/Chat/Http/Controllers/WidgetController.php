@@ -6,16 +6,21 @@ namespace App\Modules\Chat\Http\Controllers;
 
 use App\Modules\Auth\Support\Device;
 use App\Modules\Brands\Models\Brand;
+use App\Modules\Chat\Actions\AnswerCall;
 use App\Modules\Chat\Actions\CaptureVisitorDetails;
+use App\Modules\Chat\Actions\EndCall;
 use App\Modules\Chat\Actions\RateChat;
 use App\Modules\Chat\Actions\RecordPing;
 use App\Modules\Chat\Actions\RecordVisit;
 use App\Modules\Chat\Actions\SendVisitorMessage;
+use App\Modules\Chat\Actions\StartCall;
+use App\Modules\Chat\Models\ChatCall;
 use App\Modules\Chat\Models\ChatSession;
 use App\Modules\Chat\Models\ChatVisitor;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\AgentCard;
 use App\Modules\Chat\Support\AgentPresence;
+use App\Modules\Chat\Support\CallServers;
 use App\Modules\Chat\Support\ChatFiles;
 use App\Modules\Chat\Support\ChatProxy;
 use App\Modules\Chat\Support\ChatTyping;
@@ -129,7 +134,7 @@ final class WidgetController
         return response()->json([
             'token' => $visitor->visitor_token,
             'sig' => VisitorToken::sign($visitor->visitor_token),
-            'config' => $this->settings($widget),
+            'config' => $this->settings($widget, $request),
             'visitor' => ['name' => $visitor->name, 'has_details' => $visitor->lead_id !== null || filled($visitor->getRawOriginal('email')) || filled($visitor->getRawOriginal('phone'))],
             'messages' => $conversation !== null ? VisitorChats::messages($conversation) : [],
             'closed' => $conversation?->isClosed() ?? false,
@@ -319,10 +324,84 @@ final class WidgetController
         return response()->json(['ok' => true, 'lead' => $result['lead'] !== null, 'name' => $visitor->refresh()->name, 'message' => $message]);
     }
 
+    /**
+     * The servers the visitor's browser sets a call up with (the relay's sign-in among them): asked only when the
+     * visitor presses the phone button, never sent with the chat box itself.
+     */
+    public function callIce(Request $request): JsonResponse
+    {
+        [$widget] = $this->visitor($request);
+        abort_unless(self::callsFor($widget, $request), 404);
+
+        return response()->json(['iceServers' => CallServers::list()])->header('Cache-Control', 'no-store');
+    }
+
+    /** The visitor's browser is ready to talk: the call rings in the CRM. */
+    public function callStart(Request $request, StartCall $start): JsonResponse
+    {
+        [$widget, $visitor] = $this->visitor($request);
+        abort_unless(self::callsFor($widget, $request), 404);
+
+        try {
+            $call = $start->handle($widget, $visitor, (string) $request->input('sdp'));
+        } catch (RuntimeException $exception) {
+            return response()->json(['error' => $exception->getMessage()], 422);
+        }
+
+        return response()->json(['id' => (int) $call->getKey()]);
+    }
+
+    /** Every second while it rings, every few while they talk: how the call stands, and the answer once there is one. */
+    public function callShow(Request $request, string $call, EndCall $end): JsonResponse
+    {
+        $found = $end->settle($this->callOf($request, $call));
+
+        if ($found->isLive()) {
+            $found->forceFill(['visitor_seen_at' => now()])->saveQuietly();
+        }
+
+        return response()->json([
+            'status' => $found->status === ChatCall::CONNECTING ? ChatCall::RINGING : $found->status,
+            'answer' => $found->status === ChatCall::ACTIVE ? $found->answer : null,
+            'name' => $found->answered_by !== null ? AnswerCall::nameFor($found) : null,
+            'seconds' => $found->seconds(),
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    /** The visitor hangs up (or closes the page). */
+    public function callEnd(Request $request, string $call, EndCall $end): JsonResponse
+    {
+        $ended = $end->handle($this->callOf($request, $call), EndCall::BY_VISITOR);
+
+        return response()->json(['status' => $ended->status, 'seconds' => $ended->seconds()]);
+    }
+
+    /** A call of this visitor's own chat, or nothing. */
+    private function callOf(Request $request, string $id): ChatCall
+    {
+        [$widget, $visitor] = $this->visitor($request);
+        abort_unless(LiveChat::callsReady(), 404);
+
+        $conversation = VisitorChats::conversationFor($visitor, $widget, false);
+        $call = $conversation !== null ? ChatCall::query()->where('conversation_id', $conversation->getKey())->whereKey((int) $id)->first() : null;
+        abort_if($call === null, 404);
+
+        return $call;
+    }
+
+    /** Whether this chat box shows the phone button: a liquify-chat.php from before calls does not pass their addresses on. */
+    private static function callsFor(ChatWidget $widget, Request $request): bool
+    {
+        return StartCall::offered($widget)
+            && (ChatProxy::of($request) === null || version_compare((string) $request->header('X-Liquify-Proxy-Version'), '1.1', '>='));
+    }
+
     /** @return array<string, mixed> */
-    private function settings(ChatWidget $widget): array
+    private function settings(ChatWidget $widget, Request $request): array
     {
         return [
+            // The phone button: when the box offers calls (and a liquify-chat.php on the website is new enough to pass them on).
+            'call' => self::callsFor($widget, $request),
             'title' => $widget->look('title'),
             'welcome' => $widget->look('welcome'),
             'consent' => $widget->look('consent'),
