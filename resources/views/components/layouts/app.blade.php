@@ -75,10 +75,35 @@
     @auth
         {{-- Voice calls from the website chat boxes (docs/CALLS_PLAN.md): a ringing card on whatever screen is open, and
              the call itself. Kept across wire:navigate, so a call goes on while the person opens another screen. --}}
-        @if (\App\Modules\Chat\Support\LiveChat::callsReady())
+        @if (\App\Modules\Chat\Support\LiveChat::workReady())
             @persist('call-desk')
                 <div class="lq-calls" x-data="callDesk" x-cloak>
                     <audio autoplay playsinline hidden></audio>
+                    {{-- Website chats waiting for an answer (it rings until one is opened) and visitors who just arrived. --}}
+                    <div class="lq-call-group" x-data="chatDesk">
+                        <template x-for="visitor in visitors" :key="visitor.key">
+                            <div class="lq-call lq-call-visitor" role="status" x-on:click="see(visitor)">
+                                <span class="lq-call-icon lq-call-icon-visitor"><x-heroicon-s-eye /></span>
+                                <div class="lq-call-who">
+                                    <strong x-text="'New visitor on ' + (visitor.brand || 'the website')"></strong>
+                                    <span x-text="visitor.line"></span>
+                                </div>
+                                <button type="button" class="lq-btn lq-btn-ghost lq-btn-sm" x-on:click.stop="dropVisitor(visitor.key)">Dismiss</button>
+                                <button type="button" class="lq-btn lq-btn-secondary lq-btn-sm" x-on:click.stop="see(visitor)">See visitors</button>
+                            </div>
+                        </template>
+                        <template x-for="chat in chats" :key="chat.id">
+                            <div class="lq-call lq-call-chat" role="alertdialog" aria-label="New chat message" x-on:click="open(chat)">
+                                <span class="lq-call-icon lq-call-icon-chat"><x-heroicon-s-chat-bubble-oval-left-ellipsis /></span>
+                                <div class="lq-call-who">
+                                    <strong x-text="chat.name + (chat.count > 1 ? ' (' + chat.count + ')' : '') + (chat.brand ? ' · ' + chat.brand : '')"></strong>
+                                    <span x-text="chat.text || 'Sent a file'"></span>
+                                </div>
+                                <button type="button" class="lq-btn lq-btn-ghost lq-btn-sm" x-on:click.stop="putAside(chat)">Later</button>
+                                <button type="button" class="lq-btn lq-btn-primary lq-btn-sm" x-on:click.stop="open(chat)">Open chat</button>
+                            </div>
+                        </template>
+                    </div>
                     <template x-for="call in ringing" :key="call.id">
                         <div class="lq-call lq-call-ringing" role="alertdialog" aria-label="Incoming call">
                             <span class="lq-call-icon"><x-heroicon-s-phone-arrow-down-left /></span>

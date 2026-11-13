@@ -20,7 +20,8 @@ use Illuminate\Support\Str;
 /**
  * The bell (with its sound, desktop alert and push, no email) for the people who answer a website chat: the
  * team when a visitor starts a chat nobody looks after, the person who looks after it when the visitor writes
- * again. One entry per chat every two minutes, so a visitor who sends five lines rings once.
+ * again. One entry per chat every two minutes, so a visitor who sends five lines rings the bell once; the open
+ * pages ring for a waiting chat by themselves (TeamChatController).
  */
 final class ChatNotifier
 {
@@ -105,7 +106,7 @@ final class ChatNotifier
 
     /**
      * The person who looks after the chat; with nobody on it, those who may take it: a lead's team (its Managers, or
-     * the Admins), a visitor's chat goes to everybody who sees visitors.
+     * the Admins), a visitor's chat goes to everybody who sees visitors, the Admins too.
      *
      * @return Collection<int, User>
      */
@@ -133,7 +134,8 @@ final class ChatNotifier
             ->where('status', MembershipStatus::Active->value)
             ->pluck('user_id');
 
-        return User::query()->whereIn('id', $ids)->get()
+        // Admins work every brand's visitors without being a member of it (13 Nov 2026: their chats were missed).
+        return User::query()->whereIn('id', $ids)->orWhereIn('role', [GlobalRole::SuperAdmin->value, GlobalRole::Admin->value])->get()
             ->filter(fn (User $user): bool => $user->isActive() && ChatAccess::canSeeVisitors($user, (int) $conversation->brand_id));
     }
 }

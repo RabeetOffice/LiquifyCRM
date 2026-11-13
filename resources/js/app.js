@@ -1588,6 +1588,144 @@ Alpine.data('callDesk', () => {
     };
 });
 
+// Website chats nobody may miss (user request, 13 Nov 2026). On whatever screen is open: a card for each website chat
+// in which a visitor waits for this person's answer, with the bell ringing again and again until the chat is opened
+// (or put aside, or somebody answers it; five minutes at most for one message), and a card with one chime for a
+// visitor who has just arrived on a website. The server says which (`/chats/waiting`); the page asks when a chat or
+// the bell moved, every five seconds while a chat waits, and every half minute anyway.
+Alpine.data('chatDesk', () => {
+    const RING_SECONDS = 300;
+    const VISITOR_SECONDS = 15;
+
+    let asking = false;
+    let again = null;
+    let ringer = null;
+    // A chat put aside: its id and the time of the message it was put aside at; a newer message brings the card back.
+    const aside = new Map();
+    // When this page first saw a waiting message (the server's clock and this computer's may differ).
+    const heard = new Map();
+    const shown = new Set();
+
+    // One tab rings, however many are open.
+    const ringOnce = () => {
+        const now = Date.now();
+
+        if (now - Number(remembered('lq_chat_rang') ?? 0) < 3500) return;
+
+        remember('lq_chat_rang', String(now));
+
+        if (Alpine.store('alerts').sound) chime();
+    };
+
+    // The website chat on the screen right now: its thread marks it read, so it needs no card.
+    const onScreen = () => (! document.hidden && location.pathname.endsWith('/live-chat/chats') ? Number(new URLSearchParams(location.search).get('chat')) : 0);
+
+    return {
+        chats: [],
+        visitors: [],
+        off: false,
+
+        init() {
+            const look = () => this.ask();
+
+            window.addEventListener('lq-notified', look);
+            window.addEventListener('lq-chat-moved', look);
+            document.addEventListener('visibilitychange', () => document.hidden || this.ask());
+            this.ask();
+        },
+
+        async ask() {
+            if (this.off || asking) return;
+
+            asking = true;
+            clearTimeout(again);
+
+            try {
+                const response = await fetch('/chats/waiting', { credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+
+                if ([401, 403, 419].includes(response.status)) this.off = true;
+                else if (response.ok) {
+                    const data = await response.json();
+
+                    this.take(data.chats ?? [], data.visitors ?? []);
+                }
+            } catch (error) {
+                // Offline for a moment: the next round asks again.
+            }
+
+            asking = false;
+            this.ring();
+
+            if (! this.off) again = setTimeout(() => this.ask(), this.chats.length > 0 ? 5000 : 30000);
+        },
+
+        take(chats, visitors) {
+            const open = onScreen();
+
+            this.chats = chats.filter((chat) => aside.get(chat.id) !== chat.at && chat.id !== open);
+            this.chats.forEach((chat) => heard.has(`${chat.id}:${chat.at}`) || heard.set(`${chat.id}:${chat.at}`, Date.now()));
+            visitors.forEach((visitor) => this.arrive(visitor));
+        },
+
+        // Rings at once and every four seconds while a message waits that this page heard of less than five minutes ago.
+        ring() {
+            const due = () => this.chats.some((chat) => Date.now() - (heard.get(`${chat.id}:${chat.at}`) ?? 0) < RING_SECONDS * 1000);
+
+            if (due() && ringer === null) {
+                ringOnce();
+                ringer = setInterval(() => (due() ? ringOnce() : this.ring()), 4000);
+            } else if (! due() && ringer !== null) {
+                clearInterval(ringer);
+                ringer = null;
+            }
+        },
+
+        putAside(chat) {
+            aside.set(chat.id, chat.at);
+            this.chats = this.chats.filter((other) => other.id !== chat.id);
+            this.ring();
+        },
+
+        open(chat) {
+            this.putAside(chat);
+            Livewire.navigate(chat.url);
+        },
+
+        // A visitor has just arrived: a card for a quarter of a minute, one chime and (with LiquifyCRM behind another
+        // window) a desktop alert, from one tab only.
+        arrive(visitor) {
+            const key = `visitor-${visitor.id}-${visitor.at}`;
+
+            if (shown.has(key)) return;
+
+            shown.add(key);
+
+            const line = [visitor.page, visitor.place, visitor.from].filter((part) => typeof part === 'string' && part !== '').join(' · ');
+
+            this.visitors = [{ ...visitor, key, line }, ...this.visitors].slice(0, 3);
+            setTimeout(() => this.dropVisitor(key), VISITOR_SECONDS * 1000);
+
+            if (! claim(key)) return;
+
+            const alerts = Alpine.store('alerts');
+            const sounded = alerts.sound && chime();
+
+            if (alerts.desktop && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                tellWorker({ type: 'lq-alert', items: [{ id: key, title: `New visitor on ${visitor.brand ?? 'the website'}`, body: line, url: visitor.url }], silent: sounded || ! alerts.sound });
+            }
+        },
+
+        dropVisitor(key) {
+            this.visitors = this.visitors.filter((visitor) => visitor.key !== key);
+        },
+
+        see(visitor) {
+            this.dropVisitor(visitor.key);
+            Livewire.navigate(visitor.url);
+        },
+    };
+});
+
 // Saved replies (live chat, 3 Nov 2026): type "/" and the first letters of a shortcut in the message box, pick with
 // the arrow keys and Enter (or the mouse), and the whole reply is in the box, ready to change before it is sent.
 Alpine.data('savedReplies', (replies) => ({

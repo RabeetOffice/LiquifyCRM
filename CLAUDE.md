@@ -237,6 +237,15 @@ in the document's weekly phases; never skip a phase or silently change the desig
   from Live visitors goes through `invited()` → `teamWrote()`; the chat box's own greeting (`invite()`) stays a card. The
   frame keeps the last message shown with the chat open in localStorage `lq_v_{key}_seen`, so a page loaded later still
   announces what is unread. Live visitors' ping refuses headless and bot user agents: a browser test needs an ordinary one.
+  1.60.0 (user request, 13 Nov 2026: chats were missed): `chatDesk` in app.js (inside the persisted `.lq-calls` element of the
+  layout, behind `LiveChat::workReady()`) asks `GET /chats/waiting` (`TeamChatController`, outside a brand) when the bell or a
+  chat stamp moves, every 5 s while a chat waits and every 30 s anyway. It draws a card per website chat with unread visitor
+  words of the last 30 minutes and rings every 4 s (one tab, localStorage `lq_chat_rang`; 5 minutes at most per message)
+  until the chat is opened, put aside ("Later", until a newer message) or read by somebody; and a card, one chime and a
+  desktop alert for a visit that began in the last 90 s (`chat_sessions.visit_started_at`). A chat rings for its owner
+  (`chat_assigned_to`, or the lead's), else for whoever may `reply`. `ChatNotifier::recipients` now includes Admins for a
+  visitor chat nobody has (user's wish; before, members only). Local `artisan serve` answers one request at a time: a browser
+  test of this needs patience. Tests: `LiveChatVisitorsTest` (the chat desk case).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

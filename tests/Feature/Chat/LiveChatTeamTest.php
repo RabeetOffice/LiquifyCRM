@@ -170,7 +170,8 @@ it('rings the bell for a new visitor chat once, for the people who may answer it
     foreach ([$this->manager, $this->agent, $this->colleague] as $person) {
         Notification::assertSentToTimes($person, AppNotification::class, 1);
     }
-    Notification::assertNotSentTo($this->admin, AppNotification::class);
+    // Admins work every brand's visitors, so they hear of the chat too (13 Nov 2026: their chats were missed).
+    Notification::assertSentToTimes($this->admin, AppNotification::class, 1);
 
     // More lines inside two minutes ring nothing more.
     $chat = Conversation::query()->sole();

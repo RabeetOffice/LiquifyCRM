@@ -23,6 +23,7 @@ use App\Modules\Chat\Http\Controllers\ChatProxyFileController;
 use App\Modules\Chat\Http\Controllers\ConversationTypingController;
 use App\Modules\Chat\Http\Controllers\RealtimeTokenController;
 use App\Modules\Chat\Http\Controllers\TeamCallController;
+use App\Modules\Chat\Http\Controllers\TeamChatController;
 use App\Modules\Chat\Livewire\App\CannedRepliesIndex;
 use App\Modules\Chat\Livewire\App\ChatWidgets;
 use App\Modules\Chat\Livewire\App\LiveChats;
@@ -92,6 +93,10 @@ Route::middleware(['auth', 'two-factor'])->group(function (): void {
         Route::get('/{call}', [TeamCallController::class, 'show'])->whereNumber('call')->name('show');
         Route::post('/{call}/end', [TeamCallController::class, 'end'])->whereNumber('call')->name('end');
     });
+
+    // The website chats waiting for this person and the visitors who just arrived, for the cards and the ringing on
+    // whatever screen is open (outside a brand, like the calls).
+    Route::get('/chats/waiting', [TeamChatController::class, 'waiting'])->middleware('throttle:240,1')->name('chats.waiting');
 
     // Admin area: everything that is not inside one brand.
     Route::middleware('global-admin')->prefix('admin')->name('admin.')->group(function (): void {

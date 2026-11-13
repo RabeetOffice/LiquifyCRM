@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.60.0',
+        'date' => '2026-11-13',
+        'title' => 'Website chats you cannot miss',
+        'changes' => [
+            ['new', 'When a website visitor writes, a card shows in the corner of whatever screen you have open, with their name and the words, and the bell keeps ringing every few seconds until somebody opens the chat (five minutes at most for one message). A click on the card opens the chat; “Later” puts it away until they write again.'],
+            ['new', 'A visitor who has just arrived on a website shows as a “New visitor” card with the page they are on and where they came from, with one chime and a desktop alert. It leaves by itself after a quarter of a minute.'],
+            ['improved', 'Admins now also get the bell entry, the desktop alert and the push for a visitor’s chat nobody looks after, in every brand. Before, only the brand’s own Managers and Agents were told.'],
+            ['improved', 'A chat given to somebody rings for that person only; a chat with nobody on it rings for everybody who may answer it.'],
+        ],
+    ],
+    [
         'version' => '1.59.0',
         'date' => '2026-11-13',
         'title' => 'The chat box opens by itself when you write to a visitor',

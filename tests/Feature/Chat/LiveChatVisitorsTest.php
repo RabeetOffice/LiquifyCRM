@@ -257,6 +257,63 @@ it('opens the chat box for the team’s first message and shows the later ones a
     expect($frame)->toContain("tell({ type: 'message', text: String(text).slice(0, 300)")->toContain("STORE + '_seen'");
 });
 
+it('shows a waiting website chat and a visitor who just arrived on whatever screen is open (user request, 13 Nov 2026)', function (): void {
+    $waiting = fn ($user) => $this->actingAs($user)->getJson('/chats/waiting')->assertOk();
+    $outsider = managerOf(department(brand(['name' => 'UK Publishing House', 'slug' => 'ukph']), ['name' => 'Sales']), ['name' => 'Olga Outsider']);
+
+    // A visitor arrives on the website: the people who work this brand's visitors are told, nobody else.
+    ping($this, ['url' => 'https://dublinpublishingpress.ie/pricing', 'title' => 'Pricing'])->assertOk();
+    $session = ChatSession::query()->sole();
+
+    foreach ([$this->manager, $this->agent, $this->admin] as $person) {
+        $waiting($person)->assertJsonCount(1, 'visitors')->assertJsonPath('visitors.0.id', $session->getKey())
+            ->assertJsonPath('visitors.0.page', '/pricing')->assertJsonPath('visitors.0.brand', 'Dublin Publishing Press')
+            ->assertJsonPath('visitors.0.url', url('/b/dpp/live-chat/visitors'))->assertJsonCount(0, 'chats');
+        auth()->logout();
+    }
+    $waiting($outsider)->assertJsonCount(0, 'visitors');
+    auth()->logout();
+
+    // The visitor writes: a card for everybody who may answer, with the words and the chat's address.
+    $init = $this->postJson('/chat/api/init', [], ['X-Chat-Key' => $this->widget->widget_key])->assertOk();
+    $creds = ['X-Chat-Key' => $this->widget->widget_key, 'X-Chat-Token' => $init->json('token'), 'X-Chat-Sig' => $init->json('sig')];
+    $this->postJson('/chat/api/messages', ['body' => 'Do you print hardbacks?'], $creds)->assertOk();
+    $chat = Conversation::query()->sole();
+
+    foreach ([$this->manager, $this->agent, $this->admin] as $person) {
+        $waiting($person)->assertJsonCount(1, 'chats')->assertJsonPath('chats.0.id', $chat->getKey())->assertJsonPath('chats.0.text', 'Do you print hardbacks?')
+            ->assertJsonPath('chats.0.count', 1)->assertJsonPath('chats.0.url', url('/b/dpp/live-chat/chats?chat='.$chat->getKey()));
+        auth()->logout();
+    }
+    $waiting($outsider)->assertJsonCount(0, 'chats');
+    auth()->logout();
+
+    // Given to the Agent, it waits for the Agent alone.
+    $chat->forceFill(['chat_assigned_to' => $this->agent->getKey()])->save();
+    $waiting($this->agent)->assertJsonCount(1, 'chats');
+    auth()->logout();
+    $waiting($this->manager)->assertJsonCount(0, 'chats');
+    auth()->logout();
+
+    // Read or answered (the count is back to none), closed, or written long ago: no card and no ringing.
+    $chat->forceFill(['unread_count' => 0])->save();
+    $waiting($this->agent)->assertJsonCount(0, 'chats');
+    $chat->forceFill(['unread_count' => 2, 'chat_status' => 'closed'])->save();
+    $waiting($this->agent)->assertJsonCount(0, 'chats');
+    $chat->forceFill(['chat_status' => 'open', 'last_inbound_at' => now()->subMinutes(31)])->save();
+    $waiting($this->agent)->assertJsonCount(0, 'chats');
+    auth()->logout();
+
+    // A visit that began a while ago is no longer "just arrived".
+    $this->travel(2)->minutes();
+    $waiting($this->manager)->assertJsonCount(0, 'visitors');
+    auth()->logout();
+
+    // Nobody signed in gets nothing, and the cards are in every screen's layout.
+    $this->getJson('/chats/waiting')->assertUnauthorized();
+    $this->actingAs($this->manager)->get('/b/dpp')->assertOk()->assertSee('x-data="chatDesk"', false)->assertSee('Open chat');
+});
+
 it('keeps the website chats under Live chat and the Inbox for Messenger and Instagram', function (): void {
     $init = $this->postJson('/chat/api/init', [], ['X-Chat-Key' => $this->widget->widget_key])->assertOk();
     $this->postJson('/chat/api/messages', ['body' => 'Do you print hardbacks?'], ['X-Chat-Key' => $this->widget->widget_key, 'X-Chat-Token' => $init->json('token'), 'X-Chat-Sig' => $init->json('sig')])->assertOk();

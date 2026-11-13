@@ -13652,6 +13652,13 @@ button.lq-perday-row:hover {
 .lq-call-who strong { font-size: 0.9375rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lq-call-who span { font-size: 0.8125rem; color: var(--lq-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .lq-call-note { font-size: 0.875rem; color: var(--lq-ink); }
+.lq-call-group { display: contents; }
+.lq-call-chat, .lq-call-visitor { cursor: pointer; }
+.lq-call-chat { border-color: color-mix(in srgb, var(--lq-orange) 55%, transparent); }
+.lq-call-icon-chat { background: color-mix(in srgb, var(--lq-orange) 14%, transparent); color: var(--lq-orange); animation: lq-chat-ring 1.2s ease-in-out infinite; }
+.lq-call-icon-visitor { background: color-mix(in srgb, var(--lq-info) 14%, transparent); color: var(--lq-info); }
+@keyframes lq-chat-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lq-orange) 40%, transparent); } 50% { box-shadow: 0 0 0 0.625rem transparent; } }
+@media (prefers-reduced-motion: reduce) { .lq-call-icon-chat { animation: none; } }
 @keyframes lq-call-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lq-success) 40%, transparent); } 50% { box-shadow: 0 0 0 0.625rem transparent; } }
 @media (prefers-reduced-motion: reduce) { .lq-call, .lq-call-ringing .lq-call-icon { animation: none; } }
 @media (max-width: 480px) { .lq-call { flex-wrap: wrap; } .lq-call-who { flex-basis: calc(100% - 3.5rem); } }
