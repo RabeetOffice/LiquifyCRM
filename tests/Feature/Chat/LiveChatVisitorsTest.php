@@ -312,6 +312,11 @@ it('shows a waiting website chat and a visitor who just arrived on whatever scre
     // Nobody signed in gets nothing, and the cards are in every screen's layout.
     $this->getJson('/chats/waiting')->assertUnauthorized();
     $this->actingAs($this->manager)->get('/b/dpp')->assertOk()->assertSee('x-data="chatDesk"', false)->assertSee('Open chat');
+
+    // The four sounds the pages play are in place and small.
+    foreach (['notification', 'chat-message', 'new-visitor', 'call-ring'] as $sound) {
+        expect(public_path('sounds/'.$sound.'.mp3'))->toBeFile()->and(filesize(public_path('sounds/'.$sound.'.mp3')))->toBeLessThan(60000);
+    }
 });
 
 it('keeps the website chats under Live chat and the Inbox for Messenger and Instagram', function (): void {

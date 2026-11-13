@@ -28,6 +28,7 @@ return [
             ['new', 'A visitor who has just arrived on a website shows as a “New visitor” card with the page they are on and where they came from, with one chime and a desktop alert. It leaves by itself after a quarter of a minute.'],
             ['improved', 'Admins now also get the bell entry, the desktop alert and the push for a visitor’s chat nobody looks after, in every brand. Before, only the brand’s own Managers and Agents were told.'],
             ['improved', 'A chat given to somebody rings for that person only; a chat with nobody on it rings for everybody who may answer it.'],
+            ['new', 'New sounds: a voice says “new chat message” for a waiting website chat and “new visitor incoming” for a new visitor, the bell has its own notification sound, and a call from the website rings with a ring tone until it is answered.'],
         ],
     ],
     [

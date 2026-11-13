@@ -751,9 +751,40 @@ const remember = (key, value) => {
 const worker = 'serviceWorker' in navigator && window.isSecureContext;
 let audio = null;
 
-// Two soft rising notes, made in the browser: no sound file to download. Browsers keep a page quiet
-// until the person has clicked or typed on it once, so it says whether the chime can be heard.
+// The sounds the user chose (13 Nov 2026), small files in public/sounds: `notification` for the bell, `chat-message`
+// (a voice) for a website chat that waits, `new-visitor` (a voice) for somebody who just arrived, `call-ring` for a
+// ringing call. Browsers keep a page quiet until the person has clicked or typed on it once: then nothing plays and
+// the answer is null. Otherwise a promise that fails when the file could not be played.
+const sounds = {};
+
+const play = (name, { loop = false } = {}) => {
+    if (typeof Audio === 'undefined' || navigator.userActivation?.hasBeenActive === false) return null;
+
+    const sound = sounds[name] ??= new Audio(`/sounds/${name}.mp3?v=1`);
+
+    sound.loop = loop;
+    sound.currentTime = 0;
+
+    return sound.play() ?? Promise.resolve();
+};
+
+const hush = (name) => {
+    sounds[name]?.pause();
+};
+
+// The bell's sound. It says whether it can be heard.
 const chime = () => {
+    const started = play('notification');
+
+    if (started === null) return false;
+
+    started.catch(() => beep());
+
+    return true;
+};
+
+// Two soft rising notes, made in the browser: what plays when the sound file cannot.
+const beep = () => {
     const Context = window.AudioContext ?? window.webkitAudioContext;
 
     if (! Context || navigator.userActivation?.hasBeenActive === false) return false;
@@ -924,7 +955,9 @@ window.addEventListener('lq-alert', (event) => {
 
     if (items.length === 0) return;
 
-    const sounded = alerts.sound && chime();
+    // A waiting website chat and a ringing call have their own sound on this page (the chat desk, the call's ring).
+    const own = document.querySelector('.lq-call-group') !== null && items.every((item) => /^(New live chat|Live chat|Incoming call): /.test(item.title ?? ''));
+    const sounded = alerts.sound && (own ? navigator.userActivation?.hasBeenActive !== false : chime());
 
     // With the chime heard (or the sound turned off) the desktop notification stays quiet; else the system's own sound plays.
     if (alerts.desktop && Notification.permission === 'granted') {
@@ -1420,9 +1453,18 @@ Alpine.data('callDesk', () => {
             const on = this.ringing.length > 0 && this.current === null;
 
             if (on && ringingTone === null) {
-                tone();
-                ringingTone = setInterval(tone, 2500);
+                // The ring tone again and again; the two notes made in the browser when the file cannot play.
+                const started = play('call-ring', { loop: true });
+
+                ringingTone = started === null ? setInterval(() => {}, 60000) : 0;
+                started?.catch(() => {
+                    if (ringingTone === null) return;
+
+                    tone();
+                    ringingTone = setInterval(tone, 2500);
+                });
             } else if (! on && ringingTone !== null) {
+                hush('call-ring');
                 clearInterval(ringingTone);
                 ringingTone = null;
             }
@@ -1614,7 +1656,7 @@ Alpine.data('chatDesk', () => {
 
         remember('lq_chat_rang', String(now));
 
-        if (Alpine.store('alerts').sound) chime();
+        if (Alpine.store('alerts').sound) play('chat-message')?.catch(() => beep());
     };
 
     // The website chat on the screen right now: its thread marks it read, so it needs no card.
@@ -1708,7 +1750,10 @@ Alpine.data('chatDesk', () => {
             if (! claim(key)) return;
 
             const alerts = Alpine.store('alerts');
-            const sounded = alerts.sound && chime();
+            const voice = alerts.sound ? play('new-visitor') : null;
+            const sounded = voice !== null;
+
+            voice?.catch(() => beep());
 
             if (alerts.desktop && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                 tellWorker({ type: 'lq-alert', items: [{ id: key, title: `New visitor on ${visitor.brand ?? 'the website'}`, body: line, url: visitor.url }], silent: sounded || ! alerts.sound });

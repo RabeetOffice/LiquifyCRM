@@ -244,7 +244,10 @@ in the document's weekly phases; never skip a phase or silently change the desig
   until the chat is opened, put aside ("Later", until a newer message) or read by somebody; and a card, one chime and a
   desktop alert for a visit that began in the last 90 s (`chat_sessions.visit_started_at`). A chat rings for its owner
   (`chat_assigned_to`, or the lead's), else for whoever may `reply`. `ChatNotifier::recipients` now includes Admins for a
-  visitor chat nobody has (user's wish; before, members only). Local `artisan serve` answers one request at a time: a browser
+  visitor chat nobody has (user's wish; before, members only). Sounds are the user's own files (13 Nov 2026), shrunk with ffmpeg
+  to mono MP3 in `public/sounds` (77 KB together): `notification` (the bell, `chime()`), `chat-message`, `new-visitor`,
+  `call-ring` (13 s, looped), played by `play()` in app.js with the Web Audio notes (`beep()`, `tone()`) as the fallback; a
+  bell entry about a website chat or a call is not chimed on a page that has the chat desk (its own sound plays). Local `artisan serve` answers one request at a time: a browser
   test of this needs patience. Tests: `LiveChatVisitorsTest` (the chat desk case).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
