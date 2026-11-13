@@ -20,6 +20,16 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.59.0',
+        'date' => '2026-11-13',
+        'title' => 'The chat box opens by itself when you write to a visitor',
+        'changes' => [
+            ['new', 'When you write to a website visitor whose chat box is closed, the box now opens by itself for your first message of their visit, on an invitation from Live visitors too. Before, only a number showed on the chat button.'],
+            ['new', 'Once the visitor has closed the box, each later message shows as a small card above the chat button with your name and the words (up to three cards). A click opens the chat.'],
+            ['improved', 'A message the visitor has not read yet is still shown when they move to another page of the website.'],
+        ],
+    ],
+    [
         'version' => '1.58.1',
         'date' => '2026-11-13',
         'title' => 'The phone button only where a website allows the microphone',

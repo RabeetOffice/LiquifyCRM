@@ -228,11 +228,25 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             if (m.from === 'team') { showRating(); }
             if (m.ask === 'details' && visitor && !visitor.has_details) { setTimeout(function () { detailsCard(true); }, 0); }
             if (loaded && (!open || document.hidden)) { chime(); }
-            if (!open) { unread += 1; tell({ type: 'unread', count: unread }); }
+            if (!open) { unread += 1; tell({ type: 'unread', count: unread }); if (loaded) { announce(m); } }
         } else if (!started) {
             started = true; tell({ type: 'started' });
         }
+
+        if (open) { markSeen(); }
     }
+
+    // The website's launcher is told what the team wrote while the chat is closed: it opens the chat for the first
+    // message of a visit and shows the later ones as small cards above its button.
+    function announce(m) {
+        var text = m.body || ((m.files || []).length ? 'Sent you a file' : '');
+
+        if (text) { tell({ type: 'message', text: String(text).slice(0, 300), from: m.from === 'team' && m.name ? m.name : (config ? config.title : '') }); }
+    }
+
+    // The last message this browser showed with the chat open, so a page loaded later knows what is still unread.
+    function seenMark() { try { var v = localStorage.getItem(STORE + '_seen'); return v === null ? null : (parseInt(v, 10) || 0); } catch (e) { return null; } }
+    function markSeen() { try { localStorage.setItem(STORE + '_seen', String(lastId)); } catch (e) {} }
 
     // A soft two-note sound for an answer while the box is closed or the tab is behind another (made here, no file).
     var audio = null;
@@ -796,7 +810,13 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             setAgent(r.json.agent || null);
             messages.forEach(function (m) { addMessage(m); });
             loaded = true;
-            unread = 0; tell({ type: 'unread', count: 0 });
+
+            // What the team wrote since this browser last had the chat open (on another page, say) is still unread.
+            var before = seenMark();
+            var fresh = open || before === null ? [] : messages.filter(function (m) { return m.from !== 'visitor' && m.id > before; });
+
+            unread = fresh.length; tell({ type: 'unread', count: unread });
+            if (fresh.length) { announce(fresh[fresh.length - 1]); } else if (open || before === null) { markSeen(); }
             setClosed(!!r.json.closed);
 
             if (!messages.length && !config.online && !visitor.has_details) { offlineCard(); }
@@ -834,7 +854,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         if (event.data.type === 'page') { page = { vid: event.data.vid, url: event.data.url, title: event.data.title, referrer: event.data.referrer }; if (waiting) { waiting(); } }
         if (event.data.type === 'visible') {
             open = !!event.data.open;
-            if (open) { unread = 0; scroll(); if (!composer.classList.contains('hidden')) { box.focus(); } }
+            if (open) { unread = 0; if (loaded) { markSeen(); } scroll(); if (!composer.classList.contains('hidden')) { box.focus(); } }
             schedule();
         }
     });

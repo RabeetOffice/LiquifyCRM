@@ -242,6 +242,21 @@ it('serves the launcher that pings, and tells the privacy page about it', functi
     $this->get('/privacy')->assertOk()->assertSee('Who is on a business')->assertSee('30 days after the browser was last there');
 });
 
+it('opens the chat box for the team’s first message and shows the later ones as cards (user request, 13 Nov 2026)', function (): void {
+    $script = $this->get('/chat/widget.js')->assertOk()->getContent();
+
+    // The launcher: the first message of a visit opens the chat, the next ones are cards; an invitation goes the same way,
+    // the chat box's own greeting stays a card.
+    expect($script)->toContain('function teamWrote(data)')->toContain("storage('sessionStorage', poppedKey, '1')")
+        ->toContain("if (data.type === 'message' && !isOpen) { teamWrote(")
+        ->toContain('if (data && data.invite) { invited(data.invite); }')
+        ->toContain('words.textContent = text');
+
+    // The chat box tells the launcher the words of a message that came while it was closed, and what is still unread.
+    $frame = $this->get('/chat/frame/'.$this->widget->widget_key.'?o='.urlencode('https://dublinpublishingpress.ie'))->assertOk()->getContent();
+    expect($frame)->toContain("tell({ type: 'message', text: String(text).slice(0, 300)")->toContain("STORE + '_seen'");
+});
+
 it('keeps the website chats under Live chat and the Inbox for Messenger and Instagram', function (): void {
     $init = $this->postJson('/chat/api/init', [], ['X-Chat-Key' => $this->widget->widget_key])->assertOk();
     $this->postJson('/chat/api/messages', ['body' => 'Do you print hardbacks?'], ['X-Chat-Key' => $this->widget->widget_key, 'X-Chat-Token' => $init->json('token'), 'X-Chat-Sig' => $init->json('sig')])->assertOk();

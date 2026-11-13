@@ -230,6 +230,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   did on 13 Nov: the frame's `micAllowed()` then hides the button, the site needs `microphone=(self)`; property `voice` in the designer: `$wire.call` is Livewire's own). liquify-chat.php 1.1 passes the call paths; behind
   an older file the button is hidden (`X-Liquify-Proxy-Version`). Tests: `ChatCallsTest`; a real call in two headless pages
   with a fake microphone was run on 13 Nov (not yet tried on an iPhone or through liquify-chat.php on a live site).
+  1.59.0 (user request, 13 Nov 2026: "force popup" on the first message, then bubbles): the frame tells the launcher the words
+  of a team message that came while the chat was closed (`type: 'message'`, `announce()`); widget.js `teamWrote()` opens the
+  chat for the first one of a visit (sessionStorage `lq_chat_popped_`, also sets `lq_chat_started_` so the next page listens)
+  and shows the later ones as cards above the button (`bubble()`, at most three, text through `textContent`). An invitation
+  from Live visitors goes through `invited()` → `teamWrote()`; the chat box's own greeting (`invite()`) stays a card. The
+  frame keeps the last message shown with the chat open in localStorage `lq_v_{key}_seen`, so a page loaded later still
+  announces what is unread. Live visitors' ping refuses headless and bot user agents: a browser test needs an ordinary one.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

@@ -330,32 +330,46 @@
             return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
         }
 
-        var inviteCard = null;
+        // What the team wrote while the chat is closed: up to three small cards above the button, the newest lowest.
+        var stack = null;
+        var poppedKey = 'lq_chat_popped_' + key;
 
         function dropInvite() {
-            if (inviteCard && inviteCard.parentNode) { inviteCard.parentNode.removeChild(inviteCard); }
-            inviteCard = null;
+            if (stack && stack.parentNode) { stack.parentNode.removeChild(stack); }
+            stack = null;
         }
 
-        // The team invited this visitor: a small card by the button; opening it opens the chat, where the words are the first message.
-        function invite(data) {
-            if (isOpen || inviteCard || storage('sessionStorage', inviteKey) === data.text) { return; }
+        function bubble(data) {
+            var text = String(data.text || '').slice(0, 300);
+            var from = String(data.from || config.title || '').slice(0, 60);
 
-            storage('sessionStorage', inviteKey, data.text);
+            if (!text) { return; }
+
+            dropTeaser();
+            if (typeof dropGrabber === 'function') { dropGrabber(); }
+
+            if (!stack) {
+                stack = document.createElement('div');
+                stack.style.cssText = 'all:initial;position:absolute;bottom:' + (style === 'bar' ? 64 : 76) + 'px;' + side + ':0;width:min(272px,calc(100vw - ' + (offsetX + 12) + 'px));display:flex;flex-direction:column;gap:8px;';
+                root.insertBefore(stack, button);
+            }
+
+            while (stack.childNodes.length >= 3) { stack.removeChild(stack.firstChild); }
 
             var card = document.createElement('div');
             card.setAttribute('role', 'dialog');
-            card.setAttribute('aria-label', 'Message from ' + data.from);
-            card.style.cssText = 'all:initial;position:absolute;bottom:76px;' + side + ':0;width:272px;box-sizing:border-box;padding:13px 40px 13px 15px;border-radius:18px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:#1d1d1f;box-shadow:0 14px 40px rgba(0,0,0,.18),inset 0 0 0 1px rgba(0,0,0,.05);font:14px/1.4 ' + font + ';cursor:pointer;opacity:0;transform:translateY(8px) scale(.97);transform-origin:bottom ' + side + ';transition:opacity .25s ease,transform .35s ' + ease + ';';
+            card.setAttribute('aria-label', 'Message from ' + from);
+            card.style.cssText = 'all:initial;position:relative;display:block;box-sizing:border-box;padding:13px 40px 13px 15px;border-radius:18px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:#1d1d1f;box-shadow:0 14px 40px rgba(0,0,0,.18),inset 0 0 0 1px rgba(0,0,0,.05);font:14px/1.4 ' + font + ';cursor:pointer;opacity:0;transform:translateY(8px) scale(.97);transform-origin:bottom ' + side + ';transition:opacity .25s ease,transform .35s ' + ease + ';';
             setTimeout(function () { card.style.opacity = '1'; card.style.transform = 'none'; }, 20);
 
             var who = document.createElement('div');
             who.style.cssText = 'all:initial;display:block;font:650 12px/1.3 ' + font + ';color:#6e6e73;margin-bottom:3px;';
-            who.textContent = data.from;
+            who.textContent = from;
 
+            // Long words are cut after four lines; the whole message is in the chat.
             var words = document.createElement('div');
-            words.style.cssText = 'all:initial;display:block;font:14px/1.4 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;';
-            words.textContent = data.text;
+            words.style.cssText = 'all:initial;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;overflow-wrap:anywhere;font:14px/1.4 ' + font + ';letter-spacing:-.01em;color:#1d1d1f;';
+            words.textContent = text;
 
             var close = document.createElement('button');
             close.type = 'button';
@@ -365,13 +379,55 @@
 
             card.appendChild(who); card.appendChild(words); card.appendChild(close);
             card.onclick = function () { dropInvite(); show(true); };
-            close.onclick = function (event) { event.stopPropagation(); dropInvite(); };
+            close.onclick = function (event) {
+                event.stopPropagation();
+                if (card.parentNode) { card.parentNode.removeChild(card); }
+                if (stack && !stack.childNodes.length) { dropInvite(); }
+            };
 
-            inviteCard = card;
-            root.insertBefore(card, button);
+            stack.appendChild(card);
+        }
+
+        // Somebody of the team wrote to this visitor. The first time in a visit the chat opens by itself, so the words
+        // cannot be missed; after that (the visitor closed it) each message shows as a card above the button.
+        function teamWrote(data) {
+            if (isOpen) { return; }
+
+            if (storage('sessionStorage', poppedKey) !== '1') {
+                storage('sessionStorage', poppedKey, '1');
+                // A chat is under way: the next page keeps listening for the team's answers.
+                storage('localStorage', startedKey, '1');
+                show(true);
+
+                return;
+            }
+
+            bubble(data);
+        }
+
+        // The greeting the chat box gives by itself after a few seconds: a card, never the whole chat.
+        function invite(data) {
+            if (isOpen || stack || storage('sessionStorage', inviteKey) === data.text) { return; }
+
+            storage('sessionStorage', inviteKey, data.text);
+            bubble(data);
             unread = 1;
             badge.textContent = '1';
             badge.style.display = 'block';
+        }
+
+        // The team invited this visitor from Live visitors: their words come with the next ping.
+        function invited(data) {
+            if (isOpen || storage('sessionStorage', inviteKey) === data.text) { return; }
+
+            storage('sessionStorage', inviteKey, data.text);
+            teamWrote(data);
+
+            if (!isOpen) {
+                unread = Math.max(1, unread);
+                badge.textContent = unread > 9 ? '9+' : String(unread);
+                badge.style.display = 'block';
+            }
         }
 
         function ping() {
@@ -384,7 +440,7 @@
             // A plain-text body is a "simple" request: the browser sends it at once, without asking first.
             fetch(chatUrl('api/ping'), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, credentials: 'omit', keepalive: true })
                 .then(function (response) { return response.status === 200 ? response.json() : null; })
-                .then(function (data) { if (data && data.invite) { invite(data.invite); } })
+                .then(function (data) { if (data && data.invite) { invited(data.invite); } })
                 .catch(function () {});
         }
 
@@ -487,6 +543,8 @@
                 badge.textContent = unread > 9 ? '9+' : String(unread);
                 badge.style.display = unread > 0 ? 'block' : 'none';
             }
+            // The words are shown as text only, cut short here whatever the chat box sent.
+            if (data.type === 'message' && !isOpen) { teamWrote({ text: data.text, from: data.from }); }
         });
 
         document.body.appendChild(root);
