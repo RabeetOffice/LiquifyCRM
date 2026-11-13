@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.58.1',
+        'date' => '2026-11-13',
+        'title' => 'The phone button only where a website allows the microphone',
+        'changes' => [
+            ['fixed', 'On a website whose own settings forbid the microphone, the chat box showed the phone button and then said “allow the microphone” without the browser ever asking. The button is now left out there, and Chat boxes › Window says which line of the website to change.'],
+        ],
+    ],
+    [
         'version' => '1.58.0',
         'date' => '2026-11-13',
         'title' => 'Voice calls from the website chat',

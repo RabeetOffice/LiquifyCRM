@@ -239,7 +239,7 @@
                     <h2 class="lq-group-title">Voice calls</h2>
                     <div class="lq-group-body lq-group-rows">
                         <div class="lq-group-row">
-                            <div><strong>Visitors can call you</strong><span>A phone button in the chat box's header while somebody of the team is here. The call rings in LiquifyCRM for everybody who works website visitors; the first to answer talks to the visitor, browser to browser. Calls are not recorded.</span></div>
+                            <div><strong>Visitors can call you</strong><span>A phone button in the chat box's header while somebody of the team is here. The call rings in LiquifyCRM for everybody who works website visitors; the first to answer talks to the visitor, browser to browser. Calls are not recorded. If the button does not show on a website, its .htaccess forbids the microphone: change <code>microphone=()</code> to <code>microphone=(self)</code> in its Permissions-Policy line.</span></div>
                             <button type="button" role="switch" class="lq-switch" :aria-checked="$wire.voice ? 'true' : 'false'" x-on:click="$wire.voice = !$wire.voice; open = true; away = false" aria-label="Visitors can call you"></button>
                         </div>
                     </div>

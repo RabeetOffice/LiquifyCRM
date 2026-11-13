@@ -602,7 +602,15 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
     var callBtn = $('callbtn'), callBar = $('callbar'), callWho = $('callwho'), callSub = $('callsub'), callAudio = $('callaudio');
     var phone = null, ringTimer = null;
 
-    function callPossible() { return !!(config && config.call && window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+    // A website can forbid the microphone for all its pages (a Permissions-Policy header with "microphone=()"): the
+    // browser then refuses without asking, so the phone button is not offered there.
+    function micAllowed() {
+        try {
+            var policy = document.permissionsPolicy || document.featurePolicy;
+            return !policy || !policy.allowsFeature || policy.allowsFeature('microphone');
+        } catch (e) { return true; }
+    }
+    function callPossible() { return !!(config && config.call && window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && micAllowed()); }
     function paintCallButton() { callBtn.classList.toggle('hidden', !(callPossible() && online && !phone)); }
     function callSay(title, sub) { callWho.textContent = title; callSub.textContent = sub || ''; }
     function mmss(seconds) { return Math.floor(seconds / 60) + ':' + ('0' + (seconds % 60)).slice(-2); }

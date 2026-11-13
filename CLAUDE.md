@@ -226,7 +226,8 @@ in the document's weekly phases; never skip a phase or silently change the desig
   chat stamp moves; the desk then asks `/calls/incoming`. Relay: `CallServers` from `CHAT_TURN_URL` / `_USERNAME` / `_PASSWORD`
   (ExpressTURN free plan, a fixed sign-in; handed to a browser only by `call/ice` or on accept, never in the frame or config;
   named on the privacy page while set). The frame's iframe has `allow="microphone"` (widget.js). `appearance.call` ('1' by
-  default, property `voice` in the designer: `$wire.call` is Livewire's own). liquify-chat.php 1.1 passes the call paths; behind
+  default; a website whose .htaccess sends `Permissions-Policy: microphone=()` blocks it without a prompt, as most brand sites
+  did on 13 Nov: the frame's `micAllowed()` then hides the button, the site needs `microphone=(self)`; property `voice` in the designer: `$wire.call` is Livewire's own). liquify-chat.php 1.1 passes the call paths; behind
   an older file the button is hidden (`X-Liquify-Proxy-Version`). Tests: `ChatCallsTest`; a real call in two headless pages
   with a fake microphone was run on 13 Nov (not yet tried on an iPhone or through liquify-chat.php on a live site).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
