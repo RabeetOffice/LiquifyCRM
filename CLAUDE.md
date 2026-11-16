@@ -271,6 +271,20 @@ in the document's weekly phases; never skip a phase or silently change the desig
   they asked for, notes, open follow-ups, chat). The AI never sends or saves anything by itself. The privacy page names
   Groq while a key is set; the Groq account needs Zero Data Retention switched on (the page says it does not keep or
   train). phpunit.xml blanks `GROQ_API_KEY`. Tests: `tests/Feature/Core/AiAssistantTest.php`.
+  1.63.0 (user request, same day: "Hot lead tag, Note from a chat, Follow-up suggestion, Reason for Lost"): `LeadInsights`
+  (columns `leads.heat` / `heat_reason` / `heat_at` / `lost_reason` / `lost_reason_note` / `lost_reason_by`, behind
+  `LeadInsights::ready()`; `assisted()` = ready and a key). `AssistLead` (queued, one try, inside the lead's brand) rates a
+  new lead from `CreateLead` (never a `silent` import, never an enquiry with no words) and reads why a lead was lost from
+  `ChangeLeadStatus` (leaving Lost clears the reason). A reason a person chose (`lost_reason_by` set, `LeadPanel::setLostReason`,
+  works without a key) is never replaced by the AI's. The tag is `leads::partials.heat` (lists show Hot and Warm only);
+  the Dashboard's "Why leads were lost" counts lost leads by `last_activity_at` of 30 days (there is no lost_at). Follow-up
+  offer: `addNote` asks the browser (`$this->js`) to call `suggestFollowUp` only when `LeadInsights::mentionsTime()` finds a
+  word about time, so most notes never leave and saving never waits; the AI gets a calendar of the next two weeks and
+  the server still snaps the date to the one weekday the note names (it answered Friday for "Thursday"); the offer only
+  fills the usual follow-up form. Summaries are saved as a note only by a person ("written by AI" in its first line).
+  The AI never changes a stage, an owner or a follow-up by itself: keep it so. Text in a Blade `@if` gets Livewire's
+  comment markers around it, so build one string in PHP when a test must see the whole sentence. Tests:
+  `tests/Feature/Leads/LeadInsightsTest.php`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

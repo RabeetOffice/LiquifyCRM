@@ -20,6 +20,18 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.63.0',
+        'date' => '2026-11-16',
+        'title' => 'Hot leads, why leads are lost, follow-ups from notes',
+        'changes' => [
+            ['new', 'Hot, Warm or Cold on new leads: the AI reads what a new enquiry says and tags how ready to buy it sounds, with a short reason when you point at the tag. Hot and Warm show beside the name on the Leads list and the Pipeline, so the most promising are rung first. On the lead, "Rate again" asks once more after things change. Old leads and bulk imports are not tagged by themselves.'],
+            ['new', 'Why it was lost: when a lead is moved to Lost, the AI reads its notes and chat and files it under a reason (too expensive, stopped answering, went with someone else, not ready yet, not what we offer, wrong contact details, something else). You can choose the reason yourself on the lead, and yours is never changed by the AI. The Dashboard has a new card, "Why leads were lost", for the last 30 days.'],
+            ['new', 'A follow-up offered from your note: write "call her back Thursday at 4pm" in a note and a card offers that follow-up with the day and time filled in. You check it and add it, or close the card. Nothing is added by itself.'],
+            ['new', '"Save as a note" on an AI summary of a lead or a chat keeps it on the lead, marked as written by AI.'],
+            ['improved', 'The AI now uses the three models a free Groq account offers, moving to the next one when the first is at its limit.'],
+        ],
+    ],
+    [
         'version' => '1.62.0',
         'date' => '2026-11-16',
         'title' => 'AI help in chats and on leads',

@@ -174,6 +174,9 @@
                     <strong>Summary of this chat</strong>
                     <p class="whitespace-pre-wrap">{{ $summary }}</p>
                     <small>Written by AI from the messages above. Check anything important against them.</small>
+                    @if ($canNote)
+                        <button type="button" class="lq-ai-save" wire:click="saveSummaryAsNote" wire:loading.attr="disabled" wire:target="saveSummaryAsNote"><x-heroicon-m-plus /> Save as a note on the lead</button>
+                    @endif
                 @else
                     <p>{{ $summaryError }}</p>
                 @endif

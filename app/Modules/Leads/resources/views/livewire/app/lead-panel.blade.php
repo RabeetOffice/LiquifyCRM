@@ -73,6 +73,10 @@
             @endif
             <div class="lq-lead-meta">
                 <x-ui.lead-source :lead="$lead" />
+                @include('leads::partials.heat', ['lead' => $lead, 'all' => true])
+                @if ($insights['canRate'])
+                    <button type="button" class="lq-heat-rate" wire:click="rateHeat" wire:loading.attr="disabled" wire:loading.class="lq-ai-working" wire:target="rateHeat" title="Let the AI rate how ready to buy this enquiry sounds"><x-heroicon-m-sparkles /> {{ $lead->getAttribute('heat') ? 'Rate again' : 'Rate' }}</button>
+                @endif
                 <span>Received <x-ui.received :at="$lead->created_at" inline /></span>
                 @if ($lead->last_activity_at && $lead->last_activity_at->gt($lead->created_at))
                     <span title="{{ $lead->last_activity_at->format('j M Y, H:i') }}">· Last activity {{ $lead->last_activity_at->diffForHumans() }}</span>
@@ -109,6 +113,30 @@
                 </button>
             @endforeach
         </nav>
+
+        {{-- Lost: why. The assistant's reading of the notes and the chat, or what a person chose. --}}
+        @if ($insights['lost'] !== null)
+            <div class="lq-lost-why">
+                <x-heroicon-o-question-mark-circle />
+                <div class="min-w-0 flex-1">
+                    <strong>Why it was lost</strong>
+                    @if ($insights['lost']['reason'] !== null)
+                        <span>{{ \App\Modules\Leads\Support\LeadInsights::LOST[$insights['lost']['reason']].(filled($insights['lost']['note']) ? ': '.$insights['lost']['note'] : '') }}</span>
+                        @if ($insights['lost']['byAi'])<small>Read by AI from the notes and the chat. Change it if it is wrong.</small>@endif
+                    @else
+                        <span class="lq-lost-why-none">{{ $can['update'] ? 'Not said yet. Choose a reason, so the numbers show why leads are lost.' : 'Not said yet.' }}</span>
+                    @endif
+                </div>
+                @if ($can['update'])
+                    <select class="lq-input lq-lost-why-pick" aria-label="Why it was lost" wire:change="setLostReason($event.target.value)">
+                        <option value="">{{ $insights['lost']['reason'] !== null ? 'No reason' : 'Choose…' }}</option>
+                        @foreach (\App\Modules\Leads\Support\LeadInsights::LOST as $key => $label)
+                            <option value="{{ $key }}" @selected($insights['lost']['reason'] === $key)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                @endif
+            </div>
+        @endif
 
         {{-- Archived: out of the lists, nothing lost. --}}
         @if ($archived)
@@ -290,6 +318,9 @@
                                 <strong>Summary of this lead</strong>
                                 <p class="whitespace-pre-wrap">{{ $aiSummary }}</p>
                                 <small>Written by AI from this lead's notes, follow-ups and chat. Check anything important against them.</small>
+                                @if ($can['update'])
+                                    <button type="button" class="lq-ai-save" wire:click="saveSummaryAsNote" wire:loading.attr="disabled" wire:target="saveSummaryAsNote"><x-heroicon-m-plus /> Save as a note</button>
+                                @endif
                             @else
                                 <p>{{ $aiError }}</p>
                             @endif
@@ -318,6 +349,19 @@
                                     <x-ui.button type="submit" size="sm" variant="secondary" icon="heroicon-o-plus" wire:loading.attr="disabled" wire:target="addNote">Add note</x-ui.button>
                                 </div>
                             </form>
+                            {{-- A note that names a day: the assistant offers the follow-up, the person adds it or not. --}}
+                            @if ($followUpHint !== null)
+                                <div class="lq-ai-card" wire:key="follow-up-hint" role="status">
+                                    <x-heroicon-m-sparkles />
+                                    <div class="min-w-0 flex-1">
+                                        <strong>Add a follow-up?</strong>
+                                        <p>{{ $followUpHint['title'] }} · {{ $followUpHint['label'] }}</p>
+                                        <small>Read by AI from your note. You can change the day and the words before it is saved.</small>
+                                        <button type="button" class="lq-ai-save" wire:click="useFollowUpHint"><x-heroicon-m-calendar-days /> Add it</button>
+                                    </div>
+                                    <button type="button" class="lq-ai-card-x" wire:click="dropFollowUpHint" title="No thanks" aria-label="No follow-up">&times;</button>
+                                </div>
+                            @endif
                         @endif
 
                         @forelse ($lead->notes as $noteItem)

@@ -37,6 +37,7 @@ use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Leads\Support\FollowUpZones;
 use App\Modules\Leads\Support\LeadEnquiry;
+use App\Modules\Leads\Support\LeadInsights;
 use App\Modules\Leads\Support\LeadMatcher;
 use App\Modules\Leads\Support\LeadSummary;
 use App\Modules\Leads\Support\NoteEdits;
@@ -111,6 +112,14 @@ final class LeadPanel extends Component
     public ?string $aiSummary = null;
 
     public ?string $aiError = null;
+
+    /**
+     * A follow-up the assistant read in the note just added, offered until it is added or put aside: `at` (the form's
+     * date and time), `title` and `label`. It comes back from the browser, so it is checked again before it is used.
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $followUpHint = null;
 
     public bool $showFollowUp = false;
 
@@ -528,6 +537,83 @@ final class LeadPanel extends Component
         $this->aiError = null;
     }
 
+    /** The summary on the screen, kept as a note on the lead: by the person, with a line saying who wrote it. */
+    public function saveSummaryAsNote(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('update', $lead);
+
+        if (blank($this->aiSummary)) {
+            return;
+        }
+
+        app(AddLeadNote::class)->handle($lead, "Summary (written by AI):\n".mb_substr(trim((string) $this->aiSummary), 0, 4000), $this->user());
+
+        $this->closeSummary();
+        $this->tab = 'notes';
+        $this->changed();
+        $this->toastSuccess('Saved as a note');
+    }
+
+    /** How ready to buy the enquiry sounds: asked of the assistant now, by whoever works the lead. */
+    public function rateHeat(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('update', $lead);
+        abort_unless(LeadInsights::assisted(), 404);
+
+        LeadInsights::rate($lead, $this->user()) !== null
+            ? $this->toastSuccess('Rated by AI')
+            : $this->toastWarning('Not rated', 'There is nothing to go by yet, or the assistant is busy. Try again in a minute.');
+    }
+
+    /** Why the lead was lost, chosen by a person (empty takes the reason away). */
+    public function setLostReason(string $reason): void
+    {
+        $lead = $this->lead();
+        $this->authorize('update', $lead);
+        abort_unless(LeadInsights::ready() && $lead->status->is_lost && ($reason === '' || isset(LeadInsights::LOST[$reason])), 404);
+
+        LeadInsights::setLostReason($lead, $reason, $this->user());
+        $this->changed();
+    }
+
+    /**
+     * Asked by the browser right after a note is saved, so saving never waits for the assistant: does the note name a
+     * day to get back to the person? If so it is offered, and only the person adds it.
+     */
+    public function suggestFollowUp(int $noteId): void
+    {
+        $lead = $this->lead();
+        $this->authorize('update', $lead);
+
+        $note = LeadNote::query()->where('lead_id', $lead->getKey())->find($noteId);
+        $found = $note !== null && Ai::enabled() ? LeadInsights::followUpIn($note->body, $lead, $this->user()) : null;
+
+        $this->followUpHint = $found !== null
+            ? ['at' => $found['at']->format('Y-m-d\TH:i'), 'title' => $found['title'], 'label' => $found['at']->format('D j M, g:i A')]
+            : null;
+    }
+
+    /** The offered follow-up, in the usual form: the person checks the day and the words, then saves. */
+    public function useFollowUpHint(): void
+    {
+        $hint = $this->followUpHint;
+        $this->openFollowUp();
+
+        if (is_array($hint) && preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', (string) ($hint['at'] ?? '')) === 1) {
+            $this->followUpAt = $hint['at'];
+            $this->followUpTitle = mb_substr(trim((string) ($hint['title'] ?? '')), 0, 160) ?: 'Follow up';
+        }
+
+        $this->followUpHint = null;
+    }
+
+    public function dropFollowUpHint(): void
+    {
+        $this->followUpHint = null;
+    }
+
     /** "Add note" and the N key: the note is written on the Notes tab itself, not in a dialog. */
     public function openNote(): void
     {
@@ -542,7 +628,14 @@ final class LeadPanel extends Component
         $this->authorize('update', $lead);
         $this->validate(['note' => ['required', 'string', 'max:5000']], ['note.required' => 'Write the note first.']);
 
-        app(AddLeadNote::class)->handle($lead, $this->note, $this->user());
+        $note = app(AddLeadNote::class)->handle($lead, $this->note, $this->user());
+
+        // A note that speaks of a day or a time: the browser asks the assistant for a follow-up, after this answer.
+        $this->followUpHint = null;
+
+        if (Ai::enabled() && LeadInsights::mentionsTime($note->body)) {
+            $this->js('$wire.suggestFollowUp('.(int) $note->getKey().')');
+        }
 
         $this->note = '';
         $this->tab = 'notes';
@@ -777,6 +870,11 @@ final class LeadPanel extends Component
             'profileName' => ProfileNames::shown($lead),
             // The assistant's Summarise button: only with a key in .env.
             'aiReady' => Ai::enabled(),
+            // The assistant's tag and the reason for Lost: there once the update is applied.
+            'insights' => [
+                'canRate' => $canUpdate && LeadInsights::assisted(),
+                'lost' => LeadInsights::ready() && $lead->status->is_lost ? ['reason' => isset(LeadInsights::LOST[$lead->getAttribute('lost_reason')]) ? $lead->getAttribute('lost_reason') : null, 'note' => $lead->getAttribute('lost_reason_note'), 'byAi' => $lead->getAttribute('lost_reason') !== null && $lead->getAttribute('lost_reason_by') === null] : null,
+            ],
             // Other leads of the same person, offered for merging to whoever may merge both; a colleague's is only named.
             'twins' => $user->can('merge', $lead) ? array_map(fn (array $twin): array => [...$twin, 'mergeable' => $user->can('merge', $twin['lead'])], LeadMatcher::twins($lead, $user)) : [],
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],

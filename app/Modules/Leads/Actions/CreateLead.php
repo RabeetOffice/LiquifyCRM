@@ -10,6 +10,7 @@ use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\ViewerTime;
 use App\Modules\Leads\Enums\LeadSource;
 use App\Modules\Leads\Events\LeadCreated;
+use App\Modules\Leads\Jobs\AssistLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\LeadMatcher;
@@ -135,6 +136,9 @@ final class CreateLead
             if ($data['silent'] ?? false) {
                 return new LeadCreation($lead, wasMerged: false);
             }
+
+            // How ready to buy it sounds, worked out by the assistant in the background (never for a bulk import).
+            AssistLead::rate($lead);
 
             // A lead that arrives straight in a round-robin department goes to the next Agent in turn.
             if ($lead->assigned_to === null && $lead->department_id !== null && app(AutoAssignLead::class)->handle($lead, $by) !== null) {

@@ -194,6 +194,21 @@
         </x-ui.card>
     </div>
 
+    {{-- Why leads were lost: what people chose on the lead, or what the assistant read in its notes and chat. --}}
+    @if ($lostWhy !== null)
+        <x-ui.card title="Why leads were lost" description="Last 30 days. Chosen on each lost lead, or read by AI from its notes and chat.">
+            <ul class="lq-why">
+                @foreach ($lostWhy as $row)
+                    <li class="lq-why-row">
+                        <span class="lq-why-label">{{ $row['label'] }}</span>
+                        <span class="lq-why-bar"><span style="width: {{ max(2, $row['share']) }}%"></span></span>
+                        <span class="lq-why-count">{{ $row['count'] }} <small>{{ $row['share'] }}%</small></span>
+                    </li>
+                @endforeach
+            </ul>
+        </x-ui.card>
+    @endif
+
     {{-- The audit trail: Admins only. --}}
     @if ($activity !== null)
     <x-ui.card title="Recent activity" description="Latest entries in this brand's audit trail" flush>

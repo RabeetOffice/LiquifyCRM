@@ -17,6 +17,7 @@ use App\Modules\Chat\Support\LiveChat;
 use App\Modules\Core\Support\Ai\Ai;
 use App\Modules\Core\Support\Ai\AiUnavailable;
 use App\Modules\Core\Support\CurrentBrand;
+use App\Modules\Leads\Actions\AddLeadNote;
 use App\Modules\Meta\Actions\ReplyOnMessenger;
 use App\Modules\Meta\Exceptions\MetaException;
 use App\Modules\Meta\Models\Conversation;
@@ -186,6 +187,25 @@ final class ConversationThread extends Component
         $this->summaryError = null;
     }
 
+    /** The summary on the screen, kept as a note on the chat's lead by whoever may work that lead. */
+    public function saveSummaryAsNote(AddLeadNote $notes): void
+    {
+        $conversation = $this->conversation();
+        $lead = $conversation->lead;
+        abort_if($lead === null, 404);
+        $this->authorize('update', $lead);
+
+        if (blank($this->summary)) {
+            return;
+        }
+
+        $notes->handle($lead, 'Summary of the '.$conversation->channelLabel()." chat (written by AI):\n".mb_substr(trim((string) $this->summary), 0, 4000), $this->user());
+
+        $this->closeSummary();
+        $this->dispatch('lead-updated');
+        $this->dispatch('toast', title: 'Saved as a note on the lead', body: null, type: 'success', undo: null, duration: 5000);
+    }
+
     public function close(ChangeChat $changes): void
     {
         $conversation = $this->conversation();
@@ -295,6 +315,7 @@ final class ConversationThread extends Component
             'savedReplies' => $this->savedReplies($conversation),
             // The assistant's buttons: only with a key in .env.
             'aiReady' => Ai::enabled(),
+            'canNote' => $conversation->lead !== null && (bool) auth()->user()?->can('update', $conversation->lead),
             'typingUrl' => $conversation->isLiveChat() && ($brand = app(CurrentBrand::class)->get()) !== null ? route('brand.conversations.typing', ['brand' => $brand->slug, 'conversation' => $conversation->getKey()]) : null,
             'isLiveChat' => $conversation->isLiveChat(),
             'closed' => $conversation->isClosed(),

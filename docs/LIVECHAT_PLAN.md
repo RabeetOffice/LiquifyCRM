@@ -391,3 +391,10 @@ visitors by itself (knowledge box, modes, hand-over, `chat_ai_usage`) is still n
 - Needs from the user: a free Groq account, Zero Data Retention switched on in its console, and `GROQ_API_KEY` in the
   live `.env`. Tried against the real Groq service on 16 Nov 2026 with the user's key on this computer (answers in 1 to 2
   seconds); the key is not yet in the live `.env`. Fallback model `qwen/qwen3.8-27b` added the same day.
+
+## Lead insights built (16 Nov 2026, version 1.63.0)
+The user's next four picks from the AI list: Hot lead tag, Note from a chat, Follow-up suggestion, Reason for Lost.
+`LeadInsights` + the queued `AssistLead`; one migration (six columns on `leads`), so "Update system" is needed. Details
+in CLAUDE.md. Tried against real Groq on local demo leads: tags, Lost reasons and follow-up dates came back sensible
+once the prompt carried a calendar. Still open from the AI list: translate their messages, tone check, the virtual
+assistant for visitors (Phase 5), voice notes (Whisper), the digest in words, the weekly chat report, ask your data.

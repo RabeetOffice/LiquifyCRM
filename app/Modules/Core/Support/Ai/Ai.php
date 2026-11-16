@@ -35,23 +35,26 @@ final class Ai
     }
 
     /**
-     * Ask the first provider that can answer.
+     * Ask the first provider that can answer. `$by` is the person who asked, or null for work done in the background.
      *
      * @throws AiUnavailable with words for the person who asked
      */
-    public static function ask(string $instructions, string $text, User $by, int $maxTokens = 350): string
+    public static function ask(string $instructions, string $text, ?User $by, int $maxTokens = 350): string
     {
         if (! self::enabled()) {
             throw new AiUnavailable('The assistant is not switched on.');
         }
 
-        $person = 'ai:person:'.$by->getKey();
+        // Nobody asked (a new lead being rated in the background): only the day's cap counts.
+        if ($by !== null) {
+            $person = 'ai:person:'.$by->getKey();
 
-        if (RateLimiter::tooManyAttempts($person, self::PER_PERSON_A_MINUTE)) {
-            throw new AiUnavailable('You have asked the assistant a lot in the last minute. Try again in a moment.');
+            if (RateLimiter::tooManyAttempts($person, self::PER_PERSON_A_MINUTE)) {
+                throw new AiUnavailable('You have asked the assistant a lot in the last minute. Try again in a moment.');
+            }
+
+            RateLimiter::hit($person, 60);
         }
-
-        RateLimiter::hit($person, 60);
 
         $today = 'ai:asked:'.now()->toDateString();
         Cache::add($today, 0, now()->addDays(2));

@@ -17,6 +17,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Models\Task;
 use App\Modules\Leads\Support\AssignableAgents;
+use App\Modules\Leads\Support\LeadInsights;
 use App\Modules\Sales\Support\CareTeams;
 use App\Modules\Sites\Support\LeadSites;
 use Illuminate\Contracts\View\View;
@@ -107,6 +108,17 @@ final class BrandDashboard extends Component
                     ->pluck(DB::raw('count(*) as total'), 'source_type')
                     ->all(),
                 'byStatus' => $worked()->groupBy('status_id')->pluck(DB::raw('count(*) as total'), 'status_id')->all(),
+                // Why leads were lost in the last 30 days ("" = nobody said): only once the update brought the column.
+                'lostWhy' => LeadInsights::ready()
+                    ? $worked()
+                        ->whereIn('status_id', LeadStatus::query()->where('is_lost', true)->pluck('id'))
+                        ->where('last_activity_at', '>=', now()->subDays(30))
+                        ->selectRaw("coalesce(lost_reason, '') as reason, count(*) as total")
+                        ->groupBy('reason')
+                        ->toBase()
+                        ->pluck('total', 'reason')
+                        ->all()
+                    : null,
             ];
         });
 
@@ -166,6 +178,7 @@ final class BrandDashboard extends Component
                 'labels' => $days->map(fn (string $day): string => now()->parse($day)->format('j M'))->all(),
                 'values' => $days->map(fn (string $day): int => (int) ($byDay[$day] ?? 0))->all(),
             ],
+            'lostWhy' => $this->lostWhy($stats['lostWhy'] ?? null),
             'chartSource' => [
                 'labels' => $bySource->keys()->map(fn (int|string $source): string => LeadSource::tryFrom((string) $source)?->getLabel() ?? (string) $source)->all(),
                 'values' => $bySource->values()->map(fn ($value): int => (int) $value)->all(),
@@ -199,6 +212,36 @@ final class BrandDashboard extends Component
         $change = (int) round(($current - $previous) / $previous * 100);
 
         return ['text' => ($change >= 0 ? '+' : '').$change.'%', 'up' => $change >= 0];
+    }
+
+    /**
+     * The reasons leads were lost, most frequent first, each with its share of the bar; "Not said" last.
+     *
+     * @param  array<int|string, int|string>|null  $counts
+     * @return list<array{label: string, count: int, share: int}>|null null: nothing to show
+     */
+    private function lostWhy(?array $counts): ?array
+    {
+        $total = array_sum(array_map('intval', $counts ?? []));
+
+        if ($counts === null || $total === 0) {
+            return null;
+        }
+
+        arsort($counts);
+        $unsaid = (int) ($counts[''] ?? 0);
+        unset($counts['']);
+        $rows = [];
+
+        foreach ($counts as $reason => $count) {
+            $rows[] = ['label' => LeadInsights::LOST[$reason] ?? 'Something else', 'count' => (int) $count, 'share' => (int) round((int) $count / $total * 100)];
+        }
+
+        if ($unsaid > 0) {
+            $rows[] = ['label' => 'Not said', 'count' => $unsaid, 'share' => (int) round($unsaid / $total * 100)];
+        }
+
+        return $rows;
     }
 
     private function user(): User

@@ -8,8 +8,10 @@ use App\Modules\Auth\Models\User;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Leads\Events\LeadStatusChanged;
 use App\Modules\Leads\Exceptions\LeadIsWon;
+use App\Modules\Leads\Jobs\AssistLead;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
+use App\Modules\Leads\Support\LeadInsights;
 
 /**
  * Move a lead along the brand's pipeline. The first move away from New
@@ -55,6 +57,9 @@ final class ChangeLeadStatus
             causer: $by,
             logName: 'leads',
         );
+
+        // Lost: the assistant reads why, in the background. No longer lost: the reason goes.
+        $status->is_lost ? AssistLead::whyLost($lead) : LeadInsights::forgetLostReason($lead);
 
         LeadStatusChanged::dispatch($lead);
 

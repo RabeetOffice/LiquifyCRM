@@ -98,6 +98,7 @@
                             <div class="lq-kcard-top">
                                 <x-ui.avatar :name="$lead->name" size="sm" tone />
                                 <span class="lq-kcard-title">{{ $lead->name }}</span>
+                                @include('leads::partials.heat', ['lead' => $lead])
                                 @if (in_array($lead->getKey(), $quiet, true))
                                     <span class="lq-quiet-dot" title="No activity since {{ $lead->last_activity_at?->format('j M') }}"></span>
                                 @endif
