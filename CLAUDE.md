@@ -254,6 +254,23 @@ in the document's weekly phases; never skip a phase or silently change the desig
   own "Want a reply by email or phone?" card) and the team asks with "Ask in the chat". The away form still stands alone.
   1.60.1: `/chat/widget.js` is `Cache-Control: private, max-age=300`. Never `public`: a brand site's LiteSpeed page cache sits
   in front of liquify-chat.php and kept the old launcher after a deploy (the frame and the API are `no-store`).
+- The assistant, free AI for the team (user request, 16 Nov 2026: "integrate Groq free AI"; user decision: team helpers
+  first, the visitor-facing virtual assistant of the plan's Phase 5 is NOT built, ask before building it; 1.62.0).
+  `App\Modules\Core\Support\Ai`: `Ai::enabled()` / `Ai::ask()` (8 questions a minute per person, `liquify.ai.daily_cap`
+  800 a day, counters in the cache, no table), `AiProvider` with `GroqProvider` (plain Http, `GROQ_API_KEY`, the models
+  of `GROQ_MODELS` tried in order: `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, the chat models the
+  user's account lists (16 Nov 2026; the Llama models answer 404 there, so read `/models` with the key before naming
+  one). A 429 rests a model for Groq's `retry-after`, a 404 for an hour. GPT-OSS models get `reasoning_effort` low and
+  `include_reasoning` false plus 600 tokens of room, Qwen `reasoning_effort` none. The account's free limits per model:
+  30 requests a minute, 1,000 a day, 8,000 tokens a minute, 200,000 tokens a day, so tokens run out first: keep what
+  is sent short. `AiUnavailable` (its message is for the person). Off without a key: every button is behind `Ai::enabled()` and the methods answer 404. Text leaves only
+  through `ContactMask` (emails, phone-like numbers and the person's names become `[email1]` / `[phone1]` / `[name1]` and
+  are put back in the answer): never send a contact, a team note of a chat, a file or money to the AI. `ChatHelper`
+  (suggest, improve, translate, summary; `ConversationThread::assist` is `#[Renderless]`, `chatAi` in app.js puts the
+  text in the box, never over words typed meanwhile, with Undo) and `LeadSummary` (`LeadPanel::summarise`: stage, what
+  they asked for, notes, open follow-ups, chat). The AI never sends or saves anything by itself. The privacy page names
+  Groq while a key is set; the Groq account needs Zero Data Retention switched on (the page says it does not keep or
+  train). phpunit.xml blanks `GROQ_API_KEY`. Tests: `tests/Feature/Core/AiAssistantTest.php`.
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are
   `lead_statuses` rows per brand and every screen reads `LeadStatus::query()->ordered()`, so a new stage is everywhere at once.
   `PipelineStages` (`/b/{brand}/leads/stages`, Settings menu and the Pipeline's Stages button) for Admins and the brand's

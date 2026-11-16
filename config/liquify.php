@@ -97,6 +97,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The assistant (free AI for the team)
+    |--------------------------------------------------------------------------
+    | Optional. With a free Groq key the team gets "Suggest a reply", "Fix my writing", "Translate my reply" and
+    | "Summarise" in chats and on leads. Text goes out with names, email addresses and phone numbers replaced by
+    | placeholders, and nothing is sent by itself: a person reads what comes back. Empty key: none of it is shown.
+    | groq_models are tried in order (the next one when the first is at its free limit); daily_cap is the most
+    | questions the whole CRM asks in a day. The privacy page names Groq while a key is set.
+    */
+    'ai' => [
+        'groq_key' => env('GROQ_API_KEY'),
+        'groq_models' => env('GROQ_MODELS', 'openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b'),
+        'groq_url' => env('GROQ_URL', 'https://api.groq.com/openai/v1'),
+        'daily_cap' => (int) env('AI_DAILY_CAP', 800),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Live chat on the websites
     |--------------------------------------------------------------------------
     | How long a website chat keeps what visitors send (the privacy pages say so, change them with these):
@@ -134,7 +151,7 @@ return [
         'name' => env('LIQUIFY_LEGAL_NAME', 'LiquifyCRM'),
         'email' => env('LIQUIFY_LEGAL_EMAIL', 'rabeet0846551@gmail.com'),
         'facebook_app' => env('LIQUIFY_LEGAL_FACEBOOK_APP', 'LiquifyCRM Leads'),
-        'updated' => '2026-11-13',
+        'updated' => '2026-11-16',
     ],
 
     /*

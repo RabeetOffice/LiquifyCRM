@@ -8,6 +8,8 @@ use App\Modules\Activity\Models\Activity;
 use App\Modules\Auth\Models\User;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Core\Livewire\Concerns\WithConfirmation;
+use App\Modules\Core\Support\Ai\Ai;
+use App\Modules\Core\Support\Ai\AiUnavailable;
 use App\Modules\Core\Support\Audit;
 use App\Modules\Core\Support\Countries;
 use App\Modules\Core\Support\CurrentBrand;
@@ -36,6 +38,7 @@ use App\Modules\Leads\Support\ContactVisibility;
 use App\Modules\Leads\Support\FollowUpZones;
 use App\Modules\Leads\Support\LeadEnquiry;
 use App\Modules\Leads\Support\LeadMatcher;
+use App\Modules\Leads\Support\LeadSummary;
 use App\Modules\Leads\Support\NoteEdits;
 use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Meta\Jobs\LearnProfileName;
@@ -103,6 +106,11 @@ final class LeadPanel extends Component
     public string $statusTo = '';
 
     public string $note = '';
+
+    /** The assistant's summary of this lead, or why it could not write one; shown until it is closed. */
+    public ?string $aiSummary = null;
+
+    public ?string $aiError = null;
 
     public bool $showFollowUp = false;
 
@@ -495,6 +503,31 @@ final class LeadPanel extends Component
         $this->toastSuccess('File removed');
     }
 
+    /**
+     * The lead in a few lines, written by the assistant (user request, 16 Nov 2026) for whoever may open it: from what
+     * this screen shows them anyway, never the money, and with the contact hidden on the way out. Nothing is saved.
+     */
+    public function summarise(): void
+    {
+        $lead = $this->lead();
+        $this->authorize('view', $lead);
+        abort_unless(Ai::enabled(), 404);
+
+        try {
+            $this->aiSummary = LeadSummary::of($lead, $this->user());
+            $this->aiError = null;
+        } catch (AiUnavailable $exception) {
+            $this->aiSummary = null;
+            $this->aiError = $exception->getMessage();
+        }
+    }
+
+    public function closeSummary(): void
+    {
+        $this->aiSummary = null;
+        $this->aiError = null;
+    }
+
     /** "Add note" and the N key: the note is written on the Notes tab itself, not in a dialog. */
     public function openNote(): void
     {
@@ -742,6 +775,8 @@ final class LeadPanel extends Component
             'sourceFacts' => LeadEnquiry::source($lead),
             'inboxUrl' => LeadEnquiry::inboxUrl($lead),
             'profileName' => ProfileNames::shown($lead),
+            // The assistant's Summarise button: only with a key in .env.
+            'aiReady' => Ai::enabled(),
             // Other leads of the same person, offered for merging to whoever may merge both; a colleague's is only named.
             'twins' => $user->can('merge', $lead) ? array_map(fn (array $twin): array => [...$twin, 'mergeable' => $user->can('merge', $twin['lead'])], LeadMatcher::twins($lead, $user)) : [],
             'people' => $canAssign ? app(AssignableAgents::class)->people($user, $this->brand()) : [],

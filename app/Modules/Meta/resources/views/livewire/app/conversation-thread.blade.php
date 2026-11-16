@@ -39,6 +39,9 @@
         @else
             <x-ui.badge color="warning" icon="heroicon-m-lock-closed">Reply window closed</x-ui.badge>
         @endif
+        @if ($aiReady)
+            <button type="button" class="lq-btn lq-btn-ghost lq-btn-icon lq-ai-btn" wire:click="summarise" wire:loading.attr="disabled" wire:loading.class="lq-ai-working" wire:target="summarise" title="Summarise this chat (written by AI)" aria-label="Summarise this chat"><x-heroicon-o-sparkles /></button>
+        @endif
         {{-- On a screen too narrow for the lead beside the chat, its two actions sit here. --}}
         @if ($inbox)
             @if ($canAssign)
@@ -162,6 +165,23 @@
         </div>
     </div>
 
+    {{-- The assistant's summary: for whoever asked, until they close it. Never saved, never sent. --}}
+    @if ($summary !== null || $summaryError !== null)
+        <div @class(['lq-ai-card', 'lq-ai-card-error' => $summary === null]) wire:key="ai-summary" role="status">
+            <x-heroicon-m-sparkles />
+            <div class="min-w-0 flex-1">
+                @if ($summary !== null)
+                    <strong>Summary of this chat</strong>
+                    <p class="whitespace-pre-wrap">{{ $summary }}</p>
+                    <small>Written by AI from the messages above. Check anything important against them.</small>
+                @else
+                    <p>{{ $summaryError }}</p>
+                @endif
+            </div>
+            <button type="button" class="lq-ai-card-x" wire:click="closeSummary" title="Close" aria-label="Close the summary">&times;</button>
+        </div>
+    @endif
+
     @if ($canReply)
         <form
             @class(['lq-thread-foot', 'lq-composer-note' => $isLiveChat && $mode === 'note'])
@@ -205,6 +225,34 @@
                             </li>
                         </template>
                     </ul>
+                {{-- The assistant (free AI): it writes into the box, the person reads it and sends it, or not. --}}
+                <div class="contents" x-data="chatAi" x-on:click.outside="aiOpen = false" x-on:conversation-updated.window="aiDone = false; before = null">
+                @if ($aiReady)
+                    <ul class="lq-saved-menu lq-ai-menu" x-show="aiOpen" x-cloak role="menu" aria-label="AI help">
+                        @unless ($isLiveChat && $mode === 'note')
+                            <li role="none">
+                                <button type="button" role="menuitem" class="lq-saved-item" x-on:click="run('suggest')">
+                                    <span class="lq-saved-top"><x-heroicon-m-sparkles /> Suggest a reply</span>
+                                    <span class="lq-saved-body">Writes an answer from the chat so far. You read it and change it before you send.</span>
+                                </button>
+                            </li>
+                        @endunless
+                        <li role="none">
+                            <button type="button" role="menuitem" class="lq-saved-item" x-on:click="run('improve')">
+                                <span class="lq-saved-top"><x-heroicon-m-pencil /> Fix my writing</span>
+                                <span class="lq-saved-body">Corrects the spelling and grammar of what you wrote, and keeps your meaning.</span>
+                            </button>
+                        </li>
+                        @unless ($isLiveChat && $mode === 'note')
+                            <li role="none">
+                                <button type="button" role="menuitem" class="lq-saved-item" x-on:click="run('translate')">
+                                    <span class="lq-saved-top"><x-heroicon-m-language /> Translate my reply</span>
+                                    <span class="lq-saved-body">Puts what you wrote into the language this person writes in.</span>
+                                </button>
+                            </li>
+                        @endunless
+                    </ul>
+                @endif
                 @if ($isLiveChat && $filesReady && $mode === 'reply')
                     <div class="lq-composer-file" x-show="file !== ''" x-cloak>
                         <x-heroicon-o-document />
@@ -244,7 +292,17 @@
                     <button type="button" class="lq-composer-saved" x-show="replies.length > 0" x-cloak x-on:click="all()" title="Put one of your saved replies in the box. Or type a slash.">
                         <x-heroicon-m-bolt /> Saved replies
                     </button>
+                    @if ($aiReady)
+                        <button type="button" class="lq-composer-saved lq-composer-ai" x-on:click="aiOpen = ! aiOpen" x-bind:disabled="aiBusy !== ''" x-bind:class="{ 'lq-ai-working': aiBusy !== '' }" title="Let the AI suggest a reply, fix your writing or translate it">
+                            <x-heroicon-m-sparkles /> <span x-text="aiBusy !== '' ? 'Writing…' : 'AI help'">AI help</span>
+                        </button>
+                    @endif
                 </p>
+                @if ($aiReady)
+                    <p class="lq-ai-note" x-show="aiDone" x-cloak><x-heroicon-m-sparkles /> <span>Written by AI. Read it before you send.</span> <button type="button" class="lq-ai-undo" x-show="before !== null" x-on:click="undo()">Undo</button></p>
+                    <p class="lq-ai-note lq-ai-note-error" x-show="aiError !== ''" x-cloak x-text="aiError"></p>
+                @endif
+                </div>
                 </div>
             @elseif ($isLiveChat)
                 <p class="lq-composer-locked"><x-heroicon-o-lock-closed /> <span class="flex-1">This chat is closed. Reopen it to reply; the visitor can also write again, and it opens by itself.</span></p>

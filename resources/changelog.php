@@ -20,6 +20,17 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.62.0',
+        'date' => '2026-11-16',
+        'title' => 'AI help in chats and on leads',
+        'changes' => [
+            ['new', 'AI help in every chat\'s message box (website, Messenger and Instagram), beside Saved replies: "Suggest a reply" writes an answer from the chat so far, "Fix my writing" corrects the spelling and grammar of what you wrote, and "Translate my reply" puts it into the language the person writes in. The words go into the box for you to read and change; nothing is sent until you send it, and Undo brings your own words back.'],
+            ['new', 'A sparkle button at the top of a chat writes a short summary of it, and "Summarise" on a lead does the same from what they asked for, the notes, the follow-ups and the chat. Handy when you take over from a colleague. A summary is shown to you only and is not saved.'],
+            ['new', 'The AI is free (Groq) and never sees who the customer is: names, email addresses and phone numbers are replaced by placeholders before any text goes out, and put back in what comes back. It never talks to a customer by itself. It is switched on by adding a Groq key to the server\'s settings; until then none of these buttons are shown. The privacy page names Groq while it is on.'],
+            ['fixed', 'The privacy page mentioned the visitor location lookup only while instant chat signals were switched on. It now says so whenever the lookup is in use.'],
+        ],
+    ],
+    [
         'version' => '1.61.0',
         'date' => '2026-11-16',
         'title' => 'Visitors can write without filling in the form',

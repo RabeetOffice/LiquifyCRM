@@ -1863,4 +1863,81 @@ Alpine.data('savedReplies', (replies) => ({
     },
 }));
 
+// The assistant in a chat's message box (16 Nov 2026): "Suggest a reply", "Fix my writing" and "Translate my reply"
+// ask the server (ConversationThread::assist) and put the answer in the box, where the person reads it, changes it
+// and sends it themselves. Words typed while it was thinking are never replaced, and Undo brings the old words back.
+Alpine.data('chatAi', () => ({
+    aiOpen: false,
+    aiBusy: '',
+    aiError: '',
+    aiDone: false,
+    before: null,
+
+    box() {
+        return this.$root.querySelector('textarea');
+    },
+
+    put(text) {
+        const box = this.box();
+
+        box.value = text;
+        // Livewire, the height and the counters hear about the new words through the input event.
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+        box.focus();
+    },
+
+    async run(task) {
+        const box = this.box();
+
+        this.aiOpen = false;
+
+        if (! box || this.aiBusy !== '') {
+            return;
+        }
+
+        const draft = box.value;
+
+        this.aiError = '';
+        this.aiDone = false;
+
+        if (task !== 'suggest' && draft.trim() === '') {
+            this.aiError = 'Write your reply first.';
+            box.focus();
+
+            return;
+        }
+
+        this.aiBusy = task;
+
+        try {
+            const answer = await this.$wire.assist(task, draft);
+
+            if (answer && typeof answer.text === 'string' && answer.text !== '') {
+                if (box.value !== draft) {
+                    this.aiError = 'You kept writing, so your words were left as they are. Ask again when you are ready.';
+                } else {
+                    this.before = draft;
+                    this.put(answer.text);
+                    this.aiDone = true;
+                }
+            } else {
+                this.aiError = (answer && answer.error) || 'The assistant could not answer. Try again.';
+            }
+        } catch {
+            this.aiError = 'The assistant could not answer. Try again.';
+        } finally {
+            this.aiBusy = '';
+        }
+    },
+
+    undo() {
+        if (this.before !== null) {
+            this.put(this.before);
+        }
+
+        this.before = null;
+        this.aiDone = false;
+    },
+}));
+
 Livewire.start();

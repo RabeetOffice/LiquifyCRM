@@ -11,8 +11,11 @@ use App\Modules\Chat\Actions\StartCall;
 use App\Modules\Chat\Models\CannedReply;
 use App\Modules\Chat\Models\ChatWidget;
 use App\Modules\Chat\Support\ChatFiles;
+use App\Modules\Chat\Support\ChatHelper;
 use App\Modules\Chat\Support\ChatTyping;
 use App\Modules\Chat\Support\LiveChat;
+use App\Modules\Core\Support\Ai\Ai;
+use App\Modules\Core\Support\Ai\AiUnavailable;
 use App\Modules\Core\Support\CurrentBrand;
 use App\Modules\Meta\Actions\ReplyOnMessenger;
 use App\Modules\Meta\Exceptions\MetaException;
@@ -23,6 +26,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\UploadedFile;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use RuntimeException;
@@ -51,6 +55,11 @@ final class ConversationThread extends Component
 
     /** A file chosen to go with the reply (website chat only). */
     public mixed $upload = null;
+
+    /** The assistant's summary of this chat, or why it could not write one; shown until it is closed. */
+    public ?string $summary = null;
+
+    public ?string $summaryError = null;
 
     public function mount(int $conversationId, bool $inbox = false): void
     {
@@ -132,6 +141,49 @@ final class ConversationThread extends Component
         $this->reply = '';
         $this->upload = null;
         $this->dispatch('conversation-updated');
+    }
+
+    /**
+     * The assistant's words for the message box (user request, 16 Nov 2026): a suggested reply, the draft corrected, or
+     * the draft in the customer's language. Only for who may reply; the browser puts the text in the box and the
+     * person sends it, or not. Nothing on the screen changes, so nothing is drawn again.
+     *
+     * @return array{text?: string, error?: string}
+     */
+    #[Renderless]
+    public function assist(string $task, string $draft = ''): array
+    {
+        $conversation = $this->conversation();
+        $this->authorize('reply', $conversation);
+        abort_unless(Ai::enabled() && in_array($task, ChatHelper::TASKS, true), 404);
+
+        try {
+            return ['text' => ChatHelper::write($task, $conversation, $this->user(), mb_substr($draft, 0, 4000))];
+        } catch (AiUnavailable $exception) {
+            return ['error' => $exception->getMessage()];
+        }
+    }
+
+    /** The chat in a few lines, for whoever may read it: a Manager looking in, a colleague taking it over. */
+    public function summarise(): void
+    {
+        $conversation = $this->conversation();
+        $this->authorize('view', $conversation);
+        abort_unless(Ai::enabled(), 404);
+
+        try {
+            $this->summary = ChatHelper::summary($conversation, $this->user());
+            $this->summaryError = null;
+        } catch (AiUnavailable $exception) {
+            $this->summary = null;
+            $this->summaryError = $exception->getMessage();
+        }
+    }
+
+    public function closeSummary(): void
+    {
+        $this->summary = null;
+        $this->summaryError = null;
     }
 
     public function close(ChangeChat $changes): void
@@ -241,6 +293,8 @@ final class ConversationThread extends Component
             'accept' => ChatFiles::accept(),
             'brandSlug' => app(CurrentBrand::class)->get()?->slug,
             'savedReplies' => $this->savedReplies($conversation),
+            // The assistant's buttons: only with a key in .env.
+            'aiReady' => Ai::enabled(),
             'typingUrl' => $conversation->isLiveChat() && ($brand = app(CurrentBrand::class)->get()) !== null ? route('brand.conversations.typing', ['brand' => $brand->slug, 'conversation' => $conversation->getKey()]) : null,
             'isLiveChat' => $conversation->isLiveChat(),
             'closed' => $conversation->isClosed(),

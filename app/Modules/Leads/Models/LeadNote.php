@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $user_id
  * @property string $body
  * @property bool $is_pinned
+ * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $edited_at
  * @property int|null $edited_by
  */

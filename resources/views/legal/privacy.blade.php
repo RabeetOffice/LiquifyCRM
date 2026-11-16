@@ -76,8 +76,13 @@
         <li><strong>The administrators</strong> who run {{ $name }}.</li>
         <li><strong>Companies that work for us:</strong> the hosting company whose servers store the data (Hostinger), and the email service each business uses to send its emails.</li>
         <li><strong>Meta,</strong> when a reply is sent in Messenger or Instagram: it travels through Facebook or Instagram, as every message there does.</li>
-        @if (\App\Modules\Chat\Support\Realtime::enabled())
+        @if (\App\Modules\Core\Support\Ai\Ai::enabled())
+            <li><strong>Groq,</strong> an AI service, when a team member asks the assistant to suggest a reply, to correct or translate what they wrote, or to summarise a chat or an enquiry: it receives the words of that chat or enquiry with every name, email address and phone number replaced by a placeholder first, so it does not learn who you are or how to reach you. It never answers you by itself: a person reads what it wrote before anything is sent. It is set not to keep what it receives and not to train on it.</li>
+        @endif
+        @if (config('liquify.chat.geo', 'freeipapi') === 'freeipapi' && \App\Modules\Chat\Support\LiveChat::geoReady())
             <li><strong>FreeIPAPI,</strong> an address lookup service, when somebody opens a page with the chat box on a business's website: it receives only that browser's IP address and answers with the country, region, city, network and time zone it belongs to, so the team can see roughly where a visitor is. Nothing else is sent, and each address is asked about at most once a week.</li>
+        @endif
+        @if (\App\Modules\Chat\Support\Realtime::enabled())
             <li><strong>Ably,</strong> a live notification service, when the website chat is used: it carries only a signal that something changed in a chat, so the chat box and the team's screens can ask for it at once. It never receives a message, a name, an email address, a phone number or a file; the signal travels on a channel with a random-looking name.</li>
         @endif
         @if (\App\Modules\Chat\Support\CallServers::hasRelay())

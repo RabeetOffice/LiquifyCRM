@@ -375,3 +375,19 @@ showed the brands' own chat buttons (a dark pill with an accent icon circle, a l
   visitor wrote), sound for answers, Live visitors, details first, largest file.
 - Compared with Tidio, LiveChat, Tawk.to, Intercom and Crisp, still not built: a team photo row, custom launcher icon,
   per-page rules for the greeting, business hours, language, hide the button until scrolled.
+
+## The assistant for the team built (16 Nov 2026, version 1.62.0): Groq, team helpers first
+The user asked to "integrate Groq free AI" and chose **team helpers first**; Phase 5's virtual assistant that answers
+visitors by itself (knowledge box, modes, hand-over, `chat_ai_usage`) is still not built and needs the user's word.
+- `App\Modules\Core\Support\Ai`: `AiProvider` + `GroqProvider` (OpenAI-style `chat/completions`, models
+  `openai/gpt-oss-120b` then `openai/gpt-oss-20b`, the chat models the account's own model list showed on 16 Nov 2026
+  (the Llama models answered 404), asked with little reasoning and the reasoning left out; a 429 rests the model and the next is tried), `Ai` (per-person and per-day caps in the cache),
+  `ContactMask` (names, emails, phones out as placeholders, back in the answer). Cloudflare Workers AI can be added as a
+  second `AiProvider` in `Ai::providers()`.
+- In every chat's message box (website, Messenger, Instagram): AI help › Suggest a reply, Fix my writing, Translate my
+  reply; the words go into the box and the person sends them. A sparkle button in the thread's head summarises the chat.
+  On a lead: Summarise (what they asked for, notes, open follow-ups, chat). Summaries are shown, never saved.
+- Not sent: team notes of a chat, files, money, contacts. No table, no migration.
+- Needs from the user: a free Groq account, Zero Data Retention switched on in its console, and `GROQ_API_KEY` in the
+  live `.env`. Tried against the real Groq service on 16 Nov 2026 with the user's key on this computer (answers in 1 to 2
+  seconds); the key is not yet in the live `.env`. Fallback model `qwen/qwen3.8-27b` added the same day.

@@ -275,9 +275,28 @@
                     <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'chat']) wire:click="$set('tab', 'chat')" role="tab"><x-heroicon-o-chat-bubble-left-right /> {{ $chatChannel }}</button>
                 @endif
                 <button type="button" @class(['lq-view', 'lq-view-active' => $shown === 'timeline']) wire:click="$set('tab', 'timeline')" role="tab"><x-heroicon-o-clock /> Timeline</button>
+                @if ($aiReady)
+                    <button type="button" class="lq-view lq-view-ai" wire:click="summarise" wire:loading.attr="disabled" wire:loading.class="lq-ai-working" wire:target="summarise" title="This lead in a few lines, written by AI from what they asked for, the notes, the follow-ups and the chat"><x-heroicon-o-sparkles /> Summarise</button>
+                @endif
             </div>
 
             <div class="lq-lead-tab">
+                {{-- The assistant's summary: for whoever asked, until they close it. Never saved. --}}
+                @if ($aiSummary !== null || $aiError !== null)
+                    <div @class(['lq-ai-card', 'lq-ai-card-error' => $aiSummary === null]) wire:key="ai-summary" role="status">
+                        <x-heroicon-m-sparkles />
+                        <div class="min-w-0 flex-1">
+                            @if ($aiSummary !== null)
+                                <strong>Summary of this lead</strong>
+                                <p class="whitespace-pre-wrap">{{ $aiSummary }}</p>
+                                <small>Written by AI from this lead's notes, follow-ups and chat. Check anything important against them.</small>
+                            @else
+                                <p>{{ $aiError }}</p>
+                            @endif
+                        </div>
+                        <button type="button" class="lq-ai-card-x" wire:click="closeSummary" title="Close" aria-label="Close the summary">&times;</button>
+                    </div>
+                @endif
                 @if ($shown === 'chat')
                     <div class="lq-thread-embed">
                         @livewire(\App\Modules\Meta\Livewire\App\ConversationThread::class, ['conversationId' => $conversationId], key('lead-thread-'.$conversationId))
