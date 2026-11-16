@@ -175,8 +175,9 @@
                                     <span class="lq-person">
                                         <x-ui.avatar :name="$lead->name" tone />
                                         <span class="min-w-0">
-                                            <a href="{{ $leadUrl }}" class="lq-cell-title" onclick="if (! (event.ctrlKey || event.metaKey || event.shiftKey)) event.preventDefault()" x-data x-on:click="($event.ctrlKey || $event.metaKey || $event.shiftKey) && $event.stopPropagation()">{{ $lead->name }}</a>
-                                            @include('leads::partials.heat', ['lead' => $lead])
+                                            {{-- The name and its Hot or Warm tag share one line; a long name is cut short, the tag never. --}}
+                                            <span class="lq-name-line"><a href="{{ $leadUrl }}" class="lq-cell-title" onclick="if (! (event.ctrlKey || event.metaKey || event.shiftKey)) event.preventDefault()" x-data x-on:click="($event.ctrlKey || $event.metaKey || $event.shiftKey) && $event.stopPropagation()">{{ $lead->name }}</a>
+                                            @include('leads::partials.heat', ['lead' => $lead])</span>
                                             @php
                                                 $contact = ($fullContact[$lead->getKey()] ?? false) ? ($lead->email ?? $lead->phone) : ($lead->maskedEmail() ?? $lead->maskedPhone());
                                                 $alias = \App\Modules\Leads\Support\ProfileNames::shown($lead);

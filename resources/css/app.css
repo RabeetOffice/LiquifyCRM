@@ -13041,8 +13041,17 @@ button.lq-perday-row:hover {
     color: var(--lq-muted);
 }
 
-.lq-cell-title + .lq-heat {
-    margin-left: 0.375rem;
+.lq-name-line {
+    display: flex;
+    gap: 0.375rem;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.lq-name-line .lq-cell-title {
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .lq-heat-rate {
