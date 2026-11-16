@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.61.0',
+        'date' => '2026-11-16',
+        'title' => 'Visitors can write without filling in the form',
+        'changes' => [
+            ['improved', 'With "Ask for details first" on, a website visitor had to fill in the form before they could write, also to answer a message from the team. The form is still shown, but the message box is there too: a visitor can simply write, and the form then goes away. Use "Ask in the chat" when you want their details.'],
+        ],
+    ],
+    [
         'version' => '1.60.1',
         'date' => '2026-11-13',
         'title' => 'Chat box updates reach every website at once',

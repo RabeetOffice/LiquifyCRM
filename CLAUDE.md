@@ -249,6 +249,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `call-ring` (13 s, looped), played by `play()` in app.js with the Web Audio notes (`beep()`, `tone()`) as the fallback; a
   bell entry about a website chat or a call is not chimed on a page that has the chat desk (its own sound plays). Local `artisan serve` answers one request at a time: a browser
   test of this needs patience. Tests: `LiveChatVisitorsTest` (the chat desk case).
+  1.61.0 (user decision, 16 Nov 2026): "Ask for details first" never blocks writing. The frame shows `prechatCard()` and the
+  message box together; a visitor's first message or file takes the form away (`dropPrechat()`, which also stops the chat box's
+  own "Want a reply by email or phone?" card) and the team asks with "Ask in the chat". The away form still stands alone.
   1.60.1: `/chat/widget.js` is `Cache-Control: private, max-age=300`. Never `public`: a brand site's LiteSpeed page cache sits
   in front of liquify-chat.php and kept the old launcher after a deploy (the frame and the API are `no-store`).
 - Pipeline stages (user request, 12 Nov 2026: "Connected" between Contacted and Qualified for Melbourne only): stages are

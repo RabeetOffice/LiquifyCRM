@@ -355,10 +355,21 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
         });
     }
 
+    // The details asked for before a chat. It never stands in the way (user decision, 16 Nov 2026): the message box is
+    // there as well, and a visitor who simply writes is not asked again by the chat box; the team can ask in the chat.
+    var prechatForm = null;
+
+    function dropPrechat() {
+        if (!prechatForm) { return; }
+        if (prechatForm.parentNode) { prechatForm.parentNode.removeChild(prechatForm); }
+        prechatForm = null; detailsShown = true;
+    }
+
     function prechatCard() {
         var form = el('form', 'card');
+        prechatForm = form;
         form.appendChild(el('h2', '', 'Before we start'));
-        form.appendChild(el('p', '', 'Tell us who you are, so we can follow up if we get cut off.'));
+        form.appendChild(el('p', '', 'Tell us who you are, so we can follow up if we get cut off. Or just write your message below.'));
         var f = config.prechat.fields;
 
         if (f.name) { form.appendChild(field('Name', 'text', 'name', 'Your name', true)); }
@@ -383,6 +394,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
                 if (r.status === 422 && r.json.errors) { showErrors(form, r.json.errors); return; }
                 if (r.status >= 400) { showErrors(form, { name: 'Something went wrong. Please try again.' }); return; }
                 if (form.parentNode) { form.parentNode.removeChild(form); }
+                prechatForm = null;
                 visitor.has_details = visitor.has_details || !!r.json.lead || !!(form.elements.email && form.elements.email.value) || !!(form.elements.phone && form.elements.phone.value);
                 if (r.json.message) { addMessage(r.json.message); }
                 composer.classList.remove('hidden'); box.focus();
@@ -531,6 +543,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
                 if (r.status === 422 || r.status === 429 || r.status === 413) { addNote(r.json.error || (r.json.errors && r.json.errors.file ? r.json.errors.file[0] : 'The file was not sent. Please try again.')); return; }
                 if (r.status >= 400) { addNote('The file was not sent. Please try again.'); return; }
                 addMessage(r.json.message);
+                dropPrechat();
                 if (!visitor.has_details) { detailsCard(); }
             })
             .catch(function () { attachButton.disabled = false; if (pending.parentNode) { pending.parentNode.removeChild(pending); } addNote('No connection. Please try again.'); });
@@ -544,6 +557,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             if (r.status >= 400) { addNote('The message was not sent. Please try again.'); return false; }
             box.value = ''; resize();
             addMessage(r.json.message);
+            dropPrechat();
             if (r.json.suggest) { suggestCard(r.json.suggest); }
             else if (!visitor.has_details) { detailsCard(); }
             return true;
@@ -820,7 +834,7 @@ form.composer textarea:focus{background:var(--field);border-color:var(--a)}
             setClosed(!!r.json.closed);
 
             if (!messages.length && !config.online && !visitor.has_details) { offlineCard(); }
-            else if (!messages.length && config.prechat.enabled && !visitor.has_details) { prechatCard(); }
+            else if (!messages.length && config.prechat.enabled && !visitor.has_details) { prechatCard(); composer.classList.remove('hidden'); }
             else {
                 composer.classList.remove('hidden');
                 if (!messages.length) { thread.appendChild(el('p', 'consent', config.consent)); }

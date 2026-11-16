@@ -257,6 +257,16 @@ it('opens the chat box for the team’s first message and shows the later ones a
     expect($frame)->toContain("tell({ type: 'message', text: String(text).slice(0, 300)")->toContain("STORE + '_seen'");
 });
 
+it('lets a visitor write without filling in the details form (user decision, 16 Nov 2026)', function (): void {
+    $frame = $this->get('/chat/frame/'.$this->widget->widget_key.'?o='.urlencode('https://dublinpublishingpress.ie'))->assertOk()->getContent();
+
+    // The form and the message box are shown together, and the first message takes the form away.
+    expect($frame)->toContain("{ prechatCard(); composer.classList.remove('hidden'); }")
+        ->toContain('Or just write your message below.')
+        ->toContain('function dropPrechat()');
+    expect(substr_count($frame, 'dropPrechat();'))->toBe(2);
+});
+
 it('shows a waiting website chat and a visitor who just arrived on whatever screen is open (user request, 13 Nov 2026)', function (): void {
     $waiting = fn ($user) => $this->actingAs($user)->getJson('/chats/waiting')->assertOk();
     $outsider = managerOf(department(brand(['name' => 'UK Publishing House', 'slug' => 'ukph']), ['name' => 'Sales']), ['name' => 'Olga Outsider']);

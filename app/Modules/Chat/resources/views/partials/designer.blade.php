@@ -400,7 +400,7 @@
                     <h2 class="lq-group-title">Before the chat</h2>
                     <div class="lq-group-body lq-group-rows">
                         <div class="lq-group-row">
-                            <div><strong>Ask for details first</strong><span>A visitor becomes a lead only once they give an email address or a phone number.</span></div>
+                            <div><strong>Ask for details first</strong><span>A visitor becomes a lead only once they give an email address or a phone number. They can also skip the form and just write.</span></div>
                             <button type="button" role="switch" class="lq-switch" :aria-checked="$wire.askFirst ? 'true' : 'false'" x-on:click="$wire.askFirst = !$wire.askFirst; open = true; away = false" aria-label="Ask for details first"></button>
                         </div>
                         <div class="lq-group-row lq-group-row-wrap lq-chip-checks" x-show="$wire.askFirst">
@@ -492,7 +492,7 @@
                                     <div class="lq-pv-msg"><span x-text="text($wire.welcome, 'welcome')"></span></div>
                                     <div class="lq-pv-form">
                                         <strong>Before we start</strong>
-                                        <p>So we can get back to you if the chat is cut off.</p>
+                                        <p>So we can get back to you if the chat is cut off. Or just write your message below.</p>
                                         @foreach ($prechatFields as $field => $label)
                                             <span class="lq-pv-field {{ $field === 'message' ? 'lq-pv-field-tall' : '' }}" x-show="$wire.fields.{{ $field }}">{{ $label }}</span>
                                         @endforeach
@@ -513,7 +513,7 @@
                                 </div>
                             </template>
                         </div>
-                        <div class="lq-pv-composer" x-show="!away && !$wire.askFirst">
+                        <div class="lq-pv-composer" x-show="!away">
                             <x-heroicon-o-paper-clip />
                             <span>Write a message…</span>
                             <b :style="'background:' + a + ';color:' + on(a)"><x-heroicon-s-paper-airplane /></b>
