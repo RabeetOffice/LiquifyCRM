@@ -157,6 +157,8 @@ final class Menu
             $groups[] = ['label' => 'Team', 'items' => [
                 self::item('Departments', 'heroicon-o-rectangle-group', route('brand.departments.index', $params), $isActive('brand.departments.index', 'brand.departments.create', 'brand.departments.edit')),
                 self::item('Members', 'heroicon-o-users', route('brand.members.index', $params), $isActive('brand.members.index', 'brand.members.create')),
+                // How many leads each person took with Take (27 Nov 2026).
+                ...($clientsOnly ? [] : [self::item('Leads taken', 'heroicon-o-hand-raised', route('brand.leads.taken', $params), $isActive('brand.leads.taken'))]),
             ]];
         }
 

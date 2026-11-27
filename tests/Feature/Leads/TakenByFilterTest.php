@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\TakeLead;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
+use App\Modules\Leads\Livewire\App\LeadsTaken;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\LeadTakes;
 use Illuminate\Support\Facades\Notification;
@@ -118,4 +119,37 @@ it('keeps a Manager to the people of their own teams', function (): void {
         ->set('takenBy', (string) $stranger->getKey());
 
     expect($list->viewData('takes'))->toBeNull();
+});
+
+it('lists everybody on Team › Leads taken with today, this month, last month and all time', function (): void {
+    $this->travelTo(now()->startOfMonth()->subDays(3));
+    app(TakeLead::class)->handle(($this->lead)('Old Take'), $this->ali);
+    $this->travelBack();
+    $won = ($this->lead)('New Take');
+    app(TakeLead::class)->handle($won, $this->ali);
+    $passed = ($this->lead)('Passed On');
+    app(TakeLead::class)->handle($passed, $this->ali);
+    app(AssignLead::class)->handle($passed->fresh(), $this->sara, $this->manager);
+
+    $counts = LeadTakes::perPerson((int) $this->brand->getKey(), [(int) $this->ali->getKey(), (int) $this->sara->getKey()]);
+
+    expect($counts[$this->ali->getKey()])->toMatchArray(['today' => 2, 'month' => 2, 'last_month' => 1, 'all' => 3, 'theirs' => 2])
+        ->and($counts[$this->sara->getKey()]['all'])->toBe(0);
+
+    foreach ([$this->admin, $this->manager] as $viewer) {
+        Livewire::actingAs($viewer)
+            ->test(LeadsTaken::class, ['brand' => $this->brand])
+            ->assertOk()
+            ->assertSee('Ali Khan')
+            ->assertSee('Sara Malik')
+            ->assertSee(route('brand.leads.index', ['brand' => $this->brand->slug, 'taken' => $this->ali->getKey(), 'taken_in' => 'month']))
+            ->assertViewHas('totals', ['today' => 2, 'month' => 2, 'last_month' => 1, 'all' => 3]);
+    }
+
+    $this->actingAs($this->admin)->get(route('brand.leads.index', ['brand' => $this->brand->slug]))->assertSee('Leads taken');
+});
+
+it('keeps Agents out of Team › Leads taken', function (): void {
+    $this->actingAs($this->ali)->get(route('brand.leads.taken', ['brand' => $this->brand->slug]))->assertForbidden();
+    $this->actingAs($this->manager)->get(route('brand.leads.taken', ['brand' => $this->brand->slug]))->assertOk()->assertSee('Leads taken');
 });

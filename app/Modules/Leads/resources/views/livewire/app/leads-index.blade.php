@@ -18,6 +18,9 @@
     @endphp
     <x-ui.page-header :title="$agent && ! $team ? 'My leads' : 'Leads'" :subtitle="$subtitle">
         <x-slot:actions>
+            @if ($canSeeTakes)
+                <x-ui.button variant="ghost" icon="heroicon-o-hand-raised" :href="route('brand.leads.taken', ['brand' => $brand->slug])">Leads taken</x-ui.button>
+            @endif
             @if ($can['archiveAny'] && ! $archivedView)
                 <x-ui.button variant="ghost" icon="heroicon-o-archive-box" wire:click="$set('tab', 'archived')">Archived</x-ui.button>
             @endif

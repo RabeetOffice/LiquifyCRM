@@ -499,6 +499,7 @@ final class LeadsIndex extends Component
             'archivedView' => $this->archivedView(),
             'hasFilters' => $chips !== [],
             'takes' => $this->takeSummary($user, $agentOptions),
+            'canSeeTakes' => ! $agent && LeadsTaken::allowed($user, $this->brand),
         ]);
     }
 

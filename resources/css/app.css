@@ -5635,6 +5635,29 @@ a.lq-cell-title {
     border-bottom: 1px solid var(--lq-card-border);
 }
 
+/* Team › Leads taken: numbers to the right, each one a link to those leads. */
+.lq-takes-table .lq-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.lq-take-count {
+    display: inline-block;
+    min-width: 2rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--lq-orange);
+    background: color-mix(in srgb, var(--lq-orange) 10%, transparent);
+    text-align: center;
+    transition: background 150ms var(--lq-ease);
+}
+
+.lq-take-count:hover {
+    background: color-mix(in srgb, var(--lq-orange) 18%, transparent);
+}
+
 /* "Taken by" on the Leads list: the person's takes, inside the list card. */
 .lq-takes {
     padding: 1rem 1.5rem;

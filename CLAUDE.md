@@ -561,7 +561,9 @@ in the document's weekly phases; never skip a phase or silently change the desig
   `$takenIn`, URL `taken` / `taken_in`) for Admins and Managers, never Agents, and only a person of
   `AssignableAgents::for()`. `LeadTakes::leadIds()` reads the timeline: a take is a `leads.assigned` line caused by the
   person it went to (no new column, older takes count); one given back by the same person within `UNDO_MINUTES` with
-  nobody in between is not a take. The summary counts archived ones too. Tests: `tests/Feature/Leads/TakenByFilterTest.php`.
+  nobody in between is not a take. The summary counts archived ones too. The user found the filter too hidden (same day): the
+  main place is Team › Leads taken (`LeadsTaken`, `brand.leads.taken`, `LeadTakes::perPerson`: today, this month, last month,
+  all, still theirs, won; numbers link to the filtered list), also a button on Leads. Tests: `tests/Feature/Leads/TakenByFilterTest.php`.
 - Archived leads (user request, 19 Oct 2026): `leads.archived_at` / `archived_by`, behind `LeadArchive::ready()`.
   `ArchiveLead` (handle, `bringBack`) for whoever may `assign` the lead (`LeadPolicy::archive`; `archiveAny` for the
   Archived view and the bulk buttons); Agents do not archive. An archived lead stays visible and openable but is out
