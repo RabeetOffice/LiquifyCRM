@@ -24,7 +24,8 @@ return [
         'date' => '2026-11-27',
         'title' => 'Leads taken: who took how many leads',
         'changes' => [
-            ['new', 'Team › Leads taken (also a "Leads taken" button on the Leads page): one row per person with how many leads they took with the Take button today, this month, last month and in all, how many are still with them and how many were won. Click a number to see those leads. For Admins and Managers (a Manager sees the people of their own teams); Agents do not get it. A lead taken by mistake and given back with Undo is not counted, and takes from before this update count too.'],
+            ['new', 'A Performance tab in the menu (under Team, for Admins and Managers) for everything about how the team is doing. Its first screen is Leads taken.'],
+            ['new', 'Performance › Leads taken (also a "Leads taken" button on the Leads page): one row per person with how many leads they took with the Take button today, this month, last month and in all, how many are still with them and how many were won. Click a number to see those leads. For Admins and Managers (a Manager sees the people of their own teams); Agents do not get it. A lead taken by mistake and given back with Undo is not counted, and takes from before this update count too.'],
             ['new', 'Leads › Filters › "Taken by" and "Taken when" show the leads one person took, the same list the numbers open.'],
         ],
     ],

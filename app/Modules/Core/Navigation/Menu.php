@@ -157,8 +157,8 @@ final class Menu
             $groups[] = ['label' => 'Team', 'items' => [
                 self::item('Departments', 'heroicon-o-rectangle-group', route('brand.departments.index', $params), $isActive('brand.departments.index', 'brand.departments.create', 'brand.departments.edit')),
                 self::item('Members', 'heroicon-o-users', route('brand.members.index', $params), $isActive('brand.members.index', 'brand.members.create')),
-                // How many leads each person took with Take (27 Nov 2026).
-                ...($clientsOnly ? [] : [self::item('Leads taken', 'heroicon-o-hand-raised', route('brand.leads.taken', $params), $isActive('brand.leads.taken'))]),
+                // How the team is doing (user request, 27 Nov 2026): one tab, new performance screens go inside it.
+                ...($clientsOnly ? [] : [self::performanceTab($params, $isActive)]),
             ]];
         }
 
@@ -330,6 +330,29 @@ final class Menu
             'active' => in_array(true, array_column($children, 'active'), true),
             // The unread chats show on the tab itself too, while it is closed (the sidebar draws it).
             'badge' => $children[0]['label'] === 'Chats' ? $children[0]['badge'] : null,
+            'children' => $children,
+        ];
+    }
+
+    /**
+     * Performance: everything about how people are doing, for Admins and the brand's Managers (the Team group is
+     * theirs). Leads taken first; add a new performance screen as a child here, never as a top-level item.
+     *
+     * @param  array<string, string>  $params
+     * @return array<string, mixed>
+     */
+    private static function performanceTab(array $params, Closure $isActive): array
+    {
+        $children = [
+            self::item('Leads taken', 'heroicon-o-hand-raised', route('brand.leads.taken', $params), $isActive('brand.leads.taken')),
+        ];
+
+        return [
+            'label' => 'Performance',
+            'icon' => 'heroicon-o-chart-bar',
+            'url' => $children[0]['url'],
+            'active' => in_array(true, array_column($children, 'active'), true),
+            'badge' => null,
             'children' => $children,
         ];
     }

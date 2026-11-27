@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Navigation\Menu;
 use App\Modules\Leads\Actions\AssignLead;
 use App\Modules\Leads\Actions\TakeLead;
 use App\Modules\Leads\Livewire\App\LeadsIndex;
@@ -152,4 +153,18 @@ it('lists everybody on Team › Leads taken with today, this month, last month a
 it('keeps Agents out of Team › Leads taken', function (): void {
     $this->actingAs($this->ali)->get(route('brand.leads.taken', ['brand' => $this->brand->slug]))->assertForbidden();
     $this->actingAs($this->manager)->get(route('brand.leads.taken', ['brand' => $this->brand->slug]))->assertOk()->assertSee('Leads taken');
+});
+
+it('puts Leads taken inside the Performance tab of the menu, for Admins and Managers only', function (): void {
+    $tab = fn ($user) => collect(Menu::for($user, $this->brand, 'brand.leads.taken'))
+        ->flatMap(fn (array $group): array => $group['items'])
+        ->firstWhere('label', 'Performance');
+
+    foreach ([$this->admin, $this->manager] as $viewer) {
+        expect($tab($viewer))->not->toBeNull()
+            ->and($tab($viewer)['active'])->toBeTrue()
+            ->and(array_column($tab($viewer)['children'], 'label'))->toBe(['Leads taken']);
+    }
+
+    expect($tab($this->ali))->toBeNull();
 });
