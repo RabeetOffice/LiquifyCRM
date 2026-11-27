@@ -5635,6 +5635,12 @@ a.lq-cell-title {
     border-bottom: 1px solid var(--lq-card-border);
 }
 
+/* "Taken by" on the Leads list: the person's takes, inside the list card. */
+.lq-takes {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--lq-card-border);
+}
+
 .lq-chip {
     display: inline-flex;
     align-items: center;

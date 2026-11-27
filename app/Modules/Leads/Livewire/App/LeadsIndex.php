@@ -25,6 +25,7 @@ use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Models\LeadStatus;
 use App\Modules\Leads\Support\AssignableAgents;
 use App\Modules\Leads\Support\ContactVisibility;
+use App\Modules\Leads\Support\LeadTakes;
 use App\Modules\Leads\Support\ProfileNames;
 use App\Modules\Sales\Models\LeadDistribution;
 use App\Modules\Sites\Support\LeadSites;
@@ -58,7 +59,7 @@ final class LeadsIndex extends Component
         sortBy as private sortByColumn;
     }
 
-    private const FILTERS = ['status', 'source', 'department', 'owner', 'assigned', 'from', 'until'];
+    private const FILTERS = ['status', 'source', 'department', 'owner', 'assigned', 'takenBy', 'takenIn', 'from', 'until'];
 
     /** The Sort choice above the list: column and direction for each. */
     public const ORDERS = [
@@ -92,6 +93,14 @@ final class LeadsIndex extends Component
 
     #[Url(except: '')]
     public string $assigned = '';
+
+    /** "Taken by": the leads this person took for themselves (Admins and Managers, LeadTakes). */
+    #[Url(as: 'taken', except: '')]
+    public string $takenBy = '';
+
+    /** When they took them: a key of LeadTakes::PERIODS, empty for any time. */
+    #[Url(as: 'taken_in', except: '')]
+    public string $takenIn = '';
 
     #[Url(except: '')]
     public string $from = '';
@@ -155,7 +164,7 @@ final class LeadsIndex extends Component
 
     public function clearFilters(): void
     {
-        $this->reset('status', 'source', 'department', 'owner', 'assigned', 'from', 'until', 'search');
+        $this->reset('status', 'source', 'department', 'owner', 'assigned', 'takenBy', 'takenIn', 'from', 'until', 'search');
         $this->resetPage();
     }
 
@@ -166,7 +175,8 @@ final class LeadsIndex extends Component
             return;
         }
 
-        $this->reset($filter);
+        // The period belongs to "Taken by": one chip for both.
+        $this->reset($filter === 'takenBy' ? ['takenBy', 'takenIn'] : [$filter]);
         $this->resetPage();
         $this->selected = [];
     }
@@ -488,6 +498,7 @@ final class LeadsIndex extends Component
             ],
             'archivedView' => $this->archivedView(),
             'hasFilters' => $chips !== [],
+            'takes' => $this->takeSummary($user, $agentOptions),
         ]);
     }
 
@@ -508,6 +519,9 @@ final class LeadsIndex extends Component
             'source' => $this->source !== '' ? 'Source: '.(LeadSource::tryFrom($this->source)?->getLabel() ?? $this->source) : null,
             'department' => $this->department !== '' ? 'Department: '.($departments[(int) $this->department] ?? 'unknown') : null,
             'owner' => $this->owner !== '' ? 'Owner: '.($agents[(int) $this->owner] ?? 'unknown') : null,
+            'takenBy' => $this->takenPerson($agents) !== null
+                ? 'Taken by '.$agents[$this->takenPerson($agents)].(isset(LeadTakes::PERIODS[$this->takenIn]) ? ', '.mb_strtolower(LeadTakes::PERIODS[$this->takenIn]) : '')
+                : null,
             'assigned' => match ($this->assigned) {
                 'yes' => 'Assigned only',
                 'no' => 'Unassigned only',
@@ -549,6 +563,7 @@ final class LeadsIndex extends Component
             ->when($this->source !== '', fn (Builder $q): Builder => $q->where('source_type', $this->source))
             ->when($this->department !== '', fn (Builder $q): Builder => $q->where('department_id', (int) $this->department))
             ->when($this->owner !== '', fn (Builder $q): Builder => $q->where('assigned_to', (int) $this->owner))
+            ->when($this->takenPerson() !== null, fn (Builder $q): Builder => $q->whereIn('id', LeadTakes::leadIds((int) $this->takenPerson(), (int) $this->brand->getKey(), $this->takenIn)))
             ->when($this->assigned === 'yes', fn (Builder $q): Builder => $q->whereNotNull('assigned_to'))
             ->when($this->assigned === 'no', fn (Builder $q): Builder => $q->whereNull('assigned_to'))
             ->when($this->from !== '', fn (Builder $q): Builder => $q->where('created_at', '>=', $this->from))
@@ -655,6 +670,49 @@ final class LeadsIndex extends Component
         $upsell = Department::query()->whereKey(array_keys($this->departmentOptions()))->get()->filter(fn (Department $department): bool => $department->isUpsell())->modelKeys();
 
         return array_diff_key($this->departmentOptions(), array_flip($upsell));
+    }
+
+    /**
+     * The person of "Taken by", when the viewer may look at them: never for an Agent, and only
+     * somebody of the viewer's own people (a Manager's teams, everybody for an Admin).
+     *
+     * @param  array<int, string>|null  $agents
+     */
+    private function takenPerson(?array $agents = null): ?int
+    {
+        if ($this->takenBy === '' || ! ctype_digit($this->takenBy) || $this->isAgent()) {
+            return null;
+        }
+
+        $agents ??= app(AssignableAgents::class)->for($this->user(), $this->brand);
+
+        return array_key_exists((int) $this->takenBy, $agents) ? (int) $this->takenBy : null;
+    }
+
+    /**
+     * How many leads the chosen person took, how many are still theirs and how many were won, archived
+     * ones included (the list itself leaves those out).
+     *
+     * @param  array<int, string>  $agents
+     * @return array{name: string, period: string, taken: int, theirs: int, won: int}|null
+     */
+    private function takeSummary(User $user, array $agents): ?array
+    {
+        $person = $this->takenPerson($agents);
+
+        if ($person === null) {
+            return null;
+        }
+
+        $taken = fn (): Builder => Lead::query()->visibleTo($user)->whereIn('id', LeadTakes::leadIds($person, (int) $this->brand->getKey(), $this->takenIn));
+
+        return [
+            'name' => str_replace(' (you)', '', $agents[$person]),
+            'period' => LeadTakes::PERIODS[$this->takenIn] ?? 'Any time',
+            'taken' => $taken()->count(),
+            'theirs' => $taken()->where('assigned_to', $person)->count(),
+            'won' => $taken()->whereHas('status', fn (Builder $status): Builder => $status->where('is_won', true))->count(),
+        ];
     }
 
     private function isAgent(): bool

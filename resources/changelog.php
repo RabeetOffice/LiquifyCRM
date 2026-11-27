@@ -20,6 +20,14 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.64.0',
+        'date' => '2026-11-27',
+        'title' => 'See which leads one person took',
+        'changes' => [
+            ['new', 'Leads › Filters › "Taken by": choose a person and the list shows the leads they took for themselves with the Take button, with how many they took, how many are still with them and how many were won. "Taken when" narrows it to today, the last 7 days, this month or last month. For Admins and Managers (a Manager sees the people of their own teams); Agents do not get it. A lead taken by mistake and given back with Undo is not counted, and earlier takes count too.'],
+        ],
+    ],
+    [
         'version' => '1.63.0',
         'date' => '2026-11-16',
         'title' => 'Hot leads, why leads are lost, follow-ups from notes',

@@ -108,6 +108,22 @@
                             @endforeach
                         </x-ui.select>
                     </x-ui.field>
+                    <x-ui.field label="Taken by">
+                        <x-ui.select wire:model.live="takenBy" placeholder="Anyone" class="lq-input-sm">
+                            @foreach ($agentOptions as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                    @if ($takenBy !== '')
+                        <x-ui.field label="Taken when">
+                            <x-ui.select wire:model.live="takenIn" placeholder="Any time" class="lq-input-sm">
+                                @foreach (\App\Modules\Leads\Support\LeadTakes::PERIODS as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </x-ui.select>
+                        </x-ui.field>
+                    @endif
                     <x-ui.field label="Assigned">
                         <x-ui.select wire:model.live="assigned" placeholder="All" class="lq-input-sm">
                             <option value="no">Unassigned only</option>
@@ -133,6 +149,15 @@
                     </button>
                 @endforeach
                 <button type="button" class="lq-chip-clear" wire:click="clearFilters">Clear all</button>
+            </div>
+        @endif
+
+        @if ($takes)
+            {{-- "Taken by": how many leads this person took for themselves, and what became of them. --}}
+            <div class="lq-minis lq-takes">
+                <x-ui.mini :label="'Taken by '.$takes['name'].' · '.mb_strtolower($takes['period'])" :value="number_format($takes['taken'])" icon="heroicon-o-hand-raised" />
+                <x-ui.mini label="Still with them" :value="number_format($takes['theirs'])" icon="heroicon-o-user" />
+                <x-ui.mini label="Won" :value="number_format($takes['won'])" icon="heroicon-o-trophy" tone="ok" />
             </div>
         @endif
 
