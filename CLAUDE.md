@@ -565,6 +565,13 @@ in the document's weekly phases; never skip a phase or silently change the desig
   main place is Team › Performance › Leads taken (the Performance tab is `Menu::performanceTab()`, user request same day: add every
   new performance screen there as a child, never top-level; `LeadsTaken`, `brand.leads.taken`, `LeadTakes::perPerson`: today, this month, last month,
   all, still theirs, won; numbers link to the filtered list), also a button on Leads. Tests: `tests/Feature/Leads/TakenByFilterTest.php`.
+  1.65.0 (user: "add all in performance"): Leaderboard (`SalesReport::agentRows`, money received), Response speed, Activity,
+  Conversion, Lost reasons (`app/Modules/Leads/Livewire/App/Performance/*`, routes `brand.performance.*`). Numbers come from
+  `TeamPerformance` (one month of the viewer's calendar, per person, no table of its own: first contact = the lead left New,
+  replies = `messages` out by `sent_by` but not notes/events, overdue = due in the month, passed, not done; lost = lost leads
+  by `last_activity_at`, as on the Dashboard). Each screen uses `PerformancePage` (access, month picker, the viewer's people
+  from `AssignableAgents::people`, `screens()` = the tab's children and the links row in `leads::partials.performance-head`).
+  A new performance screen: add it to `screens()`, its icon in `Menu::performanceTab`, a route. Tests: `PerformanceTest.php`.
 - Archived leads (user request, 19 Oct 2026): `leads.archived_at` / `archived_by`, behind `LeadArchive::ready()`.
   `ArchiveLead` (handle, `bringBack`) for whoever may `assign` the lead (`LeadPolicy::archive`; `archiveAny` for the
   Archived view and the bulk buttons); Agents do not archive. An archived lead stays visible and openable but is out

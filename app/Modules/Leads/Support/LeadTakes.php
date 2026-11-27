@@ -99,6 +99,32 @@ final class LeadTakes
         return $counts;
     }
 
+    /**
+     * How many leads each person took between two stored moments, [since, until).
+     *
+     * @param  list<int>  $people
+     * @return array<int, int>
+     */
+    public static function countsBetween(int $brandId, array $people, CarbonImmutable $since, CarbonImmutable $until): array
+    {
+        if ($people === []) {
+            return [];
+        }
+
+        $table = self::table();
+
+        return self::takes($brandId)
+            ->whereIn("{$table}.causer_id", $people)
+            ->whereColumn("{$table}.properties->to", "{$table}.causer_id")
+            ->where("{$table}.created_at", '>=', $since)
+            ->where("{$table}.created_at", '<', $until)
+            ->groupBy("{$table}.causer_id")
+            ->selectRaw("{$table}.causer_id as person, COUNT(DISTINCT {$table}.subject_id) as n")
+            ->pluck('n', 'person')
+            ->map(fn (mixed $n): int => (int) $n)
+            ->all();
+    }
+
     /** Every take of a brand: a lead given to themselves by the person who clicked, not undone straight after. */
     private static function takes(int $brandId): QueryBuilder
     {

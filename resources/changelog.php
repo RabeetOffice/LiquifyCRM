@@ -20,6 +20,19 @@ declare(strict_types=1);
 
 return [
     [
+        'version' => '1.65.0',
+        'date' => '2026-11-27',
+        'title' => 'Performance: leaderboard, response speed, activity, conversion and lost reasons',
+        'changes' => [
+            ['new', 'Performance › Leaderboard: who is ahead this month, by % of target and then by the money received, with the sales, new leads and time to first contact of each person.'],
+            ['new', 'Performance › Response speed: for the new leads of each person, how long until the lead was theirs, how long until the first contact, how many were contacted within 15 minutes and how many still wait.'],
+            ['new', 'Performance › Activity: what each person did in the month: notes written, follow-ups done, follow-ups left overdue, chat replies, stage moves and leads taken.'],
+            ['new', 'Performance › Conversion: of the leads of each person that arrived in the month, how many were won, lost or are still open, with the conversion rate.'],
+            ['new', 'Performance › Lost reasons: why the leads of each person were lost, one column per reason.'],
+            ['improved', 'Every Performance screen has a month picker (the last twelve months) and links to the other screens at the top. For Admins and Managers only; a Manager sees the people of their own teams.'],
+        ],
+    ],
+    [
         'version' => '1.64.0',
         'date' => '2026-11-27',
         'title' => 'Leads taken: who took how many leads',

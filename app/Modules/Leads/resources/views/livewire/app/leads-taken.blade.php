@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-6" data-live-refresh>
-    <x-ui.page-header title="Leads taken" subtitle="How many leads each person took for themselves with the Take button. Click a number to see those leads." />
+    @include('leads::partials.performance-head', ['title' => 'Leads taken', 'subtitle' => 'How many leads each person took for themselves with the Take button. Click a number to see those leads.', 'current' => 'brand.leads.taken'])
 
     <div class="lq-minis">
         <x-ui.mini label="Taken today" :value="number_format($totals['today'])" icon="heroicon-o-sun" />

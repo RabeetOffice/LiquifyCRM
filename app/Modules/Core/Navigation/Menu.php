@@ -11,6 +11,7 @@ use App\Modules\Auth\Support\SignInRules;
 use App\Modules\Brands\Models\Brand;
 use App\Modules\Chat\Support\ChatAccess;
 use App\Modules\Chat\Support\LiveChat;
+use App\Modules\Leads\Livewire\App\LeadsTaken;
 use App\Modules\Leads\Models\Lead;
 use App\Modules\Leads\Support\WebsiteLeads;
 use App\Modules\Meta\Models\Conversation;
@@ -336,16 +337,26 @@ final class Menu
 
     /**
      * Performance: everything about how people are doing, for Admins and the brand's Managers (the Team group is
-     * theirs). Leads taken first; add a new performance screen as a child here, never as a top-level item.
+     * theirs). The screens are PerformancePage::screens(); add a new performance screen as a child here, never as a top-level item.
      *
      * @param  array<string, string>  $params
      * @return array<string, mixed>
      */
     private static function performanceTab(array $params, Closure $isActive): array
     {
-        $children = [
-            self::item('Leads taken', 'heroicon-o-hand-raised', route('brand.leads.taken', $params), $isActive('brand.leads.taken')),
+        $icons = [
+            'brand.performance.leaderboard' => 'heroicon-o-trophy',
+            'brand.leads.taken' => 'heroicon-o-hand-raised',
+            'brand.performance.speed' => 'heroicon-o-bolt',
+            'brand.performance.activity' => 'heroicon-o-pencil-square',
+            'brand.performance.conversion' => 'heroicon-o-arrow-trending-up',
+            'brand.performance.lost' => 'heroicon-o-x-circle',
         ];
+        $children = [];
+
+        foreach (LeadsTaken::screens() as $route => $label) {
+            $children[] = self::item($label, $icons[$route] ?? 'heroicon-o-chart-bar', route($route, $params), $isActive($route));
+        }
 
         return [
             'label' => 'Performance',

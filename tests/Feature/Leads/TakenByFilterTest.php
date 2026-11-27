@@ -163,7 +163,7 @@ it('puts Leads taken inside the Performance tab of the menu, for Admins and Mana
     foreach ([$this->admin, $this->manager] as $viewer) {
         expect($tab($viewer))->not->toBeNull()
             ->and($tab($viewer)['active'])->toBeTrue()
-            ->and(array_column($tab($viewer)['children'], 'label'))->toBe(['Leads taken']);
+            ->and(array_column($tab($viewer)['children'], 'label'))->toContain('Leads taken');
     }
 
     expect($tab($this->ali))->toBeNull();
